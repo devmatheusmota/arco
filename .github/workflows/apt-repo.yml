@@ -1,0 +1,109 @@
+name: APT repository
+
+# Publishes the .deb from a release as an apt repository on GitHub Pages, so
+# `apt upgrade` picks up new versions instead of each one being a manual
+# download. Runs after a release is published, and can be re-run by hand to
+# rebuild the index from whatever the latest release holds.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Pages deployment is a singleton: a second run must wait rather than race the
+# first, or the index and the pool can end up describing different versions.
+concurrency:
+  group: apt-repo
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev gnupg
+
+      - name: Download the .deb from the latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p repo/pool/main
+          gh release download --repo "$GITHUB_REPOSITORY" \
+            --pattern '*.deb' --dir repo/pool/main --clobber
+          ls -la repo/pool/main
+
+      - name: Import the signing key
+        env:
+          APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APT_GPG_PRIVATE_KEY" ]; then
+            echo "APT_GPG_PRIVATE_KEY is not set; an unsigned repo would be rejected by apt." >&2
+            exit 1
+          fi
+          printf '%s' "$APT_GPG_PRIVATE_KEY" | gpg --batch --import
+
+      - name: Build the index
+        run: |
+          cd repo
+          # Paths inside Packages must be relative to the repo root, so scan from here.
+          dpkg-scanpackages --arch amd64 pool/main > dists/stable/main/binary-amd64/Packages 2>/dev/null || {
+            mkdir -p dists/stable/main/binary-amd64
+            dpkg-scanpackages --arch amd64 pool/main > dists/stable/main/binary-amd64/Packages
+          }
+          gzip -9fk dists/stable/main/binary-amd64/Packages
+
+      - name: Write and sign Release
+        run: |
+          cd repo/dists/stable
+          cat > Release <<EOF
+          Origin: Arco
+          Label: Arco
+          Suite: stable
+          Codename: stable
+          Architectures: amd64
+          Components: main
+          Description: Arco desktop builds
+          Date: $(date -Ru)
+          EOF
+          # apt validates these checksums against the files it downloads.
+          apt-ftparchive release . >> Release
+          gpg --batch --yes --clearsign -o InRelease Release
+          gpg --batch --yes -abs -o Release.gpg Release
+
+      - name: Publish the public key and instructions
+        run: |
+          gpg --armor --export > repo/arco.asc
+          cat > repo/index.html <<'EOF'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Arco APT repository</title>
+          <style>
+            body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.6 }
+            pre { background: #f4f4f5; padding: 1rem; overflow-x: auto; border-radius: 6px }
+          </style>
+          <h1>Arco APT repository</h1>
+          <p>Add the key and the source, then install:</p>
+          <pre>curl -fsSL https://devmatheusmota.github.io/arco/arco.asc \
+            | sudo tee /etc/apt/keyrings/arco.asc > /dev/null
+
+          echo "deb [signed-by=/etc/apt/keyrings/arco.asc] \
+            https://devmatheusmota.github.io/arco stable main" \
+            | sudo tee /etc/apt/sources.list.d/arco.list
+
+          sudo apt update &amp;&amp; sudo apt install arco</pre>
+          <p>Updates then arrive through <code>apt upgrade</code>.</p>
+          <p><a href="https://github.com/devmatheusmota/arco">Source</a> — AGPL-3.0-or-later,
+          a fork of <a href="https://github.com/Kc1t/alethe-agents">Alethe</a>.</p>
+          EOF
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: repo
+      - uses: actions/deploy-pages@v4
