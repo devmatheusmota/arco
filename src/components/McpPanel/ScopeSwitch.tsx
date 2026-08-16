@@ -1,36 +1,58 @@
+import { Fragment } from 'react'
+
 import { useT } from '../../lib/i18n'
-import type { McpScope } from '../../lib/types'
+import type { McpView } from '../../stores/mcpStore'
 import styles from './McpPanel.module.css'
 
 type Props = {
-  value: McpScope
+  value: McpView
   projectAvailable: boolean
-  onChange: (scope: McpScope) => void
+  onChange: (view: McpView) => void
 }
 
-/** Project comes first: it is the scope tied to what the user is looking at right now. */
+/**
+ * All first, then narrower buckets. Plugins get their own: they come from installed
+ * plugins rather than a file the user wrote, and they cannot be edited here.
+ */
+const VIEWS: readonly McpView[] = ['all', 'project', 'global', 'plugins']
+
+const LABEL_KEY = {
+  all: 'mcp.scopeAll',
+  project: 'mcp.scopeProject',
+  global: 'mcp.scopeGlobal',
+  plugins: 'mcp.scopePlugins',
+} as const satisfies Record<McpView, string>
+
+const HINT_KEY = {
+  all: 'mcp.scopeAllHint',
+  project: 'mcp.scopeProjectHint',
+  global: 'mcp.scopeGlobalHint',
+  plugins: 'mcp.scopePluginsHint',
+} as const satisfies Record<McpView, string>
+
 export function ScopeSwitch({ value, projectAvailable, onChange }: Props) {
   const t = useT()
   return (
     <span className={styles.scopeToggle} role="group" aria-label={t('mcp.scopeLabel')}>
-      <button
-        type="button"
-        aria-pressed={value === 'project'}
-        disabled={!projectAvailable}
-        onClick={() => onChange('project')}
-        title={projectAvailable ? t('mcp.scopeProjectHint') : t('mcp.scopeProjectUnavailable')}
-      >
-        {t('mcp.scopeProject')}
-      </button>
-      <i aria-hidden />
-      <button
-        type="button"
-        aria-pressed={value === 'global'}
-        onClick={() => onChange('global')}
-        title={t('mcp.scopeGlobalHint')}
-      >
-        {t('mcp.scopeGlobal')}
-      </button>
+      {VIEWS.map((view, index) => {
+        const unavailable = view === 'project' && !projectAvailable
+        return (
+          // Fragment, not a wrapper element: `.scopeToggle` lays its children out as
+          // a flex row, and an extra span would collapse the buttons into one cell.
+          <Fragment key={view}>
+            {index > 0 ? <i aria-hidden /> : null}
+            <button
+              type="button"
+              aria-pressed={value === view}
+              disabled={unavailable}
+              onClick={() => onChange(view)}
+              title={unavailable ? t('mcp.scopeProjectUnavailable') : t(HINT_KEY[view])}
+            >
+              {t(LABEL_KEY[view])}
+            </button>
+          </Fragment>
+        )
+      })}
     </span>
   )
 }

@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../../lib/i18n'
 import { groupServersByName, matchesQuery, mcpErrorKey } from '../../lib/mcp'
 import { groupSkillsByName, matchesSkillQuery } from '../../lib/skills'
-import { skillsScan, type SkillAgentSnapshot } from '../../lib/tauri'
+import { type SkillAgentSnapshot,skillsScan } from '../../lib/tauri'
 import type { AgentType, McpAgent, McpAgentSnapshot, McpScope } from '../../lib/types'
+import type { McpView } from '../../stores/mcpStore'
 import { AGENT_TYPE_LABELS, MCP_AGENTS } from '../../lib/types'
 import { useMcpStore } from '../../stores/mcpStore'
 import { useProjectsStore } from '../../stores/projectsStore'
@@ -13,9 +14,9 @@ import { useUiStore } from '../../stores/uiStore'
 import { EmptyState } from '../EmptyState'
 import { AgentIcon } from '../icons/AgentIcons'
 import controls from '../modals/controls.module.css'
+import styles from './McpPanel.module.css'
 import { ScopeSwitch } from './ScopeSwitch'
 import { ServerRow } from './ServerRow'
-import styles from './McpPanel.module.css'
 
 type View = 'servers' | 'skills'
 
@@ -26,7 +27,8 @@ type Diagnostic = {
 
 export function McpPanel() {
   const t = useT()
-  const scope = useMcpStore((state) => state.scope)
+  const scopeView = useMcpStore((state) => state.view)
+  const setScopeView = useMcpStore((state) => state.setView)
   const snapshots = useMcpStore((state) => state.snapshots)
   const loading = useMcpStore((state) => state.loading)
   const error = useMcpStore((state) => state.error)
@@ -105,10 +107,11 @@ export function McpPanel() {
     })
     .filter((entry): entry is Diagnostic => entry !== null)
 
-  const changeScope = (next: McpScope) => {
-    if (next === scope) return
-    setPreferences({ mcpDefaultScope: next })
-    void refresh({ scope: next, repo })
+  const changeScopeView = (next: McpView) => {
+    if (next === scopeView) return
+    // Remember the underlying scope so a later plain refresh lands in the same place.
+    if (next !== 'all' && next !== 'plugins') setPreferences({ mcpDefaultScope: next })
+    setScopeView(next)
   }
 
   const toggleAgent = (agent: McpAgent) =>
@@ -177,7 +180,11 @@ export function McpPanel() {
           })}
         </span>
         {showingServers ? (
-          <ScopeSwitch value={scope} projectAvailable={repo !== null} onChange={changeScope} />
+          <ScopeSwitch
+            value={scopeView}
+            projectAvailable={repo !== null}
+            onChange={changeScopeView}
+          />
         ) : null}
       </div>
 
@@ -224,7 +231,7 @@ export function McpPanel() {
                   key={group.name}
                   type="button"
                   className={styles.row}
-                  onClick={() => openModal('mcpManager', { tab: 'skills' })}
+                  onClick={() => openModal('mcpManager', { tab: 'skills', skill: group.name })}
                 >
                   <span className={styles.rowTop}>
                     <span className={styles.name}>{group.name}</span>

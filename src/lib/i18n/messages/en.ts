@@ -1861,6 +1861,10 @@ export const en = {
   /* ---- MCP & Skills ---- */
   'mcp.tab': 'MCP',
   'mcp.scopeLabel': 'Configuration scope',
+  'mcp.scopeAll': 'All',
+  'mcp.scopeAllHint': 'Every server, from all sources',
+  'mcp.scopePlugins': 'Plugins',
+  'mcp.scopePluginsHint': 'Servers provided by installed plugins (read-only)',
   'mcp.scopeGlobal': 'Global',
   'mcp.scopeGlobalHint': 'Servers configured for your user, available in every project',
   'mcp.scopeProject': 'Project',

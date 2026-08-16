@@ -188,7 +188,9 @@ fn scan_agent(
             kind: source.kind,
             path: display_path.clone(),
             exists: true,
-            writable: !metadata.permissions().readonly(),
+            // A plugin file is writable on disk, but editing it is pointless: the
+            // next plugin update overwrites whatever we put there.
+            writable: source.kind.writable() && !metadata.permissions().readonly(),
             parse_error: None,
             mtime_ms,
         };
@@ -1189,6 +1191,85 @@ name = "gate"
         let written = fs::read_to_string(&config).expect("written");
         assert!(written.contains("\"mcpServers\""));
         assert!(written.contains("arco-probe"));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_parent_folder_mcp_json_is_picked_up() {
+        // The real setup that exposed this: one .mcp.json above several checkouts,
+        // with the repo itself having none.
+        let dir = scratch("ancestor-mcp");
+        let parent = dir.join("workspace");
+        let repo = parent.join("repo");
+        fs::create_dir_all(&repo).expect("fixture");
+        fs::write(
+            parent.join(".mcp.json"),
+            r#"{"mcpServers":{"pg-hml":{"command":"node"}}}"#,
+        )
+        .expect("fixture");
+
+        let sources = adapter(McpAgent::Claude).config_sources(McpScope::Project, Some(&repo));
+        let found = sources
+            .iter()
+            .any(|source| source.path == parent.join(".mcp.json"));
+
+        assert!(found, "parent .mcp.json was not among the scanned sources");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_plugin_config_lists_servers_from_the_root_object() {
+        // Plugin files omit the `mcpServers` wrapper that project files use.
+        let dir = scratch("plugin-root");
+        let config = dir.join(".mcp.json");
+        fs::write(
+            &config,
+            r#"{"ado":{"command":"npx","args":["-y","@azure-devops/mcp"]},
+                "sonarqube":{"command":"node","args":["server.js"]}}"#,
+        )
+        .expect("fixture");
+
+        let raw = fs::read_to_string(&config).expect("read");
+        let source = file_source(config, McpSourceKind::Plugin);
+        let servers = adapter(McpAgent::Claude).parse(&raw, &source).expect("parse");
+
+        let names: Vec<&str> = servers.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, vec!["ado", "sonarqube"]);
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_plugin_config_still_reads_the_wrapped_shape() {
+        let dir = scratch("plugin-wrapped");
+        let config = dir.join(".mcp.json");
+        fs::write(&config, r#"{"mcpServers":{"figma":{"command":"npx"}}}"#).expect("fixture");
+
+        let raw = fs::read_to_string(&config).expect("read");
+        let source = file_source(config, McpSourceKind::Plugin);
+        let servers = adapter(McpAgent::Claude).parse(&raw, &source).expect("parse");
+
+        assert_eq!(servers.len(), 1);
+        assert_eq!(servers[0].name, "figma");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_unrelated_json_object_is_not_read_as_servers() {
+        // Guards the root-object fallback: a config file that happens to sit at the
+        // same path must not be reported as a pile of servers.
+        let dir = scratch("plugin-unrelated");
+        let config = dir.join(".mcp.json");
+        fs::write(&config, r#"{"theme":{"dark":true},"version":2}"#).expect("fixture");
+
+        let raw = fs::read_to_string(&config).expect("read");
+        let source = file_source(config, McpSourceKind::Plugin);
+        let servers = adapter(McpAgent::Claude).parse(&raw, &source).expect("parse");
+
+        assert!(servers.is_empty(), "unrelated JSON became servers");
 
         let _ = fs::remove_dir_all(&dir);
     }

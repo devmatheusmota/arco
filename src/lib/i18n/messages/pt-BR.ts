@@ -1876,6 +1876,10 @@ export const ptBR: Record<MessageKey, string> = {
   /* ---- MCP e Skills ---- */
   'mcp.tab': 'MCP',
   'mcp.scopeLabel': 'Escopo da configuração',
+  'mcp.scopeAll': 'Todos',
+  'mcp.scopeAllHint': 'Todos os servidores, de todas as origens',
+  'mcp.scopePlugins': 'Plugins',
+  'mcp.scopePluginsHint': 'Servidores fornecidos por plugins instalados (somente leitura)',
   'mcp.scopeGlobal': 'Global',
   'mcp.scopeGlobalHint': 'Servidores configurados no seu usuário, valem em todo projeto',
   'mcp.scopeProject': 'Projeto',

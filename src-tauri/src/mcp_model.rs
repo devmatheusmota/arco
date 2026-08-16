@@ -19,6 +19,9 @@ pub enum McpSourceKind {
     User,
     Local,
     Project,
+    /// A `.mcp.json` shipped by an installed plugin. Read-only: the file belongs to
+    /// the plugin, and editing it would be undone by the next plugin update.
+    Plugin,
 }
 
 impl McpSourceKind {
@@ -27,6 +30,7 @@ impl McpSourceKind {
             McpSourceKind::User => "user",
             McpSourceKind::Local => "local",
             McpSourceKind::Project => "project",
+            McpSourceKind::Plugin => "plugin",
         }
     }
 
@@ -35,8 +39,14 @@ impl McpSourceKind {
             "user" => Some(McpSourceKind::User),
             "local" => Some(McpSourceKind::Local),
             "project" => Some(McpSourceKind::Project),
+            "plugin" => Some(McpSourceKind::Plugin),
             _ => None,
         }
+    }
+
+    /// Whether the app may write servers back to a source of this kind.
+    pub fn writable(self) -> bool {
+        !matches!(self, McpSourceKind::Plugin)
     }
 }
 

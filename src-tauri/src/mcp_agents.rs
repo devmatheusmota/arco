@@ -80,9 +80,16 @@ impl McpAdapter for ClaudeAdapter {
     fn config_sources(&self, scope: McpScope, repo: Option<&Path>) -> Vec<McpSource> {
         let user_config = mcp_home(&[".claude.json"]);
         match scope {
-            McpScope::Global => user_config
-                .map(|path| vec![McpSource::file(path, McpSourceKind::User)])
-                .unwrap_or_default(),
+            McpScope::Global => {
+                let mut sources: Vec<McpSource> = user_config
+                    .map(|path| vec![McpSource::file(path, McpSourceKind::User)])
+                    .unwrap_or_default();
+                // Installed plugins ship their own servers, and Claude loads them
+                // alongside the ones in `~/.claude.json`. Without these the panel
+                // shows a fraction of what the agent actually has.
+                sources.extend(claude_plugin_sources());
+                sources
+            }
             McpScope::Project => {
                 let Some(root) = repo else {
                     return Vec::new();
@@ -99,6 +106,11 @@ impl McpAdapter for ClaudeAdapter {
                     root.join(".mcp.json"),
                     McpSourceKind::Project,
                 ));
+                // Claude walks up from the working directory, so a `.mcp.json` in a
+                // parent folder applies to every repo under it. Looking only at the
+                // repo root misses shared setups that keep one file above several
+                // checkouts.
+                sources.extend(ancestor_project_sources(root));
                 sources
             }
         }
@@ -291,6 +303,88 @@ fn resolve_project_key(projects: &Map<String, Value>, wanted: &str) -> Option<St
         .cloned()
 }
 
+/// `.mcp.json` files in folders above the repo, nearest first. Stops at the home
+/// directory: past it the path is shared with other users and no longer describes
+/// this setup.
+fn ancestor_project_sources(root: &Path) -> Vec<McpSource> {
+    let home = provider_home_dir(&[]);
+    let mut sources = Vec::new();
+    let mut current = root;
+    while let Some(parent) = current.parent() {
+        let candidate = parent.join(".mcp.json");
+        if candidate.is_file() {
+            sources.push(McpSource::file(candidate, McpSourceKind::Project));
+        }
+        if home.as_deref() == Some(parent) {
+            break;
+        }
+        current = parent;
+    }
+    sources
+}
+
+/// Every `.mcp.json` belonging to an installed plugin, read from the registry at
+/// `~/.claude/plugins/installed_plugins.json`. Walking the plugin cache directly
+/// would also pick up older versions that are on disk but not in use.
+fn claude_plugin_sources() -> Vec<McpSource> {
+    let Some(registry) = mcp_home(&[".claude", "plugins", "installed_plugins.json"]) else {
+        return Vec::new();
+    };
+    let Ok(raw) = std::fs::read_to_string(&registry) else {
+        return Vec::new();
+    };
+    let Ok(value) = serde_json::from_str::<Value>(&raw) else {
+        return Vec::new();
+    };
+    let Some(plugins) = value.get("plugins").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+
+    let mut sources = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for entries in plugins.values() {
+        let Some(entries) = entries.as_array() else {
+            continue;
+        };
+        for entry in entries {
+            let Some(install_path) = entry.get("installPath").and_then(Value::as_str) else {
+                continue;
+            };
+            let root = PathBuf::from(install_path);
+            if let Some(path) = plugin_server_file(&root) {
+                if seen.insert(path.clone()) {
+                    sources.push(McpSource::file(path, McpSourceKind::Plugin));
+                }
+            }
+        }
+    }
+    sources.sort_by(|a, b| a.path.cmp(&b.path));
+    sources
+}
+
+/// Which file holds a plugin's servers. `plugin.json` decides, and it says so in two
+/// ways: `mcpServers` as an object declares them inline, as a string it points at
+/// another file. Plugins without the manifest key fall back to a plain `.mcp.json`.
+fn plugin_server_file(root: &Path) -> Option<PathBuf> {
+    let manifest = root.join(".claude-plugin").join("plugin.json");
+    if let Ok(raw) = std::fs::read_to_string(&manifest) {
+        if let Ok(value) = serde_json::from_str::<Value>(&raw) {
+            match value.get("mcpServers") {
+                Some(Value::Object(_)) => return Some(manifest),
+                Some(Value::String(rel)) => {
+                    let path = root.join(rel.trim_start_matches("./"));
+                    if path.is_file() {
+                        return Some(path);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    let fallback = root.join(".mcp.json");
+    fallback.is_file().then_some(fallback)
+}
+
 fn json_servers_map<'a>(
     value: &'a Value,
     root_key: &str,
@@ -302,8 +396,34 @@ fn json_servers_map<'a>(
             let key = resolve_project_key(projects, wanted)?;
             projects.get(&key)?.get(root_key).and_then(Value::as_object)
         }
+        // A plugin `.mcp.json` puts the servers at the top level, unlike a project
+        // one, which wraps them in `mcpServers`. Both shapes are in the wild, so
+        // accept the wrapper when present and fall back to the root object.
+        (McpSourceKind::Plugin, _) => value
+            .get(root_key)
+            .and_then(Value::as_object)
+            .or_else(|| value.as_object().filter(|map| looks_like_server_map(map))),
         _ => value.get(root_key).and_then(Value::as_object),
     }
+}
+
+/// Distinguishes a bare map of servers from an unrelated JSON object: every entry
+/// must look like a server definition, so a stray config file is not misread.
+fn looks_like_server_map(map: &Map<String, Value>) -> bool {
+    let mut saw_entry = false;
+    for (key, value) in map {
+        if key.starts_with('$') {
+            continue;
+        }
+        let Some(entry) = value.as_object() else {
+            return false;
+        };
+        if !entry.contains_key("command") && !entry.contains_key("url") {
+            return false;
+        }
+        saw_entry = true;
+    }
+    saw_entry
 }
 
 fn parse_json_servers(
