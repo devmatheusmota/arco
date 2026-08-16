@@ -358,9 +358,7 @@ export default function App() {
     if (preferences.firstLaunchAt === null) {
       setPreferences({ firstLaunchAt: Date.now() })
     }
-    if (preferences.accountCreated && preferences.onboardingDone) {
-      useUiStore.getState().openModal_('welcome')
-    }
+    // A tela de boas-vindas não abre sozinha; segue disponível no menu.
     useUiStore.getState().setActiveView(preferences.alwaysStartOnHome ? 'home' : 'workspace')
   }, [hydrated])
 

@@ -482,8 +482,12 @@ export type Preferences = {
   notifyOnLimitReset: boolean
   /** Ditado por voz (speech-to-text) escreve no terminal ativo. Default false. */
   dictationEnabled: boolean
-  /** Hold dita enquanto Ctrl+E fica pressionado; toggle liga e desliga a cada toque. */
+  /** Hold dita enquanto o atalho fica pressionado; toggle liga e desliga a cada toque. */
   dictationMode?: 'hold' | 'toggle'
+  /** Atalho do ditado, normalizado como `ctrl+shift+e`. Default `ctrl+e`. */
+  dictationShortcut?: string
+  /** Id do modelo de voz ativo, do catálogo em `lib/speechCatalog.ts`. */
+  dictationModel?: string
   /** Quantos PTYs podem ser spawnados em paralelo (fila global). Default 3. */
   spawnConcurrency: number
                                                                              
@@ -620,6 +624,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   notifyOnLimitReset: true,
   dictationEnabled: false,
   dictationMode: 'hold',
+  dictationShortcut: 'ctrl+e',
+  dictationModel: 'parakeet-tdt-0.6b-v3-int8',
   spawnConcurrency: 3,
   resourcePolicy: {
     mode: 'manual',

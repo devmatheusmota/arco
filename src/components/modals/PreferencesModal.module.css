@@ -1066,3 +1066,21 @@
   color: var(--fg);
   border-color: var(--border-strong);
 }
+
+/* One catalogue entry: description on the left, actions pinned right. */
+.modelRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+.modelRow:last-child {
+  border-bottom: none;
+}
+
+.modelRow p {
+  margin: 2px 0 0;
+}

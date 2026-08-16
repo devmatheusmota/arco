@@ -1,8 +1,7 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { confirm } from '@tauri-apps/plugin-dialog'
 import { useEffect } from 'react'
 
-import { type CloseFailureStage,createCloseCoordinator } from '../lib/closeCoordinator'
+import { type CloseFailureStage, createCloseCoordinator } from '../lib/closeCoordinator'
 import { getLocale, translate } from '../lib/i18n'
 import { quitApp, recordFrontendError } from '../lib/tauri'
 import { flushProjectsState } from '../stores/projectsStore'
@@ -33,16 +32,10 @@ function reportCloseFailure(stage: CloseFailureStage, error: unknown): void {
 
 const appWindow = getCurrentWindow()
 const closeCoordinator = createCloseCoordinator({
-  confirmNative: () => {
-    const locale = getLocale()
-    return confirm(translate(locale, 'appClose.message'), {
-      title: translate(locale, 'appClose.title'),
-      kind: 'warning',
-      okLabel: translate(locale, 'appClose.confirm'),
-      cancelLabel: translate(locale, 'appClose.cancel'),
-    })
-  },
-  confirmFallback: () => window.confirm(translate(getLocale(), 'appClose.message')),
+  // Sem confirmação: fechar a janela fecha o app. As conversas são retomadas na
+  // próxima abertura, então o diálogo só cobrava um clique a mais toda vez.
+  confirmNative: () => Promise.resolve(true),
+  confirmFallback: () => true,
   beforeClose: flushProjectsState,
   destroyWindow: () => appWindow.destroy(),
   quitApp: () => quitApp(),
@@ -53,7 +46,6 @@ export function requestAppClose(): Promise<void> {
   return closeCoordinator.handleCloseRequest({ preventDefault: () => {} })
 }
 
-                                                                                    
 export function useCloseConfirmation(): void {
   useEffect(() => {
     let cancelled = false

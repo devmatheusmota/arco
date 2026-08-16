@@ -10,13 +10,10 @@ import {
 import { useProjectsStore } from '../../../stores/projectsStore'
 import controls from '../controls.module.css'
 import styles from '../PreferencesModal.module.css'
+import { ShortcutField } from './ShortcutField'
+import { SpeechModelPicker } from './SpeechModelPicker'
 import { SettingsSection } from './primitives'
 
-   
-                                                                            
-                                                                           
-                                                       
-   
 function TerminalCommandSection() {
   const t = useT()
   const [status, setStatus] = useState<CliShimStatus | null>(null)
@@ -210,6 +207,24 @@ export function IntegrationsPage() {
               >
                 {t('prefs.dictationModeToggle')}
               </button>
+            </div>
+
+            <div className={controls.field}>
+              <label className={controls.label}>{t('prefs.dictationShortcut')}</label>
+              <ShortcutField
+                value={preferences.dictationShortcut}
+                onChange={(dictationShortcut) => setPreferences({ dictationShortcut })}
+              />
+              <span className={controls.hint}>{t('prefs.dictationShortcutDesc')}</span>
+            </div>
+
+            <div className={controls.field}>
+              <label className={controls.label}>{t('prefs.dictationModel')}</label>
+              <span className={controls.hint}>{t('prefs.dictationModelDesc')}</span>
+              <SpeechModelPicker
+                value={preferences.dictationModel}
+                onChange={(dictationModel) => setPreferences({ dictationModel })}
+              />
             </div>
           </>
         ) : null}

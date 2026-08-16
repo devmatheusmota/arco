@@ -234,14 +234,15 @@ pub fn pty_exists(sessions: State<'_, PtySessions>, id: String) -> Result<bool, 
 /// believes it is a child session, turns transcript saving off, and reuses the
 /// parent's session id. Panes are new sessions, not children, so the markers go.
 ///
-/// Install paths are left alone: they say where the CLI lives, not who called it.
+/// Only parentage is dropped. Install paths (CLAUDE_CODE_EXECPATH), plugin data
+/// (CLAUDE_PLUGIN_DATA) and the entrypoint tag stay: they describe where the CLI
+/// lives and how it was started, not which session spawned it, and removing them
+/// breaks plugins instead of fixing anything.
 const INHERITED_SESSION_VARS: &[&str] = &[
     "CLAUDE_CODE_CHILD_SESSION",
     "CLAUDE_CODE_SESSION_ID",
     "CLAUDE_CODE_MESSAGING_SOCKET",
     "CLAUDE_CODE_MESSAGING_TOKEN",
-    "CLAUDE_CODE_ENTRYPOINT",
-    "CLAUDE_PLUGIN_DATA",
     "CODEX_COMPANION_SESSION_ID",
 ];
 
