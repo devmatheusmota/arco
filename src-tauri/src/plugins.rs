@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn installs_lists_filters_and_uninstalls() {
-        let root = std::env::temp_dir().join(format!("alethe-plugins-{}", nanoid::nanoid!(8)));
+        let root = std::env::temp_dir().join(format!("arco-plugins-{}", nanoid::nanoid!(8)));
 
         assert!(list_in(&root).unwrap().is_empty());
 

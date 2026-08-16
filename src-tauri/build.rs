@@ -48,7 +48,7 @@ fn link_libghostty() {
         .include(&headers)
         .flag("-fobjc-arc")
         .flag("-fmodules")
-        .compile("alethe_ghostty_shim");
+        .compile("arco_ghostty_shim");
     println!("cargo:rerun-if-changed=ghostty_shim/ghostty_shim.m");
     println!("cargo:rerun-if-changed=ghostty_shim/ghostty_shim.h");
 

@@ -3,7 +3,7 @@
 
 //!
 
-//!   `<repo>/.alethe/worktrees/<id>/`, compartilhando o `.git` do repo. Nesse
+//!   `<repo>/.arco/worktrees/<id>/`, compartilhando o `.git` do repo. Nesse
 
 //! - **LocalCopy** (pesado/mais funcional): `git clone --local` gera um repo
 
@@ -48,7 +48,7 @@ fn sanitize_id(agent_id: &str) -> Result<String, String> {
 }
 
 fn worktrees_base(root: &Path) -> PathBuf {
-    root.join(".alethe").join("worktrees")
+    root.join(".arco").join("worktrees")
 }
 
 /// Remove o prefixo verbatim `\\?\` do Windows. `repository_root` canonicaliza os
@@ -111,7 +111,7 @@ pub(crate) fn worktree_provision_inner(
     if dest.exists() {
         return Err("worktree_exists".to_string());
     }
-    let branch = format!("alethe/agent-{id}");
+    let branch = format!("arco/agent-{id}");
     let dest_arg = git_arg(&dest);
 
     match mode {
@@ -196,7 +196,7 @@ pub(crate) fn worktree_remove_inner(
         return Err("worktree_not_found".to_string());
     }
 
-    // que o destino esteja dentro de `<repo>/.alethe/worktrees`.
+    // que o destino esteja dentro de `<repo>/.arco/worktrees`.
     let canon_base = base
         .canonicalize()
         .map_err(|_| "invalid_worktree_path".to_string())?;
@@ -295,7 +295,7 @@ pub(crate) fn worktree_fetch_branch_inner(repo: String, agent_id: String) -> Res
     let root = repository_root(&repo)?;
     let id = sanitize_id(&agent_id)?;
     let env = worktrees_base(&root).join(&id);
-    let branch = format!("alethe/agent-{id}");
+    let branch = format!("arco/agent-{id}");
 
     match detect_mode(&env) {
         Some(WorktreeMode::LocalCopy) => {
@@ -340,12 +340,12 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("alethe-worktrees-{suffix}"));
+        let root = std::env::temp_dir().join(format!("arco-worktrees-{suffix}"));
         fs::create_dir_all(&root).unwrap();
         let run = |args: &[&str]| checked_output(&root, args).unwrap();
         run(&["init"]);
-        run(&["config", "user.name", "Alethe Test"]);
-        run(&["config", "user.email", "alethe@example.invalid"]);
+        run(&["config", "user.name", "Arco Test"]);
+        run(&["config", "user.email", "arco@example.invalid"]);
         fs::write(root.join("file.txt"), "one\n").unwrap();
         run(&["add", "file.txt"]);
         run(&["commit", "-m", "init"]);
@@ -371,13 +371,13 @@ mod tests {
         let env = Path::new(&lc.path);
 
         fs::write(env.join("file.txt"), "changed in copy\n").unwrap();
-        checked_output(env, &["config", "user.name", "Alethe Test"]).unwrap();
-        checked_output(env, &["config", "user.email", "alethe@example.invalid"]).unwrap();
+        checked_output(env, &["config", "user.name", "Arco Test"]).unwrap();
+        checked_output(env, &["config", "user.email", "arco@example.invalid"]).unwrap();
         checked_output(env, &["commit", "-am", "copy work"]).unwrap();
 
         let missing = git_command(
             &root,
-            &["rev-parse", "--verify", "refs/heads/alethe/agent-fetchme"],
+            &["rev-parse", "--verify", "refs/heads/arco/agent-fetchme"],
         )
         .unwrap();
         assert!(
@@ -388,7 +388,7 @@ mod tests {
         worktree_fetch_branch(root_str.clone(), "fetchme".into()).unwrap();
         let present = git_command(
             &root,
-            &["rev-parse", "--verify", "refs/heads/alethe/agent-fetchme"],
+            &["rev-parse", "--verify", "refs/heads/arco/agent-fetchme"],
         )
         .unwrap();
         assert!(

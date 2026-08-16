@@ -238,7 +238,7 @@ export const TerminalPane = memo(function TerminalPane({
           timestamp: Date.now(),
         })
       }
-      window.dispatchEvent(new CustomEvent('alethe:terminal-resize-request', { detail: { ptyId } }))
+      window.dispatchEvent(new CustomEvent('arco:terminal-resize-request', { detail: { ptyId } }))
       requestPaneFocus(terminal.id)
       window.setTimeout(() => requestPaneFocus(terminal.id), 160)
     } catch (err) {
@@ -254,8 +254,8 @@ export const TerminalPane = memo(function TerminalPane({
       const matchesPty = Boolean(detail?.ptyId && detail.ptyId === activeTab?.ptyId)
       if (matchesTerminal || matchesPty) void onRestart()
     }
-    window.addEventListener('alethe:terminal-restart-request', onRestartRequest)
-    return () => window.removeEventListener('alethe:terminal-restart-request', onRestartRequest)
+    window.addEventListener('arco:terminal-restart-request', onRestartRequest)
+    return () => window.removeEventListener('arco:terminal-restart-request', onRestartRequest)
   })
 
   const onDisable = () => setTerminalDisabled(projectId, terminal.id, !terminal.disabled)

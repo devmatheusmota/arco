@@ -5,7 +5,7 @@
 //!    para `{ nodes, edges }` prontos para o Cytoscape (parsing pesado no Rust,
 
 //! 3. **Versionamento + memory policy:** snapshot/list/diff/rollback de
-//!    `graphify-out/graph.json` em `<repo>/.alethe/graph-snapshots/`, e `prune`
+//!    `graphify-out/graph.json` em `<repo>/.arco/graph-snapshots/`, e `prune`
 
 //!
 //! O comando/args exatos do CLI do Graphify ainda dependem de pinar a fonte
@@ -96,7 +96,7 @@ fn graph_path(root: &Path) -> PathBuf {
 }
 
 fn snapshots_dir(root: &Path) -> PathBuf {
-    root.join(".alethe").join(SNAPSHOTS_SUBDIR)
+    root.join(".arco").join(SNAPSHOTS_SUBDIR)
 }
 
 fn mcp_server_spec(command: &str, root: &Path) -> Value {
@@ -235,7 +235,7 @@ fn graphify_mcp_config_path_inner(repo: String, command: Option<String>) -> Resu
         "mcpServers": { "graphify": mcp_server_spec(&cmd, &root) }
     });
     let file_name = format!(
-        "alethe-graphify-mcp-{}.json",
+        "arco-graphify-mcp-{}.json",
         short_hash(&root.to_string_lossy())
     );
     let path = std::env::temp_dir().join(file_name);
@@ -478,7 +478,7 @@ pub async fn graphify_read_graph(repo: String) -> Result<GraphData, String> {
         .map_err(|error| format!("graphify_read_graph: falha na task bloqueante: {error}"))?
 }
 
-/// Copia o `graph.json` atual para `.alethe/graph-snapshots/<ts>.json`.
+/// Copia o `graph.json` atual para `.arco/graph-snapshots/<ts>.json`.
 
 pub(crate) fn graphify_snapshot_inner(
     repo: String,
@@ -741,12 +741,12 @@ mod tests {
 
     fn temp_repo_with_graph() -> PathBuf {
         let suffix = now_ms();
-        let root = std::env::temp_dir().join(format!("alethe-graphify-{suffix}-{}", nanoid!(6)));
+        let root = std::env::temp_dir().join(format!("arco-graphify-{suffix}-{}", nanoid!(6)));
         fs::create_dir_all(&root).unwrap();
         let run = |args: &[&str]| checked_output(&root, args).unwrap();
         run(&["init"]);
-        run(&["config", "user.name", "Alethe Test"]);
-        run(&["config", "user.email", "alethe@example.invalid"]);
+        run(&["config", "user.name", "Arco Test"]);
+        run(&["config", "user.email", "arco@example.invalid"]);
         let out_dir = root.join(GRAPH_SUBDIR);
         fs::create_dir_all(&out_dir).unwrap();
         let graph = serde_json::json!({
@@ -817,7 +817,7 @@ mod tests {
         let root_str = root.to_string_lossy().into_owned();
         assert_eq!(graphify_ensure_graph(root_str, None).unwrap(), "exists");
 
-        let bare = std::env::temp_dir().join(format!("alethe-graphify-lock-{}", nanoid!(6)));
+        let bare = std::env::temp_dir().join(format!("arco-graphify-lock-{}", nanoid!(6)));
         fs::create_dir_all(&bare).unwrap();
         let run = |args: &[&str]| checked_output(&bare, args).unwrap();
         run(&["init"]);
@@ -832,7 +832,7 @@ mod tests {
 
         let status = graphify_ensure_graph(
             bare_str,
-            Some("alethe-nonexistent-graphify-cli".to_string()),
+            Some("arco-nonexistent-graphify-cli".to_string()),
         )
         .unwrap();
         assert_eq!(status, "unavailable");

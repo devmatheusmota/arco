@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Alethe",
+  "productName": "Arco",
   "version": "1.5.1",
-  "identifier": "com.kc1t.alethe",
+  "identifier": "com.mota.arco",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1422",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Alethe",
+        "title": "Arco",
         "width": 1280,
         "height": 800,
         "minWidth": 800,
@@ -31,7 +31,7 @@
     "targets": "all",
     "publisher": "Kauã Miguel",
     "shortDescription": "Terminal multiplexer GUI",
-    "longDescription": "Alethe is a Windows-first terminal multiplexer GUI: projects on the left, split-pane terminals on the right, with sub-tabs per pane.",
+    "longDescription": "Arco is a Windows-first terminal multiplexer GUI: projects on the left, split-pane terminals on the right, with sub-tabs per pane.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

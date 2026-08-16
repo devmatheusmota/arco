@@ -1,6 +1,6 @@
-# Adding a Theme to Alethe
+# Adding a Theme to Arco
 
-Adding a custom theme is a great first contribution—it's visual, self-contained, and satisfying. In Alethe, a theme touches seven files/locations because the application UI and terminal palette are configured separately.
+Adding a custom theme is a great first contribution—it's visual, self-contained, and satisfying. In Arco, a theme touches seven files/locations because the application UI and terminal palette are configured separately.
 
 Follow these touchpoints from top to bottom when adding a theme.
 
@@ -230,7 +230,7 @@ Add the new icon import and its entry in `THEME_ICONS`.
 
 ## Contrast & Design Guidelines
 
-Alethe has both dark and light themes and is intended for long development sessions. Do not ship foreground/background combinations that are difficult to read.
+Arco has both dark and light themes and is intended for long development sessions. Do not ship foreground/background combinations that are difficult to read.
 
 Check the actual text, muted text, accents, borders, and terminal text against their backgrounds. Avoid highly saturated combinations where the foreground and background visually fight each other. The final theme should remain comfortable to read for extended periods.
 

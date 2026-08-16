@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager};
 
-pub const OPEN_PATH_EVENT: &str = "alethe://open-path";
+pub const OPEN_PATH_EVENT: &str = "arco://open-path";
 
 const OPEN_PATH_FLAG: &str = "--open-path";
 
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn ignores_argv0_and_reads_flag() {
         assert_eq!(
-            extract_path_arg(&args(&["alethe", "--open-path", "/tmp/x"])),
+            extract_path_arg(&args(&["arco", "--open-path", "/tmp/x"])),
             Some("/tmp/x".to_string())
         );
     }
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn reads_inline_flag_form() {
         assert_eq!(
-            extract_path_arg(&args(&["alethe", "--open-path=/tmp/x"])),
+            extract_path_arg(&args(&["arco", "--open-path=/tmp/x"])),
             Some("/tmp/x".to_string())
         );
     }
@@ -134,41 +134,41 @@ mod tests {
     #[test]
     fn reads_bare_positional() {
         assert_eq!(
-            extract_path_arg(&args(&["alethe", "/tmp/x"])),
+            extract_path_arg(&args(&["arco", "/tmp/x"])),
             Some("/tmp/x".to_string())
         );
     }
 
     #[test]
     fn skips_unknown_flags_like_macos_psn() {
-        assert_eq!(extract_path_arg(&args(&["alethe", "-psn_0_1234"])), None);
+        assert_eq!(extract_path_arg(&args(&["arco", "-psn_0_1234"])), None);
         assert_eq!(
-            extract_path_arg(&args(&["alethe", "-psn_0_1234", "/tmp/x"])),
+            extract_path_arg(&args(&["arco", "-psn_0_1234", "/tmp/x"])),
             Some("/tmp/x".to_string())
         );
     }
 
     #[test]
     fn no_args_means_no_target() {
-        assert_eq!(extract_path_arg(&args(&["alethe"])), None);
-        assert_eq!(resolve_target_dir(&args(&["alethe"]), Path::new("/")), None);
+        assert_eq!(extract_path_arg(&args(&["arco"])), None);
+        assert_eq!(resolve_target_dir(&args(&["arco"]), Path::new("/")), None);
     }
 
     #[test]
     fn dot_resolves_against_caller_cwd() {
         let cwd = temp_root();
-        let resolved = resolve_target_dir(&args(&["alethe", "."]), &cwd).expect("resolved");
+        let resolved = resolve_target_dir(&args(&["arco", "."]), &cwd).expect("resolved");
         assert_eq!(resolved, cwd);
     }
 
     #[test]
     fn relative_path_resolves_against_caller_cwd() {
         let base = temp_root();
-        let nested = base.join("alethe-cli-test-rel");
+        let nested = base.join("arco-cli-test-rel");
         std::fs::create_dir_all(&nested).expect("create dir");
 
         let resolved =
-            resolve_target_dir(&args(&["alethe", "alethe-cli-test-rel"]), &base).expect("resolved");
+            resolve_target_dir(&args(&["arco", "arco-cli-test-rel"]), &base).expect("resolved");
         assert_eq!(resolved, nested);
 
         let _ = std::fs::remove_dir_all(&nested);
@@ -177,13 +177,13 @@ mod tests {
     #[test]
     fn file_target_falls_back_to_its_directory() {
         let base = temp_root();
-        let dir = base.join("alethe-cli-test-file");
+        let dir = base.join("arco-cli-test-file");
         std::fs::create_dir_all(&dir).expect("create dir");
         let file = dir.join("README.md");
         std::fs::write(&file, b"x").expect("write file");
 
         let resolved =
-            resolve_target_dir(&args(&["alethe", &file.to_string_lossy()]), Path::new("/"))
+            resolve_target_dir(&args(&["arco", &file.to_string_lossy()]), Path::new("/"))
                 .expect("resolved");
         assert_eq!(resolved, dir);
 
@@ -192,11 +192,11 @@ mod tests {
 
     #[test]
     fn missing_path_resolves_to_none() {
-        let target = std::env::temp_dir().join("alethe-cli-test-inexistente-xyz");
+        let target = std::env::temp_dir().join("arco-cli-test-inexistente-xyz");
         let _ = std::fs::remove_dir_all(&target);
         assert_eq!(
             resolve_target_dir(
-                &args(&["alethe", &target.to_string_lossy()]),
+                &args(&["arco", &target.to_string_lossy()]),
                 Path::new("/")
             ),
             None

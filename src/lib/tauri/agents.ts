@@ -38,7 +38,7 @@ export async function agentHooksSettingsPath(): Promise<string> {
   return invoke<string>('agent_hooks_settings_path')
 }
 
-export type InstalledAgent = { name: string; from_alethe: boolean }
+export type InstalledAgent = { name: string; from_arco: boolean }
 
                                                                       
 export async function listInstalledAgents(folder: string): Promise<InstalledAgent[]> {

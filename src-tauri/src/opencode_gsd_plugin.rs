@@ -1,4 +1,4 @@
-//! sincronizado sozinho (ver `assets/opencode-plugins/alethe-gsd-state.ts`),
+//! sincronizado sozinho (ver `assets/opencode-plugins/arco-gsd-state.ts`),
 
 //! `"mcp"`).
 //!
@@ -7,10 +7,10 @@ use serde_json::Value;
 
 use crate::git_control::repository_root;
 
-const PLUGIN_TS: &str = include_str!("../assets/opencode-plugins/alethe-gsd-state.ts");
-const PLUGIN_REL_PATH: &str = ".opencode/plugins/alethe-gsd-state.ts";
-const PLUGIN_CONFIG_ENTRY: &str = "./.opencode/plugins/alethe-gsd-state.ts";
-const MANAGED_MARKER_PREFIX: &str = "// alethe-managed: v";
+const PLUGIN_TS: &str = include_str!("../assets/opencode-plugins/arco-gsd-state.ts");
+const PLUGIN_REL_PATH: &str = ".opencode/plugins/arco-gsd-state.ts";
+const PLUGIN_CONFIG_ENTRY: &str = "./.opencode/plugins/arco-gsd-state.ts";
+const MANAGED_MARKER_PREFIX: &str = "// arco-managed: v";
 const CURRENT_PLUGIN_VERSION: u32 = 12;
 
 fn should_write_plugin_file(existing: Option<&str>) -> bool {
@@ -28,7 +28,7 @@ fn should_write_plugin_file(existing: Option<&str>) -> bool {
     }
 }
 
-/// o sidecar `.opencode/alethe-gsd-config.json` com a cadeia de fallback de
+/// o sidecar `.opencode/arco-gsd-config.json` com a cadeia de fallback de
 
 ///
 /// Nome `_inner` porque `repository_root` roda `git rev-parse` de verdade
@@ -62,10 +62,10 @@ pub async fn gsd_opencode_plugin_write(
         .map_err(|error| format!("gsd_opencode_plugin_write: falha na task bloqueante: {error}"))?
 }
 
-/// Escreve `.opencode/alethe-gsd-config.json` com a cadeia de fallback de
+/// Escreve `.opencode/arco-gsd-config.json` com a cadeia de fallback de
 
 fn write_gsd_config_sidecar(root: &std::path::Path, model_chain: &[String]) -> Result<(), String> {
-    let path = root.join(".opencode").join("alethe-gsd-config.json");
+    let path = root.join(".opencode").join("arco-gsd-config.json");
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("mkdir_failed:{e}"))?;
     }
@@ -122,13 +122,13 @@ mod tests {
             .unwrap()
             .as_nanos();
         let root =
-            std::env::temp_dir().join(format!("alethe-opencode-gsd-plugin-{label}-{suffix}"));
+            std::env::temp_dir().join(format!("arco-opencode-gsd-plugin-{label}-{suffix}"));
         fs::create_dir_all(&root).unwrap();
         crate::git_control::checked_output(&root, &["init", "-b", "main"]).unwrap();
-        crate::git_control::checked_output(&root, &["config", "user.name", "Alethe Test"]).unwrap();
+        crate::git_control::checked_output(&root, &["config", "user.name", "Arco Test"]).unwrap();
         crate::git_control::checked_output(
             &root,
-            &["config", "user.email", "alethe@example.invalid"],
+            &["config", "user.email", "arco@example.invalid"],
         )
         .unwrap();
         fs::write(root.join("a.txt"), "a\n").unwrap();
@@ -145,7 +145,7 @@ mod tests {
         let plugin_path = root.join(PLUGIN_REL_PATH);
         let content = fs::read_to_string(&plugin_path).unwrap();
         assert_eq!(content, PLUGIN_TS);
-        assert!(content.starts_with("// alethe-managed: v12"));
+        assert!(content.starts_with("// arco-managed: v12"));
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -192,14 +192,14 @@ mod tests {
         let plugin_dir = root.join(".opencode").join("plugins");
         fs::create_dir_all(&plugin_dir).unwrap();
         fs::write(
-            plugin_dir.join("alethe-gsd-state.ts"),
+            plugin_dir.join("arco-gsd-state.ts"),
             "// custom user content, no marker\n",
         )
         .unwrap();
 
         gsd_opencode_plugin_write(root.to_string_lossy().into_owned(), vec![]).unwrap();
 
-        let content = fs::read_to_string(plugin_dir.join("alethe-gsd-state.ts")).unwrap();
+        let content = fs::read_to_string(plugin_dir.join("arco-gsd-state.ts")).unwrap();
         assert_eq!(content, "// custom user content, no marker\n");
         fs::remove_dir_all(root).unwrap();
     }
@@ -210,15 +210,15 @@ mod tests {
         let plugin_dir = root.join(".opencode").join("plugins");
         fs::create_dir_all(&plugin_dir).unwrap();
         fs::write(
-            plugin_dir.join("alethe-gsd-state.ts"),
-            "// alethe-managed: v99\ncustom future content\n",
+            plugin_dir.join("arco-gsd-state.ts"),
+            "// arco-managed: v99\ncustom future content\n",
         )
         .unwrap();
 
         gsd_opencode_plugin_write(root.to_string_lossy().into_owned(), vec![]).unwrap();
 
-        let content = fs::read_to_string(plugin_dir.join("alethe-gsd-state.ts")).unwrap();
-        assert!(content.starts_with("// alethe-managed: v99"));
+        let content = fs::read_to_string(plugin_dir.join("arco-gsd-state.ts")).unwrap();
+        assert!(content.starts_with("// arco-managed: v99"));
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -228,14 +228,14 @@ mod tests {
         let plugin_dir = root.join(".opencode").join("plugins");
         fs::create_dir_all(&plugin_dir).unwrap();
         fs::write(
-            plugin_dir.join("alethe-gsd-state.ts"),
-            "// alethe-managed: v1\nold body\n",
+            plugin_dir.join("arco-gsd-state.ts"),
+            "// arco-managed: v1\nold body\n",
         )
         .unwrap();
 
         gsd_opencode_plugin_write(root.to_string_lossy().into_owned(), vec![]).unwrap();
 
-        let content = fs::read_to_string(plugin_dir.join("alethe-gsd-state.ts")).unwrap();
+        let content = fs::read_to_string(plugin_dir.join("arco-gsd-state.ts")).unwrap();
         assert_eq!(content, PLUGIN_TS);
         fs::remove_dir_all(root).unwrap();
     }
@@ -264,7 +264,7 @@ mod tests {
         )
         .unwrap();
 
-        let sidecar_path = root.join(".opencode").join("alethe-gsd-config.json");
+        let sidecar_path = root.join(".opencode").join("arco-gsd-config.json");
         let raw = fs::read_to_string(&sidecar_path).unwrap();
         let parsed: Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(parsed["modelChain"][0], "mimo-v2.5-free");

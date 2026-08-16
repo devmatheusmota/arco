@@ -17,7 +17,7 @@ fn client() -> &'static reqwest::Client {
     CLIENT.get_or_init(|| {
         reqwest::Client::builder()
             .timeout(REQUEST_TIMEOUT)
-            .user_agent(concat!("Alethe/", env!("CARGO_PKG_VERSION")))
+            .user_agent(concat!("Arco/", env!("CARGO_PKG_VERSION")))
             .build()
             .unwrap_or_default()
     })

@@ -1,5 +1,14 @@
-Alethe
-Copyright (C) 2026 Kauã Miguel
+Arco
+Copyright (C) 2026 Matheus Mota
 
-The Alethe source code is licensed under AGPL-3.0-or-later.
-The Alethe name, logo, and official branding are covered by TRADEMARK.md.
+Arco is a fork of Alethe (https://github.com/Kc1t/alethe-agents),
+Copyright (C) 2026 Kauã Miguel, licensed under AGPL-3.0-or-later.
+
+This fork is renamed and rebranded as required by the upstream trademark
+policy, which reserves the Alethe name, logo, and branding for the original
+project and its official builds. See TRADEMARK.md.
+
+The Arco source code remains licensed under AGPL-3.0-or-later.
+
+Portions of the voice dictation module are derived from Orca
+(https://github.com/stablyai/orca), Copyright (c) Stably AI, MIT License.

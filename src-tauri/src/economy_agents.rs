@@ -6,7 +6,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-const MARKER: &str = "gerado pelo Alethe (modo economia)";
+const MARKER: &str = "gerado pelo Arco (modo economia)";
 
 const AGENTS: &[(&str, &str)] = &[
     (
@@ -26,7 +26,7 @@ Regras:
 - Se a tarefa pedir um dado específico (número, nome, path), devolva só ele.
 - Não tome decisões de arquitetura nem sugira refactors — só reporte fatos.
 
-<!-- gerado pelo Alethe (modo economia) — seguro deletar -->
+<!-- gerado pelo Arco (modo economia) — seguro deletar -->
 "#,
     ),
     (
@@ -45,7 +45,7 @@ Regras:
 - Em caso de ambiguidade, pare e devolva a dúvida em uma linha em vez de adivinhar.
 - Resposta final: lista curta de arquivos tocados + uma linha do que mudou em cada.
 
-<!-- gerado pelo Alethe (modo economia) — seguro deletar -->
+<!-- gerado pelo Arco (modo economia) — seguro deletar -->
 "#,
     ),
     (
@@ -90,7 +90,7 @@ Como operar:
 2. Rode: `codex exec --skip-git-repo-check "<instrução>"`.
 3. Devolva APENAS: resultado em até 5 bullets + o que falhou, se falhou. Nunca cole a saída bruta inteira.
 
-<!-- gerado pelo Alethe (modo economia) — seguro deletar -->
+<!-- gerado pelo Arco (modo economia) — seguro deletar -->
 "#,
     ),
 ];

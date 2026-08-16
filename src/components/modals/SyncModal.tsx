@@ -18,7 +18,7 @@ import styles from './SyncModal.module.css'
 
 const SPONSOR_URL = 'https://github.com/sponsors/Kc1t'
 const CREATE_TOKEN_URL =
-  'https://github.com/settings/tokens/new?scopes=gist&description=Alethe%20Sync'
+  'https://github.com/settings/tokens/new?scopes=gist&description=Arco%20Sync'
 
 type Busy = null | 'connect' | 'push' | 'pull' | 'logout'
 

@@ -1,24 +1,24 @@
-export const ALETHE_FILE_DRAG_TYPE = 'application/x-alethe-file'
+export const ARCO_FILE_DRAG_TYPE = 'application/x-arco-file'
 
-export type AletheFileDragPayload = {
+export type ArcoFileDragPayload = {
   projectId: string
   path: string
 }
 
 export function writeFileDragPayload(
   dataTransfer: DataTransfer,
-  payload: AletheFileDragPayload,
+  payload: ArcoFileDragPayload,
 ): void {
   dataTransfer.effectAllowed = 'copy'
-  dataTransfer.setData(ALETHE_FILE_DRAG_TYPE, JSON.stringify(payload))
+  dataTransfer.setData(ARCO_FILE_DRAG_TYPE, JSON.stringify(payload))
   dataTransfer.setData('text/plain', payload.path)
 }
 
-export function readFileDragPayload(dataTransfer: DataTransfer): AletheFileDragPayload | null {
-  const raw = dataTransfer.getData(ALETHE_FILE_DRAG_TYPE)
+export function readFileDragPayload(dataTransfer: DataTransfer): ArcoFileDragPayload | null {
+  const raw = dataTransfer.getData(ARCO_FILE_DRAG_TYPE)
   if (!raw) return null
   try {
-    const value = JSON.parse(raw) as Partial<AletheFileDragPayload>
+    const value = JSON.parse(raw) as Partial<ArcoFileDragPayload>
     if (typeof value.projectId !== 'string' || typeof value.path !== 'string') return null
     const projectId = value.projectId.trim()
     const path = value.path.trim()
@@ -29,5 +29,5 @@ export function readFileDragPayload(dataTransfer: DataTransfer): AletheFileDragP
 }
 
 export function hasFileDragPayload(dataTransfer: DataTransfer): boolean {
-  return Array.from(dataTransfer.types).includes(ALETHE_FILE_DRAG_TYPE)
+  return Array.from(dataTransfer.types).includes(ARCO_FILE_DRAG_TYPE)
 }

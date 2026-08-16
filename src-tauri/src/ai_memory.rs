@@ -95,7 +95,7 @@ pub fn ai_memory_mcp_config_path(repo: String, command: Option<String>) -> Resul
         "mcpServers": { (MCP_KEY): mcp_server_spec(&cmd) }
     });
     let file_name = format!(
-        "alethe-ai-memory-mcp-{}.json",
+        "arco-ai-memory-mcp-{}.json",
         short_hash(&root.to_string_lossy())
     );
     let path = std::env::temp_dir().join(file_name);

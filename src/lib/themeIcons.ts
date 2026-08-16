@@ -25,8 +25,8 @@ const ICON_FILES: Record<AppIconTheme, string> = {
   'min-light': 'min-light.png',
   'dark-lemon': 'dark-lemon.png',
   orca: 'orca.png',
-  'alethe-blue-gradient': 'alethe-blue-gradient.png',
-  'alethe-pink-gradient': 'alethe-pink-gradient.png',
+  'arco-blue-gradient': 'arco-blue-gradient.png',
+  'arco-pink-gradient': 'arco-pink-gradient.png',
 }
 
 function preferredSize(): number {

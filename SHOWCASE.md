@@ -1,9 +1,9 @@
-# Built with Alethe
+# Built with Arco
 
-Projects, products, and experiments that were built with Alethe as the workspace —
+Projects, products, and experiments that were built with Arco as the workspace —
 agents running in parallel, shells alongside them, sessions resumed across days.
 
-Alethe is a tool, and a tool is worth what people build with it. This page is where that
+Arco is a tool, and a tool is worth what people build with it. This page is where that
 shows up.
 
 ## The list
@@ -35,8 +35,8 @@ Keep the description to a single line — what it is, not why it's great.
 
 - **Something real that exists.** Shipped, published, deployed, or at minimum a public repo
   someone else can look at. Not a plan.
-- **Built with Alethe as part of the workflow.** It does not have to be built *exclusively*
-  in Alethe, and it does not have to be big. A weekend project counts.
+- **Built with Arco as part of the workflow.** It does not have to be built *exclusively*
+  in Arco, and it does not have to be big. A weekend project counts.
 - **Public.** If you can't link to it, it can't go on the list.
 
 Client work you can't disclose is welcome in spirit but not on the page — link a public

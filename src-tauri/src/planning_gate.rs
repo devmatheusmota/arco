@@ -3,14 +3,14 @@
 //!
 
 //!
-//! Estrutura de `.planning/` (ver `assets/opencode-plugins/alethe-gsd-state.ts`):
+//! Estrutura de `.planning/` (ver `assets/opencode-plugins/arco-gsd-state.ts`):
 
 //! sobrescrever o outro.
 
 use serde::Serialize;
 use std::path::Path;
 
-/// dedicada (`gsd_record_step`, em `alethe-gsd-state.ts`) — nunca por parsing
+/// dedicada (`gsd_record_step`, em `arco-gsd-state.ts`) — nunca por parsing
 
 #[derive(Debug, Clone, Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -36,7 +36,7 @@ pub struct PlanningStatus {
     pub roadmap_pending_count: Option<usize>,
     pub roadmap_total_count: Option<usize>,
 
-    /// (`alethe-gsd-state.ts`) com o plano passo a passo, incluindo o
+    /// (`arco-gsd-state.ts`) com o plano passo a passo, incluindo o
 
     /// exibir (ex.: dividir em linhas pro checklist do Briefing de Testes).
     pub notes: Option<String>,
@@ -253,7 +253,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("alethe-planning-gate-{label}-{suffix}"));
+        let root = std::env::temp_dir().join(format!("arco-planning-gate-{label}-{suffix}"));
         fs::create_dir_all(&root).unwrap();
         root
     }
@@ -375,10 +375,10 @@ mod tests {
     fn read_planning_status_resolves_the_given_worktree_not_the_main_repo() {
         let root = temp_dir("worktree-resolve");
         crate::git_control::checked_output(&root, &["init", "-b", "main"]).unwrap();
-        crate::git_control::checked_output(&root, &["config", "user.name", "Alethe Test"]).unwrap();
+        crate::git_control::checked_output(&root, &["config", "user.name", "Arco Test"]).unwrap();
         crate::git_control::checked_output(
             &root,
-            &["config", "user.email", "alethe@example.invalid"],
+            &["config", "user.email", "arco@example.invalid"],
         )
         .unwrap();
         fs::write(root.join("a.txt"), "a\n").unwrap();
@@ -422,10 +422,10 @@ mod tests {
     fn temp_git_repo(label: &str) -> std::path::PathBuf {
         let root = temp_dir(label);
         crate::git_control::checked_output(&root, &["init", "-b", "main"]).unwrap();
-        crate::git_control::checked_output(&root, &["config", "user.name", "Alethe Test"]).unwrap();
+        crate::git_control::checked_output(&root, &["config", "user.name", "Arco Test"]).unwrap();
         crate::git_control::checked_output(
             &root,
-            &["config", "user.email", "alethe@example.invalid"],
+            &["config", "user.email", "arco@example.invalid"],
         )
         .unwrap();
         fs::write(root.join("a.txt"), "a\n").unwrap();

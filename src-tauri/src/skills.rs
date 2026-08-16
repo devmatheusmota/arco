@@ -84,7 +84,7 @@ pub struct SkillRemoveReport {
 }
 
 fn skills_home(segments: &[&str]) -> Option<PathBuf> {
-    if let Some(root) = std::env::var_os("ALETHE_MCP_HOME") {
+    if let Some(root) = std::env::var_os("ARCO_MCP_HOME") {
         let base = PathBuf::from(root);
         if !base.as_os_str().is_empty() {
             return Some(segments.iter().fold(base, |acc, seg| acc.join(seg)));

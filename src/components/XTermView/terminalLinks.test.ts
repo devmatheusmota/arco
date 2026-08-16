@@ -104,8 +104,8 @@ describe('terminal links', () => {
     expect(detectTerminalLinks('/api/users retorna 401 quando o token expira')[0].text).toBe(
       '/api/users',
     )
-    expect(detectTerminalLinks('~/projetos/alethe roda em dev e em prod')[0].text).toBe(
-      '~/projetos/alethe',
+    expect(detectTerminalLinks('~/projetos/arco roda em dev e em prod')[0].text).toBe(
+      '~/projetos/arco',
     )
   })
 

@@ -212,7 +212,7 @@ export function ProfilesModal() {
     try {
       const targetPath = await saveFile({
         title: t('profiles.backupDialogTitle'),
-        defaultPath: `alethe-${pendingDelete.name.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase()}-backup.zip`,
+        defaultPath: `arco-${pendingDelete.name.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase()}-backup.zip`,
         filters: [{ name: t('profiles.backupFileType'), extensions: ['zip'] }],
       })
       if (!targetPath) return

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { AGENT_LIBRARY } from './agentLibrary'
 
-const GENERATED_MARKER = '<!-- gerado pelo Alethe (biblioteca) — seguro deletar -->'
+const GENERATED_MARKER = '<!-- gerado pelo Arco (biblioteca) — seguro deletar -->'
 const ALLOWED_CATEGORIES = ['orquestra', 'front', 'back', 'qa', 'docs', 'economia']
 const ALLOWED_COSTS = ['barato', 'medio', 'caro']
 

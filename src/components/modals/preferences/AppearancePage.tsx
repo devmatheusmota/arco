@@ -121,8 +121,8 @@ export function AppearancePage() {
               value: theme.id,
               label: themeLabel(t, theme.id),
             })),
-            { value: 'alethe-blue-gradient', label: 'Alethe Blue Gradient' },
-            { value: 'alethe-pink-gradient', label: 'Alethe Pink Gradient' },
+            { value: 'arco-blue-gradient', label: 'Arco Blue Gradient' },
+            { value: 'arco-pink-gradient', label: 'Arco Pink Gradient' },
           ]}
         />
       </SettingsSection>

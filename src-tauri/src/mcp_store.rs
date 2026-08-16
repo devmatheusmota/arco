@@ -488,7 +488,7 @@ fn atomic_write(path: &Path, contents: &str) -> Result<(), String> {
         fs::create_dir_all(parent).map_err(|error| format!("mkdir_failed:{error}"))?;
     }
     let mut tmp = path.as_os_str().to_os_string();
-    tmp.push(".alethe-tmp");
+    tmp.push(".arco-tmp");
     let tmp = PathBuf::from(tmp);
     fs::write(&tmp, contents).map_err(|error| format!("write_failed:{error}"))?;
     // A fresh temp file is created with the default mode, which would widen a config the
@@ -958,7 +958,7 @@ name = "gate"
         static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let index = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let dir = std::env::temp_dir().join(format!(
-            "alethe-mcp-test-{}-{index}-{name}",
+            "arco-mcp-test-{}-{index}-{name}",
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
@@ -1052,14 +1052,14 @@ name = "gate"
         apply_to_source(
             McpAgent::Claude,
             &source,
-            Mutation::Upsert(Box::new(probe_server("alethe-probe"))),
+            Mutation::Upsert(Box::new(probe_server("arco-probe"))),
             None,
         )
         .expect("writes");
 
         let written = fs::read_to_string(&config).expect("written");
         assert!(written.contains("azure-devops"));
-        assert!(written.contains("alethe-probe"));
+        assert!(written.contains("arco-probe"));
         assert!(written.contains("hasTrustDialogAccepted"));
         assert!(written.contains("numStartups"));
 
@@ -1088,7 +1088,7 @@ name = "gate"
         apply_to_source(
             McpAgent::Claude,
             &source,
-            Mutation::Upsert(Box::new(probe_server("alethe-probe"))),
+            Mutation::Upsert(Box::new(probe_server("arco-probe"))),
             None,
         )
         .expect("writes");
@@ -1128,12 +1128,12 @@ name = "gate"
         let report = apply_to_source(
             McpAgent::Codex,
             &file_source(config.clone(), McpSourceKind::User),
-            Mutation::Upsert(Box::new(probe_server("alethe-probe"))),
+            Mutation::Upsert(Box::new(probe_server("arco-probe"))),
             Some(&backups),
         )
         .expect("writes");
 
-        assert_eq!(report.changed, vec!["alethe-probe".to_string()]);
+        assert_eq!(report.changed, vec!["arco-probe".to_string()]);
         let backup_path = report.backup_path.expect("backed up");
         assert_eq!(
             fs::read_to_string(&backup_path).expect("backup readable"),
@@ -1145,7 +1145,7 @@ name = "gate"
         assert!(written.contains("[projects.\"D:\\\\repo\\\\one\"]"));
         assert!(written.contains("[[hooks.PreToolUse]]"));
         assert!(written.contains("[mcp_servers.discord.env]"));
-        assert!(written.contains("alethe-probe"));
+        assert!(written.contains("arco-probe"));
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -1181,14 +1181,14 @@ name = "gate"
         apply_to_source(
             McpAgent::Claude,
             &file_source(config.clone(), McpSourceKind::Project),
-            Mutation::Upsert(Box::new(probe_server("alethe-probe"))),
+            Mutation::Upsert(Box::new(probe_server("arco-probe"))),
             None,
         )
         .expect("writes");
 
         let written = fs::read_to_string(&config).expect("written");
         assert!(written.contains("\"mcpServers\""));
-        assert!(written.contains("alethe-probe"));
+        assert!(written.contains("arco-probe"));
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -1199,7 +1199,7 @@ name = "gate"
         let config = dir.join(".mcp.json");
         fs::write(&config, "{}").expect("fixture");
 
-        let mut server = probe_server("alethe-probe");
+        let mut server = probe_server("arco-probe");
         server
             .env
             .insert("TOKEN".to_string(), EnvEntry::passthrough("TOKEN"));
@@ -1227,7 +1227,7 @@ name = "gate"
         let error = apply_to_source(
             McpAgent::Opencode,
             &file_source(config.clone(), McpSourceKind::User),
-            Mutation::Upsert(Box::new(probe_server("alethe-probe"))),
+            Mutation::Upsert(Box::new(probe_server("arco-probe"))),
             None,
         )
         .unwrap_err();
@@ -1250,7 +1250,7 @@ name = "gate"
         let error = apply_to_source(
             McpAgent::Opencode,
             &file_source(config.clone(), McpSourceKind::User),
-            Mutation::Upsert(Box::new(probe_server("alethe-probe"))),
+            Mutation::Upsert(Box::new(probe_server("arco-probe"))),
             None,
         )
         .unwrap_err();

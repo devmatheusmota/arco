@@ -4,7 +4,7 @@ use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use tauri::State;
 
 const APPLICATION_ID: &str = "1517303547761528942";
-const LARGE_IMAGE_ASSET: &str = "alethe";
+const LARGE_IMAGE_ASSET: &str = "arco";
 
 enum PresenceCommand {
     Set {
@@ -69,7 +69,7 @@ fn set_activity(
             .assets(
                 activity::Assets::new()
                     .large_image(LARGE_IMAGE_ASSET)
-                    .large_text("Alethe"),
+                    .large_text("Arco"),
             )
     };
 

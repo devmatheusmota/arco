@@ -914,15 +914,15 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn expands_windows_environment_variables_case_insensitively() {
-        std::env::set_var("alethe_test_path", r"C:\Tools");
+        std::env::set_var("arco_test_path", r"C:\Tools");
 
         assert_eq!(
-            expand_windows_env_vars(r"%ALETHE_TEST_PATH%\bin;%alethe_test_path%"),
+            expand_windows_env_vars(r"%ARCO_TEST_PATH%\bin;%arco_test_path%"),
             r"C:\Tools\bin;C:\Tools"
         );
         assert_eq!(expand_windows_env_vars(r"%NOPE%"), r"%NOPE%");
 
-        std::env::remove_var("alethe_test_path");
+        std::env::remove_var("arco_test_path");
     }
 
     #[cfg(windows)]

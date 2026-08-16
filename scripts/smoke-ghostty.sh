@@ -4,7 +4,7 @@
 # Substitui o ciclo manual de "subir o app → screenshot → adivinhar". Liga a
 # flag nativeTerminalMacos, sobe o app em dev, e espera os sinais de sucesso no
 # log:
-#   - "[alethe-ghostty] surface criada"   → surface real criada
+#   - "[arco-ghostty] surface criada"   → surface real criada
 # Falha (exit 1) se aparecer panic / "surface_new FALHOU" / timeout.
 #
 # Uso: ./scripts/smoke-ghostty.sh
@@ -18,13 +18,13 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PROFILE_JSON="$HOME/Library/Application Support/com.kc1t.alethe/profiles/default/projects.json"
+PROFILE_JSON="$HOME/Library/Application Support/com.mota.arco/profiles/default/projects.json"
 LOG="$(mktemp)"
 TIMEOUT=180
 
 cleanup() {
   [[ -n "${APP_PID:-}" ]] && kill "$APP_PID" 2>/dev/null
-  pkill -f "target/debug/alethe" 2>/dev/null
+  pkill -f "target/debug/arco" 2>/dev/null
   pkill -f "tauri dev" 2>/dev/null
 }
 trap cleanup EXIT
@@ -33,7 +33,7 @@ trap cleanup EXIT
 # tauri dev aborta com "Port already in use" e o smoke falha por ruído.
 echo "smoke: limpando instâncias anteriores..."
 lsof -ti:1422 2>/dev/null | xargs kill -9 2>/dev/null
-pkill -9 -f "target/debug/alethe" 2>/dev/null
+pkill -9 -f "target/debug/arco" 2>/dev/null
 pkill -9 -f "tauri dev" 2>/dev/null
 sleep 1
 
@@ -70,9 +70,9 @@ if [[ -f "$PROFILE_JSON" ]]; then
 fi
 
 echo "smoke: subindo o app (tauri dev) com auto-probe de input..."
-# ALETHE_GHOSTTY_PROBE=1: após a surface estabilizar, o backend digita um echo
+# ARCO_GHOSTTY_PROBE=1: após a surface estabilizar, o backend digita um echo
 # e lê o grid de volta — prova o fluxo input→shell→render no app REAL.
-ALETHE_GHOSTTY_PROBE=1 ./node_modules/.bin/tauri dev >"$LOG" 2>&1 &
+ARCO_GHOSTTY_PROBE=1 ./node_modules/.bin/tauri dev >"$LOG" 2>&1 &
 APP_PID=$!
 
 deadline=$((SECONDS + TIMEOUT))

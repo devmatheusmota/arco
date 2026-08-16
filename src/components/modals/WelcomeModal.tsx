@@ -8,7 +8,7 @@ import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import styles from './WelcomeModal.module.css'
 
-const PRODUCT_NAME = 'Alethe'
+const PRODUCT_NAME = 'Arco'
 
 function daysSince(ts: number | null): number {
   if (!ts) return 1

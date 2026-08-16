@@ -106,7 +106,7 @@ function LoadingScreen() {
         />
       </div>
       <div className={styles.loadingInner}>
-        <div className={styles.loadingWordmark}>Alethe</div>
+        <div className={styles.loadingWordmark}>Arco</div>
         <div className={styles.loadingConsole}>
           <span className={styles.loadingPrompt} aria-hidden="true">
             ›
@@ -281,7 +281,7 @@ export default function App() {
         /* Browser tests may not expose the Tauri permission. */
       })
       .finally(() => {
-        window.dispatchEvent(new CustomEvent('alethe:zoom-changed', { detail: { zoom: uiZoom } }))
+        window.dispatchEvent(new CustomEvent('arco:zoom-changed', { detail: { zoom: uiZoom } }))
       })
   }, [hydrated, uiZoom])
 
@@ -414,7 +414,7 @@ export default function App() {
           resizeTargetMinimumSize={{ coarse: 28, fine: 18 }}
         >
           <Panel
-            id="alethe-left-sidebar"
+            id="arco-left-sidebar"
             panelRef={leftPanelRef}
             elementRef={leftPanelElementRef}
             defaultSize={leftSidebarVisible ? `${leftSidebarDefaultRef.current}px` : '0px'}
@@ -481,7 +481,7 @@ export default function App() {
             }}
           />
 
-          <Panel id="alethe-main" minSize="360px">
+          <Panel id="arco-main" minSize="360px">
             <main className={styles.mainView}>
               <ErrorBoundary label="view">
                 <Suspense fallback={<LoadingScreen />}>
@@ -526,7 +526,7 @@ export default function App() {
                 }}
               />
               <Panel
-                id="alethe-todo-sidebar"
+                id="arco-todo-sidebar"
                 panelRef={rightPanelRef}
                 elementRef={rightPanelElementRef}
                 defaultSize={rightSidebarVisible ? `${rightSidebarDefaultRef.current}px` : '0px'}

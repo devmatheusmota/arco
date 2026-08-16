@@ -295,7 +295,7 @@ impl ResourceSupervisor {
             let private = process_private_commit_bytes(*pid, working);
             private_total += private;
             let name = process.name().to_string_lossy().to_ascii_lowercase();
-            if *pid == app_pid || name.contains("alethe") {
+            if *pid == app_pid || name.contains("arco") {
                 app_bytes += private;
             } else if name.contains("msedgewebview2") || name.contains("webkit") {
                 webview_bytes += private;

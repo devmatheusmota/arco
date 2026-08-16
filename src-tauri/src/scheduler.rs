@@ -73,7 +73,7 @@ fn derive_item_task_id(project_id: &str, text: &str) -> String {
     format!("{project_id}-gsd-{:x}", hasher.finish())
 }
 
-/// formato real (escrito por `alethe-gsd-state.ts` a partir de `todowrite`)
+/// formato real (escrito por `arco-gsd-state.ts` a partir de `todowrite`)
 
 pub fn load_gsd_tasks(project_id: &str, repo_path: &str) -> Result<(), String> {
     let repo_root = crate::git_control::repository_root(repo_path)?;
@@ -413,13 +413,13 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("alethe-scheduler-{label}-{suffix}"));
+        let root = std::env::temp_dir().join(format!("arco-scheduler-{label}-{suffix}"));
         fs::create_dir_all(&root).unwrap();
         crate::git_control::checked_output(&root, &["init", "-b", "main"]).unwrap();
-        crate::git_control::checked_output(&root, &["config", "user.name", "Alethe Test"]).unwrap();
+        crate::git_control::checked_output(&root, &["config", "user.name", "Arco Test"]).unwrap();
         crate::git_control::checked_output(
             &root,
-            &["config", "user.email", "alethe@example.invalid"],
+            &["config", "user.email", "arco@example.invalid"],
         )
         .unwrap();
         fs::write(root.join("a.txt"), "a\n").unwrap();
@@ -525,7 +525,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let worktree = std::env::temp_dir().join(format!("alethe-scheduler-wt-{suffix}"));
+        let worktree = std::env::temp_dir().join(format!("arco-scheduler-wt-{suffix}"));
         fs::create_dir_all(worktree.join(".planning")).unwrap();
         fs::write(
             worktree.join(".planning").join("status.md"),

@@ -1,7 +1,7 @@
 # Handoff — sessão de hoje (rebase grande + correções pós-rebase)
 
 > Gerado a pedido do dono antes de ele sair — pra continuar exatamente de onde parou.
-> Projeto: **Alethe** (app desktop Tauri 2 + React/TS, `D:\Projetos\alethe-agents`).
+> Projeto: **Arco** (app desktop Tauri 2 + React/TS, `D:\Projetos\alethe-agents`).
 > Leia `CLAUDE.md`/`AGENTS.md` na raiz antes de mexer em qualquer coisa — regras
 > inegociáveis: **nunca reiniciar `tauri dev`/Vite**, **nunca commitar/push sem
 > autorização explícita na hora**, **nunca co-autoria de IA em commit**, **i18n
@@ -150,7 +150,7 @@ explicação foi aceita como resposta final ou se ele quer outro comportamento.
   componentes React (função) recebem hot-swap confiável via Vite/react-refresh.
   **Se algo continuar "com bug antigo" mesmo depois de um fix, a explicação mais
   provável é reload de página pendente, não código errado** — só confie 100% que o
-  código novo está rodando depois de um reload da janela do Alethe (F5/Ctrl+R) ou
+  código novo está rodando depois de um reload da janela do Arco (F5/Ctrl+R) ou
   reinício completo do app (não do `npm run app`, só do processo/janela).
 - **`ErrorBoundary` (`src/components/ErrorBoundary/index.tsx`) é um componente de
   classe que guarda o erro capturado no próprio state** — corrigir o código-fonte

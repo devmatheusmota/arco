@@ -24,7 +24,7 @@ fn check_token(request: &tiny_http::Request) -> bool {
     request
         .headers()
         .iter()
-        .any(|h| h.field.as_str() == "X-Alethe-Token" && h.value.as_str() == expected)
+        .any(|h| h.field.as_str() == "X-Arco-Token" && h.value.as_str() == expected)
 }
 
 fn listener_addr(port: u16) -> String {
@@ -70,14 +70,14 @@ pub fn agent_hooks_settings_path() -> Result<String, String> {
     let port = wait_for_listener_port()
         .ok_or_else(|| "listener de agents ainda nao esta disponivel".to_string())?;
     let endpoint = listener_endpoint(port);
-    let path = std::env::temp_dir().join("alethe-agent-hooks.json");
+    let path = std::env::temp_dir().join("arco-agent-hooks.json");
     let token = init_token();
     let hook = serde_json::json!([
         { "hooks": [ {
             "type": "http",
             "url": format!("{endpoint}/hook"),
             "timeout": 5,
-            "headers": { "X-Alethe-Token": token }
+            "headers": { "X-Arco-Token": token }
         } ] }
     ]);
     let settings = serde_json::json!({
@@ -157,7 +157,7 @@ pub fn start_listener(app: AppHandle) {
 
             // processo real (claude/codex/opencode) via
             // `curl -X POST /spawn -d '{"agent":"codex","task":"...","mode":"exec"}'`.
-            // O Alethe emite `agent-spawn`; o front sobe um PTY worker. Campos:
+            // O Arco emite `agent-spawn`; o front sobe um PTY worker. Campos:
 
             if url.starts_with("/spawn") {
                 match serde_json::from_str::<serde_json::Value>(&body) {
@@ -222,7 +222,7 @@ pub fn start_listener(app: AppHandle) {
                 let payload = serde_json::json!({ "agent": "codex", "task": task });
                 let _ = app.emit("agent-spawn", &payload);
                 let _ = request.respond(tiny_http::Response::from_string(
-                    "queued no terminal codex do Alethe",
+                    "queued no terminal codex do Arco",
                 ));
                 continue;
             }

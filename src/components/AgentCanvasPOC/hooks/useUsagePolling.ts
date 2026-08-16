@@ -42,7 +42,7 @@ export function useUsagePolling(
                                                                                 
                                                                                      
         const endpoint = hooksEndpoint ?? 'http://127.0.0.1:9123'
-        const note = `[Alethe] Claude 5h usage at ${pct}% (resets in ${reset}). Conserve Claude tokens: from now on, offload heavy/long/mechanical work to the codex terminal by running: curl -s -X POST ${endpoint}/codex -d "<task as one self-contained English instruction>". It runs in the codex terminal worker shown in the canvas. `
+        const note = `[Arco] Claude 5h usage at ${pct}% (resets in ${reset}). Conserve Claude tokens: from now on, offload heavy/long/mechanical work to the codex terminal by running: curl -s -X POST ${endpoint}/codex -d "<task as one self-contained English instruction>". It runs in the codex terminal worker shown in the canvas. `
         void writePty(sessionRef.current.ptyId, note).catch(() => {})
       }
     },

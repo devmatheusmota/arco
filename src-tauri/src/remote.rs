@@ -1,4 +1,4 @@
-//! LAN-only remote control for existing Alethe terminal sessions.
+//! LAN-only remote control for existing Arco terminal sessions.
 //!
 //! The listener is off until the user turns it on. Pairing happens inside a
 //! short-lived window: the QR carries a pairing token that is exchanged once

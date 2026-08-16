@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     const kind = this.props.label ? `react:${this.props.label}` : 'react'
     if (import.meta.env.DEV) {
-      console.groupCollapsed(`[Alethe][${kind}] render error`)
+      console.groupCollapsed(`[Arco][${kind}] render error`)
       console.error(error)
       console.info('componentStack:', info.componentStack)
       console.info('location:', window.location.href)

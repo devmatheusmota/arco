@@ -411,7 +411,7 @@ build/
 .venv/
 venv/
 __pycache__/
-.alethe/
+.arco/
 .env
 .env.local
 ";
@@ -436,16 +436,16 @@ fn git_init_inner(path: String) -> Result<String, String> {
     checked_output(&dir, &["add", "-A"])?;
     let identity = [
         "-c",
-        "user.name=Alethe",
+        "user.name=Arco",
         "-c",
-        "user.email=alethe@localhost",
+        "user.email=arco@localhost",
     ];
     let mut commit_args: Vec<&str> = identity.to_vec();
-    commit_args.extend(["commit", "-m", "Commit inicial (Alethe)"]);
+    commit_args.extend(["commit", "-m", "Commit inicial (Arco)"]);
 
     if checked_output(&dir, &commit_args).is_err() {
         let mut empty_args: Vec<&str> = identity.to_vec();
-        empty_args.extend(["commit", "--allow-empty", "-m", "Commit inicial (Alethe)"]);
+        empty_args.extend(["commit", "--allow-empty", "-m", "Commit inicial (Arco)"]);
         checked_output(&dir, &empty_args)?;
     }
     repository_root(&path).map(|root| root.to_string_lossy().into_owned())
@@ -649,10 +649,10 @@ pub struct DiffSummaryEntry {
 
 /// `opencode.json` (MCP do Graphify + plugin GSD, escritos automaticamente a
 
-/// `.opencode/alethe-gsd-config.json`, `.planning/goal.md` etc. como se
+/// `.opencode/arco-gsd-config.json`, `.planning/goal.md` etc. como se
 
-/// Alethe escrevendo essa infraestrutura na worktree.
-fn is_alethe_infra_path(path: &str) -> bool {
+/// Arco escrevendo essa infraestrutura na worktree.
+fn is_arco_infra_path(path: &str) -> bool {
     path.starts_with(".planning/") || path.starts_with(".opencode/") || path == "opencode.json"
 }
 
@@ -745,7 +745,7 @@ fn git_diff_summary_inner(
         }
     }
 
-    entries.retain(|entry| !is_alethe_infra_path(&entry.path));
+    entries.retain(|entry| !is_arco_infra_path(&entry.path));
 
     Ok(entries)
 }
@@ -816,11 +816,11 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("alethe-main-repo-root-{suffix}"));
+        let root = std::env::temp_dir().join(format!("arco-main-repo-root-{suffix}"));
         fs::create_dir_all(&root).unwrap();
         checked_output(&root, &["init", "-b", "main"]).unwrap();
-        checked_output(&root, &["config", "user.name", "Alethe Test"]).unwrap();
-        checked_output(&root, &["config", "user.email", "alethe@example.invalid"]).unwrap();
+        checked_output(&root, &["config", "user.name", "Arco Test"]).unwrap();
+        checked_output(&root, &["config", "user.email", "arco@example.invalid"]).unwrap();
         fs::write(root.join("a.txt"), "a\n").unwrap();
         checked_output(&root, &["add", "-A"]).unwrap();
         checked_output(&root, &["commit", "-m", "base"]).unwrap();
@@ -874,13 +874,13 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("alethe-git-control-{suffix}"));
+        let root = std::env::temp_dir().join(format!("arco-git-control-{suffix}"));
         fs::create_dir_all(&root).unwrap();
         let root_string = root.to_string_lossy().into_owned();
         let run = |args: &[&str]| checked_output(&root, args).unwrap();
         run(&["init"]);
-        run(&["config", "user.name", "Alethe Test"]);
-        run(&["config", "user.email", "alethe@example.invalid"]);
+        run(&["config", "user.name", "Arco Test"]);
+        run(&["config", "user.email", "arco@example.invalid"]);
 
         fs::write(root.join("tracked.txt"), "one\n").unwrap();
         git_stage(root_string.clone(), vec!["tracked.txt".to_string()]).unwrap();
@@ -950,8 +950,8 @@ mod tests {
     fn git_init_is_idempotent_on_an_existing_repo() {
         let root = temp_dir("init-idempotent");
         checked_output(&root, &["init"]).unwrap();
-        checked_output(&root, &["config", "user.name", "Alethe Test"]).unwrap();
-        checked_output(&root, &["config", "user.email", "alethe@example.invalid"]).unwrap();
+        checked_output(&root, &["config", "user.name", "Arco Test"]).unwrap();
+        checked_output(&root, &["config", "user.email", "arco@example.invalid"]).unwrap();
         fs::write(root.join("a.txt"), "a\n").unwrap();
         checked_output(&root, &["add", "-A"]).unwrap();
         checked_output(&root, &["commit", "-m", "first"]).unwrap();
@@ -969,8 +969,8 @@ mod tests {
     fn git_diff_summary_lists_added_modified_and_renamed_files_between_branches() {
         let root = temp_dir("diff-summary");
         checked_output(&root, &["init", "-b", "main"]).unwrap();
-        checked_output(&root, &["config", "user.name", "Alethe Test"]).unwrap();
-        checked_output(&root, &["config", "user.email", "alethe@example.invalid"]).unwrap();
+        checked_output(&root, &["config", "user.name", "Arco Test"]).unwrap();
+        checked_output(&root, &["config", "user.email", "arco@example.invalid"]).unwrap();
         fs::write(root.join("kept.txt"), "same on both\n").unwrap();
         fs::write(root.join("old-name.txt"), "will be renamed\n").unwrap();
         checked_output(&root, &["add", "-A"]).unwrap();
@@ -1006,8 +1006,8 @@ mod tests {
     fn git_diff_summary_includes_uncommitted_worktree_changes() {
         let root = temp_dir("diff-summary-uncommitted");
         checked_output(&root, &["init", "-b", "main"]).unwrap();
-        checked_output(&root, &["config", "user.name", "Alethe Test"]).unwrap();
-        checked_output(&root, &["config", "user.email", "alethe@example.invalid"]).unwrap();
+        checked_output(&root, &["config", "user.name", "Arco Test"]).unwrap();
+        checked_output(&root, &["config", "user.email", "arco@example.invalid"]).unwrap();
         fs::write(root.join("base.txt"), "base\n").unwrap();
         checked_output(&root, &["add", "-A"]).unwrap();
         checked_output(&root, &["commit", "-m", "base"]).unwrap();
@@ -1034,7 +1034,7 @@ mod tests {
         fs::write(
             root.join(".opencode")
                 .join("plugins")
-                .join("alethe-gsd-state.ts"),
+                .join("arco-gsd-state.ts"),
             "",
         )
         .unwrap();
@@ -1053,7 +1053,7 @@ mod tests {
         );
         assert!(
             with_worktree.iter().all(|e| !e.path.starts_with(".planning/") && !e.path.starts_with(".opencode/") && e.path != "opencode.json"),
-            "infraestrutura do Alethe (.planning/, .opencode/, opencode.json) nunca deve aparecer: {with_worktree:?}"
+            "infraestrutura do Arco (.planning/, .opencode/, opencode.json) nunca deve aparecer: {with_worktree:?}"
         );
 
         fs::remove_dir_all(root).unwrap();
@@ -1064,7 +1064,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("alethe-git-control-{label}-{suffix}"));
+        let root = std::env::temp_dir().join(format!("arco-git-control-{label}-{suffix}"));
         fs::create_dir_all(&root).unwrap();
         root
     }

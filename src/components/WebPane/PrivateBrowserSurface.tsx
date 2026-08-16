@@ -163,7 +163,7 @@ export function PrivateBrowserSurface({
         .once<string>('tauri://error', (event) => {
           if (disposed || webview !== instance) return
           const detail = String(event.payload || privateStartFailed)
-          if (import.meta.env.DEV) console.error('[Alethe][private-browser]', detail)
+          if (import.meta.env.DEV) console.error('[Arco][private-browser]', detail)
           void recordFrontendError(detail, null, 'private-browser.create')
           setSurfaceState('error')
           setError(detail)
@@ -232,7 +232,7 @@ export function PrivateBrowserSurface({
     const unsubscribeOverlayPresence = subscribeOverlayPresence(scheduleSync)
     window.addEventListener('resize', scheduleSync)
     window.addEventListener('scroll', scheduleSync, true)
-    window.addEventListener('alethe:zoom-changed', scheduleSync)
+    window.addEventListener('arco:zoom-changed', scheduleSync)
     scheduleSync()
 
     return () => {
@@ -243,7 +243,7 @@ export function PrivateBrowserSurface({
       unsubscribeOverlayPresence()
       window.removeEventListener('resize', scheduleSync)
       window.removeEventListener('scroll', scheduleSync, true)
-      window.removeEventListener('alethe:zoom-changed', scheduleSync)
+      window.removeEventListener('arco:zoom-changed', scheduleSync)
       reevaluateRef.current = null
       if (frame !== null) window.cancelAnimationFrame(frame)
       unlistenCreated?.()

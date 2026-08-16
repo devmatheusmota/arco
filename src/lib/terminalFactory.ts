@@ -254,17 +254,17 @@ export function getProjectDefaultCwd(
   return ''
 }
 
-/** Casa o segmento `.alethe/worktrees/` (Windows ou POSIX) em qualquer ponto
+/** Casa o segmento `.arco/worktrees/` (Windows ou POSIX) em qualquer ponto
  *  do caminho — inclusive worktrees aninhadas, onde o match mais à esquerda
  *  ainda aponta pro segmento mais externo (a raiz real). */
-const ALETHE_WORKTREES_SEGMENT = /[\\/]\.alethe[\\/]worktrees[\\/]/i
+const ARCO_WORKTREES_SEGMENT = /[\\/]\.arco[\\/]worktrees[\\/]/i
 
                                                                            
                                                                              
                                                                            
                                                                     
 function deriveRepoRootFromWorktreeCwd(cwd: string): string {
-  const match = cwd.match(ALETHE_WORKTREES_SEGMENT)
+  const match = cwd.match(ARCO_WORKTREES_SEGMENT)
   if (!match || match.index === undefined) return ''
   return cwd.slice(0, match.index)
 }

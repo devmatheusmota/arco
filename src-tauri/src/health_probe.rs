@@ -167,7 +167,7 @@ mod tests {
 
     #[tokio::test]
     async fn kills_process_and_reports_no_response_on_timeout() {
-        let dir = std::env::temp_dir().join(format!("alethe-healthprobe-{}", nanoid::nanoid!(6)));
+        let dir = std::env::temp_dir().join(format!("arco-healthprobe-{}", nanoid::nanoid!(6)));
         std::fs::create_dir_all(&dir).unwrap();
 
         let sleep_cmd = if cfg!(windows) {

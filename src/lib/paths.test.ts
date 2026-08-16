@@ -8,7 +8,7 @@ describe('pathSegments', () => {
   })
 
   it('separa caminhos Windows', () => {
-    expect(pathSegments('D:\\projects\\alethe')).toEqual(['D:', 'projects', 'alethe'])
+    expect(pathSegments('D:\\projects\\arco')).toEqual(['D:', 'projects', 'arco'])
   })
 
   it('colapsa separadores repetidos', () => {
@@ -29,14 +29,14 @@ describe('pathSegments', () => {
   })
 
   it('aceita separadores mistos', () => {
-    expect(pathSegments('C:\\dev/alethe')).toEqual(['C:', 'dev', 'alethe'])
+    expect(pathSegments('C:\\dev/arco')).toEqual(['C:', 'dev', 'arco'])
   })
 })
 
 describe('basename', () => {
   it('retorna o último segmento', () => {
     expect(basename('/a/b')).toBe('b')
-    expect(basename('D:\\projects\\alethe')).toBe('alethe')
+    expect(basename('D:\\projects\\arco')).toBe('arco')
   })
 
   it('retorna vazio para caminho vazio ou separador único', () => {
@@ -52,11 +52,11 @@ describe('basename', () => {
 
 describe('sameCwd', () => {
   it('normaliza separadores de caminhos Windows', () => {
-    expect(sameCwd('C:\\dev\\alethe', 'C:/dev/alethe')).toBe(true)
+    expect(sameCwd('C:\\dev\\arco', 'C:/dev/arco')).toBe(true)
   })
 
   it('normaliza caixa apenas para caminhos Windows', () => {
-    expect(sameCwd('C:\\Dev\\Alethe', 'c:\\dev\\alethe')).toBe(true)
+    expect(sameCwd('C:\\Dev\\Arco', 'c:\\dev\\arco')).toBe(true)
     expect(sameCwd('/home/User/Project', '/home/user/project')).toBe(false)
   })
 

@@ -10,7 +10,7 @@
 //! | Plataforma      | Caminho                              | PATH                          |
 //! |-----------------|--------------------------------------|-------------------------------|
 
-//! | Windows         | `%LOCALAPPDATA%\Alethe\bin\alethe.cmd` | registrado em `HKCU\Environment` |
+//! | Windows         | `%LOCALAPPDATA%\Arco\bin\arco.cmd` | registrado em `HKCU\Environment` |
 //!
 
 use std::path::{Path, PathBuf};
@@ -18,9 +18,9 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 #[cfg(windows)]
-const SHIM_FILE_NAME: &str = "alethe.cmd";
+const SHIM_FILE_NAME: &str = "arco.cmd";
 #[cfg(not(windows))]
-const SHIM_FILE_NAME: &str = "alethe";
+const SHIM_FILE_NAME: &str = "arco";
 
 #[derive(Serialize, Default)]
 pub struct CliShimStatus {
@@ -40,7 +40,7 @@ fn shim_bin_dir() -> Result<PathBuf, String> {
     {
         let base = dirs_next::data_local_dir()
             .ok_or_else(|| "não foi possível resolver LOCALAPPDATA".to_string())?;
-        Ok(base.join("Alethe").join("bin"))
+        Ok(base.join("Arco").join("bin"))
     }
     #[cfg(not(windows))]
     {
@@ -91,24 +91,24 @@ fn sh_single_quote(value: &str) -> String {
 fn unix_shim_script(target_marker: &str, launch: &str) -> String {
     format!(
         r#"#!/bin/sh
-# alethe — abre um diretório no Alethe a partir do terminal.
+# arco — abre um diretório no Arco a partir do terminal.
 #
-# Gerado automaticamente pelo Alethe (Configurações ▸ Integrações ▸ Comando de
+# Gerado automaticamente pelo Arco (Configurações ▸ Integrações ▸ Comando de
 # terminal). Não edite à mão: reinstale por lá, principalmente depois de mover
 # ou reinstalar o app.
 #
-# alethe            → abre o diretório atual
-# alethe .          → idem
-# alethe ~/projeto  → abre o diretório informado
+# arco            → abre o diretório atual
+# arco .          → idem
+# arco ~/projeto  → abre o diretório informado
 #
-# ALETHE_TARGET_BIN: {target_marker}
+# ARCO_TARGET_BIN: {target_marker}
 
 set -e
 
 target=${{1:-.}}
 
 if [ ! -d "$target" ]; then
-  echo "alethe: diretório não encontrado: $target" >&2
+  echo "arco: diretório não encontrado: $target" >&2
   exit 1
 fi
 
@@ -157,13 +157,13 @@ fn render_shim(binary: &Path) -> Result<String, String> {
         let binary = binary.to_string_lossy().to_string();
         return Ok(format!(
             r#"@echo off
-rem alethe - abre um diretorio no Alethe a partir do terminal.
+rem arco - abre um diretorio no Arco a partir do terminal.
 rem
-rem Gerado automaticamente pelo Alethe (Configuracoes > Integracoes > Comando de
+rem Gerado automaticamente pelo Arco (Configuracoes > Integracoes > Comando de
 rem terminal). Nao edite a mao: reinstale por la, principalmente depois de mover
 rem ou reinstalar o app.
 rem
-rem ALETHE_TARGET_BIN: {binary}
+rem ARCO_TARGET_BIN: {binary}
 
 setlocal
 set "target=%~1"
@@ -173,7 +173,7 @@ rem Caminho absoluto: o app compara com o cwd salvo dos projetos.
 for %%I in ("%target%") do set "target=%%~fI"
 
 if not exist "%target%\" (
-  echo alethe: diretorio nao encontrado: %target% 1>&2
+  echo arco: diretorio nao encontrado: %target% 1>&2
   exit /b 1
 )
 
@@ -192,7 +192,7 @@ start "" "{binary}" --open-path "%target%"
 fn shim_targets_binary(contents: &str, binary: &Path) -> bool {
     let Some(line) = contents
         .lines()
-        .find_map(|line| line.split_once("ALETHE_TARGET_BIN:"))
+        .find_map(|line| line.split_once("ARCO_TARGET_BIN:"))
         .map(|(_, rest)| rest.trim())
     else {
         return false;
@@ -417,18 +417,18 @@ mod tests {
 
     #[test]
     fn shim_mentions_target_binary() {
-        let binary = PathBuf::from("/opt/alethe/alethe");
+        let binary = PathBuf::from("/opt/arco/arco");
         let script = render_shim(&binary).expect("script");
         assert!(shim_targets_binary(&script, &binary));
     }
 
     #[test]
     fn stale_shim_is_detected() {
-        let old = PathBuf::from("/opt/alethe-antigo/alethe");
+        let old = PathBuf::from("/opt/arco-antigo/arco");
         let script = render_shim(&old).expect("script");
         assert!(!shim_targets_binary(
             &script,
-            Path::new("/opt/alethe-novo/alethe")
+            Path::new("/opt/arco-novo/arco")
         ));
     }
 
@@ -436,14 +436,14 @@ mod tests {
     fn shim_without_marker_counts_as_stale() {
         assert!(!shim_targets_binary(
             "#!/bin/sh\necho oi\n",
-            Path::new("/opt/alethe/alethe")
+            Path::new("/opt/arco/arco")
         ));
     }
 
     #[cfg(not(windows))]
     #[test]
     fn shim_defaults_to_current_dir_and_is_a_posix_script() {
-        let script = render_shim(Path::new("/opt/alethe/alethe")).expect("script");
+        let script = render_shim(Path::new("/opt/arco/arco")).expect("script");
         assert!(script.starts_with("#!/bin/sh"));
 
         assert!(script.contains("target=${1:-.}"));
@@ -457,12 +457,12 @@ mod tests {
         use std::process::Command;
 
         for binary in [
-            "/opt/alethe/alethe",
-            "/Applications/Alethe.app/Contents/MacOS/Alethe",
+            "/opt/arco/arco",
+            "/Applications/Arco.app/Contents/MacOS/Arco",
         ] {
             let script = render_shim(Path::new(binary)).expect("script");
             let file = std::env::temp_dir().join(format!(
-                "alethe-shim-syntax-{}.sh",
+                "arco-shim-syntax-{}.sh",
                 binary.replace(['/', '.'], "_")
             ));
             std::fs::File::create(&file)
@@ -487,7 +487,7 @@ mod tests {
     #[cfg(not(windows))]
     #[test]
     fn single_quotes_in_path_are_escaped() {
-        let script = render_shim(Path::new("/opt/alethe's app/alethe")).expect("script");
+        let script = render_shim(Path::new("/opt/arco's app/arco")).expect("script");
 
         assert!(script.contains(r"'\''"));
     }

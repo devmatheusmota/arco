@@ -114,7 +114,7 @@ export function useInstalledAgents(session: Session | null) {
   const uninstallAgent = useCallback(
     (agent: InstalledAgent) => {
       if (!session) return
-      const msg = agent.from_alethe
+      const msg = agent.from_arco
         ? t('ws.confirmRemoveAgent', { name: agent.name })
         : t('ws.confirmRemoveForeignAgent', { name: agent.name })
       if (!window.confirm(msg)) return

@@ -355,7 +355,7 @@ mod windows_clipboard {
 
     fn write_bytes_to_temp_png(bytes: &[u8]) -> Result<String, String> {
         let path =
-            std::env::temp_dir().join(format!("alethe-clipboard-img-{}.png", nanoid::nanoid!(8)));
+            std::env::temp_dir().join(format!("arco-clipboard-img-{}.png", nanoid::nanoid!(8)));
         std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
         Ok(path.to_string_lossy().into_owned())
     }
@@ -403,7 +403,7 @@ mod windows_clipboard {
         let img = image::load_from_memory_with_format(&bmp, image::ImageFormat::Bmp)
             .map_err(|e| e.to_string())?;
         let path =
-            std::env::temp_dir().join(format!("alethe-clipboard-img-{}.png", nanoid::nanoid!(8)));
+            std::env::temp_dir().join(format!("arco-clipboard-img-{}.png", nanoid::nanoid!(8)));
         img.save_with_format(&path, image::ImageFormat::Png)
             .map_err(|e| e.to_string())?;
         Ok(path.to_string_lossy().into_owned())
@@ -533,7 +533,7 @@ mod unix_clipboard {
 
     fn save_png_to_temp(bytes: &[u8]) -> Result<String, String> {
         let path =
-            std::env::temp_dir().join(format!("alethe-clipboard-img-{}.png", nanoid::nanoid!(8)));
+            std::env::temp_dir().join(format!("arco-clipboard-img-{}.png", nanoid::nanoid!(8)));
         std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
         Ok(path.to_string_lossy().into_owned())
     }

@@ -34,7 +34,7 @@ pub fn publish(event: EventBusPayload) {
     let _ = sender.send(event.clone());
     if let Some(app) = APP_HANDLE.get() {
         use tauri::Emitter;
-        let _ = app.emit("alethe://event-bus", &event);
+        let _ = app.emit("arco://event-bus", &event);
     }
 }
 

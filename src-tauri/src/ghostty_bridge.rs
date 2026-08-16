@@ -84,7 +84,7 @@ mod imp {
         last_scale: f64,
 
         #[cfg(ghostty_linked)]
-        surface: crate::ghostty_ffi::AletheSurface,
+        surface: crate::ghostty_ffi::ArcoSurface,
 
         #[cfg(not(ghostty_linked))]
         view: Retained<NSView>,
@@ -181,7 +181,7 @@ mod imp {
                 .filter(|s| !s.trim().is_empty())
                 .and_then(|s| CString::new(s).ok());
             let s = unsafe {
-                alethe_ghostty_surface_new(
+                arco_ghostty_surface_new(
                     content_ptr,
                     cwd_c.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
                     cmd_c.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
@@ -189,14 +189,14 @@ mod imp {
                 )
             };
             if s.is_null() {
-                eprintln!("[alethe-ghostty] surface_new FALHOU id={id}");
+                eprintln!("[arco-ghostty] surface_new FALHOU id={id}");
                 return Err("ghostty_surface_new retornou null".into());
             }
-            eprintln!("[alethe-ghostty] surface criada id={id}");
+            eprintln!("[arco-ghostty] surface criada id={id}");
 
             // estabilizar, digitamos um echo e lemos o grid de volta — provando o
 
-            if std::env::var("ALETHE_GHOSTTY_PROBE").as_deref() == Ok("1")
+            if std::env::var("ARCO_GHOSTTY_PROBE").as_deref() == Ok("1")
                 && !PROBE_STARTED.swap(true, std::sync::atomic::Ordering::SeqCst)
             {
                 let app_thread = app.clone();
@@ -218,31 +218,31 @@ mod imp {
                                 debug_send_read(
                                     &state,
                                     lid,
-                                    "echo alethe_app_marker_99\r".to_string(),
+                                    "echo arco_app_marker_99\r".to_string(),
                                 )
                                 .ok()
                             });
                             let _ = tx.send(result);
                         });
                         if let Ok(Some(screen)) = rx.recv() {
-                            let ok = screen.contains("alethe_app_marker_99");
+                            let ok = screen.contains("arco_app_marker_99");
                             let preview: String = screen
                                 .lines()
                                 .filter(|l| !l.trim().is_empty())
                                 .take(3)
                                 .collect::<Vec<_>>()
                                 .join(" | ");
-                            eprintln!("[alethe-ghostty] PROBE echo_visivel={ok} tela: {preview}");
+                            eprintln!("[arco-ghostty] PROBE echo_visivel={ok} tela: {preview}");
                             return;
                         }
                         std::thread::sleep(std::time::Duration::from_secs(1));
                         let _ = attempt;
                     }
-                    eprintln!("[alethe-ghostty] PROBE erro: nenhuma surface viva após retries");
+                    eprintln!("[arco-ghostty] PROBE erro: nenhuma surface viva após retries");
                 });
             }
 
-            if std::env::var("ALETHE_GHOSTTY_WATCH").as_deref() == Ok("1")
+            if std::env::var("ARCO_GHOSTTY_WATCH").as_deref() == Ok("1")
                 && !WATCH_STARTED.swap(true, std::sync::atomic::Ordering::SeqCst)
             {
                 let app_w = app.clone();
@@ -264,7 +264,7 @@ mod imp {
                                 .rfind(|l| !l.trim().is_empty())
                                 .unwrap_or("(vazio)")
                                 .to_string();
-                            eprintln!("[alethe-ghostty] WATCH última-linha: {last}");
+                            eprintln!("[arco-ghostty] WATCH última-linha: {last}");
                         }
                         std::thread::sleep(std::time::Duration::from_secs(2));
                     }
@@ -342,16 +342,16 @@ mod imp {
                 let w = (rect.width * scale).round().max(1.0) as u32;
                 let h = (rect.height * scale).round().max(1.0) as u32;
                 unsafe {
-                    alethe_ghostty_surface_set_frame(
+                    arco_ghostty_surface_set_frame(
                         entry.surface,
                         frame.origin.x,
                         frame.origin.y,
                         frame.size.width,
                         frame.size.height,
                     );
-                    alethe_ghostty_surface_set_content_scale(entry.surface, scale, scale);
-                    alethe_ghostty_surface_set_size(entry.surface, w, h);
-                    alethe_ghostty_surface_draw(entry.surface);
+                    arco_ghostty_surface_set_content_scale(entry.surface, scale, scale);
+                    arco_ghostty_surface_set_size(entry.surface, w, h);
+                    arco_ghostty_surface_draw(entry.surface);
                 }
             }
         }
@@ -378,7 +378,7 @@ mod imp {
             {
                 use crate::ghostty_ffi::*;
                 if !entry.surface.is_null() {
-                    unsafe { alethe_ghostty_surface_set_hidden(entry.surface, hidden) };
+                    unsafe { arco_ghostty_surface_set_hidden(entry.surface, hidden) };
                 }
             }
             #[cfg(not(ghostty_linked))]
@@ -395,7 +395,7 @@ mod imp {
         #[cfg(ghostty_linked)]
         {
             use crate::ghostty_ffi::*;
-            unsafe { alethe_ghostty_kill_all() };
+            unsafe { arco_ghostty_kill_all() };
         }
         let mut views = state
             .views
@@ -439,18 +439,18 @@ mod imp {
         }
         if !text.is_empty() {
             let c = CString::new(text).map_err(|_| "texto inválido".to_string())?;
-            unsafe { alethe_ghostty_surface_send_text(surface, c.as_ptr(), c.as_bytes().len()) };
+            unsafe { arco_ghostty_surface_send_text(surface, c.as_ptr(), c.as_bytes().len()) };
         }
 
-        unsafe { alethe_ghostty_app_tick() };
+        unsafe { arco_ghostty_app_tick() };
         std::thread::sleep(std::time::Duration::from_millis(400));
         unsafe {
-            alethe_ghostty_app_tick();
-            alethe_ghostty_surface_draw(surface);
+            arco_ghostty_app_tick();
+            arco_ghostty_surface_draw(surface);
         }
         let mut buf = vec![0u8; 64 * 1024];
         let n = unsafe {
-            alethe_ghostty_surface_read_screen(
+            arco_ghostty_surface_read_screen(
                 surface,
                 buf.as_mut_ptr() as *mut std::os::raw::c_char,
                 buf.len(),
@@ -476,7 +476,7 @@ mod imp {
             {
                 use crate::ghostty_ffi::*;
                 if !entry.surface.is_null() {
-                    unsafe { alethe_ghostty_surface_set_focus(entry.surface, focused) };
+                    unsafe { arco_ghostty_surface_set_focus(entry.surface, focused) };
                 }
             }
             #[cfg(not(ghostty_linked))]
@@ -501,7 +501,7 @@ mod imp {
                 if entry.surface.is_null() {
                     return Ok(false);
                 }
-                Ok(unsafe { alethe_ghostty_surface_process_exited(entry.surface) })
+                Ok(unsafe { arco_ghostty_surface_process_exited(entry.surface) })
             }
             #[cfg(not(ghostty_linked))]
             Some(_entry) => Ok(false),
@@ -523,7 +523,7 @@ mod imp {
                 use crate::ghostty_ffi::*;
                 if !entry.surface.is_null() {
                     // O shim remove a NSView da superview ao liberar a surface.
-                    unsafe { alethe_ghostty_surface_free(entry.surface) };
+                    unsafe { arco_ghostty_surface_free(entry.surface) };
                 }
             }
             #[cfg(not(ghostty_linked))]
@@ -681,7 +681,7 @@ mod functional_tests {
             let rl: *mut objc2::runtime::AnyObject = msg_send![rl_cls, currentRunLoop];
             let date_cls = AnyClass::get(c"NSDate").unwrap();
             while Instant::now() < deadline {
-                alethe_ghostty_app_tick();
+                arco_ghostty_app_tick();
                 let until: *mut objc2::runtime::AnyObject =
                     msg_send![date_cls, dateWithTimeIntervalSinceNow: 0.05_f64];
                 let mode = objc2_foundation::NSString::from_str("kCFRunLoopDefaultMode");
@@ -693,7 +693,7 @@ mod functional_tests {
     fn read_screen(s: *mut c_void) -> String {
         let mut buf = vec![0u8; 64 * 1024];
         let n = unsafe {
-            alethe_ghostty_surface_read_screen(s, buf.as_mut_ptr() as *mut c_char, buf.len())
+            arco_ghostty_surface_read_screen(s, buf.as_mut_ptr() as *mut c_char, buf.len())
         };
         buf.truncate(n);
         String::from_utf8_lossy(&buf).to_string()
@@ -701,16 +701,16 @@ mod functional_tests {
 
     fn send(s: *mut c_void, text: &str) {
         let c = CString::new(text).unwrap();
-        unsafe { alethe_ghostty_surface_send_text(s, c.as_ptr(), text.len()) };
+        unsafe { arco_ghostty_surface_send_text(s, c.as_ptr(), text.len()) };
     }
 
     fn type_char(s: *mut c_void, ch: &str, keycode: u16) {
         let c = CString::new(ch).unwrap();
-        unsafe { alethe_ghostty_test_type_key(s, c.as_ptr(), keycode) };
+        unsafe { arco_ghostty_test_type_key(s, c.as_ptr(), keycode) };
     }
 
     fn last_key_text() -> String {
-        let p = unsafe { alethe_ghostty_test_last_key_text() };
+        let p = unsafe { arco_ghostty_test_last_key_text() };
         if p.is_null() {
             return String::new();
         }
@@ -719,14 +719,14 @@ mod functional_tests {
             .to_string()
     }
     fn last_key_composing() -> bool {
-        unsafe { alethe_ghostty_test_last_key_composing() }
+        unsafe { arco_ghostty_test_last_key_composing() }
     }
 
     pub fn run_deadkey_compose() {
-        assert!(unsafe { alethe_ghostty_ensure_app() }, "ensure_app falhou");
+        assert!(unsafe { arco_ghostty_ensure_app() }, "ensure_app falhou");
         let view = make_nsview();
         let surface =
-            unsafe { alethe_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
+            unsafe { arco_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
         assert!(!surface.is_null(), "surface_new NULL");
 
         type_char(surface, "a", 0);
@@ -760,18 +760,18 @@ mod functional_tests {
                 last_key_text()
             );
         }
-        unsafe { alethe_ghostty_surface_free(surface) };
+        unsafe { arco_ghostty_surface_free(surface) };
     }
 
     pub fn run_typed_input_renders() {
-        assert!(unsafe { alethe_ghostty_ensure_app() }, "ensure_app falhou");
+        assert!(unsafe { arco_ghostty_ensure_app() }, "ensure_app falhou");
         let view = make_nsview();
         let surface =
-            unsafe { alethe_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
+            unsafe { arco_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
         assert!(!surface.is_null(), "surface_new NULL (Metal headless?)");
         unsafe {
-            alethe_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
-            alethe_ghostty_surface_set_size(surface, 1600, 960);
+            arco_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
+            arco_ghostty_surface_set_size(surface, 1600, 960);
         }
 
         pump(Duration::from_secs(2));
@@ -801,31 +801,31 @@ mod functional_tests {
             screen.contains("echo zztop") || screen.contains("zztop"),
             "texto digitado pelo keyDown não renderizou (root fix do tick no render loop):\n{screen}"
         );
-        unsafe { alethe_ghostty_surface_free(surface) };
+        unsafe { arco_ghostty_surface_free(surface) };
     }
 
     pub fn run_echo_cd_ls() {
-        assert!(unsafe { alethe_ghostty_ensure_app() }, "ensure_app falhou");
+        assert!(unsafe { arco_ghostty_ensure_app() }, "ensure_app falhou");
         let view = make_nsview();
         assert!(!view.is_null(), "NSView nula");
 
         let surface =
-            unsafe { alethe_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
+            unsafe { arco_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
         assert!(
             !surface.is_null(),
             "surface_new NULL — ambiente sem contexto gráfico (Metal headless)"
         );
         unsafe {
-            alethe_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
-            alethe_ghostty_surface_set_size(surface, 1600, 960);
+            arco_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
+            arco_ghostty_surface_set_size(surface, 1600, 960);
         }
         pump(Duration::from_secs(2));
 
-        send(surface, "echo alethe_marker_42\r");
+        send(surface, "echo arco_marker_42\r");
         pump(Duration::from_secs(2));
         let screen = read_screen(surface);
         assert!(
-            screen.contains("alethe_marker_42"),
+            screen.contains("arco_marker_42"),
             "echo falhou:\n{screen}"
         );
 
@@ -836,28 +836,28 @@ mod functional_tests {
 
         send(
             surface,
-            "touch /tmp/alethe_ghostty_probe && ls /tmp/alethe_ghostty_probe\r",
+            "touch /tmp/arco_ghostty_probe && ls /tmp/arco_ghostty_probe\r",
         );
         pump(Duration::from_secs(2));
         let screen = read_screen(surface);
         assert!(
-            screen.contains("alethe_ghostty_probe"),
+            screen.contains("arco_ghostty_probe"),
             "ls falhou:\n{screen}"
         );
 
-        unsafe { alethe_ghostty_surface_free(surface) };
+        unsafe { arco_ghostty_surface_free(surface) };
     }
 
     pub fn run_cwd_respected() {
-        assert!(unsafe { alethe_ghostty_ensure_app() }, "ensure_app falhou");
+        assert!(unsafe { arco_ghostty_ensure_app() }, "ensure_app falhou");
         let view = make_nsview();
         let cwd = CString::new("/tmp").unwrap();
         let surface =
-            unsafe { alethe_ghostty_surface_new(view, cwd.as_ptr(), std::ptr::null(), 2.0) };
+            unsafe { arco_ghostty_surface_new(view, cwd.as_ptr(), std::ptr::null(), 2.0) };
         assert!(!surface.is_null(), "surface_new NULL (Metal headless?)");
         unsafe {
-            alethe_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
-            alethe_ghostty_surface_set_size(surface, 1600, 960);
+            arco_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
+            arco_ghostty_surface_set_size(surface, 1600, 960);
         }
         pump(Duration::from_secs(2));
         send(surface, "pwd\r");
@@ -868,7 +868,7 @@ mod functional_tests {
             screen.contains("/tmp") || screen.contains("/private/tmp"),
             "cwd inicial não respeitado (esperava /tmp):\n{screen}"
         );
-        unsafe { alethe_ghostty_surface_free(surface) };
+        unsafe { arco_ghostty_surface_free(surface) };
     }
 
     fn pump_runloop_only(dur: Duration) {
@@ -889,14 +889,14 @@ mod functional_tests {
     }
 
     pub fn run_ime_dead_key() {
-        assert!(unsafe { alethe_ghostty_ensure_app() }, "ensure_app falhou");
+        assert!(unsafe { arco_ghostty_ensure_app() }, "ensure_app falhou");
         let view = make_nsview();
         let surface =
-            unsafe { alethe_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
+            unsafe { arco_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
         assert!(!surface.is_null(), "surface_new NULL (Metal headless?)");
         unsafe {
-            alethe_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
-            alethe_ghostty_surface_set_size(surface, 1600, 960);
+            arco_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
+            arco_ghostty_surface_set_size(surface, 1600, 960);
         }
         pump(Duration::from_secs(2));
 
@@ -906,11 +906,11 @@ mod functional_tests {
         let marked = CString::new("\u{00b4}").unwrap(); // ´
         let final_ = CString::new("\u{00e1}").unwrap();
         let ok =
-            unsafe { alethe_ghostty_test_ime_compose(surface, marked.as_ptr(), final_.as_ptr()) };
+            unsafe { arco_ghostty_test_ime_compose(surface, marked.as_ptr(), final_.as_ptr()) };
         assert!(ok, "test_ime_compose não achou a view");
 
         let cedilha = CString::new("\u{00e7}\u{00e3}").unwrap();
-        unsafe { alethe_ghostty_test_ime_compose(surface, std::ptr::null(), cedilha.as_ptr()) };
+        unsafe { arco_ghostty_test_ime_compose(surface, std::ptr::null(), cedilha.as_ptr()) };
         send(surface, "_END\r");
         pump(Duration::from_secs(2));
 
@@ -919,31 +919,31 @@ mod functional_tests {
             screen.contains("IME_áçã_END"),
             "composição IME não chegou ao terminal. Esperava 'IME_áçã_END':\n{screen}"
         );
-        unsafe { alethe_ghostty_surface_free(surface) };
+        unsafe { arco_ghostty_surface_free(surface) };
     }
 
     pub fn run_render_loop_draws() {
-        assert!(unsafe { alethe_ghostty_ensure_app() }, "ensure_app falhou");
+        assert!(unsafe { arco_ghostty_ensure_app() }, "ensure_app falhou");
         let view = make_nsview();
         let surface =
-            unsafe { alethe_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
+            unsafe { arco_ghostty_surface_new(view, std::ptr::null(), std::ptr::null(), 2.0) };
         assert!(!surface.is_null(), "surface_new NULL (Metal headless?)");
         unsafe {
-            alethe_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
-            alethe_ghostty_surface_set_size(surface, 1600, 960);
+            arco_ghostty_surface_set_content_scale(surface, 2.0, 2.0);
+            arco_ghostty_surface_set_size(surface, 1600, 960);
         }
 
         pump(Duration::from_secs(1));
-        let before = unsafe { alethe_ghostty_draw_count() };
+        let before = unsafe { arco_ghostty_draw_count() };
         pump_runloop_only(Duration::from_millis(1000));
-        let after = unsafe { alethe_ghostty_draw_count() };
+        let after = unsafe { arco_ghostty_draw_count() };
         let frames = after - before;
 
         assert!(
             frames >= 20,
             "render contínuo ausente: {frames} draws em 1s só de run loop (esperado >= 20)"
         );
-        unsafe { alethe_ghostty_surface_free(surface) };
+        unsafe { arco_ghostty_surface_free(surface) };
     }
 }
 

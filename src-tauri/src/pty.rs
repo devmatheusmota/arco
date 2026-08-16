@@ -95,7 +95,7 @@ pub(crate) fn align_to_char_boundary(slice: &[u8], start: usize) -> usize {
 /// output real → resize → nudge de redesenho) em `spawn.log`, pro
 
 fn pty_debug_enabled() -> bool {
-    std::env::var("ALETHE_PTY_DEBUG").as_deref() == Ok("1")
+    std::env::var("ARCO_PTY_DEBUG").as_deref() == Ok("1")
 }
 
 fn activity_emit_due(last_activity_emit: Option<Instant>, interval_ms: u128) -> bool {
@@ -1525,7 +1525,7 @@ pub fn kill_all_sessions_background(sessions: &PtySessions) {
     }
 
     let _ = std::thread::Builder::new()
-        .name("alethe-pty-shutdown".to_string())
+        .name("arco-pty-shutdown".to_string())
         .spawn(move || {
             for session in drained {
                 terminate_session(session);

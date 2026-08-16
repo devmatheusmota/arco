@@ -154,8 +154,8 @@ pub fn codex_app_server_start(
             "method": "initialize",
             "params": {
                 "clientInfo": {
-                    "name": "alethe-agent-sandbox",
-                    "title": "Alethe Agent Sandbox",
+                    "name": "arco-agent-sandbox",
+                    "title": "Arco Agent Sandbox",
                     "version": env!("CARGO_PKG_VERSION")
                 }
             }

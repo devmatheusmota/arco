@@ -1,6 +1,6 @@
-# Alethe Overview
+# Arco Overview
 
-Alethe is a desktop workspace for running coding agents and shells side by side. It turns terminals into persistent workspace units: each pane has its own cwd, PTY, scrollback, tabs, layout state, and local resume data.
+Arco is a desktop workspace for running coding agents and shells side by side. It turns terminals into persistent workspace units: each pane has its own cwd, PTY, scrollback, tabs, layout state, and local resume data.
 
 The app is local-first. Projects, preferences, layouts, scrollback, sessions, and Spotify credentials stay on the user's machine unless an optional cloud service is added later.
 
@@ -50,7 +50,7 @@ Group
 
 ## Persistence
 
-Alethe stores app data under the platform app-data directory. Each local profile/account has its own isolated data folder.
+Arco stores app data under the platform app-data directory. Each local profile/account has its own isolated data folder.
 
 Typical files include:
 
@@ -77,6 +77,6 @@ src-tauri/target/release/bundle/
 
 ## Current Scope
 
-Alethe is currently focused on the local desktop app. Windows is the most tested platform, while Linux and macOS builds are supported by the release workflow and need broader real-machine validation.
+Arco is currently focused on the local desktop app. Windows is the most tested platform, while Linux and macOS builds are supported by the release workflow and need broader real-machine validation.
 
 Cloud sync, hosted backup, billing, and online services are intentionally separate from the local app.

@@ -65,7 +65,7 @@ type AgentSandboxState = {
   ungroupNodes: (groupId: string) => void
 }
 
-const SPAWN_BRIDGE_PROMPT = `You are the Planner Claude inside Alethe. You are the parent orchestrator. When the user asks you to delegate work, create a real Codex worker through Alethe's local bridge instead of doing the work yourself. Use a short self-contained task and include parent_id='lead'. Example: $body=@{agent='codex';task='Create worker-proof.txt containing READY';cwd=(pwd).Path;parent_id='lead'}|ConvertTo-Json -Compress; Invoke-RestMethod "$env:ALETHE_AGENT_HOOKS_ENDPOINT/spawn" -Method Post -Headers @{'X-Alethe-Token'=$env:ALETHE_AGENT_HOOKS_TOKEN} -ContentType 'application/json' -Body $body. Keep task under 300 characters. Alethe injects the worker's completed response back into your terminal, so review it and send follow-up work through the same bridge or composer. Never claim a worker completed work until its response arrives. If a worker exists, do not perform its delegated task yourself or edit its files.`
+const SPAWN_BRIDGE_PROMPT = `You are the Planner Claude inside Arco. You are the parent orchestrator. When the user asks you to delegate work, create a real Codex worker through Arco's local bridge instead of doing the work yourself. Use a short self-contained task and include parent_id='lead'. Example: $body=@{agent='codex';task='Create worker-proof.txt containing READY';cwd=(pwd).Path;parent_id='lead'}|ConvertTo-Json -Compress; Invoke-RestMethod "$env:ARCO_AGENT_HOOKS_ENDPOINT/spawn" -Method Post -Headers @{'X-Arco-Token'=$env:ARCO_AGENT_HOOKS_TOKEN} -ContentType 'application/json' -Body $body. Keep task under 300 characters. Arco injects the worker's completed response back into your terminal, so review it and send follow-up work through the same bridge or composer. Never claim a worker completed work until its response arrives. If a worker exists, do not perform its delegated task yourself or edit its files.`
 
 type SpawnPayload = {
   agent?: string
@@ -106,7 +106,7 @@ function hookSummary(payload: Record<string, unknown>): string {
     : detailSource && typeof detailSource === 'object'
       ? JSON.stringify(detailSource)
       : ''
-  return `[Alethe hook] ${eventName}${tool}${detail ? `: ${detail.replace(/[\r\n]+/g, ' ').slice(0, 420)}` : ''}`
+  return `[Arco hook] ${eventName}${tool}${detail ? `: ${detail.replace(/[\r\n]+/g, ' ').slice(0, 420)}` : ''}`
 }
 
 async function writeAgentMessage(ptyId: string, text: string): Promise<void> {
@@ -122,7 +122,7 @@ async function writeAgentMessage(ptyId: string, text: string): Promise<void> {
 }
 
 function agentInput(command: SandboxNode['command'], from: string, text: string): string {
-  const message = `[Alethe message from ${from}] ${text.trim()}`
+  const message = `[Arco message from ${from}] ${text.trim()}`
   return command === 'shell' ? shellLine(message) : `${message}\r`
 }
 
@@ -218,7 +218,7 @@ export const useAgentSandboxStore = create<AgentSandboxState>((set, get) => ({
                 ...(automatedTaskArgs ?? (payload.agent === 'claude' ? ['--model', 'haiku', '--dangerously-skip-permissions'] : [])),
                 ...(payload.agent === 'claude' ? ['--settings', settingsPath] : []),
               ],
-              env: { ALETHE_AGENT_HOOKS_ENDPOINT: endpoint, ALETHE_AGENT_HOOKS_TOKEN: token },
+              env: { ARCO_AGENT_HOOKS_ENDPOINT: endpoint, ARCO_AGENT_HOOKS_TOKEN: token },
             })
           }
           if (generation !== sandboxGeneration) {
@@ -277,7 +277,7 @@ export const useAgentSandboxStore = create<AgentSandboxState>((set, get) => ({
                 const reply = turnOutput.trim()
                 const parent = get().nodes.find((item) => item.id === node.parentId)
                 if (reply && parent?.ptyId) {
-                  const relay = `[Alethe reply from ${node.label}] ${reply}`
+                  const relay = `[Arco reply from ${node.label}] ${reply}`
                   void writeAgentMessage(parent.ptyId, relay).catch((error) => console.error('[sandbox] worker reply relay failed', error))
                   set((state) => ({
                     messages: [...state.messages, { id: nanoid(), from: node.id, to: parent.id, text: reply, createdAt: Date.now(), state: 'delivered' as const }].slice(-80),
@@ -285,7 +285,7 @@ export const useAgentSandboxStore = create<AgentSandboxState>((set, get) => ({
                 }
                 turnOutput = ''
                 activeTurnId = null
-                set((state) => ({ nodes: state.nodes.map((item) => item.id === node.id ? { ...item, status: 'idle', output: `${item.output ?? ''}\n\n[Alethe] Turn completed. Ready for another message.\n` } : item) }))
+                set((state) => ({ nodes: state.nodes.map((item) => item.id === node.id ? { ...item, status: 'idle', output: `${item.output ?? ''}\n\n[Arco] Turn completed. Ready for another message.\n` } : item) }))
               }
               if (method === 'item/commandExecution/requestApproval' || method === 'item/fileChange/requestApproval') {
                 const requestId = event.id
@@ -301,7 +301,7 @@ export const useAgentSandboxStore = create<AgentSandboxState>((set, get) => ({
                 }).catch((error) => console.error('[sandbox] app-server turn failed', error))
               }
               if (event.type === 'transport_error' || event.type === 'transport_closed') {
-                set((state) => ({ nodes: state.nodes.map((item) => item.id === node.id ? { ...item, status: 'error', lastMessage: 'Codex app-server connection closed', output: `${item.output ?? ''}\n\n[Alethe] Codex connection closed.\n` } : item) }))
+                set((state) => ({ nodes: state.nodes.map((item) => item.id === node.id ? { ...item, status: 'error', lastMessage: 'Codex app-server connection closed', output: `${item.output ?? ''}\n\n[Arco] Codex connection closed.\n` } : item) }))
               }
             })
             appServerCleanups.set(appServerId, cleanup)
@@ -365,7 +365,7 @@ export const useAgentSandboxStore = create<AgentSandboxState>((set, get) => ({
           cwd,
           command: node.command === 'shell' ? undefined : node.command,
           extraArgs: [...(node.extraArgs ?? []), '--settings', settingsPath],
-          env: { ALETHE_AGENT_HOOKS_ENDPOINT: endpoint, ALETHE_AGENT_HOOKS_TOKEN: token },
+          env: { ARCO_AGENT_HOOKS_ENDPOINT: endpoint, ARCO_AGENT_HOOKS_TOKEN: token },
         })
         if (generation !== sandboxGeneration) {
           await killPty(ptyId).catch(() => {})

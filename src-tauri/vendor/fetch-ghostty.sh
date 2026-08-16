@@ -48,7 +48,7 @@ unzip -q "$TMP/GhosttyKit.xcframework.zip" -d "$TMP/extracted"
 rm -rf "$DEST"
 mv "$TMP/extracted/GhosttyKit.xcframework" "$DEST"
 
-# Mantemos só o slice macOS — o Alethe é macOS desktop. iOS/maccatalyst/sim
+# Mantemos só o slice macOS — o Arco é macOS desktop. iOS/maccatalyst/sim
 # são removidos para não inflar o checkout local.
 ( cd "$DEST" && rm -rf ios-arm64 ios-arm64_x86_64-simulator ios-arm64_x86_64-maccatalyst )
 

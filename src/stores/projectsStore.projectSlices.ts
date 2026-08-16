@@ -598,7 +598,7 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
                   env: runtime.env,
                 })
                 window.dispatchEvent(
-                  new CustomEvent('alethe:terminal-resize-request', {
+                  new CustomEvent('arco:terminal-resize-request', {
                     detail: { ptyId: tab.ptyId },
                   }),
                 )

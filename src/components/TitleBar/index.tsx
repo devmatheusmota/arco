@@ -37,7 +37,7 @@ import styles from './TitleBar.module.css'
 
 const CLAUDE_POLL_INTERVAL_MS = 5 * 60_000
 const REMOTE_CONTROL_POLL_INTERVAL_MS = 2_000
-const APP_TITLE = import.meta.env.DEV ? '(DEV) Alethe' : 'Alethe'
+const APP_TITLE = import.meta.env.DEV ? '(DEV) Arco' : 'Arco'
 
 function usagePillColor(utilization: number): string {
   if (utilization >= 80) return 'var(--status-offline)'
@@ -139,7 +139,7 @@ export function TitleBar() {
   const closeAgentPlanning = () => {
     if (!agentCanvasSession) return
     if (activeView === 'agentCanvas') {
-      window.dispatchEvent(new CustomEvent('alethe:agent-canvas-exit'))
+      window.dispatchEvent(new CustomEvent('arco:agent-canvas-exit'))
       return
     }
     void killPty(agentCanvasSession.ptyId).catch(() => {

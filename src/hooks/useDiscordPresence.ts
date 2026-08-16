@@ -28,7 +28,7 @@ export function useDiscordPresence() {
     }
 
     const update = () => {
-      void setDiscordPresence('Working with Alethe', VIEW_LABELS[activeView], STARTED_AT).catch(
+      void setDiscordPresence('Working with Arco', VIEW_LABELS[activeView], STARTED_AT).catch(
         () => undefined,
       )
     }

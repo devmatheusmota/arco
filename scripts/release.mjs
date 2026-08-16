@@ -3,7 +3,7 @@
  * Bump de versão + commit + tag + push. NÃO publica instaladores.
  *
  * Mantém em sincronia as 3 (4) fontes da versão:
- *   package.json · src-tauri/tauri.conf.json · src-tauri/Cargo.toml · src-tauri/Cargo.lock (bloco alethe)
+ *   package.json · src-tauri/tauri.conf.json · src-tauri/Cargo.toml · src-tauri/Cargo.lock (bloco arco)
  *
  * Uso:
  *   npm run release            # patch:  1.2.0 -> 1.2.1  (o "último ponto")
@@ -74,10 +74,10 @@ bumpFile(PKG, /"version":\s*"(\d+\.\d+\.\d+)"/)
 bumpFile(TAURI, /"version":\s*"(\d+\.\d+\.\d+)"/)
 bumpFile(CARGO, /version\s*=\s*"(\d+\.\d+\.\d+)"/)
 
-// Cargo.lock: só o bloco do próprio crate (name = "alethe").
+// Cargo.lock: só o bloco do próprio crate (name = "arco").
 const toAdd = [PKG, TAURI, CARGO]
 if (existsSync(LOCK)) {
-  bumpFile(LOCK, /name = "alethe"\r?\nversion = "(\d+\.\d+\.\d+)"/, LOCK)
+  bumpFile(LOCK, /name = "arco"\r?\nversion = "(\d+\.\d+\.\d+)"/, LOCK)
   toAdd.push(LOCK)
 }
 

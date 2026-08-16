@@ -4,13 +4,13 @@ use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
 
-const MARKER: &str = "gerado pelo Alethe";
+const MARKER: &str = "gerado pelo Arco";
 
 #[derive(Serialize)]
 pub struct InstalledAgent {
     pub name: String,
-    /// Whether the file contains the Alethe marker and can be removed safely.
-    pub from_alethe: bool,
+    /// Whether the file contains the Arco marker and can be removed safely.
+    pub from_arco: bool,
 }
 
 fn agents_dir(folder: &str) -> PathBuf {
@@ -40,10 +40,10 @@ fn list_installed_agents_inner(folder: String) -> Vec<InstalledAgent> {
                 return None;
             }
             let name = path.file_stem()?.to_str()?.to_string();
-            let from_alethe = fs::read_to_string(&path)
+            let from_arco = fs::read_to_string(&path)
                 .map(|c| c.contains(MARKER))
                 .unwrap_or(false);
-            Some(InstalledAgent { name, from_alethe })
+            Some(InstalledAgent { name, from_arco })
         })
         .collect();
     agents.sort_by(|a, b| a.name.cmp(&b.name));

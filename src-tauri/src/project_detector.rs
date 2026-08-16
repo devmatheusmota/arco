@@ -143,7 +143,7 @@ mod tests {
     use std::fs;
 
     fn temp_repo(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("alethe-detect-{name}-{}", nanoid::nanoid!(6)));
+        let dir = std::env::temp_dir().join(format!("arco-detect-{name}-{}", nanoid::nanoid!(6)));
         fs::create_dir_all(&dir).unwrap();
         dir
     }

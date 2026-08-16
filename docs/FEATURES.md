@@ -1,4 +1,4 @@
-# Alethe Features
+# Arco Features
 
 This document summarizes the main product capabilities in the public desktop app.
 
@@ -15,7 +15,7 @@ This document summarizes the main product capabilities in the public desktop app
 
 ## Layouts
 
-Alethe supports layouts at project, group, and workspace level.
+Arco supports layouts at project, group, and workspace level.
 
 - **Auto**: one pane full size, two panes side by side, three or more in a grid.
 - **Spotlight**: one primary pane with secondary panes stacked beside it.
@@ -153,4 +153,4 @@ Custom grids support `colSpan`, `rowSpan`, drag-and-drop swapping, and resizable
 
 ## Agent Planning
 
-Agent Planning / Agent Canvas is experimental. It provides a visual control surface for coordinating agent sessions and workers from inside Alethe.
+Agent Planning / Agent Canvas is experimental. It provides a visual control surface for coordinating agent sessions and workers from inside Arco.

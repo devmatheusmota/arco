@@ -320,7 +320,7 @@ export function MultiagentPage() {
             }}
           >
             {Object.entries(metrics).map(([key, data]) => {
-              const name = key.replace('alethe_event_', '').toUpperCase()
+              const name = key.replace('arco_event_', '').toUpperCase()
               return (
                 <div
                   key={key}

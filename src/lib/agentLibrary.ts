@@ -17,7 +17,7 @@ export type AgentTemplate = {
   content: string
 }
 
-const MARKER = '<!-- gerado pelo Alethe (biblioteca) — seguro deletar -->'
+const MARKER = '<!-- gerado pelo Arco (biblioteca) — seguro deletar -->'
 
 export const AGENT_LIBRARY: AgentTemplate[] = [
   {
@@ -32,7 +32,7 @@ model: sonnet
 tools: Read, Grep, Glob
 ---
 
-Você é o tech-lead/planejador de uma sessão de orquestração do Alethe. O control plane (lead) te consulta no começo de uma meta grande e nos marcos pra decidir o que distribuir e em que ordem.
+Você é o tech-lead/planejador de uma sessão de orquestração do Arco. O control plane (lead) te consulta no começo de uma meta grande e nos marcos pra decidir o que distribuir e em que ordem.
 
 Regras:
 - Você NÃO edita nem cria arquivos de produto — só lê o repo pra entender e devolve um plano.

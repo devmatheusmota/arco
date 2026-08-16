@@ -3,10 +3,10 @@
 <br />
 <div align="center">
   <a href="https://github.com/Kc1t/alethe-agents">
-    <img src="./src/assets/theme-icons/dark.png" alt="Alethe Logo" width="160">
+    <img src="./src/assets/theme-icons/dark.png" alt="Arco Logo" width="160">
   </a>
 
-  <h1 align="center">Alethe</h1>
+  <h1 align="center">Arco</h1>
 
   <p align="center">
     Reveal the state of every agent, shell, and project.
@@ -35,10 +35,10 @@
 </div>
 
 > [!IMPORTANT]
-> Alethe is an early public release. The desktop app is free, open source, and local-first. Optional hosted services, such as sync or cloud backup, may be offered separately later.
+> Arco is an early public release. The desktop app is free, open source, and local-first. Optional hosted services, such as sync or cloud backup, may be offered separately later.
 
 <div align="center">
-  <img src="./docs/assets/alethe-preview.gif" alt="Alethe desktop workspace preview" width="760">
+  <img src="./docs/assets/arco-preview.gif" alt="Arco desktop workspace preview" width="760">
 </div>
 
 ## Supported Platforms
@@ -51,13 +51,13 @@
   </tr>
   <tr>
     <td align="center">
-      <img src="./docs/screenshots/alethe-macos.png" alt="Alethe running on macOS" width="100%">
+      <img src="./docs/screenshots/arco-macos.png" alt="Arco running on macOS" width="100%">
     </td>
     <td align="center">
-      <img src="./docs/screenshots/alethe-windows.png" alt="Alethe running on Windows" width="100%">
+      <img src="./docs/screenshots/arco-windows.png" alt="Arco running on Windows" width="100%">
     </td>
     <td align="center">
-      <img src="./docs/screenshots/alethe-linux.png" alt="Alethe running on Linux" width="100%">
+      <img src="./docs/screenshots/arco-linux.png" alt="Arco running on Linux" width="100%">
     </td>
   </tr>
   <tr>
@@ -67,9 +67,9 @@
   </tr>
 </table>
 
-## What Alethe Is
+## What Arco Is
 
-**Alethe** is a cross-platform desktop workspace for running and resuming multiple coding agents and shells in parallel on Windows, macOS, and Linux. It combines projects, groups, containers, split panes, terminal sub-tabs, real PTYs, local history, session resume, and memory controls in one app.
+**Arco** is a cross-platform desktop workspace for running and resuming multiple coding agents and shells in parallel on Windows, macOS, and Linux. It combines projects, groups, containers, split panes, terminal sub-tabs, real PTYs, local history, session resume, and memory controls in one app.
 
 It is built for developers who use Claude Code, Codex, OpenCode, and local terminals across multiple repositories or client contexts.
 
@@ -77,12 +77,12 @@ Built with Tauri, Rust, React, TypeScript, Vite, `portable-pty`, and `xterm.js`.
 
 ## Product Philosophy
 
-Alethe is intentionally not a maximalist desktop suite. Its purpose is to provide a calm,
+Arco is intentionally not a maximalist desktop suite. Its purpose is to provide a calm,
 reliable workspace for coding agents, terminals, and project context — then let each user decide
 which additional capabilities belong in that workspace.
 
 The product follows a principle similar to Obsidian: a focused core, a durable local foundation,
-and optional capabilities that can be brought in when they are useful. Alethe should grow with the
+and optional capabilities that can be brought in when they are useful. Arco should grow with the
 user's workflow rather than forcing every workflow to carry the same interface, controls, and
 background services.
 
@@ -93,7 +93,7 @@ unfinished. A clean installation should remain a first-class experience as the p
 
 This is a deliberate response to a common failure mode in developer tools: accumulating every
 possible feature until the product becomes harder to understand, harder to configure, and noisier
-to operate than the problem it was meant to solve. Alethe values coherence over volume, and user
+to operate than the problem it was meant to solve. Arco values coherence over volume, and user
 choice over forced completeness.
 
 ## What It Gives You
@@ -124,7 +124,7 @@ choice over forced completeness.
 - Close containers without killing running processes.
 - Suspend groups to free memory.
 - Local backup export/import.
-- `alethe` terminal command to open any folder as a project.
+- `arco` terminal command to open any folder as a project.
 - Spotify Now Playing through the user's own Spotify app credentials.
 - Experimental agent planning canvas.
 - GitHub Actions release workflow for Windows, Linux, and macOS.
@@ -136,19 +136,19 @@ Use the published installers from [Releases](https://github.com/Kc1t/alethe-agen
 ### Windows SmartScreen / Defender warning
 
 > [!WARNING]
-> Windows builds are **not code-signed yet**. Windows Defender may flag `alethe.exe` as
+> Windows builds are **not code-signed yet**. Windows Defender may flag `arco.exe` as
 > `Trojan:Win32/Bearfoos.A!ml` and quarantine or delete it. **This is a false positive.**
 
 The `!ml` suffix means the detection came from Defender's machine-learning heuristic, not from a
-malware signature. Alethe trips it because it does exactly what a terminal multiplexer must do:
+malware signature. Arco trips it because it does exactly what a terminal multiplexer must do:
 spawn child processes, create PTYs, write commands into them, and self-update — all from an
 unsigned binary with no download reputation yet.
 
 If Defender removes the app:
 
 1. Open **Windows Security → Virus & threat protection → Protection history**.
-2. Find the Alethe entry and choose **Actions → Restore**.
-3. Add an exclusion for `%LOCALAPPDATA%\Alethe` (and for `src-tauri/target` if you build from
+2. Find the Arco entry and choose **Actions → Restore**.
+3. Add an exclusion for `%LOCALAPPDATA%\Arco` (and for `src-tauri/target` if you build from
    source, otherwise your dev binaries get quarantined too).
 
 You can also report the file at
@@ -215,21 +215,21 @@ src-tauri/target/release/bundle/
 
 ## Terminal Command
 
-Install the `alethe` command from **Settings ▸ Integrations ▸ Terminal command** to open a folder
+Install the `arco` command from **Settings ▸ Integrations ▸ Terminal command** to open a folder
 as a project without leaving the terminal:
 
 ```bash
-alethe                # opens the current folder
-alethe .              # same
-alethe ~/some/project # opens the given folder
+arco                # opens the current folder
+arco .              # same
+arco ~/some/project # opens the given folder
 ```
 
-If the folder is already a project, Alethe brings it into the workspace instead of duplicating it.
-If it is not, the project is created with a terminal already pointing at that folder. When Alethe is
+If the folder is already a project, Arco brings it into the workspace instead of duplicating it.
+If it is not, the project is created with a terminal already pointing at that folder. When Arco is
 already running, the existing window is focused rather than starting a second instance.
 
-The command is installed to `~/.local/bin/alethe` on macOS/Linux and to
-`%LOCALAPPDATA%\Alethe\bin\alethe.cmd` on Windows (added to the user `Path`). Reinstall it after
+The command is installed to `~/.local/bin/arco` on macOS/Linux and to
+`%LOCALAPPDATA%\Arco\bin\arco.cmd` on Windows (added to the user `Path`). Reinstall it after
 moving or reinstalling the app — the settings screen flags a stale command.
 
 ## Spotify
@@ -297,13 +297,13 @@ The easiest ways to help right now are:
 
 For larger changes, open an issue first so the direction can be discussed before implementation.
 
-## Built with Alethe
+## Built with Arco
 
-Projects and products built with Alethe as the workspace — agents running in parallel, shells alongside them, sessions resumed across days.
+Projects and products built with Arco as the workspace — agents running in parallel, shells alongside them, sessions resumed across days.
 
 <!-- showcase:start -->
 
-_Nothing here yet._ Built something with Alethe? Add it to [`SHOWCASE.md`](SHOWCASE.md) — it's one line and a pull request, and you end up in the contributors list too.
+_Nothing here yet._ Built something with Arco? Add it to [`SHOWCASE.md`](SHOWCASE.md) — it's one line and a pull request, and you end up in the contributors list too.
 
 <!-- showcase:end -->
 
@@ -311,7 +311,7 @@ See [`SHOWCASE.md`](SHOWCASE.md) for the full list and how to submit.
 
 ## Contributors
 
-Thanks to everyone helping shape Alethe.
+Thanks to everyone helping shape Arco.
 
 <p align="center">
   <!-- contributors:start -->
@@ -351,7 +351,7 @@ The source code is distributed under **AGPL-3.0-or-later**. See [`LICENSE`](LICE
 
 Official hosted services, such as sync, backup, billing, or cloud features, may be proprietary and offered separately.
 
-The **Alethe** name, logo, and official branding are reserved for official builds. See [`TRADEMARK.md`](TRADEMARK.md).
+The **Arco** name, logo, and official branding are reserved for official builds. See [`TRADEMARK.md`](TRADEMARK.md).
 
 ## Community
 

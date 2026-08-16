@@ -102,7 +102,7 @@ struct PersistedRoot {
 /// Caminho fixo, independente de perfil/`AppHandle` — `register_pty_root`/
 
 fn roots_file_path() -> Option<PathBuf> {
-    dirs_next::data_local_dir().map(|d| d.join("Alethe").join("pty_roots.json"))
+    dirs_next::data_local_dir().map(|d| d.join("Arco").join("pty_roots.json"))
 }
 
 /// Job Object (`pty::install_kill_on_close_guard`) tenha falhado silenciosamente

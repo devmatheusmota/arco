@@ -220,7 +220,7 @@ export async function resetLastSession(): Promise<ResetLastSessionResult> {
         extraArgs,
       })
       window.dispatchEvent(
-        new CustomEvent('alethe:terminal-resize-request', { detail: { ptyId: target.ptyId } }),
+        new CustomEvent('arco:terminal-resize-request', { detail: { ptyId: target.ptyId } }),
       )
 
                                                                           

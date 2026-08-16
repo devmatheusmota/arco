@@ -85,7 +85,7 @@ fn fetch_usage() -> Result<CodexUsage, String> {
     let stdout = child.stdout.take().ok_or("no stdout")?;
 
     let requests = concat!(
-        r#"{"id":1,"method":"initialize","params":{"clientInfo":{"name":"alethe","version":"1.2.0"}}}"#,
+        r#"{"id":1,"method":"initialize","params":{"clientInfo":{"name":"arco","version":"1.2.0"}}}"#,
         "\n",
         r#"{"method":"initialized"}"#,
         "\n",

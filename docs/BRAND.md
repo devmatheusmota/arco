@@ -1,11 +1,11 @@
-# Alethe Brand and Design Tokens
+# Arco Brand and Design Tokens
 
 This file documents the public app assets and the core design tokens used by the interface.
 
 ## Logo and Icons
 
-- Main mark: [src/assets/alethe-mark.svg](../src/assets/alethe-mark.svg)
-- Loading mark: [src/assets/alethe-loading-mark.png](../src/assets/alethe-loading-mark.png)
+- Main mark: [src/assets/arco-mark.svg](../src/assets/arco-mark.svg)
+- Loading mark: [src/assets/arco-loading-mark.png](../src/assets/arco-loading-mark.png)
 - Default profile avatar: [src/assets/default-profile.svg](../src/assets/default-profile.svg)
 - App icons: [src-tauri/icons/](../src-tauri/icons/)
 
@@ -111,4 +111,4 @@ Common usage:
 
 ## Trademark
 
-The Alethe name, logo, and official branding are reserved for official builds. See [TRADEMARK.md](../TRADEMARK.md).
+The Arco name, logo, and official branding are reserved for official builds. See [TRADEMARK.md](../TRADEMARK.md).

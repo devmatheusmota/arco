@@ -44,7 +44,7 @@ const SKIP_DIRS: &[&str] = &[
     ".venv",
     "venv",
     "__pycache__",
-    ".alethe",
+    ".arco",
     "graphify-out",
 ];
 
@@ -285,7 +285,7 @@ mod tests {
 
     fn temp_dir(name: &str) -> PathBuf {
         let dir =
-            std::env::temp_dir().join(format!("alethe-contract-{name}-{}", nanoid::nanoid!(6)));
+            std::env::temp_dir().join(format!("arco-contract-{name}-{}", nanoid::nanoid!(6)));
         fs::create_dir_all(&dir).unwrap();
         dir
     }
