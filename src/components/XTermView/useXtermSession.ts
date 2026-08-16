@@ -16,6 +16,7 @@ import { usePtyPanelVisible } from '../../lib/ptyVisibility'
 import {
   claimDiscoveredSession,
   claimMostRecentSession,
+  hasTranscript,
   isSessionClaimed,
   registerSessionClaim,
 } from '../../lib/sessionDiscovery'
@@ -938,13 +939,34 @@ export function useXtermSession(params: {
                   : command === 'antigravity'
                     ? await snapshotAntigravitySessions(cwd)
                     : await snapshotOpenCodeSessions(cwd)
-            const notListed = !existing.some((session) => session.id === resumeId)
+            const match = existing.find((session) => session.id === resumeId)
+            const notListed = !match
 
             if (notListed && command !== 'opencode') {
               console.warn(`[pty-launch] ${command} ignorando sessão órfã ${resumeId}`)
               resumeId = undefined
               removeSession(sessionPersistenceKey)
               onSessionIdRef.current?.(undefined)
+            } else if (match && !hasTranscript(match) && command !== 'opencode') {
+              // The pointer survived a restart but names a session that never got
+              // a transcript — the agent had created the directory and nothing
+              // else. Resuming it opens a blank pane and buries the real
+              // conversation, so fall back to the newest one that has content.
+              const withContent = existing
+                .filter(hasTranscript)
+                .sort((a, b) => b.modified_at_ms - a.modified_at_ms)[0]
+              if (withContent) {
+                console.warn(
+                  `[pty-launch] ${command} sessão ${resumeId} está vazia; retomando ${withContent.id}`,
+                )
+                resumeId = withContent.id
+                onSessionIdRef.current?.(withContent.id)
+              } else {
+                console.warn(`[pty-launch] ${command} sessão ${resumeId} está vazia; sessão nova`)
+                resumeId = undefined
+                removeSession(sessionPersistenceKey)
+                onSessionIdRef.current?.(undefined)
+              }
             }
           } catch {}
           if (disposed) return
@@ -1173,6 +1195,15 @@ export function useXtermSession(params: {
                   filteredSessions,
                   sessionPersistenceKey,
                 )
+                // The agent creates the session directory before writing any
+                // transcript, so a fresh empty one shows up here looking exactly
+                // like a real conversation. Saving it would bury the pointer to
+                // the session that actually has content — which is how a restart
+                // used to lose the history.
+                if (newSession && !hasTranscript(newSession)) {
+                  attempt += 1
+                  continue
+                }
                 if (newSession) {
                   saveSession(sessionPersistenceKey, {
                     sessionId: response.id,

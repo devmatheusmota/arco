@@ -24,12 +24,20 @@ pub struct ClaudeSessionSnapshot {
     pub size_bytes: u64,
 }
 
+/// Mirrors how Claude names the directory it keeps a project's sessions in.
+///
+/// The dot matters: worktrees live under `<repo>/.arco/worktrees/<id>`, and Claude
+/// writes that as `…-SOA--arco-worktrees-…`, with the dot folded into a hyphen.
+/// Leaving it as `.arco` pointed the lookup at a directory that never exists, so
+/// no session was ever found for a pane running in a worktree — it could not save
+/// the real id, and resume opened a blank pane every time. Paths without a dot,
+/// like the repo root, were unaffected, which is why only worktrees broke.
 fn encode_cwd_for_claude(cwd: &str) -> String {
     let trimmed = cwd.trim_end_matches(|c: char| c == '\\' || c == '/');
     trimmed
         .chars()
         .map(|c| match c {
-            ':' | '\\' | '/' => '-',
+            ':' | '\\' | '/' | '.' => '-',
             _ => c,
         })
         .collect()
@@ -671,5 +679,34 @@ mod tests {
         let header = serde_json::from_str::<RecordHeader>(line).unwrap();
         assert_eq!(header.entry_type.as_deref(), Some("user"));
         assert_eq!(first_text_block(line).as_deref(), Some("oi"));
+    }
+}
+
+#[cfg(test)]
+mod encode_cwd_tests {
+    use super::encode_cwd_for_claude;
+
+    /// A worktree path carries a dot component (`.arco`), and Claude folds it into
+    /// a hyphen like any separator. Getting this wrong pointed session lookups at a
+    /// directory that never exists, so panes in worktrees never resumed.
+    #[test]
+    fn folds_the_dot_of_a_worktree_path() {
+        assert_eq!(
+            encode_cwd_for_claude("/home/mota/projetos/emr/SOA/.arco/worktrees/cl-JH1sre"),
+            "-home-mota-projetos-emr-SOA--arco-worktrees-cl-JH1sre"
+        );
+    }
+
+    #[test]
+    fn plain_repo_path_is_unchanged_in_shape() {
+        assert_eq!(
+            encode_cwd_for_claude("/home/mota/projetos/emr/SOA"),
+            "-home-mota-projetos-emr-SOA"
+        );
+    }
+
+    #[test]
+    fn trailing_separator_is_dropped() {
+        assert_eq!(encode_cwd_for_claude("/tmp/x/"), "-tmp-x");
     }
 }

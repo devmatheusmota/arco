@@ -1,6 +1,23 @@
 export type SessionSnapshot = {
   id: string
   modified_at_ms: number
+  /** Transcript size. Absent for agents whose snapshot does not report it. */
+  size_bytes?: number
+}
+
+/**
+ * Whether a session has anything worth resuming.
+ *
+ * The agent creates the session directory as soon as it starts and only writes
+ * the transcript once there is a conversation, so a brand-new session looks
+ * identical to a real one by id alone. Resuming an empty one opens a blank pane
+ * and, worse, lets it overwrite the pointer to the conversation that has content.
+ */
+export function hasTranscript(session: object): boolean {
+  // Not every agent's snapshot reports a size; those are taken at face value,
+  // since there is nothing to tell an empty one apart by.
+  const size = (session as { size_bytes?: unknown }).size_bytes
+  return typeof size !== 'number' || size > 0
 }
 
 const claimedIds = new Map<string, Set<string>>()
