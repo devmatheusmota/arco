@@ -227,6 +227,32 @@ pub fn pty_exists(sessions: State<'_, PtySessions>, id: String) -> Result<bool, 
     Ok(sessions.contains_key(&id))
 }
 
+/// Session markers an agent CLI sets for its own children.
+///
+/// Launching the app from a terminal that already runs an agent — a pane of this
+/// very app, for instance — leaks these into every PTY it spawns. The agent then
+/// believes it is a child session, turns transcript saving off, and reuses the
+/// parent's session id. Panes are new sessions, not children, so the markers go.
+///
+/// Install paths are left alone: they say where the CLI lives, not who called it.
+const INHERITED_SESSION_VARS: &[&str] = &[
+    "CLAUDE_CODE_CHILD_SESSION",
+    "CLAUDE_CODE_SESSION_ID",
+    "CLAUDE_CODE_MESSAGING_SOCKET",
+    "CLAUDE_CODE_MESSAGING_TOKEN",
+    "CLAUDE_CODE_ENTRYPOINT",
+    "CLAUDE_PLUGIN_DATA",
+    "CODEX_COMPANION_SESSION_ID",
+];
+
+fn clear_inherited_agent_session(command: &mut portable_pty::CommandBuilder) {
+    for key in INHERITED_SESSION_VARS {
+        if std::env::var_os(key).is_some() {
+            command.env_remove(key);
+        }
+    }
+}
+
 #[tauri::command]
 pub async fn spawn_pty(
     app: AppHandle,
@@ -307,6 +333,7 @@ pub async fn spawn_pty(
             resolved_launcher.as_deref(),
             &extras,
         );
+        clear_inherited_agent_session(&mut command);
         if let Some(extra_env) = env.as_ref() {
             for (key, value) in extra_env {
                 command.env(key, value);
