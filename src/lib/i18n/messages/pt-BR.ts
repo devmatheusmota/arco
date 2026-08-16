@@ -994,6 +994,15 @@ export const ptBR: Record<MessageKey, string> = {
   'term.unrestrictedOff': 'Desativado',
   'term.alwaysUnrestricted': 'Sempre iniciar com o modo irrestrito',
   'term.runtimeProfile': 'Perfil do runtime',
+  'term.worktree': 'Worktree',
+  'term.worktreeDirtyOnClose':
+    'A worktree de "{name}" tem {count} alteração(ões) não commitada(s). Excluir a sessão apaga a worktree e esse trabalho. Cancele para fechar o pane e manter a worktree em disco.',
+  'term.worktree.inherit': 'Padrão do projeto',
+  'term.worktree.inherit.desc': 'Segue a configuração de isolamento do projeto.',
+  'term.worktree.new': 'Nova worktree',
+  'term.worktree.new.desc': 'Roda esta sessão em worktree e branch próprias.',
+  'term.worktree.none': 'Mesma árvore',
+  'term.worktree.none.desc': 'Roda no diretório do projeto, compartilhado com as outras sessões.',
   'term.runtimeProfile.full': 'Completo',
   'term.runtimeProfile.full.desc':
     'Comportamento normal da CLI, com todos os MCPs e personalizações configurados.',

@@ -983,6 +983,15 @@ export const en = {
   'term.unrestrictedOff': 'Off',
   'term.alwaysUnrestricted': 'Always start with unrestricted mode',
   'term.runtimeProfile': 'Runtime profile',
+  'term.worktree': 'Worktree',
+  'term.worktreeDirtyOnClose':
+    'The worktree for "{name}" has {count} uncommitted change(s). Deleting the session removes the worktree and that work. Cancel to close the pane and keep the worktree on disk.',
+  'term.worktree.inherit': 'Project default',
+  'term.worktree.inherit.desc': "Follows the project's isolation setting.",
+  'term.worktree.new': 'New worktree',
+  'term.worktree.new.desc': 'Runs this session in its own worktree and branch.',
+  'term.worktree.none': 'Same tree',
+  'term.worktree.none.desc': 'Runs in the project directory, sharing it with other sessions.',
   'term.runtimeProfile.full': 'Full',
   'term.runtimeProfile.full.desc':
     'Normal CLI behavior with every configured MCP server and customization.',

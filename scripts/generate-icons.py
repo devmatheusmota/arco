@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate the complete Arco application icon set using only Pillow.
+"""Generate Arco's directed-edge application icon with Pillow.
 
-The mark is a literal masonry arch with a cyan keystone. Every output size is
-rasterized independently from normalized geometry; no output is made by
-resizing another generated icon.
+Every target is rasterized independently from one normalized graph drawing.
+The continuous ``detail`` parameter thickens and simplifies that drawing as
+the requested size approaches the critical 16 px case.
 """
 
 from __future__ import annotations
@@ -21,19 +21,17 @@ except ImportError as exc:
     ) from exc
 
 
-# Tokens copied from src/styles/theme.css in the Arco repository.
-BACKGROUND = "#101114"  # default dark --bg; light --accent-on
-SURFACE = "#1f2125"  # default dark --bg-elevated
-BORDER = "#2a2d33"  # default dark --border / --panel
-STONE = "#f3f4f6"  # default dark --fg / --accent
-SMALL_STONE = "#ffffff"  # higher-contrast small-size foreground
-KEYSTONE = "#38bdf8"  # default --focus-ring
+BACKGROUND = "#101114"
+SURFACE = "#1f2125"
+BORDER = "#2a2d33"
+FOREGROUND = "#f3f4f6"
+ACCENT = "#38bdf8"
 
 SUPERSAMPLE = 8
 SMALL_SIZE_THRESHOLD = 48
 
-# Authoritative inventory read from src-tauri/icons. Keep unusual source sizes
-# (notably the 49 px hdpi launchers) unchanged for exact drop-in replacement.
+# Exact inherited src-tauri/icons inventory. The uncommon 49 px Android hdpi
+# launchers are intentional and must remain unchanged for drop-in replacement.
 PROJECT_PNG_SIZES: dict[str, int] = {
     "128x128.png": 128,
     "128x128@2x.png": 256,
@@ -97,33 +95,48 @@ ICNS_TYPES = {
 }
 
 
+def mix(small: float, large: float, detail: float) -> float:
+    """Interpolate one geometry value from simplified to detailed rendering."""
+    return small + (large - small) * detail
+
+
+def detail_for_size(size: int) -> float:
+    """Return the sole level-of-detail input used by the graph mark."""
+    return max(0.0, min(1.0, (size - 16) / (SMALL_SIZE_THRESHOLD - 16)))
+
+
+def quadratic_point(
+    start: tuple[float, float],
+    control: tuple[float, float],
+    end: tuple[float, float],
+    t: float,
+) -> tuple[float, float]:
+    inverse = 1.0 - t
+    return (
+        inverse * inverse * start[0]
+        + 2 * inverse * t * control[0]
+        + t * t * end[0],
+        inverse * inverse * start[1]
+        + 2 * inverse * t * control[1]
+        + t * t * end[1],
+    )
+
+
 def quadratic_points(
     start: tuple[float, float],
     control: tuple[float, float],
     end: tuple[float, float],
     steps: int = 96,
 ) -> list[tuple[float, float]]:
-    """Sample a quadratic Bezier in supersampled pixel coordinates."""
-    points: list[tuple[float, float]] = []
-    for index in range(steps + 1):
-        t = index / steps
-        inverse = 1.0 - t
-        points.append(
-            (
-                inverse * inverse * start[0]
-                + 2 * inverse * t * control[0]
-                + t * t * end[0],
-                inverse * inverse * start[1]
-                + 2 * inverse * t * control[1]
-                + t * t * end[1],
-            )
-        )
-    return points
+    return [quadratic_point(start, control, end, index / steps) for index in range(steps + 1)]
 
 
 def render_icon(size: int) -> Image.Image:
-    """Render an Arco icon directly at ``size`` from normalized geometry."""
-    simplified = size < SMALL_SIZE_THRESHOLD
+    """Rasterize the shared source-to-worktrees graph directly at ``size``."""
+    if size < 1:
+        raise ValueError("Icon size must be positive")
+
+    detail = detail_for_size(size)
     extent = size * SUPERSAMPLE
     image = Image.new("RGBA", (extent, extent), BACKGROUND)
     draw = ImageDraw.Draw(image)
@@ -131,87 +144,95 @@ def render_icon(size: int) -> Image.Image:
     def px(value: float) -> int:
         return round(value * extent)
 
-    # The dark, opaque tile guarantees contrast in both light and dark shells.
-    inset = px(0.015 if simplified else 0.035)
-    draw.rounded_rectangle(
-        (inset, inset, extent - inset - 1, extent - inset - 1),
-        radius=px(0.120 if simplified else 0.205),
-        fill=SURFACE,
-        outline=BORDER,
-        width=max(SUPERSAMPLE, px(0.012)),
+    # A nearly invisible tile boundary keeps the mark usable in arbitrary OS
+    # chrome without adding the visual mass of a filled badge.
+    if detail > 0.0:
+        inset = px(mix(0.018, 0.035, detail))
+        draw.rounded_rectangle(
+            (inset, inset, extent - inset - 1, extent - inset - 1),
+            radius=px(mix(0.15, 0.21, detail)),
+            outline=BORDER,
+            width=max(SUPERSAMPLE, px(mix(0.010, 0.012, detail))),
+        )
+
+    source = (0.205, 0.500)
+    destinations = ((0.790, 0.285), (0.790, 0.715))
+    # Keep the approved arc anchors fixed while strengthening only the small
+    # nodes. This avoids pulling either curve toward the enlarged circles.
+    connection_source_radius = mix(0.108, 0.078, detail)
+    connection_destination_radius = mix(0.100, 0.068, detail)
+    source_radius = mix(0.130, 0.078, detail)
+    destination_radius = mix(0.118, 0.068, detail)
+    stroke = max(SUPERSAMPLE, px(mix(0.105, 0.055, detail)))
+
+    arcs = (
+        (
+            (
+                source[0] + connection_source_radius * 0.72,
+                source[1] - connection_source_radius * 0.34,
+            ),
+            (0.485, mix(0.255, 0.205, detail)),
+            (
+                destinations[0][0] - connection_destination_radius * 0.88,
+                destinations[0][1] + connection_destination_radius * 0.24,
+            ),
+            ACCENT,
+        ),
+        (
+            (
+                source[0] + connection_source_radius * 0.72,
+                source[1] + connection_source_radius * 0.34,
+            ),
+            (0.485, mix(0.745, 0.795, detail)),
+            (
+                destinations[1][0] - connection_destination_radius * 0.88,
+                destinations[1][1] - connection_destination_radius * 0.24,
+            ),
+            FOREGROUND,
+        ),
     )
 
-    # One shared U-shaped arch geometry with size-derived level of detail.
-    # The simplified variant is wider and thicker, but moves its piers outward
-    # so the negative-space opening remains distinct after antialiasing.
-    stone_color = SMALL_STONE if simplified else STONE
-    stroke = px(0.180 if simplified else 0.135)
-    spring_x = 0.245 if simplified else 0.285
-    spring_y = 0.455 if simplified else 0.485
-    crown_y = 0.135 if simplified else 0.190
-    control_x = 0.255 if simplified else 0.305
-    control_y = 0.145 if simplified else 0.205
-    pier_bottom = 0.855 if simplified else 0.775
-    left_spring = (px(spring_x), px(spring_y))
-    crown = (px(0.500), px(crown_y))
-    right_spring = (px(1.0 - spring_x), px(spring_y))
-    curve = quadratic_points(
-        left_spring, (px(control_x), px(control_y)), crown
-    ) + quadratic_points(
-        crown, (px(1.0 - control_x), px(control_y)), right_spring
-    )[1:]
-    draw.line(curve, fill=stone_color, width=stroke, joint="curve")
+    for start, control, end, color in arcs:
+        curve = quadratic_points(
+            (px(start[0]), px(start[1])),
+            (px(control[0]), px(control[1])),
+            (px(end[0]), px(end[1])),
+        )
+        draw.line(curve, fill=color, width=stroke, joint="curve")
 
-    half_stroke = stroke // 2
-    for spring_x, spring_y in (left_spring, right_spring):
+        # Arrowheads appear only once detail can survive rasterization. At 16
+        # px, the larger source node and smaller right-hand nodes retain flow
+        # asymmetry without adding two dirty pixels to each arc.
+        if detail >= 0.30:
+            tip = quadratic_point(start, control, end, 0.91)
+            before = quadratic_point(start, control, end, 0.75)
+            dx = tip[0] - before[0]
+            dy = tip[1] - before[1]
+            length = (dx * dx + dy * dy) ** 0.5
+            ux, uy = dx / length, dy / length
+            nx, ny = -uy, ux
+            head_length = mix(0.072, 0.050, detail)
+            head_half_width = mix(0.048, 0.032, detail)
+            base = (tip[0] - ux * head_length, tip[1] - uy * head_length)
+            draw.polygon(
+                (
+                    (px(tip[0]), px(tip[1])),
+                    (px(base[0] + nx * head_half_width), px(base[1] + ny * head_half_width)),
+                    (px(base[0] - nx * head_half_width), px(base[1] - ny * head_half_width)),
+                ),
+                fill=color,
+            )
+
+    for center, radius in ((source, source_radius), *((point, destination_radius) for point in destinations)):
         draw.ellipse(
             (
-                spring_x - half_stroke,
-                spring_y - half_stroke,
-                spring_x + half_stroke,
-                spring_y + half_stroke,
+                px(center[0] - radius),
+                px(center[1] - radius),
+                px(center[0] + radius),
+                px(center[1] + radius),
             ),
-            fill=stone_color,
+            fill=FOREGROUND,
         )
-        draw.rectangle(
-            (
-                spring_x - half_stroke,
-                spring_y,
-                spring_x + half_stroke,
-                px(pier_bottom),
-            ),
-            fill=stone_color,
-        )
-
-    # Masonry feet are useful detail at normal sizes but become gray edge
-    # noise below 48 px. The small path keeps only the clean arch silhouette.
-    if not simplified:
-        draw.rounded_rectangle(
-            (px(0.185), px(0.735), px(0.385), px(0.825)),
-            radius=px(0.018),
-            fill=stone_color,
-        )
-        draw.rounded_rectangle(
-            (px(0.615), px(0.735), px(0.815), px(0.825)),
-            radius=px(0.018),
-            fill=stone_color,
-        )
-
-    # The same keystone is enlarged by level of detail at small sizes so it
-    # remains a distinct block rather than an antialiased speck.
-    keystone_top = 0.390 if simplified else 0.450
-    keystone_bottom = 0.355 if simplified else 0.425
-    keystone_top_y = 0.065 if simplified else 0.145
-    keystone_bottom_y = 0.365 if simplified else 0.300
-    draw.polygon(
-        (
-            (px(keystone_top), px(keystone_top_y)),
-            (px(1.0 - keystone_top), px(keystone_top_y)),
-            (px(1.0 - keystone_bottom), px(keystone_bottom_y)),
-            (px(keystone_bottom), px(keystone_bottom_y)),
-        ),
-        fill=KEYSTONE,
-    )
 
     return image.resize((size, size), Image.Resampling.LANCZOS)
 
@@ -224,6 +245,7 @@ def png_bytes(image: Image.Image, *, optimize: bool = False) -> bytes:
 
 
 def write_pngs(output_root: Path, *, small_only: bool = False) -> int:
+    """Write the inherited 48-path PNG matrix and the added launcher asset."""
     icons_root = output_root / "icons"
     written = 0
     for relative_name, size in PROJECT_PNG_SIZES.items():
@@ -234,9 +256,10 @@ def write_pngs(output_root: Path, *, small_only: bool = False) -> int:
         render_icon(size).save(destination, format="PNG", optimize=True)
         written += 1
 
-    # GNOME .desktop launcher asset requested in addition to the inherited set.
     if not small_only:
-        render_icon(256).save(icons_root / "arco-256.png", format="PNG", optimize=True)
+        render_icon(256).save(
+            icons_root / "arco-256.png", format="PNG", optimize=True
+        )
         written += 1
     return written
 
@@ -291,7 +314,7 @@ def write_ico_payloads(path: Path, payloads: dict[int, bytes]) -> None:
 
 
 def write_ico(output_root: Path, *, small_only: bool = False) -> None:
-    """Write independently rendered ICO frames, optionally preserving large ones."""
+    """Write independently rendered ICO frames, preserving large ones if asked."""
     path = output_root / "icon.ico"
     payloads = read_ico_payloads(path) if small_only else {}
     for size in ICO_SIZES:
@@ -316,12 +339,7 @@ def read_icns_chunks(path: Path) -> dict[bytes, bytes]:
 
 
 def write_icns(output_root: Path, *, small_only: bool = False) -> None:
-    """Write an ICNS container with Pillow-encoded PNG representation chunks.
-
-    Pillow 12 can read ICNS but has no ICNS save handler. Modern ICNS accepts
-    PNG payloads for the standard icp4..ic10 representation types, so the
-    minimal container is assembled here without an additional dependency.
-    """
+    """Write a modern ICNS container containing PNG representation chunks."""
     path = output_root / "icon.icns"
     existing = read_icns_chunks(path) if small_only else {}
     chunks: list[bytes] = []
@@ -332,7 +350,9 @@ def write_icns(output_root: Path, *, small_only: bool = False) -> None:
             chunks.append(existing[chunk_type])
         else:
             payload = png_bytes(render_icon(size), optimize=True)
-            chunks.append(chunk_type + struct.pack(">I", len(payload) + 8) + payload)
+            chunks.append(
+                chunk_type + struct.pack(">I", len(payload) + 8) + payload
+            )
     body = b"".join(chunks)
     path.write_bytes(b"icns" + struct.pack(">I", len(body) + 8) + body)
 
@@ -346,6 +366,11 @@ def parse_args() -> argparse.Namespace:
         help="output root (default: the script's directory)",
     )
     parser.add_argument(
+        "--preview-size",
+        type=int,
+        help="render one PNG to preview/arco-<size>.png",
+    )
+    parser.add_argument(
         "--small-only",
         action="store_true",
         help="regenerate only outputs and embedded frames smaller than 48 px",
@@ -357,6 +382,13 @@ def main() -> None:
     args = parse_args()
     output_root = args.out.expanduser().resolve()
     output_root.mkdir(parents=True, exist_ok=True)
+    if args.preview_size is not None:
+        destination = output_root / "preview" / f"arco-{args.preview_size}.png"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        render_icon(args.preview_size).save(destination, format="PNG", optimize=True)
+        print(f"Generated {destination}")
+        return
+
     png_count = write_pngs(output_root, small_only=args.small_only)
     write_ico(output_root, small_only=args.small_only)
     write_icns(output_root, small_only=args.small_only)

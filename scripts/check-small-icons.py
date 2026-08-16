@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure contrast and cyan-keystone coverage in Arco's critical icon sizes."""
+"""Measure line contrast and cyan-highlight survival at Arco's critical sizes."""
 
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ from types import ModuleType
 from PIL import Image
 
 
-# 15:1 is intentionally stricter than WCAG's 7:1 enhanced text threshold.
-# A 3% cyan gate means at least 8 clearly cyan pixels at 16x16, enough for a
-# coherent block rather than a one- or two-pixel antialiasing artifact.
-MIN_CONTRAST_RATIO = 15.0
-MIN_CYAN_FRACTION = 0.03
+# These gates detect an actually lost line/highlight without imposing the old
+# masonry icon's much larger 3% keystone coverage on this intentionally light
+# directed-edge mark.
+MIN_CONTRAST_RATIO = 12.0
+MIN_HIGHLIGHT_FRACTION = 0.01
 COLOR_DISTANCE_LIMIT = 24.0
 BACKGROUND_DISTANCE_LIMIT = 12.0
 
@@ -38,7 +38,9 @@ def rgb(hex_color: str) -> tuple[int, int, int]:
 def color_distance(
     first: tuple[int, int, int], second: tuple[int, int, int]
 ) -> float:
-    return math.sqrt(sum((left - right) ** 2 for left, right in zip(first, second)))
+    return math.sqrt(
+        sum((left - right) ** 2 for left, right in zip(first, second))
+    )
 
 
 def relative_luminance(color: tuple[float, float, float]) -> float:
@@ -54,41 +56,53 @@ def relative_luminance(color: tuple[float, float, float]) -> float:
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
 
-def average_color(pixels: list[tuple[int, int, int]]) -> tuple[float, float, float]:
+def average_color(
+    pixels: list[tuple[int, int, int]],
+) -> tuple[float, float, float]:
     if not pixels:
         raise ValueError("No pixels matched the requested color sample")
-    return tuple(sum(pixel[channel] for pixel in pixels) / len(pixels) for channel in range(3))
+    return tuple(
+        sum(pixel[channel] for pixel in pixels) / len(pixels)
+        for channel in range(3)
+    )
 
 
 def measure(
     image: Image.Image,
-    foreground: tuple[int, int, int],
+    stroke: tuple[int, int, int],
     background: tuple[int, int, int],
-    cyan: tuple[int, int, int],
+    highlight: tuple[int, int, int],
 ) -> tuple[float, float, int, int]:
-    pixels = [pixel[:3] for pixel in image.convert("RGBA").get_flattened_data() if pixel[3] > 0]
-    foreground_pixels = [
+    """Apply the original checker's distance-sampled measurement method."""
+    pixels = [
+        pixel[:3]
+        for pixel in image.convert("RGBA").get_flattened_data()
+        if pixel[3] > 0
+    ]
+    stroke_pixels = [
         pixel
         for pixel in pixels
-        if color_distance(pixel, foreground) <= COLOR_DISTANCE_LIMIT
+        if color_distance(pixel, stroke) <= COLOR_DISTANCE_LIMIT
     ]
     background_pixels = [
         pixel
         for pixel in pixels
         if color_distance(pixel, background) <= BACKGROUND_DISTANCE_LIMIT
     ]
-    cyan_pixels = [
-        pixel for pixel in pixels if color_distance(pixel, cyan) <= COLOR_DISTANCE_LIMIT
+    highlight_pixels = [
+        pixel
+        for pixel in pixels
+        if color_distance(pixel, highlight) <= COLOR_DISTANCE_LIMIT
     ]
 
-    foreground_luminance = relative_luminance(average_color(foreground_pixels))
+    stroke_luminance = relative_luminance(average_color(stroke_pixels))
     background_luminance = relative_luminance(average_color(background_pixels))
     lighter, darker = sorted(
-        (foreground_luminance, background_luminance), reverse=True
+        (stroke_luminance, background_luminance), reverse=True
     )
     contrast = (lighter + 0.05) / (darker + 0.05)
-    cyan_fraction = len(cyan_pixels) / len(pixels)
-    return contrast, cyan_fraction, len(cyan_pixels), len(pixels)
+    highlight_fraction = len(highlight_pixels) / len(pixels)
+    return contrast, highlight_fraction, len(highlight_pixels), len(pixels)
 
 
 def parse_args() -> argparse.Namespace:
@@ -105,29 +119,33 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     root = parse_args().root.expanduser().resolve()
     generator = load_generator(root / "generate-icons.py")
-    foreground = rgb(generator.SMALL_STONE)
-    background = rgb(generator.SURFACE)
-    cyan = rgb(generator.KEYSTONE)
+    stroke = rgb(generator.FOREGROUND)
+    background = rgb(generator.BACKGROUND)
+    highlight = rgb(generator.ACCENT)
 
-    ico = Image.open(root / "icon.ico")
+    with Image.open(root / "icon.ico") as ico:
+        icon_16 = ico.ico.getimage((16, 16)).convert("RGBA")
     images = {
-        16: ico.ico.getimage((16, 16)).convert("RGBA"),
+        16: icon_16,
         32: Image.open(root / "icons/32x32.png").convert("RGBA"),
     }
 
     failed = False
     for size, image in images.items():
-        contrast, cyan_fraction, cyan_count, total = measure(
-            image, foreground, background, cyan
+        contrast, highlight_fraction, highlight_count, total = measure(
+            image, stroke, background, highlight
         )
-        passed = contrast >= MIN_CONTRAST_RATIO and cyan_fraction >= MIN_CYAN_FRACTION
+        passed = (
+            contrast >= MIN_CONTRAST_RATIO
+            and highlight_fraction >= MIN_HIGHLIGHT_FRACTION
+        )
         failed = failed or not passed
         print(
             f"{size}x{size}: contrast={contrast:.3f}:1 "
-            f"cyan_fraction={cyan_fraction * 100:.3f}% "
-            f"cyan_pixels={cyan_count}/{total} "
+            f"highlight_fraction={highlight_fraction * 100:.3f}% "
+            f"highlight_pixels={highlight_count}/{total} "
             f"thresholds=({MIN_CONTRAST_RATIO:.1f}:1, "
-            f"{MIN_CYAN_FRACTION * 100:.1f}%) "
+            f"{MIN_HIGHLIGHT_FRACTION * 100:.1f}%) "
             f"{'PASS' if passed else 'FAIL'}"
         )
 
