@@ -7,8 +7,8 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import { useEffect, useRef } from 'react'
 
 import { recordAgentActivityInput } from '../../lib/activityTracker'
-import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
 import { cliPathMatchesAgent } from '../../lib/agentCliPath'
+import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
 import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { getLocale, translate } from '../../lib/i18n'
 import { isWindows } from '../../lib/platform'
@@ -202,7 +202,7 @@ export function useXtermSession(params: {
     if (!container) return
 
     if (import.meta.env.DEV) {
-      console.debug('[Alethe][xterm] mount', {
+      console.debug('[Arco][xterm] mount', {
         sessionPersistenceKey,
         retryKey,
         ptyId: ptyIdRef.current,
@@ -394,7 +394,7 @@ export function useXtermSession(params: {
       if (disposed || writeRecoveryPending || id !== ptyIdRef.current) return
       writeRecoveryPending = true
       window.dispatchEvent(
-        new CustomEvent('alethe:terminal-restart-request', { detail: { ptyId: id } }),
+        new CustomEvent('arco:terminal-restart-request', { detail: { ptyId: id } }),
       )
       window.setTimeout(() => {
         writeRecoveryPending = false
@@ -580,7 +580,10 @@ export function useXtermSession(params: {
           void writeClipboardText(selection).catch(() => navigator.clipboard?.writeText(selection))
           terminal.clearSelection()
         }
-      } else {
+      } else if (terminal.modes.mouseTrackingMode === 'none') {
+        // With mouse tracking on, xterm already forwarded the click to the PTY and
+        // the application pastes on its own — Claude Code does. Pasting here too
+        // duplicates the payload; preventDefault cannot undo the forwarded report.
         void resolveClipboardPaste()
           .catch(() => navigator.clipboard?.readText() ?? '')
           .then(pasteText)
@@ -622,7 +625,7 @@ export function useXtermSession(params: {
       try {
         fitAddon.fit()
       } catch (error) {
-        if (import.meta.env.DEV) console.error('[Alethe][xterm] fit failed', error)
+        if (import.meta.env.DEV) console.error('[Arco][xterm] fit failed', error)
 
         return
       }
@@ -632,7 +635,7 @@ export function useXtermSession(params: {
       try {
         terminal.refresh(0, Math.max(0, terminal.rows - 1))
       } catch (error) {
-        if (import.meta.env.DEV) console.error('[Alethe][xterm] refresh failed', error)
+        if (import.meta.env.DEV) console.error('[Arco][xterm] refresh failed', error)
       }
       clampHorizontalScroll()
       const force = forceNextResize
@@ -668,8 +671,8 @@ export function useXtermSession(params: {
       terminal.options.fontSize = currentFontSize
       scheduleResize(true)
     }
-    window.addEventListener('alethe:zoom-changed', onZoomChanged)
-    window.addEventListener('alethe:terminal-resize-request', onResizeRequest)
+    window.addEventListener('arco:zoom-changed', onZoomChanged)
+    window.addEventListener('arco:terminal-resize-request', onResizeRequest)
 
     const initialFitTimer = window.setTimeout(() => {
       scheduleResize()
@@ -1204,7 +1207,7 @@ export function useXtermSession(params: {
           removeSession(sessionPersistenceKey)
           onSessionIdRef.current?.(undefined)
           terminal.write(
-            '\r\n\x1b[33m[alethe] Codex session is busy — opening a fresh session…\x1b[0m\r\n',
+            '\r\n\x1b[33m[arco] Codex session is busy — opening a fresh session…\x1b[0m\r\n',
           )
           void killPty(response.id).catch(() => {})
           setRetryKey((value) => value + 1)
@@ -1277,7 +1280,7 @@ export function useXtermSession(params: {
             removeSession(sessionPersistenceKey)
             onSessionIdRef.current?.(undefined)
             terminal.write(
-              '\r\n\x1b[33m[alethe] sessão anterior indisponível — reabrindo sessão nova…\x1b[0m\r\n',
+              '\r\n\x1b[33m[arco] sessão anterior indisponível — reabrindo sessão nova…\x1b[0m\r\n',
             )
             setRetryKey((v) => v + 1)
             return
@@ -1288,7 +1291,7 @@ export function useXtermSession(params: {
               `[pty-launch] ${command} saiu em ${elapsed}ms (code ${payload.code ?? '—'}) — sem retry`,
             )
             terminal.write(
-              `\r\n\x1b[31m[alethe] ${command} encerrou imediatamente (code ${payload.code ?? '—'}).\x1b[0m\r\n` +
+              `\r\n\x1b[31m[arco] ${command} encerrou imediatamente (code ${payload.code ?? '—'}).\x1b[0m\r\n` +
                 '\x1b[90mVerifique a instalação do CLI ou configure o caminho nas preferências.\x1b[0m\r\n',
             )
           }
@@ -1349,7 +1352,7 @@ export function useXtermSession(params: {
 
     return () => {
       if (import.meta.env.DEV) {
-        console.debug('[Alethe][xterm] unmount', {
+        console.debug('[Arco][xterm] unmount', {
           sessionPersistenceKey,
           retryKey,
           ptyId: ptyIdRef.current,
@@ -1367,8 +1370,8 @@ export function useXtermSession(params: {
       window.removeEventListener('focus', restoreLastTerminalFocus)
       document.removeEventListener('visibilitychange', restoreLastTerminalFocus)
       container.removeEventListener('contextmenu', onContextMenu)
-      window.removeEventListener('alethe:zoom-changed', onZoomChanged)
-      window.removeEventListener('alethe:terminal-resize-request', onResizeRequest)
+      window.removeEventListener('arco:zoom-changed', onZoomChanged)
+      window.removeEventListener('arco:terminal-resize-request', onResizeRequest)
       ro.disconnect()
       if (resizeTimer !== null) window.clearTimeout(resizeTimer)
       if (writeFrame !== null) window.cancelAnimationFrame(writeFrame)
