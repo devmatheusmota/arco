@@ -42,8 +42,10 @@ export function NewTerminalModal() {
   )
 
   const [type, setType] = useState<AgentType>('claude')
-  const [runtimeProfile, setRuntimeProfile] = useState<AgentRuntimeProfile>('lean')
-  const [worktree, setWorktree] = useState<WorktreeChoice>('inherit')
+  const [runtimeProfile, setRuntimeProfile] = useState<AgentRuntimeProfile>('full')
+  // Checkbox em vez dos três estados: o valor inicial reflete o padrão do
+  // projeto, e mexer nele vira uma escolha explícita para esta sessão.
+  const [isolate, setIsolate] = useState(false)
   const [cwd, setCwd] = useState('')
   const [unrestricted, setUnrestricted] = useState<Record<AgentType, boolean>>({
     shell: false,
@@ -101,8 +103,8 @@ export function NewTerminalModal() {
 
   const reset = () => {
     setType(defaultType)
-    setRuntimeProfile('lean')
-    setWorktree('inherit')
+    setRuntimeProfile('full')
+    setIsolate(Boolean(project?.autoWorktree))
     setCwd('')
     setUnrestricted({
       shell: false,
@@ -122,6 +124,7 @@ export function NewTerminalModal() {
     const finalCwd = cwd.trim() || inheritedCwd
     const flag = UNRESTRICTED_FLAG[type]
     const extraArgs = unrestricted[type] && flag ? [flag] : undefined
+    const worktree: WorktreeChoice = isolate ? 'new' : 'none'
     const creation = {
       name: finalName,
       cwd: finalCwd,
@@ -261,6 +264,20 @@ export function NewTerminalModal() {
         ) : null}
       </section>
 
+      {type !== 'shell' ? (
+        <label className={styles.worktreeToggle}>
+          <input
+            type="checkbox"
+            checked={isolate}
+            onChange={(event) => setIsolate(event.target.checked)}
+          />
+          <span>
+            <strong>{t('term.worktree.new')}</strong>
+            <em>{t('term.worktree.new.desc')}</em>
+          </span>
+        </label>
+      ) : null}
+
       <div className={styles.autoNameHint}>
         <Info size={13} />
         <span>{t('term.autoNameHint')}</span>
@@ -288,24 +305,6 @@ export function NewTerminalModal() {
               <span className={controls.hint}>
                 {t(`term.runtimeProfile.${runtimeProfile}.desc`)}
               </span>
-            </div>
-
-            <div className={controls.field}>
-              <label className={controls.label}>{t('term.worktree')}</label>
-              <div className={controls.pillRow}>
-                {(['inherit', 'new', 'none'] as const).map((choice) => (
-                  <button
-                    key={choice}
-                    type="button"
-                    className={`${controls.pill} ${worktree === choice ? controls.pillActive : ''}`}
-                    onClick={() => setWorktree(choice)}
-                    title={t(`term.worktree.${choice}.desc`)}
-                  >
-                    {t(`term.worktree.${choice}`)}
-                  </button>
-                ))}
-              </div>
-              <span className={controls.hint}>{t(`term.worktree.${worktree}.desc`)}</span>
             </div>
           </div>
         </details>

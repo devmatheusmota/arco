@@ -285,3 +285,39 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Escolha frequente o bastante para não morar atrás de "Advanced options". */
+.worktreeToggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  cursor: pointer;
+}
+
+.worktreeToggle input {
+  margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.worktreeToggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.worktreeToggle strong {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.worktreeToggle em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--fg-faint);
+}
