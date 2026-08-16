@@ -110,12 +110,37 @@ fn unix_shim_script(target_marker: &str, launch: &str) -> String {
 #                             sem nenhum dos dois, segue o padrão do projeto
 #
 # arco todo <título> [--project <nome>] [--tag <tag>]...
+# arco todo list --json         → lista as tarefas em JSON
 #
 # Os subcomandos exigem o app aberto: falam com o listener local dele.
 #
 # ARCO_TARGET_BIN: {target_marker}
 
 set -e
+
+arco_api_get() {{
+  route=$1
+  hooks=${{TMPDIR:-/tmp}}/arco-agent-hooks.json
+
+  if [ ! -f "$hooks" ]; then
+    echo "arco: o app não está rodando (sem $hooks)" >&2
+    exit 1
+  fi
+
+  endpoint=$(sed -n 's/.*"url"[[:space:]]*:[[:space:]]*"\([^"]*\)\/hook".*/\1/p' "$hooks" | head -1)
+  token=$(sed -n 's/.*"X-Arco-Token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$hooks" | head -1)
+
+  if [ -z "$endpoint" ] || [ -z "$token" ]; then
+    echo "arco: não consegui ler endpoint/token em $hooks" >&2
+    exit 1
+  fi
+
+  curl -sS -f -X POST "$endpoint/cli/$route" \
+    -H "X-Arco-Token: $token" --data '{{}}' || {{
+      echo "arco: falha ao consultar o app" >&2
+      exit 1
+    }}
+}}
 
 arco_api() {{
   route=$1
@@ -181,6 +206,14 @@ case "${{1:-}}" in
     ;;
   todo)
     shift
+    # `todo list --json` responde; os outros subcomandos so enfileiram.
+    if [ "${{1:-}}" = "list" ]; then
+      shift
+      [ "${{1:-}}" = "--json" ] && shift
+      arco_api_get todo/list
+      echo
+      exit 0
+    fi
     title=; project=; tags=
     while [ $# -gt 0 ]; do
       case $1 in

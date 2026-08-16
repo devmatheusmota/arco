@@ -107,6 +107,25 @@ pub fn agent_hooks_settings_path() -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+/// The open todos of the active profile, as a JSON array.
+///
+/// Read straight from `projects.json` rather than asked of the frontend: the CLI
+/// wants an answer, and the file is already the persisted truth. The store saves
+/// on a debounce, so a todo created seconds ago may not be here yet — good enough
+/// for the dedupe this serves, and stated plainly so nobody treats it as live.
+fn read_todos(app: &AppHandle) -> Result<String, String> {
+    let path = crate::paths::projects_file_path(app)?;
+    let raw = std::fs::read_to_string(&path).map_err(|error| format!("unreadable:{error}"))?;
+    let value: serde_json::Value =
+        serde_json::from_str(&raw).map_err(|error| format!("invalid_json:{error}"))?;
+    let todos = value
+        .get("todos")
+        .and_then(|item| item.as_array())
+        .cloned()
+        .unwrap_or_default();
+    serde_json::to_string(&todos).map_err(|error| format!("serialize:{error}"))
+}
+
 pub fn start_listener(app: AppHandle) {
     std::thread::spawn(move || {
         let mut last_error: Option<String> = None;
@@ -256,6 +275,31 @@ pub fn start_listener(app: AppHandle) {
                     );
                     continue;
                 };
+
+                // Reads are answered here instead of round-tripping through the
+                // frontend: the state is a file the backend can read, and the CLI
+                // needs an answer, not an acknowledgement.
+                if route.split('?').next() == Some("todo/list") {
+                    match read_todos(&app) {
+                        Ok(body) => {
+                            let _ = request.respond(
+                                tiny_http::Response::from_string(body).with_header(
+                                    tiny_http::Header::from_bytes(
+                                        "Content-Type",
+                                        "application/json",
+                                    )
+                                    .unwrap(),
+                                ),
+                            );
+                        }
+                        Err(error) => {
+                            let _ = request.respond(
+                                tiny_http::Response::from_string(error).with_status_code(500),
+                            );
+                        }
+                    }
+                    continue;
+                }
 
                 let event = match route.split('?').next().unwrap_or("") {
                     "session" => Some("cli://session-new"),
