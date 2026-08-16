@@ -2,6 +2,7 @@ import { Mic, MicOff } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useT } from '../../lib/i18n'
+import { matchesShortcut, releasesShortcut } from '../../lib/shortcut'
 import {
   dictationCancel,
   dictationPreload,
@@ -12,6 +13,7 @@ import {
 } from '../../lib/tauri'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
+import { DictationOverlay } from './DictationOverlay'
 import styles from './DictationButton.module.css'
 
 /** Transcribe speech into the active terminal when dictation is enabled. */
@@ -33,6 +35,8 @@ export function DictationButton() {
   const t = useT()
   const enabled = useProjectsStore((s) => s.preferences.dictationEnabled)
   const mode = useProjectsStore((s) => s.preferences.dictationMode) ?? 'hold'
+  const shortcut = useProjectsStore((s) => s.preferences.dictationShortcut) ?? 'ctrl+e'
+  const model = useProjectsStore((s) => s.preferences.dictationModel) ?? 'parakeet-tdt-0.6b-v3-int8'
   const [listening, setListening] = useState(false)
   const [modelFound, setModelFound] = useState<boolean | null>(null)
   const startedAtRef = useRef(0)
@@ -44,11 +48,11 @@ export function DictationButton() {
   useEffect(() => {
     if (!enabled) return
     let cancelled = false
-    void dictationStatus()
+    void dictationStatus(model)
       .then((status) => {
         if (cancelled) return
         setModelFound(status.modelFound)
-        if (status.modelFound && !status.modelLoaded) void dictationPreload().catch(() => {})
+        if (status.modelFound && !status.modelLoaded) void dictationPreload(model).catch(() => {})
       })
       .catch(() => {
         if (!cancelled) setModelFound(false)
@@ -56,7 +60,7 @@ export function DictationButton() {
     return () => {
       cancelled = true
     }
-  }, [enabled])
+  }, [enabled, model])
 
   const start = useCallback(async () => {
     if (listening) return
@@ -64,7 +68,7 @@ export function DictationButton() {
     startedAtRef.current = Date.now()
     setListening(true)
     try {
-      await dictationStart()
+      await dictationStart(model)
     } catch (error) {
       console.warn('[dictation] start failed:', error)
       setListening(false)
@@ -74,7 +78,7 @@ export function DictationButton() {
       pendingStopRef.current = false
       void stop()
     }
-  }, [listening])
+  }, [listening, model])
 
   const stop = useCallback(async () => {
     setListening(false)
@@ -84,22 +88,21 @@ export function DictationButton() {
       return
     }
     try {
-      const text = (await dictationStop()).trim()
+      const text = (await dictationStop(model)).trim()
       const ptyId = activePtyId()
       if (text && ptyId) await writePty(ptyId, `${text} `)
     } catch (error) {
       console.warn('[dictation] stop failed:', error)
     }
-  }, [])
+  }, [model])
 
-  // Ctrl+E drives dictation from any focused pane, matching the shortcut muscle
+  // The shortcut drives dictation from any focused pane, matching the shortcut muscle
   // memory. Hold dictates while held; toggle flips on each press.
   useEffect(() => {
     if (!enabled || modelFound === false) return
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'e') return
-      if (event.altKey || event.shiftKey) return
+      if (!matchesShortcut(event, shortcut)) return
       event.preventDefault()
       event.stopPropagation()
       if (mode === 'toggle') {
@@ -112,10 +115,7 @@ export function DictationButton() {
 
     const onKeyUp = (event: KeyboardEvent) => {
       if (mode !== 'hold') return
-      // Releasing Ctrl first reports key 'e' with ctrlKey already false, so match
-      // on either half of the chord.
-      const key = event.key.toLowerCase()
-      if (key !== 'e' && key !== 'control' && key !== 'meta') return
+      if (!releasesShortcut(event, shortcut)) return
       if (!listening) {
         pendingStopRef.current = true
         return
@@ -129,7 +129,7 @@ export function DictationButton() {
       window.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('keyup', onKeyUp, true)
     }
-  }, [enabled, modelFound, mode, listening, start, stop])
+  }, [enabled, modelFound, mode, shortcut, listening, start, stop])
 
   // Never leave the microphone open behind an unmount or a disabled toggle.
   useEffect(
@@ -144,25 +144,30 @@ export function DictationButton() {
   const supported = modelFound !== false
 
   return (
-    <button
-      type="button"
-      className={`${styles.btn} ${listening ? styles.listening : ''}`}
-      onPointerDown={mode === 'hold' ? () => void start() : undefined}
-      onPointerUp={mode === 'hold' ? () => void stop() : undefined}
-      onPointerLeave={mode === 'hold' && listening ? () => void stop() : undefined}
-      onClick={mode === 'toggle' ? () => void (listening ? stop() : start()) : undefined}
-      disabled={!supported}
-      title={
-        !supported
-          ? t('dictation.modelMissing')
-          : listening
-            ? t('dictation.stop')
-            : t('dictation.start')
-      }
-      aria-label={t('dictation.label')}
-      aria-pressed={listening}
-    >
-      {listening ? <Mic size={18} /> : <MicOff size={18} />}
-    </button>
+    <>
+      {listening ? (
+        <DictationOverlay startedAt={startedAtRef.current} onStop={() => void stop()} />
+      ) : null}
+      <button
+        type="button"
+        className={`${styles.btn} ${listening ? styles.listening : ''}`}
+        onPointerDown={mode === 'hold' ? () => void start() : undefined}
+        onPointerUp={mode === 'hold' ? () => void stop() : undefined}
+        onPointerLeave={mode === 'hold' && listening ? () => void stop() : undefined}
+        onClick={mode === 'toggle' ? () => void (listening ? stop() : start()) : undefined}
+        disabled={!supported}
+        title={
+          !supported
+            ? t('dictation.modelMissing')
+            : listening
+              ? t('dictation.stop')
+              : t('dictation.start')
+        }
+        aria-label={t('dictation.label')}
+        aria-pressed={listening}
+      >
+        {listening ? <Mic size={18} /> : <MicOff size={18} />}
+      </button>
+    </>
   )
 }

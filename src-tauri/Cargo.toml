@@ -40,7 +40,7 @@ qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 which = "6"
 zip = "0.6"
 sysinfo = "0.31"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
 tiny_http = "0.12"
 # keyring v3 não habilita NENHUM backend de plataforma por padrão — sem uma
 # feature explícita ele usa um store mock e todo get_password() falha. Os
@@ -62,6 +62,7 @@ regex = "1"
 toml_edit = "0.22"
 sherpa-onnx = "1.13.5"
 cpal = "0.15"
+sha2 = "0.11.0"
 
 # Impede execuções paralelas do Arco (pré-requisito da guarda de
 # monotonicidade de `save_projects` em projects.rs). Só compila em desktop —

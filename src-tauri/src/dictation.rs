@@ -17,10 +17,6 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use serde::Serialize;
 use sherpa_onnx::{OfflineRecognizer, OfflineRecognizerConfig, OfflineTransducerModelConfig};
 
-/// Parakeet TDT is a transducer; sherpa needs the model type spelled out because the
-/// encoder/decoder/joiner triple alone matches several architectures.
-const MODEL_TYPE: &str = "nemo_transducer";
-
 /// Hold-to-talk sessions are short. This bounds a stuck stream instead of growing
 /// the sample buffer until memory runs out.
 const MAX_CAPTURE_SECS: usize = 300;
@@ -29,38 +25,48 @@ const MAX_CAPTURE_SECS: usize = 300;
 
 /// Directories searched for the model, in order. The Orca path comes first so an
 /// existing 640 MB download is reused instead of duplicated while both apps coexist.
-fn model_search_paths() -> Vec<std::path::PathBuf> {
+fn model_search_paths(id: &str) -> Vec<std::path::PathBuf> {
     let mut paths = Vec::new();
     if let Ok(custom) = std::env::var("ARCO_SPEECH_MODEL_DIR") {
         paths.push(std::path::PathBuf::from(custom));
     }
     if let Some(config) = dirs_next::config_dir() {
-        paths.push(config.join("orca/speech-models/parakeet-tdt-0.6b-v3-int8"));
-        paths.push(config.join("arco/speech-models/parakeet-tdt-0.6b-v3-int8"));
+        paths.push(config.join("arco").join("speech-models").join(id));
+        // Orca's copy is a fallback, not the first choice. It led the list while
+        // both apps were installed, to avoid a second download; models belong here
+        // now, and this only rescues a machine that has not moved them.
+        paths.push(config.join("orca").join("speech-models").join(id));
     }
     paths
 }
 
 struct ModelFiles {
     dir: std::path::PathBuf,
-    encoder: String,
-    decoder: String,
-    joiner: String,
-    tokens: String,
+    kind: crate::speech_catalog::ModelKind,
+    /// Files in catalogue order, resolved to absolute paths.
+    paths: Vec<String>,
 }
 
-fn locate_model() -> Result<ModelFiles, String> {
-    for dir in model_search_paths() {
-        let encoder = dir.join("encoder.int8.onnx");
-        let decoder = dir.join("decoder.int8.onnx");
-        let joiner = dir.join("joiner.int8.onnx");
-        let tokens = dir.join("tokens.txt");
-        if encoder.is_file() && decoder.is_file() && joiner.is_file() && tokens.is_file() {
+/// Resolves the selected model on disk.
+///
+/// The file names are not guessed: they come from the catalogue entry, which is
+/// also what the downloader wrote. That keeps a renamed or half-installed model
+/// from being reported as present.
+fn locate_model(id: &str) -> Result<ModelFiles, String> {
+    let spec = crate::speech_catalog::find(id).ok_or_else(|| "unknown_model".to_string())?;
+    if !spec.kind.supported() {
+        return Err("model_kind_unsupported".to_string());
+    }
+    for dir in model_search_paths(id) {
+        let paths: Vec<std::path::PathBuf> =
+            spec.files.iter().map(|file| dir.join(file.name)).collect();
+        if paths.iter().all(|path| path.is_file()) {
             return Ok(ModelFiles {
-                encoder: encoder.to_string_lossy().into_owned(),
-                decoder: decoder.to_string_lossy().into_owned(),
-                joiner: joiner.to_string_lossy().into_owned(),
-                tokens: tokens.to_string_lossy().into_owned(),
+                paths: paths
+                    .iter()
+                    .map(|path| path.to_string_lossy().into_owned())
+                    .collect(),
+                kind: spec.kind,
                 dir,
             });
         }
@@ -70,39 +76,92 @@ fn locate_model() -> Result<ModelFiles, String> {
 
 // ── Recognizer ───────────────────────────────────────────────────────────
 
-static RECOGNIZER: OnceLock<Mutex<Option<Arc<OfflineRecognizer>>>> = OnceLock::new();
+/// The loaded model, keyed by id: switching models in preferences must not keep
+/// serving the previous one from cache.
+static RECOGNIZER: OnceLock<Mutex<Option<(String, Arc<OfflineRecognizer>)>>> = OnceLock::new();
 
-fn recognizer_slot() -> &'static Mutex<Option<Arc<OfflineRecognizer>>> {
+fn recognizer_slot() -> &'static Mutex<Option<(String, Arc<OfflineRecognizer>)>> {
     RECOGNIZER.get_or_init(|| Mutex::new(None))
 }
 
-/// Loads the model once and keeps it warm. Reading 622 MB of int8 encoder costs
+/// Fills in the model config for the shape this model has. Sherpa keys off which
+/// sub-config is populated, so exactly one of these may be set.
+fn apply_model_config(config: &mut OfflineRecognizerConfig, files: &ModelFiles) {
+    use crate::speech_catalog::ModelKind;
+    let path = |index: usize| files.paths.get(index).cloned();
+
+    match files.kind {
+        ModelKind::Transducer => {
+            config.model_config.transducer = OfflineTransducerModelConfig {
+                encoder: path(0),
+                decoder: path(1),
+                joiner: path(2),
+            };
+            config.model_config.tokens = path(3);
+            // The encoder/decoder/joiner triple alone matches several
+            // architectures; sherpa needs the family spelled out.
+            config.model_config.model_type = Some("nemo_transducer".to_string());
+        }
+        ModelKind::Paraformer => {
+            config.model_config.paraformer = sherpa_onnx::OfflineParaformerModelConfig {
+                model: path(0),
+            };
+            config.model_config.tokens = path(2);
+        }
+        ModelKind::Ctc => {
+            config.model_config.nemo_ctc = sherpa_onnx::OfflineNemoEncDecCtcModelConfig {
+                model: path(0),
+            };
+            config.model_config.tokens = path(1);
+        }
+        ModelKind::SenseVoice => {
+            config.model_config.sense_voice = sherpa_onnx::OfflineSenseVoiceModelConfig {
+                model: path(0),
+                language: None,
+                use_itn: true,
+            };
+            config.model_config.tokens = path(1);
+        }
+        ModelKind::Whisper => {
+            config.model_config.whisper = sherpa_onnx::OfflineWhisperModelConfig {
+                encoder: path(0),
+                decoder: path(1),
+                language: None,
+                task: None,
+                tail_paddings: 0,
+                enable_token_timestamps: false,
+                enable_segment_timestamps: false,
+            };
+            config.model_config.tokens = path(2);
+        }
+        // Rejected in locate_model: this needs OnlineRecognizer, not this one.
+        ModelKind::StreamingTransducer => {}
+    }
+}
+
+/// Loads the model once and keeps it warm. Reading a 622 MB int8 encoder costs
 /// seconds, which is unacceptable between pressing the key and speaking.
-fn load_recognizer() -> Result<Arc<OfflineRecognizer>, String> {
+fn load_recognizer(id: &str) -> Result<Arc<OfflineRecognizer>, String> {
     let slot = recognizer_slot();
     let mut guard = slot
         .lock()
         .map_err(|_| "dictation recognizer lock poisoned".to_string())?;
-    if let Some(existing) = guard.as_ref() {
-        return Ok(existing.clone());
+    if let Some((loaded_id, existing)) = guard.as_ref() {
+        if loaded_id == id {
+            return Ok(existing.clone());
+        }
     }
 
-    let files = locate_model()?;
+    let files = locate_model(id)?;
     let mut config = OfflineRecognizerConfig::default();
-    config.model_config.transducer = OfflineTransducerModelConfig {
-        encoder: Some(files.encoder),
-        decoder: Some(files.decoder),
-        joiner: Some(files.joiner),
-    };
-    config.model_config.tokens = Some(files.tokens);
-    config.model_config.model_type = Some(MODEL_TYPE.to_string());
+    apply_model_config(&mut config, &files);
     // Leave headroom: dictation runs while several agents compile and test.
     config.model_config.num_threads = (num_cpus_capped() / 2).max(1);
 
     let recognizer =
         OfflineRecognizer::create(&config).ok_or_else(|| "recognizer_create_failed".to_string())?;
     let recognizer = Arc::new(recognizer);
-    *guard = Some(recognizer.clone());
+    *guard = Some((id.to_string(), recognizer.clone()));
     Ok(recognizer)
 }
 
@@ -262,11 +321,11 @@ pub struct DictationStatus {
 }
 
 #[tauri::command]
-pub fn dictation_status() -> DictationStatus {
-    let located = locate_model().ok();
+pub fn dictation_status(model: String) -> DictationStatus {
+    let located = locate_model(&model).ok();
     let loaded = recognizer_slot()
         .lock()
-        .map(|guard| guard.is_some())
+        .map(|guard| guard.as_ref().is_some_and(|(id, _)| *id == model))
         .unwrap_or(false);
     let capturing = capture_slot()
         .lock()
@@ -282,18 +341,18 @@ pub fn dictation_status() -> DictationStatus {
 
 /// Warms the model up front so the first hold does not pay the load.
 #[tauri::command]
-pub async fn dictation_preload() -> Result<(), String> {
-    tokio::task::spawn_blocking(|| load_recognizer().map(|_| ()))
+pub async fn dictation_preload(model: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || load_recognizer(&model).map(|_| ()))
         .await
         .map_err(|error| format!("dictation_preload: blocking task failed: {error}"))?
 }
 
 #[tauri::command]
-pub async fn dictation_start() -> Result<(), String> {
-    tokio::task::spawn_blocking(|| {
+pub async fn dictation_start(model: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
         // Load before opening the microphone: a missing model must fail before the
         // user starts speaking, not after.
-        load_recognizer()?;
+        load_recognizer(&model)?;
 
         let slot = capture_slot();
         let mut guard = slot
@@ -311,8 +370,8 @@ pub async fn dictation_start() -> Result<(), String> {
 
 /// Stops capture and returns the transcript. Empty string when nothing was said.
 #[tauri::command]
-pub async fn dictation_stop() -> Result<String, String> {
-    tokio::task::spawn_blocking(|| {
+pub async fn dictation_stop(model: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
         let capture = {
             let slot = capture_slot();
             let mut guard = slot
@@ -335,7 +394,7 @@ pub async fn dictation_stop() -> Result<String, String> {
             return Ok(String::new());
         }
 
-        let recognizer = load_recognizer()?;
+        let recognizer = load_recognizer(&model)?;
         let stream = recognizer.create_stream();
         stream.accept_waveform(capture.sample_rate as i32, &samples);
         recognizer.decode(&stream);
@@ -374,19 +433,22 @@ mod tests {
     use super::*;
     use std::time::Instant;
 
+    /// The model the tests expect installed; the same default the app ships with.
+    const DEFAULT_TEST_MODEL: &str = "parakeet-tdt-0.6b-v3-int8";
+
     #[test]
     #[ignore = "requires the on-device model"]
     fn locates_and_loads_model() {
-        let files = locate_model().expect("model not found in any search path");
+        let files = locate_model(DEFAULT_TEST_MODEL).expect("model not found in any search path");
         println!("model dir: {}", files.dir.display());
 
         let started = Instant::now();
-        let recognizer = load_recognizer().expect("recognizer failed to load");
+        let recognizer = load_recognizer(DEFAULT_TEST_MODEL).expect("recognizer failed to load");
         println!("cold load: {:?}", started.elapsed());
 
         // Warm reuse must not re-read 622 MB.
         let started = Instant::now();
-        let again = load_recognizer().expect("warm load failed");
+        let again = load_recognizer(DEFAULT_TEST_MODEL).expect("warm load failed");
         println!("warm load: {:?}", started.elapsed());
         assert!(Arc::ptr_eq(&recognizer, &again), "warm load rebuilt the model");
     }
@@ -394,7 +456,7 @@ mod tests {
     #[test]
     #[ignore = "requires the on-device model"]
     fn decodes_silence_without_panicking() {
-        let recognizer = load_recognizer().expect("recognizer failed to load");
+        let recognizer = load_recognizer(DEFAULT_TEST_MODEL).expect("recognizer failed to load");
         let stream = recognizer.create_stream();
         stream.accept_waveform(16_000, &vec![0.0f32; 16_000]);
         recognizer.decode(&stream);

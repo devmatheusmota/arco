@@ -55,6 +55,8 @@ mod resources;
 mod scheduler;
 mod session_watcher;
 mod skills;
+mod speech_catalog;
+mod speech_download;
 mod spotify;
 mod stats;
 mod supervisor;
@@ -332,6 +334,9 @@ pub fn run() {
             dictation::dictation_start,
             dictation::dictation_stop,
             dictation::dictation_cancel,
+            speech_download::dictation_models,
+            speech_download::dictation_download,
+            speech_download::dictation_delete,
             diagnostics::reset_app_data,
             diagnostics::wipe_all_app_data,
             diagnostics::open_logs_folder,
