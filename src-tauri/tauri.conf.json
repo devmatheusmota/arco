@@ -50,8 +50,8 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdERjQwQTVDMDJFMDY3QzQKUldURVorQUNYQXIwZlpTZjNhc1dNamhiSERnalducjJCdDdiR0NFYy8ydnJqcU52VG05cFNqcHUK",
-      "endpoints": ["https://github.com/Kc1t/alethe-agents/releases/latest/download/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZFMTQ5MkI0NzE1MEJCNkMKUldSc3UxQnh0SklVL285c1BDVDFURTkycUpaMUR4TW42TzVRREM4bkhUVlZSeXZoOENBREl2cnUK",
+      "endpoints": ["https://github.com/devmatheusmota/arco/releases/latest/download/latest.json"],
       "windows": {
         "installMode": "passive"
       }

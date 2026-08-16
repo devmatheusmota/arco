@@ -70,8 +70,18 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
-          releaseName: 'Alethe v__VERSION__'
-          releaseBody: 'Free desktop build of Alethe for Windows, macOS and Linux. Local app is free; cloud/sync services may be offered separately.'
+          releaseName: 'Arco v__VERSION__'
+          releaseBody: |
+            Desktop build of Arco for Linux, macOS and Windows.
+
+            Download the file for your system: `.AppImage` runs as-is on Linux
+            (`chmod +x` then launch), `.deb` and `.rpm` install through the
+            package manager, `.dmg` on macOS, `.exe` on Windows.
+
+            Voice dictation downloads its model on first use, from Preferences.
+
+            Arco is a fork of [Alethe](https://github.com/Kc1t/alethe-agents),
+            AGPL-3.0-or-later. Source: this repository.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
