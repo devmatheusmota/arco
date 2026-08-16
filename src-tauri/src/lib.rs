@@ -107,8 +107,17 @@ pub fn run() {
     // ("Error 71") em alguns drivers de GPU — documentados oficialmente em
     // https://v2.tauri.app/develop/debug/linux-graphics/. Desligar o
 
+    // Upstream disables the DMABUF renderer unconditionally to dodge driver bugs
+    // ("Error 71") documented at https://v2.tauri.app/develop/debug/linux-graphics/.
+    // That workaround pushes WebKit onto a slower composite path, and the cost is
+    // visible: typing and scrolling lag on hardware where DMABUF works fine.
+    //
+    // Leave it on where it works and let the environment decide otherwise:
+    // WEBKIT_DISABLE_DMABUF_RENDERER=1 restores the workaround on a broken driver.
     #[cfg(target_os = "linux")]
-    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "0");
+    }
 
     let _ = dotenvy::dotenv();
     // `npm run app` (dev) injeta EDITOR=vi e GIT_EDITOR=true no ambiente do
