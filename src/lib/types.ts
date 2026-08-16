@@ -92,8 +92,8 @@ export type Theme =
 /** Native desktop icon variants. The UI theme and app icon theme are independent. */
 export type AppIconTheme =
   | Exclude<Theme, 'ember' | 'golden-premium'>
-  | 'alethe-blue-gradient'
-  | 'alethe-pink-gradient'
+  | 'arco-blue-gradient'
+  | 'arco-pink-gradient'
 
 export type VisualStyle = 'normal' | 'clean'
 
@@ -443,7 +443,7 @@ export type Preferences = {
   /** Credenciais locais do Spotify Developer Dashboard para Now Playing. */
   spotifyClientId: string
   spotifyClientSecret: string
-  /** Exibe a atividade atual do Alethe no perfil do Discord. */
+  /** Exibe a atividade atual do Arco no perfil do Discord. */
   discordRichPresenceEnabled: boolean
   /** Itens opcionais exibidos no canto direito da topbar. */
   topbarShowClaudeUsage: boolean
@@ -479,6 +479,8 @@ export type Preferences = {
   notifyOnLimitReset: boolean
   /** Ditado por voz (speech-to-text) escreve no terminal ativo. Default false. */
   dictationEnabled: boolean
+  /** Hold dita enquanto Ctrl+E fica pressionado; toggle liga e desliga a cada toque. */
+  dictationMode?: 'hold' | 'toggle'
   /** Quantos PTYs podem ser spawnados em paralelo (fila global). Default 3. */
   spawnConcurrency: number
                                                                              
@@ -614,6 +616,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   rightSidebarWidth: 300,
   notifyOnLimitReset: true,
   dictationEnabled: false,
+  dictationMode: 'hold',
   spawnConcurrency: 3,
   resourcePolicy: {
     mode: 'manual',

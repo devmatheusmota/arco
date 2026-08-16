@@ -3,12 +3,13 @@
                                                                         
 
 export * from './agents'
+export * from './aiMemory'
 export * from './cli'
+export * from './dictation'
 export * from './filesystem'
 export * from './git'
 export * from './graphify'
 export * from './handoff'
-export * from './aiMemory'
 export * from './mcp'
 export * from './misc'
 export * from './profiles'

@@ -1,13 +1,13 @@
 [package]
-name = "alethe"
+name = "arco"
 version = "1.5.1"
-description = "Alethe — terminal multiplexer GUI"
+description = "Arco — terminal multiplexer GUI"
 authors = ["Kauã Miguel"]
 license = "AGPL-3.0-or-later"
 edition = "2021"
 
 [lib]
-name = "alethe_lib"
+name = "arco_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [lints.rust]
@@ -60,8 +60,10 @@ regex = "1"
 # required to change one `[mcp_servers.*]` table inside a user's ~/.codex/config.toml
 # without rewriting the credentials, hooks and project tables around it.
 toml_edit = "0.22"
+sherpa-onnx = "1.13.5"
+cpal = "0.15"
 
-# Impede execuções paralelas do Alethe (pré-requisito da guarda de
+# Impede execuções paralelas do Arco (pré-requisito da guarda de
 # monotonicidade de `save_projects` em projects.rs). Só compila em desktop —
 # a crate não suporta mobile.
 [target.'cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))'.dependencies]

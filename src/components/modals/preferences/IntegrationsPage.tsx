@@ -57,7 +57,7 @@ function TerminalCommandSection() {
     >
       <div className={styles.integrationFields}>
         <pre className={styles.cliUsage}>
-          <code>{'alethe\nalethe .\nalethe ~/meu-projeto'}</code>
+          <code>{'arco\narco .\narco ~/meu-projeto'}</code>
         </pre>
 
         {status?.supported === false ? (
@@ -186,7 +186,33 @@ export function IntegrationsPage() {
             {t('prefs.dictationOff')}
           </button>
         </div>
-        <p>{t('prefs.dictationHandyHint')}</p>
+        {preferences.dictationEnabled ? (
+          <>
+            <p>{t('prefs.dictationModeDesc')}</p>
+            <div className={styles.segmented}>
+              <button
+                type="button"
+                className={
+                  (preferences.dictationMode ?? 'hold') === 'hold'
+                    ? styles.segmentActive
+                    : undefined
+                }
+                onClick={() => setPreferences({ dictationMode: 'hold' })}
+              >
+                {t('prefs.dictationModeHold')}
+              </button>
+              <button
+                type="button"
+                className={
+                  preferences.dictationMode === 'toggle' ? styles.segmentActive : undefined
+                }
+                onClick={() => setPreferences({ dictationMode: 'toggle' })}
+              >
+                {t('prefs.dictationModeToggle')}
+              </button>
+            </div>
+          </>
+        ) : null}
       </SettingsSection>
     </>
   )

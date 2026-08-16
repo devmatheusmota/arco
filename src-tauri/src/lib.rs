@@ -14,6 +14,7 @@ mod cli_shim;
 mod codex_app_server;
 mod codex_sessions;
 mod codex_usage;
+mod dictation;
 mod contract_check;
 mod crash_watch;
 mod diagnostics;
@@ -161,7 +162,7 @@ pub fn run() {
         .setup(move |app| {
             #[cfg(debug_assertions)]
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.set_title("(DEV) Alethe");
+                let _ = window.set_title("(DEV) Arco");
             }
 
             #[cfg(target_os = "linux")]
@@ -182,7 +183,7 @@ pub fn run() {
             // Keep the terminal launcher available after installation.
             #[cfg(not(debug_assertions))]
             let _ = cli_shim::cli_shim_install();
-            // `alethe <path>` com o app fechado: guarda o alvo agora, o
+            // `arco <path>` com o app fechado: guarda o alvo agora, o
 
             cli_launch::capture_cold_start(app.handle());
             event_bus::set_app_handle(app.handle().clone());
@@ -200,7 +201,7 @@ pub fn run() {
             pty::cleanup_orphan_scrollback(app.handle());
             agent_events::start_listener(app.handle().clone());
 
-            // reporta working/idle real de volta pro Alethe (ver opencode_bridge.rs).
+            // reporta working/idle real de volta pro Arco (ver opencode_bridge.rs).
             opencode_bridge::ensure_installed();
             session_watcher::start_watcher(app.handle().clone());
 
@@ -317,6 +318,11 @@ pub fn run() {
             diagnostics::read_clipboard_text,
             diagnostics::write_clipboard_text,
             diagnostics::read_clipboard_payload,
+            dictation::dictation_status,
+            dictation::dictation_preload,
+            dictation::dictation_start,
+            dictation::dictation_stop,
+            dictation::dictation_cancel,
             diagnostics::reset_app_data,
             diagnostics::wipe_all_app_data,
             diagnostics::open_logs_folder,
@@ -420,7 +426,7 @@ pub fn run() {
             ping,
         ])
         .build(tauri::generate_context!())
-        .expect("error while building alethe")
+        .expect("error while building arco")
         .run(move |_app_handle, event| {
             // emitir `Exit`; esperar esse evento deixa shells/agentes vivos
 
