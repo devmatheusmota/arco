@@ -21,9 +21,9 @@ import {
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import type { Terminal } from '../lib/types'
 import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
-import { useUiStore } from './uiStore'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
+import { useUiStore } from './uiStore'
 
 function t(key: Parameters<typeof translate>[1], params?: Record<string, string | number>) {
   return translate(getLocale(), key, params)
@@ -49,6 +49,32 @@ type TerminalsSlice = Pick<
   | 'setTerminalRemoteExcluded'
   | 'markTerminalUsed'
 >
+
+/**
+ * Total of staged, unstaged, untracked and conflicted entries in a worktree.
+ * A failure counts as zero: an unreadable status must not block closing a pane.
+ */
+async function countPendingChanges(
+  gitStatus: (path: string) => Promise<{
+    staged: unknown[]
+    changes: unknown[]
+    untracked: unknown[]
+    conflicts: unknown[]
+  }>,
+  path: string,
+): Promise<number> {
+  try {
+    const status = await gitStatus(path)
+    return (
+      status.staged.length +
+      status.changes.length +
+      status.untracked.length +
+      status.conflicts.length
+    )
+  } catch {
+    return 0
+  }
+}
 
 export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx): TerminalsSlice {
   return {
@@ -104,7 +130,14 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
     createAgentTerminal: async (projectId, args) => {
       const state = get()
       const project = state.projects.find((p) => p.id === projectId)
-      const wantsIsolation = Boolean(project?.autoWorktree) && args.firstTab.type !== 'shell'
+      // The project flag is the default; a session can override it either way, from
+      // the new-terminal modal or from the CLI payload. Shell panes never isolate:
+      // a worktree is only useful to an agent that edits code.
+      const isolationChoice = args.worktree ?? 'inherit'
+      const wantsIsolation =
+        args.firstTab.type !== 'shell' &&
+        (isolationChoice === 'new' ||
+          (isolationChoice === 'inherit' && Boolean(project?.autoWorktree)))
       if (project && wantsIsolation) {
                                                                             
                                                                              
@@ -394,7 +427,26 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
         get().deleteTerminal(projectId, terminalId)
         return
       }
-      const { killPtyTree, worktreeRemove } = await import('../lib/tauri')
+      const { killPtyTree, worktreeRemove, gitStatus } = await import('../lib/tauri')
+
+      // Removal runs `git worktree remove --force`, which overrides the very guard
+      // git raises for a dirty tree — modified and untracked files go with it. Ask
+      // only when there is something to lose; a clean worktree is removed silently,
+      // which is the common case.
+      if (terminal.cwd) {
+        const pending = await countPendingChanges(gitStatus, terminal.cwd)
+        if (pending > 0) {
+          const keep = !window.confirm(
+            t('term.worktreeDirtyOnClose', { count: pending, name: terminal.name }),
+          )
+          if (keep) {
+            // Close the pane but leave the tree on disk: the work is still there.
+            get().deleteTerminal(projectId, terminalId)
+            return
+          }
+        }
+      }
+
       const ptyIds = collectTerminalPtyIds([terminal])
                                                                             
                                                                           

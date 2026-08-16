@@ -34,6 +34,7 @@ import {
   type WorkspaceRecentTab,
   type WorkspaceTab,
   type WorkspaceViewSnapshot,
+  type WorktreeChoice,
 } from '../lib/types'
 import {
   captureWorkspaceSnapshot,
@@ -216,6 +217,11 @@ export type ProjectsState = ProjectsFile & {
     args: {
       name: string
       cwd: string
+      /**
+       * Isolation for this session alone. `inherit` follows the project's
+       * autoWorktree flag; the other two override it, whichever way the flag points.
+       */
+      worktree?: WorktreeChoice
       firstTab: {
         type: AgentType
         cwd: string

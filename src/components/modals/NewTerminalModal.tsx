@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { pickDirectory } from '../../lib/dialog'
 import { useT } from '../../lib/i18n'
 import { basename } from '../../lib/paths'
-import { AGENT_TYPE_LABELS, type AgentRuntimeProfile, type AgentType,ALL_AGENT_TYPES, UNRESTRICTED_FLAG } from '../../lib/types'
+import {
+  AGENT_TYPE_LABELS,
+  type AgentRuntimeProfile,
+  type AgentType,
+  ALL_AGENT_TYPES,
+  UNRESTRICTED_FLAG,
+  type WorktreeChoice,
+} from '../../lib/types'
 import { getProjectDefaultCwd, useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { AgentIcon } from '../icons/AgentIcons'
@@ -36,6 +43,7 @@ export function NewTerminalModal() {
 
   const [type, setType] = useState<AgentType>('claude')
   const [runtimeProfile, setRuntimeProfile] = useState<AgentRuntimeProfile>('lean')
+  const [worktree, setWorktree] = useState<WorktreeChoice>('inherit')
   const [cwd, setCwd] = useState('')
   const [unrestricted, setUnrestricted] = useState<Record<AgentType, boolean>>({
     shell: false,
@@ -94,6 +102,7 @@ export function NewTerminalModal() {
   const reset = () => {
     setType(defaultType)
     setRuntimeProfile('lean')
+    setWorktree('inherit')
     setCwd('')
     setUnrestricted({
       shell: false,
@@ -116,6 +125,7 @@ export function NewTerminalModal() {
     const creation = {
       name: finalName,
       cwd: finalCwd,
+      worktree,
       firstTab: { type, cwd: finalCwd, extraArgs, runtimeProfile },
     }
     await createAgentTerminal(context.projectId, creation)
@@ -278,6 +288,24 @@ export function NewTerminalModal() {
               <span className={controls.hint}>
                 {t(`term.runtimeProfile.${runtimeProfile}.desc`)}
               </span>
+            </div>
+
+            <div className={controls.field}>
+              <label className={controls.label}>{t('term.worktree')}</label>
+              <div className={controls.pillRow}>
+                {(['inherit', 'new', 'none'] as const).map((choice) => (
+                  <button
+                    key={choice}
+                    type="button"
+                    className={`${controls.pill} ${worktree === choice ? controls.pillActive : ''}`}
+                    onClick={() => setWorktree(choice)}
+                    title={t(`term.worktree.${choice}.desc`)}
+                  >
+                    {t(`term.worktree.${choice}`)}
+                  </button>
+                ))}
+              </div>
+              <span className={controls.hint}>{t(`term.worktree.${worktree}.desc`)}</span>
             </div>
           </div>
         </details>

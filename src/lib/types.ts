@@ -381,6 +381,9 @@ export type WorkspaceHistoryEntry = {
   visitedAt: number
 }
 
+/** Per-session worktree choice. `inherit` defers to the project's autoWorktree flag. */
+export type WorktreeChoice = 'inherit' | 'new' | 'none'
+
 export type TerminalCreationPreset = {
   name: string
   cwd: string
