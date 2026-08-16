@@ -6,16 +6,16 @@ import {
   groupServersByName,
   matchesQuery,
   mcpErrorKey,
-  transportSummary,
   type McpServerGroup,
+  transportSummary,
 } from '../../lib/mcp'
 import {
+  type McpHealth,
   mcpHealthCheck,
   mcpRemove,
   mcpRevealEnv,
   mcpSetEnabled,
   mcpSync,
-  type McpHealth,
 } from '../../lib/tauri'
 import type { McpAgent, McpEnvEntry, McpServerRecord } from '../../lib/types'
 import { AGENT_TYPE_LABELS, MCP_AGENTS } from '../../lib/types'
@@ -26,8 +26,8 @@ import { EmptyState } from '../EmptyState'
 import controls from './controls.module.css'
 import { AddServerFlow } from './mcp/AddServerFlow'
 import { SkillsBrowser } from './mcp/SkillsBrowser'
-import { Modal } from './Modal'
 import styles from './McpManagerModal.module.css'
+import { Modal } from './Modal'
 
 type ManagerTab = 'servers' | 'skills'
 
@@ -40,6 +40,7 @@ export function McpManagerModal() {
   const t = useT()
   const open = useUiStore((state) => state.openModal === 'mcpManager')
   const requestedServer = useUiStore((state) => state.modalContext?.server)
+  const requestedSkill = useUiStore((state) => state.modalContext?.skill)
   const requestedTab = useUiStore((state) => state.modalContext?.tab)
   const requestedAdd = useUiStore((state) => state.modalContext?.add)
   const closeModal = useUiStore((state) => state.closeModal)
@@ -243,7 +244,12 @@ export function McpManagerModal() {
         ))}
       </div>
 
-      {tab === 'skills' ? <SkillsBrowser dark={dark} /> : null}
+      {tab === 'skills' ? (
+        <SkillsBrowser
+          dark={dark}
+          requestedSkill={typeof requestedSkill === 'string' ? requestedSkill : null}
+        />
+      ) : null}
 
       <div className={styles.layout} hidden={tab !== 'servers'}>
         <aside className={styles.sidebar}>

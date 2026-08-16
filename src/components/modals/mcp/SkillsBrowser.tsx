@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../../../lib/i18n'
 import { groupSkillsByName, type SkillGroup } from '../../../lib/skills'
 import {
-  skillsDetail,
-  skillsScan,
-  skillsUninstall,
   type SkillAgentSnapshot,
   type SkillDetail,
   type SkillNode,
+  skillsDetail,
+  skillsScan,
   type SkillSummary,
+  skillsUninstall,
 } from '../../../lib/tauri'
 import { AGENT_TYPE_LABELS, type AgentType } from '../../../lib/types'
 import { useUiStore } from '../../../stores/uiStore'
@@ -22,14 +22,21 @@ import styles from './SkillsBrowser.module.css'
 
 type RemoveTarget = { group: SkillGroup; entries: SkillSummary[] }
 
-export function SkillsBrowser({ dark }: { dark: boolean }) {
+export function SkillsBrowser({
+  dark,
+  requestedSkill = null,
+}: {
+  dark: boolean
+  /** Skill the sidebar row asked to open, so the browser lands on it instead of the first one. */
+  requestedSkill?: string | null
+}) {
   const t = useT()
   const pushToast = useUiStore((state) => state.pushToast)
   const agentLabel = (agent: string) =>
     agent === 'shared' ? t('skills.sharedStore') : (AGENT_TYPE_LABELS[agent as AgentType] ?? agent)
 
   const [snapshots, setSnapshots] = useState<SkillAgentSnapshot[] | null>(null)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(requestedSkill)
   const [detail, setDetail] = useState<SkillDetail | null>(null)
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null)
   const [busy, setBusy] = useState(false)
@@ -45,6 +52,13 @@ export function SkillsBrowser({ dark }: { dark: boolean }) {
   useEffect(() => {
     void load()
   }, [])
+
+  // The modal unmounts on close, so the initial state covers the common path.
+  // This keeps the selection in sync when another sidebar row is opened while
+  // the browser is already mounted.
+  useEffect(() => {
+    if (requestedSkill) setSelected(requestedSkill)
+  }, [requestedSkill])
 
   const groups = useMemo(() => groupSkillsByName(snapshots ?? []), [snapshots])
   const active = groups.find((group) => group.name === selected) ?? groups[0] ?? null
