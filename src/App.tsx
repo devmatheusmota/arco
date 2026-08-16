@@ -2,6 +2,8 @@ import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Bell, X } from 'lucide-react'
 import { type CSSProperties, lazy, Suspense, useEffect, useRef } from 'react'
+
+import { startCliBridge } from './lib/cliBridge'
 import { Group as PanelGroup, Panel, Separator, usePanelRef } from 'react-resizable-panels'
 
 import styles from './App.module.css'
@@ -236,6 +238,24 @@ export default function App() {
   useEffect(() => {
     void hydrate()
   }, [hydrate])
+
+  // The CLI talks to the local listener, which emits events the store has to act
+  // on. Mounted once, after hydrate, so a request never lands on an empty store.
+  useEffect(() => {
+    if (!hydrated) return
+    let dispose: (() => void) | undefined
+    let cancelled = false
+    void startCliBridge()
+      .then((unlisten) => {
+        if (cancelled) unlisten()
+        else dispose = unlisten
+      })
+      .catch((error) => console.warn('[cli] bridge failed to start:', error))
+    return () => {
+      cancelled = true
+      dispose?.()
+    }
+  }, [hydrated])
 
   useEffect(() => {
     if (hydrated) restoreMarkdownSidebarHistory()

@@ -136,6 +136,13 @@ pub fn start_listener(app: AppHandle) {
         LISTENER_PORT.store(port, Ordering::SeqCst);
         eprintln!("[agent_events] ouvindo em {}", listener_addr(port));
 
+        // The `arco` command reads the endpoint and token from this file. Writing it
+        // as soon as the port is known keeps the CLI usable from boot; it used to be
+        // written only when the agent canvas was opened, which most sessions never do.
+        if let Err(error) = agent_hooks_settings_path() {
+            eprintln!("[agent_events] hooks settings nao pode ser escrito: {error}");
+        }
+
         for mut request in server.incoming_requests() {
             let url = request.url().to_string();
 
@@ -231,6 +238,49 @@ pub fn start_listener(app: AppHandle) {
             // working/idle real de sessoes OpenCode. Campos: directory
 
             // state ("working" | "idle").
+            // `/cli/*` is the surface the `arco` command talks to. Unlike `/spawn`,
+            // which feeds the agent canvas, these act on the real workspace: the
+            // frontend owns that state, so each route hands the payload over and
+            // answers `queued` rather than waiting for the result.
+            if url.starts_with("/cli/") {
+                let route = url.trim_start_matches("/cli/");
+                let parsed = if body.trim().is_empty() {
+                    Ok(serde_json::json!({}))
+                } else {
+                    serde_json::from_str::<serde_json::Value>(&body)
+                };
+                let Ok(payload) = parsed else {
+                    let _ = request.respond(
+                        tiny_http::Response::from_string("payload deve ser JSON")
+                            .with_status_code(400),
+                    );
+                    continue;
+                };
+
+                let event = match route.split('?').next().unwrap_or("") {
+                    "session" => Some("cli://session-new"),
+                    "todo" => Some("cli://todo-add"),
+                    _ => None,
+                };
+                let Some(event) = event else {
+                    let _ = request.respond(
+                        tiny_http::Response::from_string(format!("rota /cli/{route} desconhecida"))
+                            .with_status_code(404),
+                    );
+                    continue;
+                };
+
+                eprintln!("[agent_events] /cli/{route}");
+                let _ = app.emit(event, &payload);
+                let body = serde_json::json!({ "accepted": true, "status": "queued" });
+                let _ = request.respond(
+                    tiny_http::Response::from_string(body.to_string()).with_header(
+                        tiny_http::Header::from_bytes("Content-Type", "application/json").unwrap(),
+                    ),
+                );
+                continue;
+            }
+
             if url.starts_with("/opencode-status") {
                 match serde_json::from_str::<serde_json::Value>(&body) {
                     Ok(payload) => {

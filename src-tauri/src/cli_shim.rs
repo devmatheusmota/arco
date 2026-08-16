@@ -91,19 +91,115 @@ fn sh_single_quote(value: &str) -> String {
 fn unix_shim_script(target_marker: &str, launch: &str) -> String {
     format!(
         r#"#!/bin/sh
-# arco — abre um diretório no Arco a partir do terminal.
+# arco — abre diretórios e comanda o Arco a partir do terminal.
 #
 # Gerado automaticamente pelo Arco (Configurações ▸ Integrações ▸ Comando de
 # terminal). Não edite à mão: reinstale por lá, principalmente depois de mover
 # ou reinstalar o app.
 #
-# arco            → abre o diretório atual
-# arco .          → idem
-# arco ~/projeto  → abre o diretório informado
+# arco                        → abre o diretório atual
+# arco ~/projeto              → abre o diretório informado
+#
+# arco session [opções]       → cria uma sessão de agente
+#     --agent claude|codex|opencode|shell   (padrão: claude)
+#     --project <nome>        projeto alvo; sem isso, deduz pelo diretório atual
+#     --name <rótulo>         nome do pane
+#     --prompt <texto>        texto enviado ao agente ao abrir
+#     --worktree              força worktree nova
+#     --no-worktree           força a mesma árvore
+#                             sem nenhum dos dois, segue o padrão do projeto
+#
+# arco todo <título> [--project <nome>] [--tag <tag>]...
+#
+# Os subcomandos exigem o app aberto: falam com o listener local dele.
 #
 # ARCO_TARGET_BIN: {target_marker}
 
 set -e
+
+arco_api() {{
+  route=$1
+  payload=$2
+  hooks=${{TMPDIR:-/tmp}}/arco-agent-hooks.json
+
+  if [ ! -f "$hooks" ]; then
+    echo "arco: o app não está rodando (sem $hooks)" >&2
+    exit 1
+  fi
+
+  # O mesmo arquivo que configura os hooks carrega endpoint e token.
+  endpoint=$(sed -n 's/.*"url"[[:space:]]*:[[:space:]]*"\([^"]*\)\/hook".*/\1/p' "$hooks" | head -1)
+  token=$(sed -n 's/.*"X-Arco-Token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$hooks" | head -1)
+
+  if [ -z "$endpoint" ] || [ -z "$token" ]; then
+    echo "arco: não consegui ler endpoint/token em $hooks" >&2
+    exit 1
+  fi
+
+  code=$(curl -sS -o /dev/null -w '%{{http_code}}' \
+    -X POST "$endpoint/cli/$route" \
+    -H 'Content-Type: application/json' \
+    -H "X-Arco-Token: $token" \
+    --data "$payload") || {{
+      echo "arco: falha ao falar com o app" >&2
+      exit 1
+    }}
+
+  if [ "$code" != "200" ]; then
+    echo "arco: o app respondeu $code" >&2
+    exit 1
+  fi
+}}
+
+# Escapa aspas e barras para interpolar com segurança num literal JSON.
+json_escape() {{
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}}
+
+case "${{1:-}}" in
+  session)
+    shift
+    agent=claude; project=; name=; prompt=; worktree=inherit
+    while [ $# -gt 0 ]; do
+      case $1 in
+        --agent) agent=$2; shift 2 ;;
+        --project) project=$2; shift 2 ;;
+        --name) name=$2; shift 2 ;;
+        --prompt) prompt=$2; shift 2 ;;
+        --worktree) worktree=new; shift ;;
+        --no-worktree) worktree=none; shift ;;
+        *) echo "arco session: opção desconhecida: $1" >&2; exit 1 ;;
+      esac
+    done
+    body=$(printf '{{"agent":"%s","cwd":"%s","worktree":"%s"' \
+      "$(json_escape "$agent")" "$(json_escape "$(pwd)")" "$worktree")
+    [ -n "$project" ] && body="$body,\"project\":\"$(json_escape "$project")\""
+    [ -n "$name" ] && body="$body,\"name\":\"$(json_escape "$name")\""
+    [ -n "$prompt" ] && body="$body,\"prompt\":\"$(json_escape "$prompt")\""
+    arco_api session "$body}}"
+    exit 0
+    ;;
+  todo)
+    shift
+    title=; project=; tags=
+    while [ $# -gt 0 ]; do
+      case $1 in
+        --project) project=$2; shift 2 ;;
+        --tag) tags="$tags\"$(json_escape "$2")\","; shift 2 ;;
+        *) title="$title${{title:+ }}$1"; shift ;;
+      esac
+    done
+    if [ -z "$title" ]; then
+      echo "arco todo: informe um título" >&2
+      exit 1
+    fi
+    body=$(printf '{{"title":"%s","tags":[%s]' \
+      "$(json_escape "$title")" "${{tags%,}}")
+    [ -n "$project" ] && body="$body,\"project\":\"$(json_escape "$project")\""
+    arco_api todo "$body}}"
+    exit 0
+    ;;
+esac
 
 target=${{1:-.}}
 
@@ -490,5 +586,63 @@ mod tests {
         let script = render_shim(Path::new("/opt/arco's app/arco")).expect("script");
 
         assert!(script.contains(r"'\''"));
+    }
+}
+
+#[cfg(all(test, unix))]
+mod shim_script_tests {
+    use super::*;
+    use std::io::Write;
+
+    /// The shim is a shell script assembled inside `format!`, where every literal
+    /// brace has to be doubled. A slip there compiles fine and only fails when the
+    /// user runs the command, so parse it with `sh -n`.
+    #[test]
+    fn generated_shim_is_valid_shell() {
+        let script = render_shim(Path::new("/opt/arco/arco")).expect("render");
+        let mut file = tempfile();
+        file.write_all(script.as_bytes()).expect("write");
+        let path = file.path.clone();
+
+        let output = std::process::Command::new("sh")
+            .arg("-n")
+            .arg(&path)
+            .output()
+            .expect("run sh -n");
+
+        assert!(
+            output.status.success(),
+            "shim has a syntax error:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn generated_shim_exposes_the_subcommands() {
+        let script = render_shim(Path::new("/opt/arco/arco")).expect("render");
+        for needle in ["session)", "todo)", "/cli/", "X-Arco-Token"] {
+            assert!(script.contains(needle), "shim is missing {needle}");
+        }
+    }
+
+    struct TempFile {
+        path: PathBuf,
+    }
+
+    impl Drop for TempFile {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+
+    impl TempFile {
+        fn write_all(&mut self, bytes: &[u8]) -> std::io::Result<()> {
+            std::fs::write(&self.path, bytes)
+        }
+    }
+
+    fn tempfile() -> TempFile {
+        let path = std::env::temp_dir().join(format!("arco-shim-{}.sh", nanoid::nanoid!(8)));
+        TempFile { path }
     }
 }
