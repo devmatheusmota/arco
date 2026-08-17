@@ -544,6 +544,10 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.resourceRecovery': 'Recuperar em (MB)',
   'prefs.resourceAgentIdle': 'Agente ocioso (min)',
   'prefs.resourceShellIdle': 'Shell ocioso (min)',
+  'toast.hibernationTitle': 'Sessões ociosas',
+  'toast.hibernationBody':
+    '{count} sessão(ões) oculta(s) estão ociosas e ocupam {mb} MB. Estacionar preserva o scrollback.',
+  'toast.hibernationAction': 'Estacionar',
   'prefs.resourcePolicySmartHint':
     'Runtimes visíveis, focados, recém-abertos ou trabalhando são sempre protegidos. Agentes estacionados retomam pela sessão salva.',
   'prefs.resourcePolicyManualHint':

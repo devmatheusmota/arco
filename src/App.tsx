@@ -130,10 +130,12 @@ function ToastItem({ toast }: { toast: InAppToast }) {
   const dismissToast = useUiStore((s) => s.dismissToast)
   const uiTheme = useProjectsStore((s) => s.preferences.uiTheme)
 
+  // An actionable toast asks something of the reader, so it holds long enough to
+  // be read and answered instead of vanishing at the usual banner pace.
   useEffect(() => {
-    const timer = window.setTimeout(() => dismissToast(toast.id), 6500)
+    const timer = window.setTimeout(() => dismissToast(toast.id), toast.action ? 20_000 : 6500)
     return () => window.clearTimeout(timer)
-  }, [dismissToast, toast.id])
+  }, [dismissToast, toast.action, toast.id])
 
   const accentStyle = {
     '--toast-accent': toast.agent ? `var(--agent-${toast.agent})` : 'var(--accent)',
@@ -151,6 +153,18 @@ function ToastItem({ toast }: { toast: InAppToast }) {
       <div className={styles.toastText}>
         <strong>{toast.title}</strong>
         <span title={toast.body}>{toast.body}</span>
+        {toast.action ? (
+          <button
+            type="button"
+            className={styles.toastAction}
+            onClick={() => {
+              toast.action?.run()
+              dismissToast(toast.id)
+            }}
+          >
+            {toast.action.label}
+          </button>
+        ) : null}
       </div>
       <button
         type="button"

@@ -81,6 +81,7 @@ import {
   getLogicalTerminalLine,
   makeXtermLink,
 } from './terminalLinks'
+import { attachWebglRenderer, detachWebglRenderer } from './terminalRenderer'
 import { TERMINAL_WRITE_FRAME_BUDGET, writePtyChunked, writePtyWithTimeout } from './terminalWrite'
 import { getXtermTheme, type LinkActionState } from './xtermThemes'
 
@@ -197,6 +198,7 @@ export function useXtermSession(params: {
   const lastIoWhenHiddenRef = useRef<number | null>(null)
 
   const resyncTerminalRef = useRef<(() => Promise<void>) | null>(null)
+  const webglAddonRef = useRef<ReturnType<typeof attachWebglRenderer>>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -263,6 +265,9 @@ export function useXtermSession(params: {
     terminal.loadAddon(new Unicode11Addon())
     terminal.unicode.activeVersion = '11'
     terminal.open(container)
+    if (isPanelVisibleRef.current) {
+      webglAddonRef.current = attachWebglRenderer(terminal)
+    }
     terminalRef.current = terminal
     const clampHorizontalScroll = () => {
       container.scrollLeft = 0
@@ -1420,6 +1425,7 @@ export function useXtermSession(params: {
       completionMonitor?.dispose()
       completionMonitor = null
       setLinkActions(null)
+      webglAddonRef.current = detachWebglRenderer(webglAddonRef.current)
       if (terminalRef.current === terminal) terminalRef.current = null
       ptyIdRef.current = null
       if (resyncTerminalRef.current === doResync) resyncTerminalRef.current = null
@@ -1433,6 +1439,18 @@ export function useXtermSession(params: {
     isPanelVisibleRef.current = isPanelVisible
     const wasVisible = wasPanelVisibleRef.current
     wasPanelVisibleRef.current = isPanelVisible
+
+    // The GPU context follows visibility, so a workspace only ever holds as many
+    // as it shows. A hidden pane renders nothing; keeping its context alive just
+    // pushes a visible pane past the WebView's limit.
+    const terminal = terminalRef.current
+    if (terminal) {
+      if (isPanelVisible && !webglAddonRef.current) {
+        webglAddonRef.current = attachWebglRenderer(terminal)
+      } else if (!isPanelVisible && webglAddonRef.current) {
+        webglAddonRef.current = detachWebglRenderer(webglAddonRef.current)
+      }
+    }
 
     if (isFirstVisibilityRunRef.current) {
       isFirstVisibilityRunRef.current = false

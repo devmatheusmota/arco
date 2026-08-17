@@ -540,6 +540,10 @@ export const en = {
   'prefs.resourceRecovery': 'Recover at (MB)',
   'prefs.resourceAgentIdle': 'Agent idle (min)',
   'prefs.resourceShellIdle': 'Shell idle (min)',
+  'toast.hibernationTitle': 'Idle sessions',
+  'toast.hibernationBody':
+    '{count} hidden session(s) have been idle and hold {mb} MB. Parking them keeps their scrollback.',
+  'toast.hibernationAction': 'Park',
   'prefs.resourcePolicySmartHint':
     'Visible, focused, recently spawned and working runtimes are always protected. Parked agents resume from their saved session.',
   'prefs.resourcePolicyManualHint':
