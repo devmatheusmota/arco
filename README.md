@@ -2,7 +2,7 @@
 
 <br />
 <div align="center">
-  <a href="https://github.com/Kc1t/alethe-agents">
+  <a href="https://github.com/devmatheusmota/arco">
     <img src="./src/assets/theme-icons/dark.png" alt="Arco Logo" width="160">
   </a>
 
@@ -15,20 +15,20 @@
   </p>
 
   <p align="center">
-    <a href="https://github.com/Kc1t/alethe-agents/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/Kc1t/alethe-agents/ci.yml?branch=main&label=ci&style=flat-square"></a>
-    <a href="https://github.com/Kc1t/alethe-agents/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/Kc1t/alethe-agents?style=flat-square"></a>
-    <a href="https://github.com/Kc1t/alethe-agents/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/Kc1t/alethe-agents?style=flat-square"></a>
-    <a href="https://github.com/Kc1t/alethe-agents/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/Kc1t/alethe-agents?style=flat-square"></a>
-    <a href="https://github.com/Kc1t/alethe-agents/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Kc1t/alethe-agents?style=flat-square"></a>
-    <a href="https://github.com/Kc1t/alethe-agents/issues"><img alt="Open issues" src="https://img.shields.io/github/issues/Kc1t/alethe-agents?style=flat-square"></a>
+    <a href="https://github.com/devmatheusmota/arco/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/devmatheusmota/arco/ci.yml?branch=main&label=ci&style=flat-square"></a>
+    <a href="https://github.com/devmatheusmota/arco/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/devmatheusmota/arco?style=flat-square"></a>
+    <a href="https://github.com/devmatheusmota/arco/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/devmatheusmota/arco?style=flat-square"></a>
+    <a href="https://github.com/devmatheusmota/arco/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/devmatheusmota/arco?style=flat-square"></a>
+    <a href="https://github.com/devmatheusmota/arco/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/devmatheusmota/arco?style=flat-square"></a>
+    <a href="https://github.com/devmatheusmota/arco/issues"><img alt="Open issues" src="https://img.shields.io/github/issues/devmatheusmota/arco?style=flat-square"></a>
   </p>
 
   <p align="center">
-    <a href="https://github.com/Kc1t/alethe-agents/releases">Download</a>
+    <a href="https://github.com/devmatheusmota/arco/releases">Download</a>
     ·
-    <a href="https://github.com/Kc1t/alethe-agents/issues/new?labels=bug">Report Bug</a>
+    <a href="https://github.com/devmatheusmota/arco/issues/new?labels=bug">Report Bug</a>
     ·
-    <a href="https://github.com/Kc1t/alethe-agents/issues/new?labels=enhancement">Request Feature</a>
+    <a href="https://github.com/devmatheusmota/arco/issues/new?labels=enhancement">Request Feature</a>
     ·
     <a href="#contributing">Contribute</a>
   </p>
@@ -131,7 +131,47 @@ choice over forced completeness.
 
 ## Install
 
-Use the published installers from [Releases](https://github.com/Kc1t/alethe-agents/releases).
+### Linux — apt (recommended)
+
+Arco publishes a signed apt repository, so new versions arrive through your normal
+`apt upgrade` instead of being downloaded by hand each time:
+
+```sh
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://devmatheusmota.github.io/arco/arco.asc \
+  | sudo tee /etc/apt/keyrings/arco.asc > /dev/null
+
+echo "deb [signed-by=/etc/apt/keyrings/arco.asc] https://devmatheusmota.github.io/arco stable main" \
+  | sudo tee /etc/apt/sources.list.d/arco.list
+
+sudo apt update && sudo apt install arco
+```
+
+The repository serves amd64 only. To remove it later, delete
+`/etc/apt/sources.list.d/arco.list` and `/etc/apt/keyrings/arco.asc`.
+
+### Linux — single file
+
+If you would rather not add a repository, download `Arco_<version>_amd64.deb`,
+`Arco-<version>-1.x86_64.rpm`, or `Arco_<version>_amd64.AppImage` from
+[Releases](https://github.com/devmatheusmota/arco/releases):
+
+```sh
+sudo apt install ./Arco_1.5.1_amd64.deb    # or: sudo dnf install ./Arco-1.5.1-1.x86_64.rpm
+```
+
+The AppImage needs no installation — mark it executable and run it. None of these
+three update themselves; the apt repository above is what gives you upgrades.
+
+### Windows and macOS
+
+Download the installer from [Releases](https://github.com/devmatheusmota/arco/releases):
+`.exe` or `.msi` for Windows, and the `.dmg` matching your chip for macOS
+(`aarch64` for Apple Silicon, `x64` for Intel). Both platforms update themselves
+from inside the app.
+
+Read the signing warnings below before the first launch — the builds are unsigned,
+and both systems will say so.
 
 ### Windows SmartScreen / Defender warning
 
@@ -162,8 +202,8 @@ warning. Right-click the app and choose **Open** to bypass it.
 ## Run From Source
 
 ```sh
-git clone https://github.com/Kc1t/alethe-agents.git
-cd alethe-agents
+git clone https://github.com/devmatheusmota/arco.git
+cd arco
 npm install
 npm run app
 ```
@@ -289,7 +329,7 @@ Contributions are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, 
 
 The easiest ways to help right now are:
 
-- Pick an issue labeled [`good first issue`](https://github.com/Kc1t/alethe-agents/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or [`help wanted`](https://github.com/Kc1t/alethe-agents/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — comment on it to claim it.
+- Pick an issue labeled [`good first issue`](https://github.com/devmatheusmota/arco/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or [`help wanted`](https://github.com/devmatheusmota/arco/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — comment on it to claim it.
 - Open a bug report with clear reproduction steps.
 - Request a feature with the workflow it would improve.
 - Improve docs, screenshots, setup notes, or platform validation — Linux and macOS are the least tested.
@@ -309,43 +349,14 @@ _Nothing here yet._ Built something with Arco? Add it to [`SHOWCASE.md`](SHOWCAS
 
 See [`SHOWCASE.md`](SHOWCASE.md) for the full list and how to submit.
 
-## Contributors
+## Credits
 
-Thanks to everyone helping shape Arco.
-
-<p align="center">
-  <!-- contributors:start -->
-  <a href="https://github.com/Kc1t"><img src="https://github.com/Kc1t.png?size=100" width="80" height="80" alt="Kc1t" title="Kc1t" /></a>
-  <a href="https://github.com/MiguelSilvaPorto"><img src="https://github.com/MiguelSilvaPorto.png?size=100" width="80" height="80" alt="MiguelSilvaPorto" title="MiguelSilvaPorto" /></a>
-  <a href="https://github.com/devmatheusmota"><img src="https://github.com/devmatheusmota.png?size=100" width="80" height="80" alt="devmatheusmota" title="devmatheusmota" /></a>
-  <a href="https://github.com/HayatoG"><img src="https://github.com/HayatoG.png?size=100" width="80" height="80" alt="HayatoG" title="HayatoG" /></a>
-  <a href="https://github.com/slegarraga"><img src="https://github.com/slegarraga.png?size=100" width="80" height="80" alt="slegarraga" title="slegarraga" /></a>
-  <a href="https://github.com/Jbnado"><img src="https://github.com/Jbnado.png?size=100" width="80" height="80" alt="Jbnado" title="Jbnado" /></a>
-  <a href="https://github.com/chintanparmar011"><img src="https://github.com/chintanparmar011.png?size=100" width="80" height="80" alt="chintanparmar011" title="chintanparmar011" /></a>
-  <a href="https://github.com/AshSgDe29071999"><img src="https://github.com/AshSgDe29071999.png?size=100" width="80" height="80" alt="AshSgDe29071999" title="AshSgDe29071999" /></a>
-  <a href="https://github.com/rlevidev"><img src="https://github.com/rlevidev.png?size=100" width="80" height="80" alt="rlevidev" title="rlevidev" /></a>
-  <a href="https://github.com/mapsiva"><img src="https://github.com/mapsiva.png?size=100" width="80" height="80" alt="mapsiva" title="mapsiva" /></a>
-  <a href="https://github.com/moisesz10"><img src="https://github.com/moisesz10.png?size=100" width="80" height="80" alt="moisesz10" title="moisesz10" /></a>
-  <a href="https://github.com/Bakurin0"><img src="https://github.com/Bakurin0.png?size=100" width="80" height="80" alt="Bakurin0" title="Bakurin0" /></a>
-  <a href="https://github.com/SrAmaral"><img src="https://github.com/SrAmaral.png?size=100" width="80" height="80" alt="SrAmaral" title="SrAmaral" /></a>
-  <a href="https://github.com/diegoliveiraa"><img src="https://github.com/diegoliveiraa.png?size=100" width="80" height="80" alt="diegoliveiraa" title="diegoliveiraa" /></a>
-  <a href="https://github.com/VicktorMS"><img src="https://github.com/VicktorMS.png?size=100" width="80" height="80" alt="VicktorMS" title="VicktorMS" /></a>
-  <a href="https://github.com/rad4manthys"><img src="https://github.com/rad4manthys.png?size=100" width="80" height="80" alt="rad4manthys" title="rad4manthys" /></a>
-  <a href="https://github.com/potatoiscompiled"><img src="https://github.com/potatoiscompiled.png?size=100" width="80" height="80" alt="potatoiscompiled" title="potatoiscompiled" /></a>
-  <a href="https://github.com/lucianoschirmer"><img src="https://github.com/lucianoschirmer.png?size=100" width="80" height="80" alt="lucianoschirmer" title="lucianoschirmer" /></a>
-  <a href="https://github.com/lb1192176991-lab"><img src="https://github.com/lb1192176991-lab.png?size=100" width="80" height="80" alt="lb1192176991-lab" title="lb1192176991-lab" /></a>
-  <a href="https://github.com/hgshreyas"><img src="https://github.com/hgshreyas.png?size=100" width="80" height="80" alt="hgshreyas" title="hgshreyas" /></a>
-  <a href="https://github.com/fernando-c-lima"><img src="https://github.com/fernando-c-lima.png?size=100" width="80" height="80" alt="fernando-c-lima" title="fernando-c-lima" /></a>
-  <a href="https://github.com/eudehh"><img src="https://github.com/eudehh.png?size=100" width="80" height="80" alt="eudehh" title="eudehh" /></a>
-  <a href="https://github.com/tomatotomata"><img src="https://github.com/tomatotomata.png?size=100" width="80" height="80" alt="tomatotomata" title="tomatotomata" /></a>
-  <a href="https://github.com/ThiagoSales17"><img src="https://github.com/ThiagoSales17.png?size=100" width="80" height="80" alt="ThiagoSales17" title="ThiagoSales17" /></a>
-  <a href="https://github.com/opedrooz"><img src="https://github.com/opedrooz.png?size=100" width="80" height="80" alt="opedrooz" title="opedrooz" /></a>
-  <a href="https://github.com/JohnPss"><img src="https://github.com/JohnPss.png?size=100" width="80" height="80" alt="JohnPss" title="JohnPss" /></a>
-  <a href="https://github.com/GabrielKLopes"><img src="https://github.com/GabrielKLopes.png?size=100" width="80" height="80" alt="GabrielKLopes" title="GabrielKLopes" /></a>
-  <a href="https://github.com/floze-the-genius"><img src="https://github.com/floze-the-genius.png?size=100" width="80" height="80" alt="floze-the-genius" title="floze-the-genius" /></a>
-  <a href="https://github.com/aryansk"><img src="https://github.com/aryansk.png?size=100" width="80" height="80" alt="aryansk" title="aryansk" /></a>
-  <!-- contributors:end -->
-</p>
+Arco is a fork of [Alethe](https://github.com/Kc1t/alethe-agents) by
+[Kc1t](https://github.com/Kc1t), and every contributor to that project is upstream of
+this one. The full list lives on the
+[Alethe contributor graph](https://github.com/Kc1t/alethe-agents/graphs/contributors);
+changes made in this fork are in its own
+[commit history](https://github.com/devmatheusmota/arco/commits/main).
 
 ## License
 
@@ -357,8 +368,9 @@ The **Arco** name, logo, and official branding are reserved for official builds.
 
 ## Community
 
-- Maintainer: [Kc1t](https://github.com/Kc1t)
-- Project: <https://github.com/Kc1t/alethe-agents>
-- Bugs and feature requests: <https://github.com/Kc1t/alethe-agents/issues>
+- Maintainer: [devmatheusmota](https://github.com/devmatheusmota)
+- Project: <https://github.com/devmatheusmota/arco>
+- Bugs and feature requests: <https://github.com/devmatheusmota/arco/issues>
+- Upstream project: <https://github.com/Kc1t/alethe-agents>
 
 <p align="right">(<a href="#readme-top">Back to top</a>)</p>
