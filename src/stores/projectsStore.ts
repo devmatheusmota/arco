@@ -11,7 +11,7 @@ import {
   recordFrontendError,
   saveProjectsFile,
 } from '../lib/tauri'
-import { getProjectDefaultCwd, getProjectRepoRoot } from '../lib/terminalFactory'
+import { getProjectDefaultCwd, getProjectRepoRoot, newContainer } from '../lib/terminalFactory'
 import {
   type AgentHandoffBootstrap,
   type AgentRuntimeProfile,
@@ -39,11 +39,11 @@ import {
 import {
   captureWorkspaceSnapshot,
   cloneWorkspaceSnapshot,
-  compositionLabel,
+  enforceTabScope,
   MAX_WORKSPACE_TABS,
   pushWorkspaceHistory,
   replaceCurrentHistorySnapshot,
-  sanitizeWorkspaceSnapshot,
+  scopedTabSnapshot,
 } from '../lib/workspaceNavigation'
 import { migrate } from './projectsStore.migrations'
 import { createGroupsSlice, createProjectsSlice } from './projectsStore.projectSlices'
@@ -158,13 +158,10 @@ export type ProjectsState = ProjectsFile & {
   setActiveProjectOnly: (id: string | null) => void
   rememberWorkspaceGroupTab: (groupId: string) => void
   closeWorkspaceTab: (tab: WorkspaceRecentTab) => void
-  openGroupScope: (groupId: string, mode?: 'append' | 'only') => void
   openProjectWorkspace: (projectId: string) => void
-  addProjectToWorkspace: (projectId: string) => void
-  openGroupWorkspace: (groupId: string, mode?: 'append' | 'only') => void
+  /** Opens one tab per project of the group — a tab still shows a single project. */
+  openGroupWorkspace: (groupId: string) => void
   openTerminalWorkspace: (projectId: string, terminalId: string) => void
-  addTerminalToWorkspace: (projectId: string, terminalId: string) => void
-  addWorkspaceTabToCurrent: (tabId: string) => void
   focusWorkspaceTerminal: (projectId: string, terminalId: string) => void
   activateWorkspaceTab: (tabId: string) => void
   toggleWorkspaceTabPinned: (tabId: string) => void
@@ -174,9 +171,6 @@ export type ProjectsState = ProjectsFile & {
   toggleProjectCollapsed: (id: string) => void
   setLayoutMode: (projectId: string, layout: LayoutMode) => void
   setProjectGridLayout: (projectId: string, layout: GridLayout, recordHistory?: boolean) => void
-  setGroupLayoutMode: (groupId: string, mode: LayoutMode) => void
-  setGroupGridLayout: (groupId: string, layout: GridLayout, recordHistory?: boolean) => void
-  setWorkspaceGridLayout: (layout: GridLayout | null, recordHistory?: boolean) => void
 
                   
   createTodo: (title: string, tags?: string[], projectId?: string) => TodoItem | null
@@ -278,7 +272,6 @@ export type ProjectsState = ProjectsFile & {
   closeContainer: (projectId: string) => void
                                                                      
   closeOtherContainers: (keepProjectId: string) => void
-  reorderContainers: (fromIndex: number, toIndex: number) => void
   reorderPaneInContainer: (projectId: string, fromIndex: number, toIndex: number) => void
   groupPanes: (projectId: string, paneIds: string[]) => void
   ungroupPanes: (projectId: string, groupId: string) => void
@@ -286,7 +279,6 @@ export type ProjectsState = ProjectsFile & {
   setContainerInternalLayout: (projectId: string, layout: LayoutMode) => void
   setFullscreenContainer: (projectId: string | null) => void
   setFullscreenPane: (terminalId: string | null) => void
-  setWorkspaceFlat: (flat: boolean) => void
 
   // sub-tabs
   createSubTab: (
@@ -362,7 +354,7 @@ function nextWriteSequence(): number {
 
 function projectsPayload(state: ProjectsState): ProjectsFile {
   return {
-    version: 7,
+    version: 8,
     groups: state.groups,
     ungroupedOrder: state.ungroupedOrder,
     projects: state.projects,
@@ -411,63 +403,34 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
       const workspaceChanged = Boolean(result.workspace)
       const visualPreferencesChanged = Boolean(
         result.preferences &&
-        (result.preferences.workspaceFlat !== state.preferences.workspaceFlat ||
-          result.preferences.fullscreenContainerId !== state.preferences.fullscreenContainerId ||
-          result.preferences.workspaceGridLayout !== state.preferences.workspaceGridLayout),
+          result.preferences.fullscreenContainerId !== state.preferences.fullscreenContainerId,
       )
       if (!suppressNavigationSync && (workspaceChanged || visualPreferencesChanged)) {
         const nextState = { ...state, ...result } as ProjectsState
         const activeTabId = nextState.workspace.activeTabId
         const activeTab = nextState.workspace.tabs.find((tab) => tab.id === activeTabId)
         if (activeTab) {
-          const snapshot = captureWorkspaceSnapshot({
-            containers: nextState.workspace.containers,
-            activeProjectId: nextState.activeProjectId,
-            activeGroupId: nextState.workspace.activeGroupId,
-            focusedTerminalId: nextState.workspace.focusedTerminalId,
-            preferences: nextState.preferences,
-          })
-          const now = Date.now()
-                                                                               
-                                                                                
-                                                                                  
-                                                                                    
-                                                                                    
-                                                                    
-          const liveGroupId = snapshot.activeGroupId
-          const keepsGroupIdentity =
-            !!liveGroupId && (activeTab.kind !== 'group' || activeTab.sourceId === liveGroupId)
-          const groupForTab = keepsGroupIdentity
-            ? nextState.groups.find((g) => g.id === liveGroupId)
-            : undefined
-          const updatedTab: WorkspaceTab = groupForTab
-            ? {
-                ...activeTab,
-                kind: 'group',
-                sourceId: groupForTab.id,
-                sourceProjectId: undefined,
-                label: groupForTab.name,
-                color: groupForTab.color,
-                iconUrl: groupForTab.iconUrl,
-                snapshot,
-                updatedAt: now,
-              }
-            : {
-                ...activeTab,
-                kind: 'composition',
-                sourceId: undefined,
-                sourceProjectId: undefined,
-                label: compositionLabel(snapshot, nextState.projects),
-                snapshot,
-                updatedAt: now,
-              }
+          // The tab owns a single project, so its identity never changes here — only its
+          // snapshot does, and anything outside that project is dropped before it is stored.
+          const snapshot = enforceTabScope(
+            captureWorkspaceSnapshot({
+              containers: nextState.workspace.containers,
+              activeProjectId: nextState.activeProjectId,
+              focusedTerminalId: nextState.workspace.focusedTerminalId,
+              preferences: nextState.preferences,
+            }),
+            activeTab.projectId,
+          )
+          const updatedTab: WorkspaceTab = { ...activeTab, snapshot, updatedAt: Date.now() }
           const tabs = nextState.workspace.tabs.map((tab) =>
             tab.id === activeTab.id ? updatedTab : tab,
           )
+          // activeProjectId is left alone: the sidebar may select a project without opening it.
           result = {
             ...result,
             workspace: {
               ...nextState.workspace,
+              containers: cloneWorkspaceSnapshot(snapshot).containers,
               tabs,
               history: replaceCurrentHistorySnapshot(
                 nextState.workspace.history,
@@ -527,16 +490,12 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     state: ProjectsState,
     containers: WorkspaceContainer[],
     activeProjectId: string | null,
-    activeGroupId: string | null,
     focusedTerminalId: string | null = null,
-    visual?: Partial<
-      Pick<Preferences, 'workspaceFlat' | 'fullscreenContainerId' | 'workspaceGridLayout'>
-    >,
+    visual?: Partial<Pick<Preferences, 'fullscreenContainerId'>>,
   ): WorkspaceViewSnapshot =>
     captureWorkspaceSnapshot({
       containers,
       activeProjectId,
-      activeGroupId,
       focusedTerminalId,
       preferences: { ...state.preferences, ...visual },
     })
@@ -546,7 +505,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     tab: WorkspaceTab,
     options?: { addTab?: boolean; pushHistory?: boolean },
   ): Partial<ProjectsState> => {
-    const snapshot = sanitizeWorkspaceSnapshot(tab.snapshot, state.projects)
+    const snapshot = scopedTabSnapshot(tab, state.projects)
     let tabs = options?.addTab
       ? [...state.workspace.tabs.filter((item) => item.id !== tab.id), tab]
       : state.workspace.tabs
@@ -579,19 +538,16 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
             visitedAt: Date.now(),
           })
     return {
-      activeProjectId: snapshot.activeProjectId,
+      activeProjectId: snapshot.activeProjectId ?? tab.projectId,
       preferences: {
         ...state.preferences,
-        workspaceFlat: snapshot.workspaceFlat,
         fullscreenContainerId: snapshot.fullscreenContainerId,
-        workspaceGridLayout: snapshot.workspaceGridLayout,
       },
       workspace: {
         ...state.workspace,
         containers: cloneWorkspaceSnapshot(snapshot).containers,
-        tabs,
+        tabs: tabs.map((item) => (item.id === tab.id ? { ...tab, snapshot } : item)),
         activeTabId: tab.id,
-        activeGroupId: snapshot.activeGroupId,
         focusedTerminalId: snapshot.focusedTerminalId,
         history: navigation.history,
         historyIndex: navigation.historyIndex,
@@ -599,63 +555,78 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     }
   }
 
-  const appendSnapshotToActive = (
-    state: ProjectsState,
-    incomingSnapshot: WorkspaceViewSnapshot,
-  ): Partial<ProjectsState> | undefined => {
-    const activeTab = state.workspace.tabs.find((tab) => tab.id === state.workspace.activeTabId)
-    if (!activeTab) return
-    const incoming = sanitizeWorkspaceSnapshot(incomingSnapshot, state.projects)
-    const containers = state.workspace.containers.map((container) => ({
-      ...container,
-      paneIds: [...container.paneIds],
-    }))
-    for (const added of incoming.containers) {
-      const existing = containers.find((container) => container.projectId === added.projectId)
-      if (existing) {
-        existing.paneIds = [...new Set([...existing.paneIds, ...added.paneIds])]
-      } else {
-        containers.push({ ...added, paneIds: [...added.paneIds] })
-      }
-    }
-    const snapshot = makeSnapshot(
-      state,
-      containers,
-      incoming.activeProjectId ?? state.activeProjectId,
-      null,
-      incoming.focusedTerminalId,
-      { workspaceGridLayout: undefined, workspaceFlat: false, fullscreenContainerId: null },
+  /**
+   * The tab that owns `projectId` — the active one when it already belongs to the project, an
+   * existing tab of that project otherwise, or a fresh tab. Never a tab of another project, which
+   * is what keeps panes of two projects out of the same tab.
+   */
+  const tabForProject = (state: ProjectsState, projectId: string): WorkspaceTab | null => {
+    const project = state.projects.find((item) => item.id === projectId)
+    if (!project) return null
+    const active = state.workspace.tabs.find((tab) => tab.id === state.workspace.activeTabId)
+    if (active && active.projectId === projectId) return active
+    const existing = state.workspace.tabs.find(
+      (tab) => tab.kind === 'project' && tab.projectId === projectId,
     )
-    const updatedTab: WorkspaceTab = {
-      ...activeTab,
-      kind: 'composition',
-      sourceId: undefined,
-      sourceProjectId: undefined,
-      label: compositionLabel(snapshot, state.projects),
-      snapshot,
-      updatedAt: Date.now(),
-    }
+    if (existing) return existing
+    const now = Date.now()
     return {
-      activeProjectId: snapshot.activeProjectId,
-      preferences: {
-        ...state.preferences,
-        workspaceGridLayout: undefined,
-        workspaceFlat: false,
-        fullscreenContainerId: null,
-      },
-      workspace: {
-        ...state.workspace,
-        containers,
-        activeGroupId: null,
-        focusedTerminalId: snapshot.focusedTerminalId,
-        tabs: state.workspace.tabs.map((tab) => (tab.id === updatedTab.id ? updatedTab : tab)),
-        history: replaceCurrentHistorySnapshot(
-          state.workspace.history,
-          state.workspace.historyIndex,
-          updatedTab,
-        ),
-      },
+      id: nanoid(),
+      kind: 'project',
+      projectId: project.id,
+      groupId: project.groupId ?? undefined,
+      label: project.name,
+      color: project.color,
+      iconUrl: project.iconUrl,
+      snapshot: makeSnapshot(state, [], project.id, null, { fullscreenContainerId: null }),
+      createdAt: now,
+      updatedAt: now,
     }
+  }
+
+  /**
+   * Opens panes in the tab of their own project, switching to it when the active tab belongs to a
+   * different project. Callers never append a foreign container to whatever tab happens to be open.
+   */
+  const openPanesInProjectTab = (
+    state: ProjectsState,
+    projectId: string,
+    paneIds: string[],
+    options?: { focusPaneId?: string | null; layout?: LayoutMode },
+  ): Partial<ProjectsState> | undefined => {
+    const tab = tabForProject(state, projectId)
+    if (!tab) return
+    const isNewTab = !state.workspace.tabs.some((item) => item.id === tab.id)
+    const isActive = state.workspace.activeTabId === tab.id
+    const base = isActive ? state.workspace.containers : tab.snapshot.containers
+    const existing = base.find((container) => container.projectId === projectId)
+    const layout =
+      options?.layout ?? state.projects.find((item) => item.id === projectId)?.layoutMode ?? 'auto'
+    const containers = existing
+      ? base.map((container) =>
+          container.projectId === projectId
+            ? {
+                ...container,
+                paneIds: [...new Set([...container.paneIds, ...paneIds])],
+                lastUsedAt: Date.now(),
+              }
+            : container,
+        )
+      : [...base, newContainer(projectId, paneIds, layout)]
+    const snapshot = enforceTabScope(
+      makeSnapshot(
+        state,
+        containers,
+        projectId,
+        options?.focusPaneId ?? tab.snapshot.focusedTerminalId ?? null,
+      ),
+      projectId,
+    )
+    return applyTabNavigation(
+      state,
+      { ...tab, snapshot, updatedAt: Date.now() },
+      { addTab: isNewTab, pushHistory: !isActive },
+    )
   }
 
                                                                                 
@@ -672,7 +643,8 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     navigationUpdate,
     makeSnapshot,
     applyTabNavigation,
-    appendSnapshotToActive,
+    tabForProject,
+    openPanesInProjectTab,
   }
 
   return {

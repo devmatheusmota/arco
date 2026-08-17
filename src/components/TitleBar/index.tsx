@@ -5,35 +5,35 @@ import {
   Maximize2,
   Menu,
   Minus,
+  Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
   Pencil,
-  Pin,
   RefreshCw,
-  Newspaper,
   Smartphone,
   Users,
   Workflow,
   X,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { ContextMenu, type MenuItem } from '../ProjectSidebar/ContextMenu'
-import { AntigravityIcon, ClaudeIcon, CodexIcon } from '../icons/AgentIcons'
-
+import { requestAppClose } from '../../hooks/useCloseConfirmation'
+import { getCachedAntigravityUsage } from '../../lib/antigravityUsageCache'
 import { getCachedClaudeUsage } from '../../lib/claudeUsageCache'
 import { getCachedCodexUsage } from '../../lib/codexUsageCache'
-import { getCachedAntigravityUsage } from '../../lib/antigravityUsageCache'
-import { requestAppClose } from '../../hooks/useCloseConfirmation'
-import { observeClaudeReset, observeCodexReset } from '../../lib/limitResetWatch'
 import { useT } from '../../lib/i18n'
+import { observeClaudeReset, observeCodexReset } from '../../lib/limitResetWatch'
 import { formatShortcut } from '../../lib/platform'
 import { killPty, remoteControlConnectedDevices } from '../../lib/tauri'
+import type { Group, WorkspaceTab } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
+import { AntigravityIcon, ClaudeIcon, CodexIcon } from '../icons/AgentIcons'
+import { ContextMenu, type MenuItem } from '../ProjectSidebar/ContextMenu'
 import styles from './TitleBar.module.css'
+import { WorkspaceTabItem } from './WorkspaceTabItem'
 
 const CLAUDE_POLL_INTERVAL_MS = 5 * 60_000
 const REMOTE_CONTROL_POLL_INTERVAL_MS = 2_000
@@ -107,6 +107,7 @@ export function TitleBar() {
   const setAntigravityUsage = useUiStore((s) => s.setAntigravityUsage)
   const openModal = useUiStore((s) => s.openModal_)
   const workspaceTabs = useProjectsStore((s) => s.workspace.tabs)
+  const groups = useProjectsStore((s) => s.groups)
   const activeWorkspaceTabId = useProjectsStore((s) => s.workspace.activeTabId)
   const historyIndex = useProjectsStore((s) => s.workspace.historyIndex)
   const historyLength = useProjectsStore((s) => s.workspace.history.length)
@@ -120,10 +121,20 @@ export function TitleBar() {
     (preferences.enabledFeatures.git && preferences.gitControlPlacement === 'right')
   const toggleWorkspaceTabPinned = useProjectsStore((s) => s.toggleWorkspaceTabPinned)
   const closeSavedWorkspaceTab = useProjectsStore((s) => s.closeSavedWorkspaceTab)
-  const addWorkspaceTabToCurrent = useProjectsStore((s) => s.addWorkspaceTabToCurrent)
   const activateWorkspaceTab = useProjectsStore((s) => s.activateWorkspaceTab)
   const navigateWorkspaceHistory = useProjectsStore((s) => s.navigateWorkspaceHistory)
   const [tabMenu, setTabMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
+  // Tabs of the same group sit together under one chip, since a group is no longer a tab itself.
+  const tabRuns = useMemo(() => {
+    const runs: { key: string; group: Group | null; tabs: WorkspaceTab[] }[] = []
+    for (const tab of workspaceTabs) {
+      const group = tab.groupId ? (groups.find((item) => item.id === tab.groupId) ?? null) : null
+      const last = runs[runs.length - 1]
+      if (last && last.group?.id === group?.id) last.tabs.push(tab)
+      else runs.push({ key: `${group?.id ?? 'loose'}-${tab.id}`, group, tabs: [tab] })
+    }
+    return runs
+  }, [groups, workspaceTabs])
   const [remoteConnectedDevices, setRemoteConnectedDevices] = useState(0)
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? null
   const threeAreas = preferences.topbarStyle === 'three-areas'
@@ -394,35 +405,26 @@ export function TitleBar() {
               <ArrowRight size={13} />
             </button>
           </div>
-          {workspaceTabs.map((tab) => {
-            const active = activeWorkspaceTabId === tab.id
-            const count = tab.snapshot.containers.reduce(
-              (total, container) => total + container.paneIds.length,
-              0,
-            )
-            return (
-              <div
+          {tabRuns.map((run) => {
+            const tabItems = run.tabs.map((tab) => (
+              <WorkspaceTabItem
                 key={tab.id}
-                className={`${styles.groupTab} ${active ? styles.groupTabActive : ''} ${tab.pinned ? styles.groupTabPinned : ''}`}
-                onContextMenu={(event) => {
-                  event.preventDefault()
+                tab={tab}
+                active={activeWorkspaceTabId === tab.id}
+                onActivate={() => {
+                  activateWorkspaceTab(tab.id)
+                  setActiveView('workspace')
+                }}
+                onClose={() => closeSavedWorkspaceTab(tab.id)}
+                onContextMenu={(position) =>
                   setTabMenu({
-                    x: event.clientX,
-                    y: event.clientY,
+                    ...position,
                     items: [
                       {
                         kind: 'item',
-                        label: t('ui.workspace.openIndividually'),
+                        label: t('ui.workspace.openInTab'),
                         onClick: () => {
                           activateWorkspaceTab(tab.id)
-                          setActiveView('workspace')
-                        },
-                      },
-                      {
-                        kind: 'item',
-                        label: t('ui.workspace.addToCurrent'),
-                        onClick: () => {
-                          addWorkspaceTabToCurrent(tab.id)
                           setActiveView('workspace')
                         },
                       },
@@ -441,45 +443,27 @@ export function TitleBar() {
                       },
                     ],
                   })
-                }}
+                }
+              />
+            ))
+            if (!run.group || run.tabs.length < 2) return tabItems
+            return (
+              <div
+                key={run.key}
+                className={styles.tabGroupRun}
+                style={{ ['--tab-group-color' as string]: run.group.color }}
               >
                 <button
                   type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={styles.groupTabMain}
+                  className={styles.tabGroupLabel}
+                  title={t('ui.titlebar.closeGroupTabs', { name: run.group.name })}
                   onClick={() => {
-                    activateWorkspaceTab(tab.id)
-                    setActiveView('workspace')
+                    for (const tab of run.tabs) closeSavedWorkspaceTab(tab.id)
                   }}
-                  title={tab.label}
                 >
-                  {tab.pinned ? <Pin size={11} className={styles.groupTabPinIcon} /> : null}
-                  {tab.iconUrl ? (
-                    <img src={tab.iconUrl} alt="" className={styles.groupTabIcon} />
-                  ) : tab.kind === 'composition' ? (
-                    <Workflow size={14} className={styles.groupTabIconSvg} />
-                  ) : (
-                    <span
-                      className={styles.groupTabDot}
-                      style={{ background: tab.color ?? '#6ea8ff' }}
-                    />
-                  )}
-                  <span className={styles.groupTabName}>{tab.label}</span>
-                  <span className={styles.groupTabCount}>{count}</span>
+                  {run.group.name}
                 </button>
-                <button
-                  type="button"
-                  className={styles.groupTabClose}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    closeSavedWorkspaceTab(tab.id)
-                  }}
-                  title={t('ui.titlebar.removeFromTopbar')}
-                  aria-label={t('ui.titlebar.removeNameFromTopbar', { name: tab.label })}
-                >
-                  <X size={11} />
-                </button>
+                {tabItems}
               </div>
             )
           })}

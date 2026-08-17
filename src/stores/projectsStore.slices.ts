@@ -11,7 +11,14 @@ import {
   normalizeTodoTitle,
   reorderTodoItems,
 } from '../lib/todos'
-import type { Project, SubTab, Terminal, TodoItem, WorkspaceContainer } from '../lib/types'
+import type {
+  LayoutMode,
+  Project,
+  SubTab,
+  Terminal,
+  TodoItem,
+  WorkspaceContainer,
+} from '../lib/types'
 import type { ProjectsState } from './projectsStore'
 import { clampUiZoom } from './projectsStore.constants'
 
@@ -29,6 +36,16 @@ export type SliceCtx = {
     fn: (s: SubTab) => SubTab,
   ) => void
   updateContainer: (projectId: string, fn: (c: WorkspaceContainer) => WorkspaceContainer) => void
+  /**
+   * Opens panes in the tab that owns their project, switching tabs when the active one belongs to
+   * another project. The only sanctioned way to put a pane on screen.
+   */
+  openPanesInProjectTab: (
+    state: ProjectsState,
+    projectId: string,
+    paneIds: string[],
+    options?: { focusPaneId?: string | null; layout?: LayoutMode },
+  ) => Partial<ProjectsState> | undefined
 }
 
 type TodosSlice = Pick<

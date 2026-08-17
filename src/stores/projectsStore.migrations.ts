@@ -20,10 +20,12 @@ import {
   type WorkspaceContainer,
   type WorkspaceRecentTab,
   type WorkspaceTab,
+  type WorkspaceViewSnapshot,
 } from '../lib/types'
 import {
-  captureWorkspaceSnapshot,
   cloneWorkspaceSnapshot,
+  enforceTabScope,
+  MAX_WORKSPACE_HISTORY,
   MAX_WORKSPACE_TABS,
   sanitizeWorkspaceSnapshot,
 } from '../lib/workspaceNavigation'
@@ -68,8 +70,17 @@ export function normalizePreferences(raw: LegacyPreferences | undefined): Prefer
   const preferences = {
     ...DEFAULT_PREFERENCES,
     ...(raw ?? {}),
-  } as Preferences & { showGitControl?: boolean }
+  } as Preferences & {
+    showGitControl?: boolean
+    workspaceFlat?: boolean
+    workspaceGridLayout?: unknown
+    workspaceGridLayoutHistory?: unknown
+  }
   delete preferences.showGitControl
+  // Removed in v8: these only existed to arrange several projects on one screen.
+  delete preferences.workspaceFlat
+  delete preferences.workspaceGridLayout
+  delete preferences.workspaceGridLayoutHistory
   const rawResourcePolicy = raw?.resourcePolicy
   const resourcePolicy = {
     ...DEFAULT_PREFERENCES.resourcePolicy,
@@ -159,6 +170,132 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
   return [...result.filter((item) => !item.completed), ...result.filter((item) => item.completed)]
 }
 
+function normalizeStoredContainers(raw: unknown): WorkspaceContainer[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item) => typeof item?.projectId === 'string' && Array.isArray(item?.paneIds))
+    .map((item) => ({
+      projectId: item.projectId,
+      paneIds: item.paneIds.filter((id: unknown) => typeof id === 'string'),
+      lastUsedAt: typeof item.lastUsedAt === 'number' ? item.lastUsedAt : undefined,
+      size: typeof item.size === 'number' ? item.size : 0,
+      internalLayout: item.internalLayout ?? 'auto',
+      collapsed: Boolean(item.collapsed),
+    }))
+}
+
+/** Reads a snapshot of any older shape, dropping the fields that no longer exist. */
+function normalizeStoredSnapshot(raw: any): WorkspaceViewSnapshot {
+  return {
+    containers: normalizeStoredContainers(raw?.containers),
+    activeProjectId: typeof raw?.activeProjectId === 'string' ? raw.activeProjectId : null,
+    focusedTerminalId: typeof raw?.focusedTerminalId === 'string' ? raw.focusedTerminalId : null,
+    fullscreenContainerId:
+      typeof raw?.fullscreenContainerId === 'string' ? raw.fullscreenContainerId : null,
+  }
+}
+
+/**
+ * Splits every stored tab into one tab per project it held. Group and composition tabs — the two
+ * kinds that mixed projects in a single view — become one tab per project, keeping the original id
+ * on the first so history and pins survive.
+ */
+function explodeStoredTabs(rawTabs: unknown, projects: Project[]): WorkspaceTab[] {
+  if (!Array.isArray(rawTabs)) return []
+  const projectsById = new Map(projects.map((project) => [project.id, project]))
+  const byKey = new Map<string, WorkspaceTab>()
+  for (const rawTab of rawTabs) {
+    const snapshot = sanitizeWorkspaceSnapshot(normalizeStoredSnapshot(rawTab?.snapshot), projects)
+    const legacyTerminalId =
+      rawTab?.kind === 'terminal'
+        ? typeof rawTab?.terminalId === 'string'
+          ? rawTab.terminalId
+          : typeof rawTab?.sourceId === 'string'
+            ? rawTab.sourceId
+            : undefined
+        : undefined
+    snapshot.containers.forEach((container, index) => {
+      const project = projectsById.get(container.projectId)
+      if (!project) return
+      const terminalId =
+        legacyTerminalId && container.paneIds.includes(legacyTerminalId)
+          ? legacyTerminalId
+          : undefined
+      const key = `${container.projectId}::${terminalId ?? 'project'}`
+      const scoped = enforceTabScope({ ...snapshot, containers: [container] }, container.projectId)
+      const stamp = typeof rawTab?.updatedAt === 'number' ? rawTab.updatedAt : Date.now()
+      const previous = byKey.get(key)
+      if (previous) {
+        // Two old tabs held the same project: keep one and union their panes.
+        byKey.set(key, {
+          ...previous,
+          snapshot: {
+            ...previous.snapshot,
+            containers: previous.snapshot.containers.map((existing) => ({
+              ...existing,
+              paneIds: [...new Set([...existing.paneIds, ...container.paneIds])],
+            })),
+          },
+          pinned: previous.pinned || Boolean(rawTab?.pinned),
+          updatedAt: Math.max(previous.updatedAt, stamp),
+        })
+        return
+      }
+      byKey.set(key, {
+        id: index === 0 && typeof rawTab?.id === 'string' ? rawTab.id : nanoid(),
+        kind: terminalId ? 'terminal' : 'project',
+        projectId: container.projectId,
+        ...(terminalId ? { terminalId } : {}),
+        ...(project.groupId ? { groupId: project.groupId } : {}),
+        label: terminalId
+          ? (project.terminals.find((terminal) => terminal.id === terminalId)?.name ?? project.name)
+          : project.name,
+        color: project.color,
+        iconUrl: project.iconUrl,
+        ...(index === 0 && rawTab?.pinned ? { pinned: true } : {}),
+        snapshot: scoped,
+        createdAt: typeof rawTab?.createdAt === 'number' ? rawTab.createdAt : stamp,
+        updatedAt: stamp,
+      })
+    })
+  }
+  return [...byKey.values()].slice(0, MAX_WORKSPACE_TABS)
+}
+
+/** Rebuilds tabs from the open containers, for files old enough to predate the tab bar. */
+function tabsFromContainers(containers: WorkspaceContainer[], projects: Project[]): WorkspaceTab[] {
+  const projectsById = new Map(projects.map((project) => [project.id, project]))
+  const now = Date.now()
+  return containers
+    .flatMap((container, index) => {
+      const project = projectsById.get(container.projectId)
+      if (!project) return []
+      return [
+        {
+          id: nanoid(),
+          kind: 'project' as const,
+          projectId: project.id,
+          ...(project.groupId ? { groupId: project.groupId } : {}),
+          label: project.name,
+          color: project.color,
+          iconUrl: project.iconUrl,
+          snapshot: enforceTabScope(
+            {
+              containers: [container],
+              activeProjectId: project.id,
+              focusedTerminalId: null,
+              fullscreenContainerId: null,
+            },
+            project.id,
+          ),
+          createdAt: now + index,
+          updatedAt: now + index,
+        },
+      ]
+    })
+    .slice(0, MAX_WORKSPACE_TABS)
+}
+
 export function migrateWorkspaceNavigation(base: {
   workspace?: any
   projects: Project[]
@@ -167,151 +304,111 @@ export function migrateWorkspaceNavigation(base: {
   preferences: Preferences
 }) {
   const rawWorkspace = base.workspace ?? {}
-  const containers = rawWorkspace.containers ?? []
-  const currentSnapshot = sanitizeWorkspaceSnapshot(
-    captureWorkspaceSnapshot({
-      containers,
+  const storedContainers = sanitizeWorkspaceSnapshot(
+    normalizeStoredSnapshot({
+      containers: rawWorkspace.containers,
       activeProjectId: base.activeProjectId,
-      activeGroupId: rawWorkspace.activeGroupId ?? null,
-      focusedTerminalId: rawWorkspace.focusedTerminalId ?? null,
-      preferences: base.preferences,
+      focusedTerminalId: rawWorkspace.focusedTerminalId,
+      fullscreenContainerId: base.preferences.fullscreenContainerId,
     }),
     base.projects,
-  )
+  ).containers
 
-  if (Array.isArray(rawWorkspace.tabs)) {
-    const tabs: WorkspaceTab[] = rawWorkspace.tabs
-      .slice(0, MAX_WORKSPACE_TABS)
-      .map((tab: WorkspaceTab) => ({
-        ...tab,
-        snapshot: sanitizeWorkspaceSnapshot(tab.snapshot ?? currentSnapshot, base.projects),
-      }))
-    const tabIds = new Set(tabs.map((tab) => tab.id))
-    const history = (rawWorkspace.history ?? [])
-      .filter((entry: any) => entry?.snapshot)
-      .map((entry: any) => ({
-        ...entry,
-        snapshot: sanitizeWorkspaceSnapshot(entry.snapshot, base.projects),
-      }))
-      .slice(-50)
-    return {
-      ...rawWorkspace,
-      containers: currentSnapshot.containers,
-      tabs,
-      closedTabs: Array.isArray(rawWorkspace.closedTabs)
-        ? rawWorkspace.closedTabs
-            .map((tab: WorkspaceTab) => ({
-              ...tab,
-              snapshot: sanitizeWorkspaceSnapshot(tab.snapshot ?? currentSnapshot, base.projects),
-            }))
-            .slice(0, MAX_WORKSPACE_TABS)
-        : [],
-      activeTabId: tabIds.has(rawWorkspace.activeTabId)
-        ? rawWorkspace.activeTabId
-        : (tabs[0]?.id ?? null),
-      activeGroupId: rawWorkspace.activeGroupId ?? null,
-      focusedTerminalId: rawWorkspace.focusedTerminalId ?? null,
-      history,
-      historyIndex: Math.min(rawWorkspace.historyIndex ?? history.length - 1, history.length - 1),
-    }
-  }
+  const tabs = Array.isArray(rawWorkspace.tabs)
+    ? explodeStoredTabs(rawWorkspace.tabs, base.projects)
+    : tabsFromContainers(storedContainers, base.projects)
 
-  const recentTabs: WorkspaceRecentTab[] =
-    rawWorkspace.recentTabs ??
-    (rawWorkspace.recentProjectIds ?? []).map((id: string) => ({ kind: 'project', id }))
-  const now = Date.now()
-  const tabs = recentTabs
-    .map<WorkspaceTab | null>((recent, index) => {
-      if (recent.kind === 'group') {
-        const group = base.groups.find((item) => item.id === recent.id)
-        if (!group) return null
-        return {
-          id: nanoid(),
-          kind: 'group' as const,
-          sourceId: group.id,
-          label: group.name,
-          color: group.color,
-          iconUrl: group.iconUrl,
-          snapshot: cloneWorkspaceSnapshot(currentSnapshot),
-          createdAt: now + index,
-          updatedAt: now + index,
-        }
-      }
-      const project = base.projects.find((item) => item.id === recent.id)
-      if (!project) return null
-      const container = containers.find((item: WorkspaceContainer) => item.projectId === project.id)
-      const snapshot = container
-        ? {
-            ...cloneWorkspaceSnapshot(currentSnapshot),
-            containers: [{ ...container, paneIds: [...container.paneIds] }],
-            activeProjectId: project.id,
-            activeGroupId: null,
-          }
-        : currentSnapshot
-      return {
-        id: nanoid(),
-        kind: 'project' as const,
-        sourceId: project.id,
-        label: project.name,
-        color: project.color,
-        iconUrl: project.iconUrl,
-        snapshot,
-        createdAt: now + index,
-        updatedAt: now + index,
-      }
-    })
-    .filter((tab): tab is WorkspaceTab => tab !== null)
-    .slice(0, MAX_WORKSPACE_TABS)
-  const activeTab = tabs.find((tab) => tab.sourceId === base.activeProjectId) ?? tabs[0] ?? null
-  const history = activeTab
-    ? [
+  const closedTabs = explodeStoredTabs(rawWorkspace.closedTabs, base.projects)
+  const tabsById = new Map(tabs.map((tab) => [tab.id, tab]))
+  const activeTab =
+    tabsById.get(rawWorkspace.activeTabId) ??
+    tabs.find((tab) => tab.projectId === base.activeProjectId) ??
+    tabs[0] ??
+    null
+
+  const history = (Array.isArray(rawWorkspace.history) ? rawWorkspace.history : [])
+    .flatMap((entry: any) => {
+      const tab = tabsById.get(entry?.tabId)
+      if (!tab) return []
+      return [
         {
-          id: nanoid(),
-          tabId: activeTab.id,
-          label: activeTab.label,
-          snapshot: cloneWorkspaceSnapshot(currentSnapshot),
-          visitedAt: now,
+          id: typeof entry.id === 'string' ? entry.id : nanoid(),
+          tabId: tab.id,
+          label: tab.label,
+          snapshot: enforceTabScope(
+            sanitizeWorkspaceSnapshot(normalizeStoredSnapshot(entry.snapshot), base.projects),
+            tab.projectId,
+          ),
+          visitedAt: typeof entry.visitedAt === 'number' ? entry.visitedAt : Date.now(),
         },
       ]
-    : []
+    })
+    .slice(-MAX_WORKSPACE_HISTORY)
+  const seededHistory =
+    history.length > 0 || !activeTab
+      ? history
+      : [
+          {
+            id: nanoid(),
+            tabId: activeTab.id,
+            label: activeTab.label,
+            snapshot: cloneWorkspaceSnapshot(activeTab.snapshot),
+            visitedAt: Date.now(),
+          },
+        ]
+
   return {
-    ...rawWorkspace,
-    containers: currentSnapshot.containers,
+    containers: activeTab ? cloneWorkspaceSnapshot(activeTab.snapshot).containers : [],
     recentProjectIds: (rawWorkspace.recentProjectIds ?? []).slice(0, MAX_RECENT_PROJECT_TABS),
-    recentTabs: recentTabs.slice(0, MAX_RECENT_PROJECT_TABS),
+    recentTabs: (
+      rawWorkspace.recentTabs ??
+      (rawWorkspace.recentProjectIds ?? []).map((id: string) => ({ kind: 'project', id }))
+    ).slice(0, MAX_RECENT_PROJECT_TABS) as WorkspaceRecentTab[],
     tabs,
-    closedTabs: [],
+    closedTabs,
     activeTabId: activeTab?.id ?? null,
-    activeGroupId: activeTab?.snapshot.activeGroupId ?? null,
     focusedTerminalId: activeTab?.snapshot.focusedTerminalId ?? null,
-    history,
-    historyIndex: history.length - 1,
+    history: seededHistory,
+    historyIndex: seededHistory.length - 1,
   }
 }
 
-function migrateToV7(parsed: any): ProjectsFile {
+/**
+ * v8 — a workspace tab shows a single project. Group and composition tabs are split into one tab
+ * per project, and the layout state that only existed to arrange several projects on one screen
+ * (workspace grid, group grid, flat mode) is dropped.
+ */
+function migrateToV8(parsed: any): ProjectsFile {
+  const preferences = normalizePreferences(parsed.preferences)
+  const projects = (parsed.projects ?? []).map((project: any) => ({
+    ...project,
+    gridLayoutHistory: project.gridLayoutHistory ?? [],
+  }))
+  const groups = (parsed.groups ?? []).map((group: any) => {
+    const { layoutMode, gridLayout, gridLayoutHistory, ...rest } = group
+    return rest
+  })
   return normalizeStoredAccents({
     ...parsed,
-    version: 7,
-    projects: (parsed.projects ?? []).map((project: any) => ({
-      ...project,
-      gridLayoutHistory: project.gridLayoutHistory ?? [],
-    })),
-    groups: (parsed.groups ?? []).map((group: any) => ({
-      ...group,
-      gridLayoutHistory: group.gridLayoutHistory ?? [],
-    })),
-    preferences: {
-      ...normalizePreferences(parsed.preferences),
-      workspaceGridLayoutHistory: parsed.preferences?.workspaceGridLayoutHistory ?? [],
-    },
+    version: 8,
+    projects,
+    groups,
+    preferences,
+    workspace: migrateWorkspaceNavigation({
+      workspace: parsed.workspace,
+      projects,
+      groups,
+      activeProjectId: parsed.activeProjectId ?? null,
+      preferences,
+    }),
   })
 }
 
 /** Migrates older files and normalizes restorable snapshots. */
 export function migrate(parsed: any): ProjectsFile {
-  if (parsed.version === 7) return migrateToV7(parsed)
-  if (parsed.version === 6) return migrateToV7(parsed)
+  if (parsed.version === 8) return migrateToV8(parsed)
+  if (parsed.version === 7) return migrateToV8(parsed)
+  if (parsed.version === 6) return migrateToV8(parsed)
 
   const v5Result = parsed.version === 5 ? parsed : migrateToV5(parsed)
 
@@ -321,7 +418,7 @@ export function migrate(parsed: any): ProjectsFile {
     orphanWorktrees: p.orphanWorktrees ?? [],
   }))
 
-  return migrateToV7({
+  return migrateToV8({
     ...v5Result,
     version: 6,
     projects: v6Projects,

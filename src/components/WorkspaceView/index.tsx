@@ -1,42 +1,18 @@
-import {
-  DndContext,
-  type DragEndEvent,
-  PointerSensor,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
+import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { FolderOpen, FolderPlus, TerminalSquare } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Panel, Separator } from 'react-resizable-panels'
 import { useShallow } from 'zustand/react/shallow'
 
 import { pickDirectory } from '../../lib/dialog'
 import { hasFileDragPayload, readFileDragPayload } from '../../lib/fileDrag'
-import {
-  cellStyle,
-  freeCells,
-  gridContainerStyle,
-  moveCellTo,
-  reconcileGridLayout,
-} from '../../lib/gridLayout'
+import { moveCellTo } from '../../lib/gridLayout'
 import { useT } from '../../lib/i18n'
-import type {
-  AgentType,
-  GridLayout,
-  Group,
-  Project,
-  Terminal,
-  WorkspaceContainer,
-} from '../../lib/types'
+import type { AgentType, Group, Project, WorkspaceContainer } from '../../lib/types'
 import { MAX_WORKSPACE_TABS } from '../../lib/workspaceNavigation'
 import { selectActiveProject, useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { EmptyState } from '../EmptyState'
-import { GridCellHandles } from '../GridCellHandles'
 import { AgentIcon } from '../icons/AgentIcons'
-import { PaneArea } from './PaneArea'
-import { PersistentPanelGroup as PanelGroup } from './PersistentPanelGroup'
 import { ProjectContainer } from './ProjectContainer'
 import { WorkspaceSurfaceProvider } from './workspaceSurface'
 import styles from './WorkspaceView.module.css'
@@ -65,23 +41,6 @@ type WorkspaceSurface = {
   tabId: string | null
   active: boolean
   containers: WorkspaceContainer[]
-  activeGroupId: string | null
-  flat: boolean
-}
-
-function collectGroupProjectIds(groupId: string, groups: Group[]): Set<string> {
-  const result = new Set<string>()
-  const queue = [groupId]
-  while (queue.length > 0) {
-    const current = queue.shift()!
-    const group = groups.find((g) => g.id === current)
-    if (!group) continue
-    for (const projectId of group.projectIds) result.add(projectId)
-    for (const child of groups) {
-      if (child.parentGroupId === current) queue.push(child.id)
-    }
-  }
-  return result
 }
 
 export function WorkspaceView() {
@@ -89,18 +48,13 @@ export function WorkspaceView() {
     allContainers,
     projects,
     groups,
-    flat,
     fullscreenId,
     setFullscreenContainer,
     reorderPane,
-    reorderContainers,
-    setWorkspaceGridLayout,
-    setGroupGridLayout,
     setProjectGridLayout,
     activeProject,
     recentProjectIds,
     openProjectWorkspace,
-    activeGroupTabId,
     workspaceTabs,
     activeTabId,
     focusedTerminalId,
@@ -111,18 +65,13 @@ export function WorkspaceView() {
       allContainers: s.workspace.containers,
       projects: s.projects,
       groups: s.groups,
-      flat: s.preferences.workspaceFlat,
       fullscreenId: s.preferences.fullscreenContainerId,
       setFullscreenContainer: s.setFullscreenContainer,
       reorderPane: s.reorderPaneInContainer,
-      reorderContainers: s.reorderContainers,
-      setWorkspaceGridLayout: s.setWorkspaceGridLayout,
-      setGroupGridLayout: s.setGroupGridLayout,
       setProjectGridLayout: s.setProjectGridLayout,
       activeProject: selectActiveProject(s) ?? s.projects[0] ?? null,
       recentProjectIds: s.workspace.recentProjectIds,
       openProjectWorkspace: s.openProjectWorkspace,
-      activeGroupTabId: s.workspace.activeGroupId,
       workspaceTabs: s.workspace.tabs,
       activeTabId: s.workspace.activeTabId,
       focusedTerminalId: s.workspace.focusedTerminalId,
@@ -162,37 +111,20 @@ export function WorkspaceView() {
   }, [activeTabId, workspaceTabs])
 
   const surfaces = useMemo<WorkspaceSurface[]>(() => {
-    const withinGroup = (list: WorkspaceContainer[], groupId: string | null) => {
-      if (!groupId) return list
-      const projectIds = collectGroupProjectIds(groupId, groups)
-      return list.filter((container) => projectIds.has(container.projectId))
-    }
-
     const entries: WorkspaceSurface[] = []
     if (!activeTabId) {
-      entries.push({
-        key: 'workspace',
-        tabId: null,
-        active: true,
-        containers: withinGroup(allContainers, activeGroupTabId),
-        activeGroupId: activeGroupTabId,
-        flat,
-      })
+      entries.push({ key: 'workspace', tabId: null, active: true, containers: allContainers })
     } else {
       const orderedIds = [activeTabId, ...liveTabIds.filter((id) => id !== activeTabId)]
       for (const tabId of orderedIds) {
         const active = tabId === activeTabId
-        const snapshot = workspaceTabs.find((tab) => tab.id === tabId)?.snapshot
-        if (!snapshot && !active) continue
-        const groupId = active ? activeGroupTabId : (snapshot?.activeGroupId ?? null)
-        entries.push({
-          key: tabId,
-          tabId,
-          active,
-          containers: withinGroup(active ? allContainers : (snapshot?.containers ?? []), groupId),
-          activeGroupId: groupId,
-          flat: active ? flat : (snapshot?.workspaceFlat ?? flat),
-        })
+        const tab = workspaceTabs.find((item) => item.id === tabId)
+        if (!tab && !active) continue
+        // Each surface is scoped to the project of its own tab, never to the live container list.
+        const containers = active
+          ? allContainers.filter((container) => !tab || container.projectId === tab.projectId)
+          : (tab?.snapshot.containers ?? [])
+        entries.push({ key: tabId, tabId, active, containers })
       }
     }
 
@@ -209,7 +141,7 @@ export function WorkspaceView() {
       for (const container of containers) for (const id of container.paneIds) claimed.add(id)
       return { ...entry, containers }
     })
-  }, [activeGroupTabId, activeTabId, allContainers, flat, groups, liveTabIds, workspaceTabs])
+  }, [activeTabId, allContainers, liveTabIds, workspaceTabs])
 
   const containers = useMemo(
     () => surfaces.find((surface) => surface.active)?.containers ?? [],
@@ -253,13 +185,7 @@ export function WorkspaceView() {
   }, [focusedTerminalId, requestPaneFocus])
 
   useEffect(() => {
-    if (
-      initialWorkspaceEnsured.current ||
-      allContainers.length > 0 ||
-      activeGroupTabId !== null ||
-      projects.length === 0
-    )
-      return
+    if (initialWorkspaceEnsured.current || allContainers.length > 0 || projects.length === 0) return
 
     const recent = recentProjectIds
       .map((id) => projectsById.get(id))
@@ -272,7 +198,6 @@ export function WorkspaceView() {
     initialWorkspaceEnsured.current = true
     openProjectWorkspace(candidate.id)
   }, [
-    activeGroupTabId,
     activeProject,
     allContainers.length,
     openProjectWorkspace,
@@ -314,23 +239,6 @@ export function WorkspaceView() {
           projectId,
           moveCellTo(project.gridLayout, cont.paneIds, paneId, col, row),
         )
-        return
-      }
-
-      if (kind === 'cont' && from.startsWith('cont:')) {
-        const projectId = from.slice('cont:'.length)
-        const ids = containers.map((c) => c.projectId)
-        const wsGrid = state.preferences.workspaceGridLayout
-        if (wsGrid) {
-          setWorkspaceGridLayout(moveCellTo(wsGrid, ids, projectId, col, row))
-          return
-        }
-        const groupId =
-          activeGroupTabId ?? state.projects.find((p) => p.id === projectId)?.groupId ?? null
-        const grp = groupId ? state.groups.find((g) => g.id === groupId) : null
-        if (grp?.gridLayout) {
-          setGroupGridLayout(grp.id, moveCellTo(grp.gridLayout, ids, projectId, col, row))
-        }
       }
       return
     }
@@ -355,71 +263,6 @@ export function WorkspaceView() {
       const fromIdx = cont.paneIds.indexOf(fromId)
       const toIdx = cont.paneIds.indexOf(toId)
       if (fromIdx !== -1 && toIdx !== -1) reorderPane(cont.projectId, fromIdx, toIdx)
-      return
-    }
-
-    // cont: drag de container sobre outro.
-
-    if (from.startsWith('cont:') && to.startsWith('cont:')) {
-      const fromPid = from.slice('cont:'.length)
-      const toPid = to.slice('cont:'.length)
-      const state = useProjectsStore.getState()
-
-      // workspace grid custom?
-      const wsGrid = state.preferences.workspaceGridLayout
-      if (wsGrid) {
-        const cells = { ...wsGrid.cells }
-        const a = cells[fromPid]
-        const b = cells[toPid]
-        if (a && b) {
-          cells[fromPid] = b
-          cells[toPid] = a
-          setWorkspaceGridLayout({ ...wsGrid, cells })
-          return
-        }
-      }
-
-      if (activeGroupTabId) {
-        const grp = state.groups.find((g) => g.id === activeGroupTabId)
-        if (grp?.layoutMode === 'grid' && grp.gridLayout) {
-          const cells = { ...grp.gridLayout.cells }
-          const a = cells[fromPid]
-          const b = cells[toPid]
-          if (a && b) {
-            cells[fromPid] = b
-            cells[toPid] = a
-            setGroupGridLayout(grp.id, { ...grp.gridLayout, cells })
-            return
-          }
-        }
-      }
-
-      const groupIds = new Set(
-        containers.map((c) => projectsById.get(c.projectId)?.groupId ?? null),
-      )
-      if (groupIds.size === 1) {
-        const onlyGroupId = [...groupIds][0]
-        if (onlyGroupId) {
-          const grp = state.groups.find((g) => g.id === onlyGroupId)
-          if (grp?.layoutMode === 'grid' && grp.gridLayout) {
-            const cells = { ...grp.gridLayout.cells }
-            const a = cells[fromPid]
-            const b = cells[toPid]
-            if (a && b) {
-              cells[fromPid] = b
-              cells[toPid] = a
-              setGroupGridLayout(grp.id, { ...grp.gridLayout, cells })
-              return
-            }
-          }
-        }
-      }
-
-      // fallback: reorder linear
-      const fromIdx = allContainers.findIndex((c) => c.projectId === fromPid)
-      const toIdx = allContainers.findIndex((c) => c.projectId === toPid)
-      if (fromIdx !== -1 && toIdx !== -1) reorderContainers(fromIdx, toIdx)
-      return
     }
   }
 
@@ -496,8 +339,6 @@ export function WorkspaceView() {
             ) : (
               <SurfaceLayout
                 containers={surface.containers}
-                activeGroupTabId={surface.activeGroupId}
-                flat={surface.flat}
                 fullscreenId={surface.active ? fullscreenId : null}
                 projectsById={projectsById}
                 groupsById={groupsById}
@@ -511,369 +352,35 @@ export function WorkspaceView() {
   )
 }
 
+/**
+ * A tab shows a single project, so a surface renders exactly one container. Fullscreen has its own
+ * path via `isolatedPaneId` — see ProjectContainer.tsx.
+ */
 function SurfaceLayout({
   containers,
-  activeGroupTabId,
-  flat,
   fullscreenId,
   projectsById,
   groupsById,
 }: {
   containers: WorkspaceContainer[]
-  activeGroupTabId: string | null
-  flat: boolean
   fullscreenId: string | null
   projectsById: Map<string, Project>
   groupsById: Map<string, Group>
 }) {
-  // Fullscreen has its own path via `isolatedPaneId` — see ProjectContainer.tsx.
-  if (fullscreenId) {
-    const c = containers.find((x) => x.projectId === fullscreenId)
-    const project = c ? projectsById.get(c.projectId) : null
-    if (c && project) {
-      return (
-        <ProjectContainer
-          container={c}
-          project={project}
-          group={resolveGroup(project, groupsById)}
-          isFullscreen
-        />
-      )
-    }
-  }
-
-  if (flat) {
-    const flatPanes: { projectId: string; terminal: Terminal }[] = []
-    for (const c of containers) {
-      const project = projectsById.get(c.projectId)
-      if (!project) continue
-      const map = new Map(project.terminals.map((t) => [t.id, t]))
-      for (const pid of c.paneIds) {
-        const t = map.get(pid)
-        if (t) flatPanes.push({ projectId: c.projectId, terminal: t })
-      }
-    }
-    if (flatPanes.length === 0) return null
-    return (
-      <PaneArea
-        projectId={flatPanes[0].projectId}
-        idPrefix="flat"
-        terminals={flatPanes.map((f) => f.terminal)}
-        layoutMode="auto"
-      />
-    )
-  }
-
-  if (containers.length === 1) {
-    const c = containers[0]
-    const project = projectsById.get(c.projectId)
-    if (!project) return null
-    return (
-      <ProjectContainer
-        container={c}
-        project={project}
-        group={resolveGroup(project, groupsById)}
-        showHeader={false}
-      />
-    )
-  }
-
-  // 2+ containers → auto-grid
+  const container = containers[0]
+  const project = container ? projectsById.get(container.projectId) : null
+  if (!container || !project) return null
   return (
-    <ContainerAutoGrid
-      containers={containers}
-      projectsById={projectsById}
-      groupsById={groupsById}
-      activeGroupTabId={activeGroupTabId}
+    <ProjectContainer
+      container={container}
+      project={project}
+      group={resolveGroup(project, groupsById)}
+      isFullscreen={fullscreenId === container.projectId}
+      showHeader={false}
     />
   )
 }
 
-function ContainerAutoGrid({
-  containers,
-  projectsById,
-  groupsById,
-  activeGroupTabId,
-}: {
-  containers: WorkspaceContainer[]
-  projectsById: Map<string, Project>
-  groupsById: Map<string, Group>
-  activeGroupTabId: string | null
-}) {
-  const workspaceGridLayout = useProjectsStore((s) => s.preferences.workspaceGridLayout)
-
-  const activeGroup = activeGroupTabId ? groupsById.get(activeGroupTabId) : null
-  if (workspaceGridLayout) {
-    return (
-      <GroupGridOuter
-        containers={containers}
-        projectsById={projectsById}
-        groupsById={groupsById}
-        layout={workspaceGridLayout}
-        scope={{ kind: 'workspace' }}
-      />
-    )
-  }
-
-  if (activeGroup?.layoutMode === 'grid' && activeGroup.gridLayout) {
-    return (
-      <GroupGridOuter
-        containers={containers}
-        projectsById={projectsById}
-        groupsById={groupsById}
-        layout={activeGroup.gridLayout}
-        scope={{ kind: 'group', id: activeGroup.id }}
-      />
-    )
-  }
-
-  const groupId = (() => {
-    const ids = new Set(containers.map((c) => projectsById.get(c.projectId)?.groupId ?? null))
-    if (ids.size === 1) {
-      const only = [...ids][0]
-      if (only) return only
-    }
-    return null
-  })()
-  const group = groupId ? groupsById.get(groupId) : null
-  if (group?.layoutMode === 'grid' && group.gridLayout) {
-    return (
-      <GroupGridOuter
-        containers={containers}
-        projectsById={projectsById}
-        groupsById={groupsById}
-        layout={group.gridLayout}
-        scope={{ kind: 'group', id: group.id }}
-      />
-    )
-  }
-
-  if (containers.length === 2) {
-    return (
-      <PanelGroup
-        orientation="horizontal"
-        className={styles.fullSize}
-        persistenceId="workspace-container-columns"
-        panelIds={containers.map((container) => `outer-${container.projectId}`)}
-      >
-        {containers.map((c, i) => {
-          const project = projectsById.get(c.projectId)
-          if (!project) return null
-          const group = resolveGroup(project, groupsById)
-          const isLast = i === containers.length - 1
-          const minSize = c.collapsed ? '0%' : '15%'
-          const defaultSize = c.collapsed ? '4%' : undefined
-          return (
-            <ContainerPanelFragment
-              key={c.projectId}
-              container={c}
-              project={project}
-              group={group}
-              panelId={`outer-${c.projectId}`}
-              minSize={minSize}
-              defaultSize={defaultSize}
-              isLast={isLast}
-              sepClass={styles.sepH}
-            />
-          )
-        })}
-      </PanelGroup>
-    )
-  }
-
-  const rows: WorkspaceContainer[][] = []
-  for (let i = 0; i < containers.length; i += 2) {
-    rows.push(containers.slice(i, i + 2))
-  }
-  const rowPanelIds = rows.map((_, rowIndex) => `outer-row-${rowIndex}`)
-  return (
-    <PanelGroup
-      orientation="vertical"
-      className={styles.fullSize}
-      persistenceId="workspace-container-rows"
-      panelIds={rowPanelIds}
-    >
-      {rows.map((row, ri) => {
-        const isLastRow = ri === rows.length - 1
-        const rowId = `outer-row-${ri}`
-        return (
-          <FragmentRowOuter
-            key={ri}
-            row={row}
-            rowId={rowId}
-            projectsById={projectsById}
-            groupsById={groupsById}
-            isLastRow={isLastRow}
-          />
-        )
-      })}
-    </PanelGroup>
-  )
-}
-
-function FragmentRowOuter({
-  row,
-  rowId,
-  projectsById,
-  groupsById,
-  isLastRow,
-}: {
-  row: WorkspaceContainer[]
-  rowId: string
-  projectsById: Map<string, Project>
-  groupsById: Map<string, Group>
-  isLastRow: boolean
-}) {
-  return (
-    <>
-      <Panel id={rowId} minSize="10%">
-        {row.length === 1 ? (
-          <SingleContainer container={row[0]} projectsById={projectsById} groupsById={groupsById} />
-        ) : (
-          <PanelGroup
-            orientation="horizontal"
-            className={styles.fullSize}
-            persistenceId={`workspace-container-row-${rowId}`}
-            panelIds={row.map((container) => `outer-${container.projectId}`)}
-          >
-            {row.map((c, i) => {
-              const project = projectsById.get(c.projectId)
-              if (!project) return null
-              const group = resolveGroup(project, groupsById)
-              const isLast = i === row.length - 1
-              const minSize = c.collapsed ? '0%' : '15%'
-              const defaultSize = c.collapsed ? '4%' : undefined
-              return (
-                <ContainerPanelFragment
-                  key={c.projectId}
-                  container={c}
-                  project={project}
-                  group={group}
-                  panelId={`outer-${c.projectId}`}
-                  minSize={minSize}
-                  defaultSize={defaultSize}
-                  isLast={isLast}
-                  sepClass={styles.sepH}
-                />
-              )
-            })}
-          </PanelGroup>
-        )}
-      </Panel>
-      {isLastRow ? null : <Separator className={styles.sepV} />}
-    </>
-  )
-}
-
-type OuterGridScope = { kind: 'workspace' } | { kind: 'group'; id: string }
-
-function GroupGridOuter({
-  containers,
-  projectsById,
-  groupsById,
-  layout,
-  scope,
-}: {
-  containers: WorkspaceContainer[]
-  projectsById: Map<string, Project>
-  groupsById: Map<string, Group>
-  layout: GridLayout
-  scope: OuterGridScope
-}) {
-  const setWorkspaceGridLayout = useProjectsStore((s) => s.setWorkspaceGridLayout)
-  const setGroupGridLayout = useProjectsStore((s) => s.setGroupGridLayout)
-  const ids = containers.map((c) => c.projectId)
-  const reconciled = reconcileGridLayout(layout, ids)
-  const onUpdate = (next: GridLayout) => {
-    if (scope.kind === 'workspace') setWorkspaceGridLayout(next)
-    else setGroupGridLayout(scope.id, next)
-  }
-  return (
-    <div style={gridContainerStyle(reconciled)}>
-      {freeCells(reconciled, ids).map((slot) => (
-        <EmptyOuterSlot
-          key={`slot-${slot.col}-${slot.row}`}
-          dropId={`cell:cont:${slot.col}:${slot.row}`}
-          col={slot.col}
-          row={slot.row}
-        />
-      ))}
-      {containers.map((c) => {
-        const cell = reconciled.cells[c.projectId]
-        if (!cell) return null
-        const project = projectsById.get(c.projectId)
-        if (!project) return null
-        const group = resolveGroup(project, groupsById)
-        return (
-          <div key={c.projectId} className={styles.gridCell} style={cellStyle(cell)}>
-            <ProjectContainer container={c} project={project} group={group} />
-            <GridCellHandles
-              cellId={c.projectId}
-              childIds={ids}
-              layout={reconciled}
-              onUpdate={onUpdate}
-            />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function EmptyOuterSlot({ dropId, col, row }: { dropId: string; col: number; row: number }) {
-  const { setNodeRef, isOver } = useDroppable({ id: dropId })
-  return (
-    <div
-      ref={setNodeRef}
-      className={`${styles.emptySlot} ${isOver ? styles.emptySlotOver : ''}`}
-      style={{ gridColumn: col, gridRow: row }}
-    />
-  )
-}
-
-function SingleContainer({
-  container,
-  projectsById,
-  groupsById,
-}: {
-  container: WorkspaceContainer
-  projectsById: Map<string, Project>
-  groupsById: Map<string, Group>
-}) {
-  const project = projectsById.get(container.projectId)
-  if (!project) return null
-  const group = resolveGroup(project, groupsById)
-  return <ProjectContainer container={container} project={project} group={group} />
-}
-
-function ContainerPanelFragment({
-  container,
-  project,
-  group,
-  panelId,
-  minSize,
-  defaultSize,
-  isLast,
-  sepClass,
-}: {
-  container: WorkspaceContainer
-  project: Project
-  group: Group | null
-  panelId: string
-  minSize: string
-  defaultSize?: string
-  isLast: boolean
-  sepClass: string
-}) {
-  return (
-    <>
-      <Panel id={panelId} minSize={minSize} defaultSize={defaultSize}>
-        <ProjectContainer container={container} project={project} group={group} />
-      </Panel>
-      {isLast ? null : <Separator className={sepClass} />}
-    </>
-  )
-}
 
 function NoWorkspace({
   project,

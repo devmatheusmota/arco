@@ -4,7 +4,6 @@ import {
   FileText,
   FolderOpen,
   Globe2,
-  Layers,
   Network,
   RefreshCw,
   ScrollText,
@@ -43,12 +42,10 @@ export function MainMenu() {
   const closeMainMenu = useUiStore((s) => s.closeMainMenu)
   const setActiveView = useUiStore((s) => s.setActiveView)
   const openModal = useUiStore((s) => s.openModal_)
-  const flat = useProjectsStore((s) => s.preferences.workspaceFlat)
   const browserEnabled = useProjectsStore((s) => s.preferences.enabledFeatures.browser)
   const activeProjectId = useProjectsStore((s) => s.activeProjectId)
   const projects = useProjectsStore((s) => s.projects)
   const hydrate = useProjectsStore((s) => s.hydrate)
-  const setFlat = useProjectsStore((s) => s.setWorkspaceFlat)
   const resetTerminalRuntime = useTerminalsStore((s) => s.reset)
 
   const ref = useRef<HTMLDivElement>(null)
@@ -167,10 +164,6 @@ export function MainMenu() {
           </button>
         </>
       ) : null}
-      <button type="button" className={styles.item} onClick={() => setFlat(!flat)}>
-        <Layers size={14} />
-        <span>{flat ? t('menu.groupByProject') : t('menu.flatMode')}</span>
-      </button>
       <div className={styles.separator} />
       <button type="button" className={styles.item} onClick={() => void action(openDataFolder)}>
         <FolderOpen size={14} /> <span>{t('menu.openDataFolder')}</span>

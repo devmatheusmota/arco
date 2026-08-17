@@ -33,7 +33,6 @@ export type NormalGroupNodeProps = {
   onAddProject: () => void
   onToggle: () => void
   onOpenAll: () => void
-  onOpenOnly: () => void
   dragKind: SidebarDragKind | null
   reorderEdge: SidebarDropEdge | null
   dropInside: boolean
@@ -48,7 +47,7 @@ export function NormalGroupNode({
   onMenu,
   onAddProject,
   onToggle,
-  onOpenOnly,
+  onOpenAll,
   dragKind,
   reorderEdge,
   dropInside,
@@ -95,7 +94,7 @@ export function NormalGroupNode({
         onClick={onTagClick}
         onDoubleClick={(e) => {
           e.stopPropagation()
-          onOpenOnly()
+          onOpenAll()
         }}
         title={
           group.suspended

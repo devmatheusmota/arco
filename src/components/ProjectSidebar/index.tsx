@@ -128,12 +128,9 @@ function CleanProjectSidebar() {
   const actions = useProjectsStore(
     useShallow((s) => ({
       setActiveProject: s.setActiveProject,
-      openGroupScope: s.openGroupScope,
       openProjectWorkspace: s.openProjectWorkspace,
-      addProjectToWorkspace: s.addProjectToWorkspace,
       openGroupWorkspace: s.openGroupWorkspace,
       openTerminalWorkspace: s.openTerminalWorkspace,
-      addTerminalToWorkspace: s.addTerminalToWorkspace,
       focusWorkspaceTerminal: s.focusWorkspaceTerminal,
       toggleProjectCollapsed: s.toggleProjectCollapsed,
       toggleGroupCollapsed: s.toggleGroupCollapsed,

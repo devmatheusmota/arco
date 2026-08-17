@@ -38,17 +38,16 @@ type DesignerChild = {
   hint?: string
 }
 
-type Context =
-  { kind: 'project'; id: string } | { kind: 'group'; id: string } | { kind: 'workspace' }
+/** Panes of a single project — the only grid the workspace still arranges. */
+type Context = { kind: 'project'; id: string }
 
 export function LayoutDesignerModal() {
   const open = useUiStore((s) => s.openModal === 'layoutDesigner')
   const context = useUiStore((s) => s.modalContext) as Context | null
   const closeModal = useUiStore((s) => s.closeModal)
 
-  if (!open || !context) return null
-  const k = context.kind === 'workspace' ? 'workspace' : `${context.kind}:${context.id}`
-  return <DesignerInner key={k} context={context} onClose={closeModal} />
+  if (!open || !context || context.kind !== 'project') return null
+  return <DesignerInner key={`project:${context.id}`} context={context} onClose={closeModal} />
 }
 
 /** Reconciles a draft and guarantees explicit track sizes, which the edge handles rely on. */
@@ -70,70 +69,26 @@ function resizeTracks(sizes: number[] | undefined, count: number): number[] {
 
 function DesignerInner({ context, onClose }: { context: Context; onClose: () => void }) {
   const t = useT()
-  const project = useProjectsStore((s) =>
-    context.kind === 'project' ? s.projects.find((p) => p.id === context.id) : null,
-  )
-  const group = useProjectsStore((s) =>
-    context.kind === 'group' ? s.groups.find((g) => g.id === context.id) : null,
-  )
-  const projects = useProjectsStore((s) => s.projects)
-  const containers = useProjectsStore((s) => s.workspace.containers)
-  const workspaceLayout = useProjectsStore((s) => s.preferences.workspaceGridLayout)
+  const project = useProjectsStore((s) => s.projects.find((p) => p.id === context.id))
   const setProjectGridLayout = useProjectsStore((s) => s.setProjectGridLayout)
-  const setGroupGridLayout = useProjectsStore((s) => s.setGroupGridLayout)
-  const setWorkspaceGridLayout = useProjectsStore((s) => s.setWorkspaceGridLayout)
 
   const [title, children, currentLayout, history] = useMemo<
     [string, DesignerChild[], GridLayout | undefined, GridLayoutHistoryEntry[]]
   >(() => {
-    if (context.kind === 'project' && project) {
-      return [
-        t('mod.layoutTitleProject', { name: project.name }),
-        project.terminals.map((term) => ({
-          id: term.id,
-          label: term.name,
-          color: project.color,
-          hint: term.tabs[0]?.type ?? 'shell',
-        })),
-        project.gridLayout,
-        project.gridLayoutHistory ?? [],
-      ]
-    }
-    if (context.kind === 'group' && group) {
-      const groupProjects = group.projectIds
-        .map((id) => projects.find((p) => p.id === id))
-        .filter((p): p is NonNullable<typeof p> => Boolean(p))
-      return [
-        t('mod.layoutTitleGroup', { name: group.name }),
-        groupProjects.map((p) => ({
-          id: p.id,
-          label: p.name,
-          color: p.color,
-          hint: t('mod.terminalCount', { count: p.terminals.length }),
-        })),
-        group.gridLayout,
-        group.gridLayoutHistory ?? [],
-      ]
-    }
-    if (context.kind === 'workspace') {
-      const openProjects = containers
-        .map((c) => projects.find((p) => p.id === c.projectId))
-        .filter((p): p is NonNullable<typeof p> => Boolean(p))
-      return [
-        t('mod.layoutTitleWorkspace'),
-        openProjects.map((p) => ({
-          id: p.id,
-          label: p.name,
-          color: p.color,
-          hint: t('mod.terminalCount', { count: p.terminals.length }),
-        })),
-        workspaceLayout,
-        useProjectsStore.getState().preferences.workspaceGridLayoutHistory ?? [],
-      ]
-    }
-    return [t('mod.layoutTitleFallback'), [], undefined, []]
+    if (!project) return [t('mod.layoutTitleFallback'), [], undefined, []]
+    return [
+      t('mod.layoutTitleProject', { name: project.name }),
+      project.terminals.map((term) => ({
+        id: term.id,
+        label: term.name,
+        color: project.color,
+        hint: term.tabs[0]?.type ?? 'shell',
+      })),
+      project.gridLayout,
+      project.gridLayoutHistory ?? [],
+    ]
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, project, group, projects, containers, workspaceLayout])
+  }, [project])
 
   const childIds = children.map((c) => c.id)
 
@@ -198,20 +153,9 @@ function DesignerInner({ context, onClose }: { context: Context; onClose: () => 
   }
 
   const save = () => {
-    const layout = reconcileGridLayout(draft, childIds)
-    if (context.kind === 'project') setProjectGridLayout(context.id, layout, true)
-    else if (context.kind === 'group') setGroupGridLayout(context.id, layout, true)
-    else setWorkspaceGridLayout(layout, true)
+    setProjectGridLayout(context.id, reconcileGridLayout(draft, childIds), true)
     onClose()
   }
-
-  const clearWorkspace =
-    context.kind === 'workspace' && workspaceLayout
-      ? () => {
-          setWorkspaceGridLayout(null)
-          onClose()
-        }
-      : null
 
   const draggingChild = dragging ? children.find((child) => child.id === dragging) : null
 
@@ -353,16 +297,6 @@ function DesignerInner({ context, onClose }: { context: Context; onClose: () => 
           </div>
 
           <footer className={styles.footer}>
-            {clearWorkspace ? (
-              <button
-                type="button"
-                className={controls.btn}
-                onClick={clearWorkspace}
-                style={{ marginRight: 'auto' }}
-              >
-                {t('mod.removeCustomLayout')}
-              </button>
-            ) : null}
             <button type="button" className={controls.btn} onClick={onClose}>
               {t('mod.cancel')}
             </button>

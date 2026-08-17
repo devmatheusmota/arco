@@ -12,7 +12,6 @@ import {
   makeDiffPane,
   makeFilePane,
   makeWebPane,
-  newContainer,
   rememberProjectTab,
   rememberWorkspaceTab,
   resetTerminalRuntime,
@@ -76,7 +75,38 @@ async function countPendingChanges(
   }
 }
 
-export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx): TerminalsSlice {
+export function createTerminalsSlice({
+  get,
+  update,
+  updateTerminal,
+  openPanesInProjectTab,
+}: SliceCtx): TerminalsSlice {
+  /**
+   * Shared tail of every pane-creating action: the new pane lands in the tab of its own project,
+   * and that project is remembered as recent.
+   */
+  const revealNewPane = (
+    state: ProjectsState,
+    projects: ProjectsState['projects'],
+    projectId: string,
+    paneId: string,
+  ): Partial<ProjectsState> => {
+    const nextState = { ...state, projects } as ProjectsState
+    const navigation = openPanesInProjectTab(nextState, projectId, [paneId])
+    return {
+      projects,
+      ...navigation,
+      workspace: {
+        ...(navigation?.workspace ?? state.workspace),
+        recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
+        recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
+          kind: 'project',
+          id: projectId,
+        }),
+      },
+    }
+  }
+
   return {
     createTerminal: (projectId, args) => {
       let terminal = makeDefaultTerminal(args)
@@ -101,28 +131,7 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
               }
             : p,
         )
-        const project = projects.find((p) => p.id === projectId)
-        const layout = project?.layoutMode ?? 'auto'
-        const existing = state.workspace.containers.find((c) => c.projectId === projectId)
-        const containers = existing
-          ? state.workspace.containers.map((c) =>
-              c.projectId === projectId
-                ? { ...c, paneIds: [...c.paneIds, terminal.id], lastUsedAt: Date.now() }
-                : c,
-            )
-          : [...state.workspace.containers, newContainer(projectId, [terminal.id], layout)]
-        return {
-          projects,
-          workspace: {
-            ...state.workspace,
-            containers,
-            recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
-            recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-              kind: 'project',
-              id: projectId,
-            }),
-          },
-        }
+        return revealNewPane(state, projects, projectId, terminal.id)
       })
       return terminal
     },
@@ -195,28 +204,7 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
         const projects = state.projects.map((p) =>
           p.id === projectId ? { ...p, terminals: [...p.terminals, pane] } : p,
         )
-        const project = projects.find((p) => p.id === projectId)
-        const layout = project?.layoutMode ?? 'auto'
-        const existing = state.workspace.containers.find((c) => c.projectId === projectId)
-        const containers = existing
-          ? state.workspace.containers.map((c) =>
-              c.projectId === projectId
-                ? { ...c, paneIds: [...c.paneIds, pane.id], lastUsedAt: Date.now() }
-                : c,
-            )
-          : [...state.workspace.containers, newContainer(projectId, [pane.id], layout)]
-        return {
-          projects,
-          workspace: {
-            ...state.workspace,
-            containers,
-            recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
-            recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-              kind: 'project',
-              id: projectId,
-            }),
-          },
-        }
+        return revealNewPane(state, projects, projectId, pane.id)
       })
       return pane
     },
@@ -227,28 +215,7 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
         const projects = state.projects.map((p) =>
           p.id === projectId ? { ...p, terminals: [...p.terminals, pane] } : p,
         )
-        const project = projects.find((p) => p.id === projectId)
-        const layout = project?.layoutMode ?? 'auto'
-        const existing = state.workspace.containers.find((c) => c.projectId === projectId)
-        const containers = existing
-          ? state.workspace.containers.map((c) =>
-              c.projectId === projectId
-                ? { ...c, paneIds: [...c.paneIds, pane.id], lastUsedAt: Date.now() }
-                : c,
-            )
-          : [...state.workspace.containers, newContainer(projectId, [pane.id], layout)]
-        return {
-          projects,
-          workspace: {
-            ...state.workspace,
-            containers,
-            recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
-            recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-              kind: 'project',
-              id: projectId,
-            }),
-          },
-        }
+        return revealNewPane(state, projects, projectId, pane.id)
       })
       return pane
     },
@@ -261,34 +228,7 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
             ? { ...project, terminals: [...project.terminals, pane] }
             : project,
         )
-        const project = projects.find((entry) => entry.id === projectId)
-        const layout = project?.layoutMode ?? 'auto'
-        const existing = state.workspace.containers.find(
-          (container) => container.projectId === projectId,
-        )
-        const containers = existing
-          ? state.workspace.containers.map((container) =>
-              container.projectId === projectId
-                ? {
-                    ...container,
-                    paneIds: [...container.paneIds, pane.id],
-                    lastUsedAt: Date.now(),
-                  }
-                : container,
-            )
-          : [...state.workspace.containers, newContainer(projectId, [pane.id], layout)]
-        return {
-          projects,
-          workspace: {
-            ...state.workspace,
-            containers,
-            recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
-            recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-              kind: 'project',
-              id: projectId,
-            }),
-          },
-        }
+        return revealNewPane(state, projects, projectId, pane.id)
       })
       return pane
     },
@@ -308,28 +248,7 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
         const projects = state.projects.map((p) =>
           p.id === projectId ? { ...p, terminals: [...p.terminals, pane] } : p,
         )
-        const project = projects.find((p) => p.id === projectId)
-        const layout = project?.layoutMode ?? 'auto'
-        const existing = state.workspace.containers.find((c) => c.projectId === projectId)
-        const containers = existing
-          ? state.workspace.containers.map((c) =>
-              c.projectId === projectId
-                ? { ...c, paneIds: [...c.paneIds, pane.id], lastUsedAt: Date.now() }
-                : c,
-            )
-          : [...state.workspace.containers, newContainer(projectId, [pane.id], layout)]
-        return {
-          projects,
-          workspace: {
-            ...state.workspace,
-            containers,
-            recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
-            recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-              kind: 'project',
-              id: projectId,
-            }),
-          },
-        }
+        return revealNewPane(state, projects, projectId, pane.id)
       })
       return pane
     },
@@ -387,8 +306,8 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
             (tab) =>
               !(
                 tab.kind === 'terminal' &&
-                tab.sourceProjectId === projectId &&
-                idsToRemove.has(tab.sourceId ?? '')
+                tab.projectId === projectId &&
+                idsToRemove.has(tab.terminalId ?? '')
               ),
           )
           .map((tab) => ({
@@ -603,7 +522,6 @@ type ContainersSlice = Pick<
   | 'openContainerWithAllPanes'
   | 'closeContainer'
   | 'closeOtherContainers'
-  | 'reorderContainers'
   | 'reorderPaneInContainer'
   | 'groupPanes'
   | 'ungroupPanes'
@@ -611,10 +529,14 @@ type ContainersSlice = Pick<
   | 'setContainerInternalLayout'
   | 'setFullscreenContainer'
   | 'setFullscreenPane'
-  | 'setWorkspaceFlat'
 >
 
-export function createContainersSlice({ get, update, updateContainer }: SliceCtx): ContainersSlice {
+export function createContainersSlice({
+  get,
+  update,
+  updateContainer,
+  openPanesInProjectTab,
+}: SliceCtx): ContainersSlice {
   return {
     openPane: (projectId, terminalId) =>
       update((state) => {
@@ -631,49 +553,20 @@ export function createContainersSlice({ get, update, updateContainer }: SliceCtx
                 ),
               },
         )
-        const existing = state.workspace.containers.find((c) => c.projectId === projectId)
-        if (existing) {
-          if (existing.paneIds.includes(terminalId)) {
-            return {
-              projects,
-              workspace: {
-                ...state.workspace,
-                containers: state.workspace.containers.map((c) =>
-                  c.projectId === projectId ? { ...c, lastUsedAt: now } : c,
-                ),
-                recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
-                recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-                  kind: 'project',
-                  id: projectId,
-                }),
-              },
-            }
-          }
-          return {
-            projects,
-            workspace: {
-              ...state.workspace,
-              containers: state.workspace.containers.map((c) =>
-                c.projectId === projectId
-                  ? { ...c, paneIds: [...c.paneIds, terminalId], lastUsedAt: now }
-                  : c,
-              ),
-              recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
-              recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-                kind: 'project',
-                id: projectId,
-              }),
-            },
-          }
-        }
+        const navigation = openPanesInProjectTab(
+          { ...state, projects } as ProjectsState,
+          projectId,
+          [terminalId],
+          { layout: project.layoutMode },
+        )
         return {
           projects,
+          ...navigation,
           workspace: {
-            ...state.workspace,
-            containers: [
-              ...state.workspace.containers,
-              newContainer(projectId, [terminalId], project.layoutMode),
-            ],
+            ...(navigation?.workspace ?? state.workspace),
+            containers: (navigation?.workspace ?? state.workspace).containers.map((c) =>
+              c.projectId === projectId ? { ...c, lastUsedAt: now } : c,
+            ),
             recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
             recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
               kind: 'project',
@@ -724,39 +617,28 @@ export function createContainersSlice({ get, update, updateContainer }: SliceCtx
         const project = state.projects.find((p) => p.id === projectId)
         if (!project || project.terminals.length === 0) return
         const allPanes = project.terminals.map((t) => t.id)
-        const existing = state.workspace.containers.find((c) => c.projectId === projectId)
-        // Sai do fullscreen se outro container estava bloqueando a vista
+        // Leaves fullscreen when another container was covering the view.
         const fsId = state.preferences.fullscreenContainerId
         const preferences =
           fsId && fsId !== projectId
             ? { ...state.preferences, fullscreenContainerId: null }
             : state.preferences
-        if (existing) {
-          return {
-            preferences,
-            workspace: {
-              ...state.workspace,
-              containers: state.workspace.containers.map((c) =>
-                c.projectId === projectId
-                  ? { ...c, paneIds: allPanes, collapsed: false, lastUsedAt: Date.now() }
-                  : c,
-              ),
-              recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
-              recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-                kind: 'project',
-                id: projectId,
-              }),
-            },
-          }
-        }
+        const navigation = openPanesInProjectTab(
+          { ...state, preferences } as ProjectsState,
+          projectId,
+          allPanes,
+          { layout: project.layoutMode },
+        )
         return {
           preferences,
+          ...navigation,
           workspace: {
-            ...state.workspace,
-            containers: [
-              ...state.workspace.containers,
-              newContainer(projectId, allPanes, project.layoutMode),
-            ],
+            ...(navigation?.workspace ?? state.workspace),
+            containers: (navigation?.workspace ?? state.workspace).containers.map((c) =>
+              c.projectId === projectId
+                ? { ...c, collapsed: false, lastUsedAt: Date.now() }
+                : c,
+            ),
             recentProjectIds: rememberProjectTab(state.workspace.recentProjectIds, projectId),
             recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
               kind: 'project',
@@ -824,14 +706,6 @@ export function createContainersSlice({ get, update, updateContainer }: SliceCtx
         }
       }),
 
-    reorderContainers: (fromIndex, toIndex) =>
-      update((state) => {
-        const next = [...state.workspace.containers]
-        const [moved] = next.splice(fromIndex, 1)
-        next.splice(toIndex, 0, moved)
-        return { workspace: { ...state.workspace, containers: next } }
-      }),
-
     reorderPaneInContainer: (projectId, fromIndex, toIndex) =>
       updateContainer(projectId, (c) => {
         const next = [...c.paneIds]
@@ -895,10 +769,5 @@ export function createContainersSlice({ get, update, updateContainer }: SliceCtx
           preferences: { ...state.preferences, fullscreenContainerId: owner.id, isolatedPaneId: terminalId },
         }
       }),
-
-    setWorkspaceFlat: (flat) =>
-      update((state) => ({
-        preferences: { ...state.preferences, workspaceFlat: flat },
-      })),
   }
 }

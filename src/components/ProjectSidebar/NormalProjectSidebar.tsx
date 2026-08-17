@@ -116,12 +116,9 @@ export function NormalProjectSidebar() {
   const actions = useProjectsStore(
     useShallow((s) => ({
       setActiveProject: s.setActiveProject,
-      openGroupScope: s.openGroupScope,
       openProjectWorkspace: s.openProjectWorkspace,
-      addProjectToWorkspace: s.addProjectToWorkspace,
       openGroupWorkspace: s.openGroupWorkspace,
       openTerminalWorkspace: s.openTerminalWorkspace,
-      addTerminalToWorkspace: s.addTerminalToWorkspace,
       focusWorkspaceTerminal: s.focusWorkspaceTerminal,
       toggleProjectCollapsed: s.toggleProjectCollapsed,
       toggleGroupCollapsed: s.toggleGroupCollapsed,
@@ -430,8 +427,8 @@ export function NormalProjectSidebar() {
     return map
   }, [groups])
 
-  const onGroupOpenAll = (g: Group, mode: 'append' | 'only' = 'append') => {
-    actions.openGroupWorkspace(g.id, mode)
+  const onGroupOpenAll = (g: Group) => {
+    actions.openGroupWorkspace(g.id)
     setActiveView('workspace')
   }
 
@@ -457,7 +454,6 @@ export function NormalProjectSidebar() {
         }
         onToggle={() => actions.toggleGroupCollapsed(g.id)}
         onOpenAll={() => onGroupOpenAll(g)}
-        onOpenOnly={() => onGroupOpenAll(g, 'only')}
         dragKind={draggingKind}
         reorderEdge={dropIndicator?.id === `grp:${g.id}` ? dropIndicator.edge : null}
         dropInside={dropIndicator?.id === `group:${g.id}`}

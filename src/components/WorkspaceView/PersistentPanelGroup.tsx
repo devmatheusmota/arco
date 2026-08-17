@@ -20,11 +20,10 @@ export function PersistentPanelGroup({
   const profileId = useProjectsStore((state) => state.activeProfileId)
   const surface = useWorkspaceSurface()
   const activeTabId = useProjectsStore((state) => state.workspace.activeTabId)
-  const activeGroupId = useProjectsStore((state) => state.workspace.activeGroupId)
   const activeProjectId = useProjectsStore((state) => state.activeProjectId)
   const screenId = surface
-    ? workspacePanelScreenId(surface.tabId, surface.active ? activeGroupId : null, activeProjectId)
-    : workspacePanelScreenId(activeTabId, activeGroupId, activeProjectId)
+    ? workspacePanelScreenId(surface.tabId, activeProjectId)
+    : workspacePanelScreenId(activeTabId, activeProjectId)
   const storageId = panelLayoutStorageId(profileId, screenId, persistenceId)
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: storageId,

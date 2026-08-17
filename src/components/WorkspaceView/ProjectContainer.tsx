@@ -40,7 +40,6 @@ export const ProjectContainer = memo(function ProjectContainer({
   const setCollapsed = useProjectsStore((s) => s.setContainerCollapsed)
   const setFullscreen = useProjectsStore((s) => s.setFullscreenContainer)
   const isolatedPaneId = useProjectsStore((s) => s.preferences.isolatedPaneId)
-  const setWorkspaceFlat = useProjectsStore((s) => s.setWorkspaceFlat)
   const closeContainer = useProjectsStore((s) => s.closeContainer)
   const openContainerWithAllPanes = useProjectsStore((s) => s.openContainerWithAllPanes)
   const createGraphifyPane = useProjectsStore((s) => s.createGraphifyPane)
@@ -175,7 +174,6 @@ export const ProjectContainer = memo(function ProjectContainer({
                   setFullscreen(null)
                   return
                 }
-                setWorkspaceFlat(false)
                 setFullscreen(project.id)
               }}
               title={isFullscreen ? t('ws.exitFullscreen') : t('ws.containerFullscreen')}

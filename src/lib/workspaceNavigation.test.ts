@@ -9,7 +9,7 @@ import {
 import {
   captureWorkspaceSnapshot,
   cloneWorkspaceSnapshot,
-  compositionLabel,
+  enforceTabScope,
   MAX_WORKSPACE_HISTORY,
   pushWorkspaceHistory,
   sanitizeWorkspaceSnapshot,
@@ -56,7 +56,6 @@ function snapshot(projectId = 'project-a', terminalId = 'terminal-a'): Workspace
       },
     ],
     activeProjectId: projectId,
-    activeGroupId: null,
     focusedTerminalId: terminalId,
     preferences,
   })
@@ -122,12 +121,49 @@ describe('workspaceNavigation', () => {
     expect(clean.focusedTerminalId).toBeNull()
   })
 
-  it('snapshots are deep-cloned and composition labels include item count', () => {
+  it('snapshots are deep-cloned', () => {
     const original = snapshot()
     const cloned = cloneWorkspaceSnapshot(original)
     cloned.containers[0].paneIds.push('terminal-b')
 
     expect(original.containers[0].paneIds).toEqual(['terminal-a'])
-    expect(compositionLabel(cloned, projects)).toBe('Project A + 1')
+  })
+
+  it('enforceTabScope drops every container of another project', () => {
+    const mixed = snapshot()
+    mixed.containers.push({
+      projectId: 'project-b',
+      paneIds: ['terminal-b'],
+      size: 1,
+      internalLayout: 'auto',
+      collapsed: false,
+    })
+    mixed.focusedTerminalId = 'terminal-b'
+    mixed.fullscreenContainerId = 'project-b'
+
+    const scoped = enforceTabScope(mixed, 'project-a')
+
+    expect(scoped.containers).toHaveLength(1)
+    expect(scoped.containers[0].projectId).toBe('project-a')
+    expect(scoped.activeProjectId).toBe('project-a')
+    // Focus and fullscreen belonged to the dropped project, so both are cleared.
+    expect(scoped.focusedTerminalId).toBeNull()
+    expect(scoped.fullscreenContainerId).toBeNull()
+  })
+
+  it('enforceTabScope merges duplicate containers of the tab project', () => {
+    const duplicated = snapshot()
+    duplicated.containers.push({
+      projectId: 'project-a',
+      paneIds: ['terminal-c'],
+      size: 1,
+      internalLayout: 'auto',
+      collapsed: false,
+    })
+
+    const scoped = enforceTabScope(duplicated, 'project-a')
+
+    expect(scoped.containers).toHaveLength(1)
+    expect(scoped.containers[0].paneIds).toEqual(['terminal-a', 'terminal-c'])
   })
 })

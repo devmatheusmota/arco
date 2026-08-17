@@ -1,5 +1,4 @@
 import type {
-  GridLayout,
   Preferences,
   Project,
   WorkspaceContainer,
@@ -8,18 +7,8 @@ import type {
   WorkspaceViewSnapshot,
 } from './types'
 
-export const MAX_WORKSPACE_TABS = 10
+export const MAX_WORKSPACE_TABS = 20
 export const MAX_WORKSPACE_HISTORY = 50
-
-function cloneGrid(layout: GridLayout | undefined): GridLayout | undefined {
-  if (!layout) return undefined
-  return {
-    ...layout,
-    cells: Object.fromEntries(Object.entries(layout.cells).map(([id, cell]) => [id, { ...cell }])),
-    colSizes: layout.colSizes ? [...layout.colSizes] : undefined,
-    rowSizes: layout.rowSizes ? [...layout.rowSizes] : undefined,
-  }
-}
 
 export function cloneContainers(containers: WorkspaceContainer[]): WorkspaceContainer[] {
   return containers.map((container) => ({
@@ -32,25 +21,20 @@ export function cloneWorkspaceSnapshot(snapshot: WorkspaceViewSnapshot): Workspa
   return {
     ...snapshot,
     containers: cloneContainers(snapshot.containers),
-    workspaceGridLayout: cloneGrid(snapshot.workspaceGridLayout),
   }
 }
 
 export function captureWorkspaceSnapshot(args: {
   containers: WorkspaceContainer[]
   activeProjectId: string | null
-  activeGroupId: string | null
   focusedTerminalId: string | null
   preferences: Preferences
 }): WorkspaceViewSnapshot {
   return {
     containers: cloneContainers(args.containers),
     activeProjectId: args.activeProjectId,
-    activeGroupId: args.activeGroupId,
     focusedTerminalId: args.focusedTerminalId,
-    workspaceFlat: args.preferences.workspaceFlat,
     fullscreenContainerId: args.preferences.fullscreenContainerId,
-    workspaceGridLayout: cloneGrid(args.preferences.workspaceGridLayout),
   }
 }
 
@@ -86,16 +70,35 @@ export function sanitizeWorkspaceSnapshot(
   }
 }
 
-export function compositionLabel(snapshot: WorkspaceViewSnapshot, projects: Project[]): string {
-  const names = snapshot.containers
-    .map((container) => projects.find((project) => project.id === container.projectId)?.name)
-    .filter((name): name is string => Boolean(name))
-  if (names.length === 0) return 'Workspace'
-  if (names.length === 1) {
-    const paneCount = snapshot.containers[0]?.paneIds.length ?? 0
-    return paneCount > 1 ? `${names[0]} + ${paneCount - 1}` : names[0]
+/**
+ * A tab shows one project and nothing else. Panes of any other project are dropped here, so a
+ * snapshot coming from disk, from history, or from a store update can never mix two projects.
+ */
+export function enforceTabScope(
+  snapshot: WorkspaceViewSnapshot,
+  projectId: string,
+): WorkspaceViewSnapshot {
+  const containers = snapshot.containers.filter((container) => container.projectId === projectId)
+  const merged = containers.slice(0, 1).map((container) => ({
+    ...container,
+    paneIds: [...new Set(containers.flatMap((item) => item.paneIds))],
+  }))
+  const paneIds = new Set(merged.flatMap((container) => container.paneIds))
+  return {
+    ...cloneWorkspaceSnapshot(snapshot),
+    containers: merged,
+    activeProjectId: merged.length > 0 ? projectId : null,
+    focusedTerminalId:
+      snapshot.focusedTerminalId && paneIds.has(snapshot.focusedTerminalId)
+        ? snapshot.focusedTerminalId
+        : null,
+    fullscreenContainerId: snapshot.fullscreenContainerId === projectId ? projectId : null,
   }
-  return `${names[0]} + ${names.length - 1}`
+}
+
+/** Sanitizes against the live projects and then clamps the snapshot to the tab's own project. */
+export function scopedTabSnapshot(tab: WorkspaceTab, projects: Project[]): WorkspaceViewSnapshot {
+  return enforceTabScope(sanitizeWorkspaceSnapshot(tab.snapshot, projects), tab.projectId)
 }
 
 export function pushWorkspaceHistory(

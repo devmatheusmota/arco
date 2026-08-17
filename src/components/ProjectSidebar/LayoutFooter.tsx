@@ -48,19 +48,22 @@ export function LayoutFooter() {
   )
 }
 
+/** Opens the grid designer for the panes of the project currently on screen. */
 export function WorkspaceLayoutFooter({ forceVisible = false }: { forceVisible?: boolean }) {
   const t = useT()
-  const containerCount = useProjectsStore((s) => s.workspace.containers.length)
-  const hasCustom = useProjectsStore((s) => Boolean(s.preferences.workspaceGridLayout))
+  const project = useProjectsStore(selectActiveProject)
+  const container = useProjectsStore(selectActiveContainer)
+  const hasCustom = Boolean(project?.gridLayout)
   const openModal = useUiStore((s) => s.openModal_)
-  if (!forceVisible && containerCount < 2) return null
+  if (!project) return null
+  if (!forceVisible && (container?.paneIds.length ?? 0) < 2) return null
   return (
     <div className={styles.layoutFooter}>
-      <span className={styles.layoutLabel}>Workspace</span>
+      <span className={styles.layoutLabel}>{project.name}</span>
       <button
         type="button"
         className={`${styles.layoutBtn} ${hasCustom ? styles.layoutBtnActive : ''}`}
-        onClick={() => openModal('layoutDesigner', { kind: 'workspace' })}
+        onClick={() => openModal('layoutDesigner', { kind: 'project', id: project.id })}
         title={t('ui.sidebar.designWorkspaceLayout')}
         aria-label={t('ui.sidebar.designLayoutShort')}
         style={{ width: 'auto', padding: '0 10px', fontSize: 11, gap: 6 }}

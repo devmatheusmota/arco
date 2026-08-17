@@ -10,7 +10,22 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- A workspace tab now shows a single project, always. Creating a terminal or opening a pane in
+  another project switches to that project's tab instead of adding it to the tab you are on, so
+  panes of two projects can no longer end up mixed on the same screen. Opening a group now opens one
+  tab per project of the group; those tabs sit together in the tab bar under a chip with the group
+  name and color, and clicking the chip closes them all. The tab limit went from 10 to 20 to make
+  room for groups.
+
 ### Removed
+
+- Everything that only existed to arrange several projects on one screen: flat mode, the workspace
+  grid designer, the group grid designer, dragging one project container over another, and the
+  "Add to current view" action for projects, groups, terminals, and saved tabs. The grid designer
+  remains for the panes of a project. Existing files are migrated: a tab that held several projects
+  becomes one tab per project, keeping pins and history.
 
 - The Merge Center is gone: its sidebar panel, the **Merge** tab of the project editor, the branch
   testing dialog, the merge store, and the `merge_analyze` / `merge_prepare` / `merge_finalize` /

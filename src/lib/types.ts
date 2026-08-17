@@ -314,13 +314,7 @@ export type Group = {
   projectIds: string[]
                                                                       
   parentGroupId: string | null
-                                                                                     
-  layoutMode?: LayoutMode
-                                                        
-  gridLayout?: GridLayout
-  /** Most recently saved custom layouts for this group. */
-  gridLayoutHistory?: GridLayoutHistoryEntry[]
-                                                                                                        
+
   suspended?: boolean
                                                                                      
   archived?: boolean
@@ -345,24 +339,26 @@ export type WorkspaceRecentTab = {
   id: string
 }
 
-export type WorkspaceTabKind = 'project' | 'group' | 'terminal' | 'composition'
+export type WorkspaceTabKind = 'project' | 'terminal'
 
                                                                                    
 export type WorkspaceViewSnapshot = {
+  /** Always a single container, owned by the tab's project. */
   containers: WorkspaceContainer[]
   activeProjectId: string | null
-  activeGroupId: string | null
   focusedTerminalId: string | null
-  workspaceFlat: boolean
   fullscreenContainerId: string | null
-  workspaceGridLayout?: GridLayout
 }
 
 export type WorkspaceTab = {
   id: string
   kind: WorkspaceTabKind
-  sourceId?: string
-  sourceProjectId?: string
+  /** Project that owns the tab. Every pane inside it belongs to this project. */
+  projectId: string
+  /** Terminal the tab was opened for. Only set when `kind` is 'terminal'. */
+  terminalId?: string
+  /** Group of the owning project when the tab opened. Visual grouping in the tab bar only. */
+  groupId?: string
   label: string
   color?: string
   iconUrl?: string
@@ -410,9 +406,7 @@ export type Preferences = {
   terminalTheme: Theme | null
   enabledAgents: Record<AgentType, boolean>
   onboardingDone: boolean
-                                                                              
-  workspaceFlat: boolean
-                                                                    
+  /** Project id of the container rendered fullscreen, or null. */
   fullscreenContainerId: string | null
      
                                                                            
@@ -493,9 +487,6 @@ export type Preferences = {
                                                                              
   resourcePolicy: ResourcePolicyPreferences
                                                                       
-  workspaceGridLayout?: GridLayout
-  /** Most recently saved custom layouts for the workspace. */
-  workspaceGridLayoutHistory?: GridLayoutHistoryEntry[]
      
                                                                      
                                                                         
@@ -532,7 +523,7 @@ export type ResourcePolicyPreferences = {
 }
 
 export type ProjectsFile = {
-  version: 7
+  version: 8
   groups: Group[]
                                                      
   ungroupedOrder: string[]
@@ -552,7 +543,6 @@ export type ProjectsFile = {
                                                                                   
     closedTabs?: WorkspaceTab[]
     activeTabId: string | null
-    activeGroupId: string | null
     focusedTerminalId: string | null
     history: WorkspaceHistoryEntry[]
     historyIndex: number
@@ -580,7 +570,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
     mimo: true,
   },
   onboardingDone: false,
-  workspaceFlat: false,
   fullscreenContainerId: null,
   isolatedPaneId: null,
   firstLaunchAt: null,
@@ -641,7 +630,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 export const EMPTY_PROJECTS_FILE: ProjectsFile = {
-  version: 7,
+  version: 8,
   groups: [],
   ungroupedOrder: [],
   projects: [],
@@ -654,7 +643,6 @@ export const EMPTY_PROJECTS_FILE: ProjectsFile = {
     tabs: [],
     closedTabs: [],
     activeTabId: null,
-    activeGroupId: null,
     focusedTerminalId: null,
     history: [],
     historyIndex: -1,

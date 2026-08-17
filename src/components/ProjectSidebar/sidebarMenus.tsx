@@ -32,7 +32,6 @@ type UiState = ReturnType<typeof useUiStore.getState>
 type MenuActions = Pick<
   ProjectsState,
   | 'openProjectWorkspace'
-  | 'addProjectToWorkspace'
   | 'renameProject'
   | 'archiveProject'
   | 'moveProjectToGroup'
@@ -48,7 +47,6 @@ type MenuActions = Pick<
   | 'deleteGroup'
   | 'focusWorkspaceTerminal'
   | 'openTerminalWorkspace'
-  | 'addTerminalToWorkspace'
   | 'renameTerminal'
   | 'togglePane'
   | 'setTerminalDisabled'
@@ -100,19 +98,10 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
   const projectMenu = (project: Project): MenuItem[] => [
     {
       kind: 'item',
-      label: t('ui.workspace.openIndividually'),
+      label: t('ui.workspace.openInTab'),
       icon: <FolderOpen size={14} />,
       onClick: () => {
         actions.openProjectWorkspace(project.id)
-        setActiveView('workspace')
-      },
-    },
-    {
-      kind: 'item',
-      label: t('ui.workspace.addToCurrent'),
-      icon: <Plus size={14} />,
-      onClick: () => {
-        actions.addProjectToWorkspace(project.id)
         setActiveView('workspace')
       },
     },
@@ -237,17 +226,9 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
   const groupMenu = (group: Group): MenuItem[] => [
     {
       kind: 'item',
-      label: t('ui.workspace.openIndividually'),
+      label: t('ui.workspace.openGroupTabs'),
       onClick: () => {
-        actions.openGroupWorkspace(group.id, 'only')
-        setActiveView('workspace')
-      },
-    },
-    {
-      kind: 'item',
-      label: t('ui.workspace.addToCurrent'),
-      onClick: () => {
-        actions.openGroupWorkspace(group.id, 'append')
+        actions.openGroupWorkspace(group.id)
         setActiveView('workspace')
       },
     },
@@ -269,11 +250,6 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
       kind: 'item',
       label: t('ui.sidebar.createSubgroupHere'),
       onClick: () => openModal('newGroup', { parentGroupId: group.id }),
-    },
-    {
-      kind: 'item',
-      label: t('ui.sidebar.designLayout'),
-      onClick: () => openModal('layoutDesigner', { kind: 'group', id: group.id }),
     },
     {
       kind: 'item',
@@ -482,17 +458,9 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
       { kind: 'separator' },
       {
         kind: 'item',
-        label: t('ui.workspace.openIndividually'),
+        label: t('ui.workspace.openInTab'),
         onClick: () => {
           actions.openTerminalWorkspace(projectId, term.id)
-          setActiveView('workspace')
-        },
-      },
-      {
-        kind: 'item',
-        label: t('ui.workspace.addToCurrent'),
-        onClick: () => {
-          actions.addTerminalToWorkspace(projectId, term.id)
           setActiveView('workspace')
         },
       },

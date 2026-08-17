@@ -214,9 +214,8 @@ export function createGroupsSlice({ update }: SliceCtx): GroupsSlice {
           const tabs = state.workspace.tabs
             .filter(
               (tab) =>
-                !(tab.kind === 'group' && groupsToRemove.has(tab.sourceId ?? tab.id)) &&
-                !(tab.kind === 'project' && projectsToRemove.has(tab.sourceId ?? tab.id)) &&
-                !(tab.kind === 'terminal' && projectsToRemove.has(tab.sourceProjectId ?? '')),
+                !projectsToRemove.has(tab.projectId) &&
+                !(tab.groupId && groupsToRemove.has(tab.groupId)),
             )
             .map((tab) => ({
               ...tab,
@@ -787,11 +786,7 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
         const activeProjectId =
           state.activeProjectId === id ? (projects[0]?.id ?? null) : state.activeProjectId
         const tabs = state.workspace.tabs
-          .filter(
-            (tab) =>
-              !(tab.kind === 'project' && tab.sourceId === id) &&
-              !(tab.kind === 'terminal' && tab.sourceProjectId === id),
-          )
+          .filter((tab) => tab.projectId !== id)
           .map((tab) => ({
             ...tab,
             snapshot: sanitizeWorkspaceSnapshot(tab.snapshot, projects),

@@ -791,3 +791,40 @@
   border-color: var(--border);
   box-shadow: none;
 }
+
+/* A run of tabs belonging to the same group, tied together by a chip. */
+.tabGroupRun {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  height: 26px;
+  padding: 0 4px 0 0;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--tab-group-color) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tab-group-color) 45%, transparent);
+}
+
+.tabGroupLabel {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  max-width: 92px;
+  margin: 0 2px 0 4px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--tab-group-color) 28%, transparent);
+  color: var(--fg);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.tabGroupLabel:hover {
+  background: color-mix(in srgb, var(--tab-group-color) 45%, transparent);
+}

@@ -199,12 +199,10 @@ export function useKeybindings() {
         e.preventDefault()
         const projects = useProjectsStore.getState()
         const ui = useUiStore.getState()
-        const activeGroupId = projects.workspace.activeGroupId
-        const scopedProjectIds = activeGroupId
-          ? collectGroupProjectIds(activeGroupId, projects.groups)
-          : projects.activeProjectId
-            ? new Set([projects.activeProjectId])
-            : null
+        // A tab holds a single project, so cycling never leaves it.
+        const scopedProjectIds = projects.activeProjectId
+          ? new Set([projects.activeProjectId])
+          : null
         const terminals = projects.workspace.containers.flatMap((container) => {
           if (scopedProjectIds && !scopedProjectIds.has(container.projectId)) return []
           const project = projects.projects.find((item) => item.id === container.projectId)
@@ -283,24 +281,6 @@ export function useKeybindings() {
       document.removeEventListener('visibilitychange', onWindowFocus)
     }
   }, [])
-}
-
-function collectGroupProjectIds(
-  groupId: string,
-  groups: ReturnType<typeof useProjectsStore.getState>['groups'],
-): Set<string> {
-  const projectIds = new Set<string>()
-  const pending = [groupId]
-  while (pending.length > 0) {
-    const currentId = pending.shift()!
-    const group = groups.find((item) => item.id === currentId)
-    if (!group) continue
-    for (const projectId of group.projectIds) projectIds.add(projectId)
-    for (const child of groups) {
-      if (child.parentGroupId === currentId) pending.push(child.id)
-    }
-  }
-  return projectIds
 }
 
 function isZoomKey(e: KeyboardEvent): boolean {
