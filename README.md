@@ -43,29 +43,9 @@
 
 ## Supported Platforms
 
-<table>
-  <tr>
-    <th width="33.33%">macOS</th>
-    <th width="33.33%">Windows</th>
-    <th width="33.33%">Linux</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="./docs/screenshots/arco-macos.png" alt="Arco running on macOS" width="100%">
-    </td>
-    <td align="center">
-      <img src="./docs/screenshots/arco-windows.png" alt="Arco running on Windows" width="100%">
-    </td>
-    <td align="center">
-      <img src="./docs/screenshots/arco-linux.png" alt="Arco running on Linux" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td align="center">Available on macOS</td>
-    <td align="center">Available on Windows</td>
-    <td align="center">Available on Linux</td>
-  </tr>
-</table>
+| macOS | Windows | Linux |
+| :---: | :---: | :---: |
+| Available | Available | Available |
 
 ## What Arco Is
 
