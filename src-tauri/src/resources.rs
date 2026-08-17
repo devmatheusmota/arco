@@ -2,16 +2,23 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::time::Duration;
-use sysinfo::{Pid, System};
-use tauri::{AppHandle, Emitter, State};
+use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::provider_common::now_ms;
 use crate::pty::{self, PtySessions};
 use crate::stats::MemoryStats;
 
 const SAMPLE_INTERVAL: Duration = Duration::from_secs(5);
+/// Sampling interval while no window is on screen. Nothing renders the snapshot
+/// then, and the sweep is the app's largest steady-state cost — one `/proc`
+/// (or Toolhelp) pass over every process on the machine, every tick.
+const IDLE_SAMPLE_INTERVAL: Duration = Duration::from_secs(30);
 const META_STALE_MS: u64 = 30_000;
 const RESOURCE_LOG_INTERVAL_MS: u64 = 60_000;
+/// Minimum gap between two hibernation suggestions, so a workspace that stays
+/// over budget nags once a minute instead of once every sample.
+const HIBERNATION_HINT_INTERVAL_MS: u64 = 300_000;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -134,12 +141,34 @@ struct ResourcePressurePayload {
     suspended_id: Option<String>,
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HibernationCandidate {
+    pub id: String,
+    pub kind: String,
+    pub memory_mb: f64,
+    pub idle_minutes: u64,
+}
+
+/// Emitted when idle hidden runtimes are worth parking. Advisory only — the app
+/// never suspends a runtime behind the user's back at ordinary pressure, so the
+/// frontend turns this into a prompt and the user decides.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HibernationHintPayload {
+    candidates: Vec<HibernationCandidate>,
+    reclaimable_mb: f64,
+    total_mb: f64,
+    budget_mb: f64,
+}
+
 struct ResourceState {
     policy: ResourcePolicy,
     metas: HashMap<String, PtyRuntimeMeta>,
     latest: Option<RuntimeSnapshot>,
     last_level: &'static str,
     last_log_at_ms: u64,
+    last_hint_at_ms: u64,
 }
 
 pub struct ResourceSupervisor {
@@ -156,6 +185,7 @@ impl Default for ResourceSupervisor {
                 latest: None,
                 last_level: "normal",
                 last_log_at_ms: 0,
+                last_hint_at_ms: 0,
             }),
             system: Mutex::new(System::new()),
         }
@@ -262,7 +292,16 @@ impl ResourceSupervisor {
             .unwrap_or_default();
 
         let mut system = self.system.lock().unwrap_or_else(|p| p.into_inner());
-        system.refresh_processes(sysinfo::ProcessesToUpdate::All);
+        // Only what the snapshot reads. The blanket `refresh_processes` also
+        // pulls disk usage, which costs one extra `/proc/<pid>/io` read per
+        // process on a machine that routinely runs 600 of them.
+        system.refresh_processes_specifics(
+            ProcessesToUpdate::All,
+            ProcessRefreshKind::new()
+                .with_memory()
+                .with_cpu()
+                .with_exe(UpdateKind::OnlyIfNotSet),
+        );
         system.refresh_memory();
 
         let mut children = HashMap::<u32, Vec<u32>>::new();
@@ -281,6 +320,11 @@ impl ResourceSupervisor {
 
         let app_pid = std::process::id();
         let app_tree = descendants(app_pid, &children);
+        // Reading a process's private commit is the expensive half of a sample
+        // (a `smaps_rollup` walk on Linux, an `OpenProcess` handle on Windows).
+        // Every PTY subtree is contained in the app subtree, so without this the
+        // same pid is measured twice per cycle.
+        let mut private_cache = HashMap::<u32, u64>::new();
         let mut app_bytes = 0_u64;
         let mut webview_bytes = 0_u64;
         let mut pty_bytes = 0_u64;
@@ -293,6 +337,7 @@ impl ResourceSupervisor {
 
             // processos.
             let private = process_private_commit_bytes(*pid, working);
+            private_cache.insert(*pid, private);
             private_total += private;
             let name = process.name().to_string_lossy().to_ascii_lowercase();
             if *pid == app_pid || name.contains("arco") {
@@ -328,7 +373,10 @@ impl ResourceSupervisor {
                     .filter_map(|pid| {
                         let process = system.process(Pid::from_u32(*pid))?;
                         let process_working = process.memory();
-                        let process_private = process_private_commit_bytes(*pid, process_working);
+                        let process_private = private_cache
+                            .get(pid)
+                            .copied()
+                            .unwrap_or_else(|| process_private_commit_bytes(*pid, process_working));
                         working += process_working;
                         private += process_private;
                         Some(RuntimeProcess {
@@ -444,16 +492,53 @@ fn pressure_level(memory: &MemoryStats, previous: &'static str) -> &'static str 
     }
 }
 
+/// Builds the advisory payload for `smart-lru`: which idle hidden runtimes could
+/// be parked and how much that would give back. Returns `None` when the mode is
+/// off, nothing is eligible, or the workspace is still inside its budget.
+fn hibernation_hint(
+    snapshot: &RuntimeSnapshot,
+    candidates: &[String],
+    metas: &HashMap<String, PtyRuntimeMeta>,
+    policy: &ResourcePolicy,
+    now: u64,
+) -> Option<Vec<HibernationCandidate>> {
+    if policy.mode != "smart-lru" || candidates.is_empty() {
+        return None;
+    }
+    if snapshot.effective_total_mb < policy.memory_budget_mb {
+        return None;
+    }
+    let stats = snapshot
+        .ptys
+        .iter()
+        .map(|pty| (pty.id.as_str(), pty))
+        .collect::<HashMap<_, _>>();
+    let hints = candidates
+        .iter()
+        .filter_map(|id| {
+            let meta = metas.get(id)?;
+            Some(HibernationCandidate {
+                id: id.clone(),
+                kind: meta.kind.clone(),
+                memory_mb: stats.get(id.as_str()).map_or(0.0, |s| s.effective_memory_mb),
+                idle_minutes: now.saturating_sub(meta.last_io_at_ms) / 60_000,
+            })
+        })
+        .collect::<Vec<_>>();
+    (!hints.is_empty()).then_some(hints)
+}
+
 fn run_cycle(app: &AppHandle, sessions: &PtySessions, supervisor: &ResourceSupervisor) {
     let mut snapshot = supervisor.collect(sessions);
     let now = snapshot.sampled_at_ms;
-    let (policy, metas, previous_level, last_log_at_ms) = {
+    let (policy, metas, previous_level, last_log_at_ms, last_hint_at_ms) = {
         let state = supervisor.state.lock().unwrap_or_else(|p| p.into_inner());
         (
             state.policy.clone(),
             state.metas.clone(),
             state.last_level,
             state.last_log_at_ms,
+            state.last_hint_at_ms,
         )
     };
     let candidates = eligible_candidates(&snapshot, &metas, &policy, now);
@@ -480,6 +565,13 @@ fn run_cycle(app: &AppHandle, sessions: &PtySessions, supervisor: &ResourceSuper
         last_suspended_id: suspended_id.clone(),
     };
 
+    // Smart LRU is advisory: it surfaces what could be parked once the workspace
+    // is over its budget, and the user decides. Only the critical branch above
+    // acts on its own, and only to keep the desktop from running out of memory.
+    let hint = (now.saturating_sub(last_hint_at_ms) >= HIBERNATION_HINT_INTERVAL_MS)
+        .then(|| hibernation_hint(&snapshot, &candidates, &metas, &policy, now))
+        .flatten();
+
     let should_log = previous_level != level
         || suspended_id.is_some()
         || now.saturating_sub(last_log_at_ms) >= RESOURCE_LOG_INTERVAL_MS;
@@ -492,7 +584,23 @@ fn run_cycle(app: &AppHandle, sessions: &PtySessions, supervisor: &ResourceSuper
         if should_log {
             state.last_log_at_ms = now;
         }
+        if hint.is_some() {
+            state.last_hint_at_ms = now;
+        }
         state.latest = Some(snapshot.clone());
+    }
+
+    if let Some(candidates) = hint {
+        let reclaimable_mb = candidates.iter().map(|entry| entry.memory_mb).sum();
+        let _ = app.emit(
+            "resource://hibernation-suggested",
+            HibernationHintPayload {
+                candidates,
+                reclaimable_mb,
+                total_mb: snapshot.effective_total_mb,
+                budget_mb: policy.memory_budget_mb,
+            },
+        );
     }
 
     if should_log {
@@ -524,6 +632,18 @@ fn run_cycle(app: &AppHandle, sessions: &PtySessions, supervisor: &ResourceSuper
     }
 }
 
+/// True while at least one window can show the snapshot. Unknown states count as
+/// visible: the sampler slowing down is a worse failure than one extra sweep.
+fn any_window_visible(app: &AppHandle) -> bool {
+    let windows = app.webview_windows();
+    if windows.is_empty() {
+        return true;
+    }
+    windows.values().any(|window| {
+        window.is_visible().unwrap_or(true) && !window.is_minimized().unwrap_or(false)
+    })
+}
+
 pub fn start(
     app: AppHandle,
     sessions: PtySessions,
@@ -531,7 +651,11 @@ pub fn start(
 ) {
     std::thread::spawn(move || loop {
         run_cycle(&app, &sessions, &supervisor);
-        std::thread::sleep(SAMPLE_INTERVAL);
+        std::thread::sleep(if any_window_visible(&app) {
+            SAMPLE_INTERVAL
+        } else {
+            IDLE_SAMPLE_INTERVAL
+        });
     });
 }
 
@@ -666,6 +790,43 @@ mod tests {
             eligible_candidates(&snapshot("a"), &metas, &policy, 1_000_000),
             vec!["a".to_string()]
         );
+    }
+
+    #[test]
+    fn manual_mode_never_suggests_hibernation() {
+        let policy = ResourcePolicy::default();
+        assert_eq!(policy.mode, "manual");
+        let metas = HashMap::from([("a".to_string(), meta("a"))]);
+        let sample = snapshot("a");
+        let candidates = eligible_candidates(&sample, &metas, &policy, 1_000_000);
+        assert!(!candidates.is_empty());
+        assert!(hibernation_hint(&sample, &candidates, &metas, &policy, 1_000_000).is_none());
+    }
+
+    #[test]
+    fn smart_lru_stays_quiet_inside_the_budget() {
+        let mut policy = ResourcePolicy::default();
+        policy.mode = "smart-lru".to_string();
+        policy.memory_budget_mb = 4096.0;
+        let metas = HashMap::from([("a".to_string(), meta("a"))]);
+        let sample = snapshot("a"); // 1700 MB effective
+        let candidates = eligible_candidates(&sample, &metas, &policy, 1_000_000);
+        assert!(hibernation_hint(&sample, &candidates, &metas, &policy, 1_000_000).is_none());
+    }
+
+    #[test]
+    fn smart_lru_reports_the_idle_runtime_over_budget() {
+        let mut policy = ResourcePolicy::default();
+        policy.mode = "smart-lru".to_string();
+        policy.memory_budget_mb = 1024.0;
+        let metas = HashMap::from([("a".to_string(), meta("a"))]);
+        let sample = snapshot("a");
+        let candidates = eligible_candidates(&sample, &metas, &policy, 1_000_000);
+        let hint = hibernation_hint(&sample, &candidates, &metas, &policy, 1_000_000)
+            .expect("an idle hidden runtime over budget is worth suggesting");
+        assert_eq!(hint.len(), 1);
+        assert_eq!(hint[0].id, "a");
+        assert_eq!(hint[0].memory_mb, 450.0);
     }
 
     #[test]

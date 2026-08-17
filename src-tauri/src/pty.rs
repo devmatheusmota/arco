@@ -254,6 +254,59 @@ fn clear_inherited_agent_session(command: &mut portable_pty::CommandBuilder) {
     }
 }
 
+/// Variables an AppImage's `AppRun` exports so the bundled app finds its own
+/// runtime. They point into the mount (`$APPDIR`) and must never reach a pane:
+/// `PYTHONHOME` alone breaks every `python3` a pane runs ("Fatal Python error:
+/// Failed to import encodings module"), and `LD_LIBRARY_PATH` makes native
+/// binaries load the bundle's libraries instead of the system's.
+///
+/// Any variable whose value mentions `$APPDIR` is rewritten: path lists keep
+/// their remaining entries, single-value variables go entirely. Some AppRun
+/// builds stash the pre-launch value in `<NAME>_ORIG`, which wins when present.
+/// No-op outside an AppImage, so ordinary builds keep the environment intact.
+/// Value a child should see for a variable the AppImage rewrote, or `None` when
+/// the variable only ever pointed into the mount and has to go entirely.
+fn sanitize_appimage_value(appdir: &str, value: &str) -> Option<String> {
+    let kept = value
+        .split(':')
+        .filter(|entry| !entry.is_empty() && !entry.starts_with(appdir))
+        .collect::<Vec<_>>()
+        .join(":");
+    (!kept.is_empty()).then_some(kept)
+}
+
+fn strip_appimage_env(command: &mut portable_pty::CommandBuilder) {
+    const APPIMAGE_OWN_VARS: &[&str] = &["APPDIR", "APPIMAGE", "APPIMAGE_UUID", "ARGV0", "OWD"];
+
+    let appdir = std::env::var("APPDIR").unwrap_or_default();
+    if appdir.is_empty() {
+        return;
+    }
+
+    for (key, value) in std::env::vars() {
+        if key.ends_with("_ORIG") || !value.contains(&appdir) {
+            continue;
+        }
+        if let Some(original) = std::env::var_os(format!("{key}_ORIG")) {
+            command.env(&key, original);
+            continue;
+        }
+        match sanitize_appimage_value(&appdir, &value) {
+            Some(kept) => command.env(&key, kept),
+            None => command.env_remove(&key),
+        };
+    }
+
+    for (key, _) in std::env::vars() {
+        if key.ends_with("_ORIG") {
+            command.env_remove(&key);
+        }
+    }
+    for key in APPIMAGE_OWN_VARS {
+        command.env_remove(key);
+    }
+}
+
 #[tauri::command]
 pub async fn spawn_pty(
     app: AppHandle,
@@ -335,6 +388,7 @@ pub async fn spawn_pty(
             &extras,
         );
         clear_inherited_agent_session(&mut command);
+        strip_appimage_env(&mut command);
         if let Some(extra_env) = env.as_ref() {
             for (key, value) in extra_env {
                 command.env(key, value);
@@ -1685,6 +1739,38 @@ mod tests {
             Some(stale),
             PTY_ACTIVITY_EMIT_INTERVAL_MS
         ));
+    }
+
+    #[test]
+    fn appimage_path_list_keeps_the_system_entries() {
+        let appdir = "/tmp/.mount_arcoAB";
+        let path = "/tmp/.mount_arcoAB/usr/bin/:/tmp/.mount_arcoAB/bin/:/usr/local/bin:/usr/bin";
+        assert_eq!(
+            sanitize_appimage_value(appdir, path).as_deref(),
+            Some("/usr/local/bin:/usr/bin")
+        );
+    }
+
+    #[test]
+    fn appimage_only_value_is_dropped_entirely() {
+        // PYTHONHOME is the one that breaks every python3 a pane runs.
+        let appdir = "/tmp/.mount_arcoAB";
+        assert_eq!(
+            sanitize_appimage_value(appdir, "/tmp/.mount_arcoAB/usr/"),
+            None
+        );
+        assert_eq!(
+            sanitize_appimage_value(appdir, "/tmp/.mount_arcoAB/usr/share/pyshared/:"),
+            None
+        );
+    }
+
+    #[test]
+    fn value_without_the_mount_is_untouched() {
+        assert_eq!(
+            sanitize_appimage_value("/tmp/.mount_arcoAB", "/usr/share:/usr/local/share").as_deref(),
+            Some("/usr/share:/usr/local/share")
+        );
     }
 
     #[test]
