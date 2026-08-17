@@ -2,9 +2,17 @@ name: APT repository
 
 # Publishes the .deb from a release as an apt repository on GitHub Pages, so
 # `apt upgrade` picks up new versions instead of each one being a manual
-# download. Runs after a release is published, and can be re-run by hand to
+# download. Runs after a release build finishes, and can be re-run by hand to
 # rebuild the index from whatever the latest release holds.
+#
+# The trigger is `workflow_run` rather than `release: published` because the
+# release is created by the Release workflow using GITHUB_TOKEN, and events
+# raised by that token deliberately do not start other workflows. Publishing a
+# release by hand does use a real identity, so that trigger is kept as well.
 on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
   release:
     types: [published]
   workflow_dispatch:
@@ -17,6 +25,9 @@ concurrency:
 
 jobs:
   publish:
+    # A failed release build leaves no new .deb to publish, and republishing the
+    # previous one would only rewrite the index with what it already holds.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
