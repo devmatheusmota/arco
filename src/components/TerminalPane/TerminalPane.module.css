@@ -179,6 +179,9 @@
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+  /* The header is space-between, so when the left block is not rendered this
+     one becomes the only child and would sit at the start. Pin it right. */
+  margin-left: auto;
   height: 26px;
   padding: 2px 3px;
   background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
