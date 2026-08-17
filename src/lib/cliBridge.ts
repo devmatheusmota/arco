@@ -2,7 +2,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 import { useProjectsStore } from '../stores/projectsStore'
 import { useUiStore } from '../stores/uiStore'
-import type { AgentType, WorktreeChoice } from './types'
+import type { AgentType, TodoPriority, WorktreeChoice } from './types'
 
 /**
  * Bridge for the `arco` command line.
@@ -26,6 +26,8 @@ type TodoRequest = {
   title?: string
   project?: string
   tags?: string[]
+  notes?: string
+  priority?: TodoPriority
 }
 
 const AGENTS: readonly AgentType[] = ['shell', 'claude', 'codex', 'opencode']
@@ -103,7 +105,10 @@ function handleTodo(request: TodoRequest) {
     return
   }
   const store = useProjectsStore.getState()
-  store.createTodo(title, request.tags ?? [], resolveProjectId(request) ?? undefined)
+  store.createTodo(title, request.tags ?? [], resolveProjectId(request) ?? undefined, {
+    notes: request.notes,
+    priority: request.priority,
+  })
 }
 
 /** Wires the CLI events. Returns a disposer for the app to call on teardown. */

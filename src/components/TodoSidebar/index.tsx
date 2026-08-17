@@ -5,23 +5,76 @@ import {
   GripVertical,
   ListTodo,
   Pencil,
+  Play,
   Plus,
+  StickyNote,
   Tag,
   Trash2,
+  Unlink,
   X,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { type GsdSyncSession, useGsdSyncSessions } from '../../hooks/useGsdSyncSessions'
-import { useT } from '../../lib/i18n'
+import { formatRelativeTimestamp } from '../../lib/greeting'
+import { type TFunction,useT } from '../../lib/i18n'
 import { formatShortcut } from '../../lib/platform'
 import { type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
-import { TODO_TITLE_MAX_LENGTH } from '../../lib/todos'
-import type { Terminal, TodoItem } from '../../lib/types'
+import {
+  collectTodoTags,
+  normalizeTodoPriority,
+  sortTodosByPriority,
+  TODO_TITLE_MAX_LENGTH,
+} from '../../lib/todos'
+import {
+  AGENT_TYPE_LABELS,
+  type Project,
+  type Terminal,
+  TODO_PRIORITIES,
+  type TodoItem,
+  type TodoPriority,
+  type TodoSessionLink,
+} from '../../lib/types'
 import { selectActiveProject, useProjectsStore } from '../../stores/projectsStore'
+import { useTerminalsStore } from '../../stores/terminalsStore'
+import { useUiStore } from '../../stores/uiStore'
 import { DotmCircular2 } from '../ui/dotm-circular-2'
 import styles from './TodoSidebar.module.css'
+
+/** A session link paired with the pane it points at, when that pane still exists. */
+type ResolvedSession = {
+  link: TodoSessionLink
+  project: Project | null
+  terminal: Terminal | null
+}
+
+function resolveSessions(todo: TodoItem, projects: Project[]): ResolvedSession[] {
+  return (todo.sessions ?? []).map((link) => {
+    const project = projects.find((item) => item.id === link.projectId) ?? null
+    const terminal = project?.terminals.find((item) => item.id === link.terminalId) ?? null
+    return { link, project, terminal }
+  })
+}
+
+function isTerminalWorking(terminal: Terminal, byPtyId: Record<string, { status: string }>): boolean {
+  return terminal.tabs.some((tab) => tab.ptyId && byPtyId[tab.ptyId]?.status === 'working')
+}
+
+/** Brings a linked pane to the front, wherever the user currently is. */
+function useSessionFocus() {
+  const setActiveView = useUiStore((state) => state.setActiveView)
+  const setActiveTerminal = useUiStore((state) => state.setActiveTerminal)
+  const requestPaneFocus = useUiStore((state) => state.requestPaneFocus)
+  return (projectId: string, terminalId: string) => {
+    const store = useProjectsStore.getState()
+    store.setActiveProjectOnly(projectId)
+    store.focusWorkspaceTerminal(projectId, terminalId)
+    setActiveTerminal(projectId, terminalId)
+    requestPaneFocus(terminalId)
+    setActiveView('workspace')
+  }
+}
 
 function GsdSyncSection() {
   const t = useT()
@@ -113,44 +166,434 @@ function GsdSyncRow({
   )
 }
 
+type DragState = {
+  draggedId: string | null
+  dropTargetId: string | null
+  onDragStart: (todo: TodoItem, event: React.DragEvent) => void
+  onDragEnd: () => void
+  onDragOver: (todo: TodoItem, event: React.DragEvent) => void
+  onDragLeave: (todo: TodoItem) => void
+  onDrop: (todo: TodoItem, event: React.DragEvent) => void
+}
+
+function TodoRow({
+  todo,
+  projects,
+  drag,
+  expanded,
+  onToggleExpanded,
+}: {
+  todo: TodoItem
+  projects: Project[]
+  drag: DragState
+  expanded: boolean
+  onToggleExpanded: () => void
+}) {
+  const t = useT()
+  const renameTodo = useProjectsStore((state) => state.renameTodo)
+  const updateTodoTags = useProjectsStore((state) => state.updateTodoTags)
+  const updateTodoNotes = useProjectsStore((state) => state.updateTodoNotes)
+  const setTodoPriority = useProjectsStore((state) => state.setTodoPriority)
+  const setTodoProject = useProjectsStore((state) => state.setTodoProject)
+  const unlinkTodoSession = useProjectsStore((state) => state.unlinkTodoSession)
+  const toggleTodo = useProjectsStore((state) => state.toggleTodo)
+  const deleteTodo = useProjectsStore((state) => state.deleteTodo)
+  const openModal = useUiStore((state) => state.openModal_)
+  const focusSession = useSessionFocus()
+
+  const [editing, setEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(todo.title)
+  const [notesDraft, setNotesDraft] = useState(todo.notes ?? '')
+
+  useEffect(() => {
+    if (!expanded) setNotesDraft(todo.notes ?? '')
+  }, [expanded, todo.notes])
+
+  const sessions = useMemo(() => resolveSessions(todo, projects), [todo, projects])
+  const liveSessions = sessions.filter((session) => session.terminal)
+  const workingCount = useTerminalsStore(
+    (state) =>
+      liveSessions.filter((session) => isTerminalWorking(session.terminal!, state.byPtyId)).length,
+  )
+  const priority = normalizeTodoPriority(todo.priority)
+
+  const finishEditing = () => {
+    if (editTitle.trim()) renameTodo(todo.id, editTitle)
+    setEditing(false)
+  }
+
+  const startEditing = () => {
+    setEditTitle(todo.title)
+    setEditing(true)
+  }
+
+  const editTags = () => {
+    const value = window.prompt(t('todo.tagsPrompt'), todo.tags.join(', '))
+    if (value === null) return
+    updateTodoTags(todo.id, parseTags(value))
+  }
+
+  const commitNotes = () => {
+    if ((todo.notes ?? '') === notesDraft) return
+    updateTodoNotes(todo.id, notesDraft)
+  }
+
+  return (
+    <div className={styles.todoItem}>
+      <div
+        className={[
+          styles.todoRow,
+          todo.completed ? styles.todoRowCompleted : '',
+          expanded ? styles.todoRowExpanded : '',
+          drag.draggedId === todo.id ? styles.todoRowDragging : '',
+          drag.dropTargetId === todo.id && drag.draggedId !== todo.id
+            ? styles.todoRowDropTarget
+            : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        draggable={!editing}
+        onDragStart={(event) => drag.onDragStart(todo, event)}
+        onDragEnd={drag.onDragEnd}
+        onDragOver={(event) => drag.onDragOver(todo, event)}
+        onDragLeave={() => drag.onDragLeave(todo)}
+        onDrop={(event) => drag.onDrop(todo, event)}
+      >
+        <span
+          className={styles.priorityMarker}
+          data-priority={priority}
+          title={t('todo.priorityMarker', { priority: t(`todo.priority.${priority}`) })}
+        />
+        <button
+          type="button"
+          className={styles.dragHandle}
+          title={t('todo.drag')}
+          aria-label={t('todo.drag')}
+          tabIndex={-1}
+        >
+          <GripVertical size={13} />
+        </button>
+        <button
+          type="button"
+          className={styles.checkButton}
+          onClick={() => toggleTodo(todo.id)}
+          title={todo.completed ? t('todo.reopen') : t('todo.complete')}
+          aria-label={todo.completed ? t('todo.reopen') : t('todo.complete')}
+        >
+          {todo.completed ? <Check size={12} /> : null}
+        </button>
+
+        {editing ? (
+          <input
+            autoFocus
+            className={styles.editInput}
+            value={editTitle}
+            maxLength={TODO_TITLE_MAX_LENGTH}
+            onChange={(event) => setEditTitle(event.target.value)}
+            onBlur={() => setEditing(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') finishEditing()
+              if (event.key === 'Escape') setEditing(false)
+            }}
+            aria-label={t('todo.edit')}
+          />
+        ) : (
+          <button
+            type="button"
+            className={styles.titleButton}
+            onClick={onToggleExpanded}
+            aria-expanded={expanded}
+            title={expanded ? t('todo.collapse') : t('todo.expand')}
+          >
+            <span className={styles.todoTitleText}>{todo.title}</span>
+            <span className={styles.metaRow}>
+              {todo.tags.map((tag) => (
+                <span key={tag} className={styles.tag}>
+                  #{tag}
+                </span>
+              ))}
+              {todo.notes ? (
+                <span className={styles.metaIcon} title={t('todo.notesIndicator')}>
+                  <StickyNote size={10} />
+                </span>
+              ) : null}
+              {liveSessions.length > 0 ? (
+                <span
+                  className={styles.sessionBadge}
+                  data-working={workingCount > 0 ? 'true' : 'false'}
+                  title={t('todo.sessionCount', { count: liveSessions.length })}
+                >
+                  {workingCount > 0 ? (
+                    <DotmCircular2
+                      size={11}
+                      dotSize={2}
+                      cellPadding={1}
+                      speed={1.2}
+                      ariaLabel={t('todo.sessionWorking')}
+                    />
+                  ) : (
+                    <span className={styles.sessionDot} />
+                  )}
+                  {liveSessions.length}
+                </span>
+              ) : null}
+            </span>
+          </button>
+        )}
+
+        <div className={styles.rowActions}>
+          {editing ? (
+            <>
+              <button
+                type="button"
+                className={styles.rowAction}
+                onClick={editTags}
+                title={t('todo.editTags')}
+                aria-label={t('todo.editTags')}
+              >
+                <Tag size={12} />
+              </button>
+              <button
+                type="button"
+                className={styles.rowAction}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={finishEditing}
+                title={t('todo.saveEdit')}
+                aria-label={t('todo.saveEdit')}
+              >
+                <Check size={13} />
+              </button>
+              <button
+                type="button"
+                className={styles.rowAction}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => setEditing(false)}
+                title={t('common.cancel')}
+                aria-label={t('common.cancel')}
+              >
+                <X size={13} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={`${styles.rowAction} ${styles.startAction}`}
+                onClick={() => openModal('taskSession', { todoId: todo.id })}
+                title={t('todo.startSession')}
+                aria-label={t('todo.startSession')}
+              >
+                <Play size={12} />
+              </button>
+              <button
+                type="button"
+                className={styles.rowAction}
+                onClick={startEditing}
+                title={t('todo.edit')}
+                aria-label={t('todo.edit')}
+              >
+                <Pencil size={12} />
+              </button>
+              <button
+                type="button"
+                className={`${styles.rowAction} ${styles.deleteAction}`}
+                onClick={() => deleteTodo(todo.id)}
+                title={t('todo.delete')}
+                aria-label={t('todo.delete')}
+              >
+                <Trash2 size={12} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {expanded ? (
+        <div className={styles.details}>
+          <div className={styles.detailBlock}>
+            <span className={styles.detailLabel}>{t('todo.priority')}</span>
+            <div className={styles.priorityRow}>
+              {TODO_PRIORITIES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`${styles.priorityPill} ${priority === value ? styles.priorityPillActive : ''}`}
+                  data-priority={value}
+                  aria-pressed={priority === value}
+                  onClick={() => setTodoPriority(todo.id, value as TodoPriority)}
+                >
+                  {t(`todo.priority.${value}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.detailBlock}>
+            <span className={styles.detailLabel}>{t('todo.notes')}</span>
+            <textarea
+              className={styles.notesInput}
+              value={notesDraft}
+              rows={3}
+              placeholder={t('todo.notesPlaceholder')}
+              onChange={(event) => setNotesDraft(event.target.value)}
+              onBlur={commitNotes}
+            />
+          </div>
+
+          <div className={styles.detailBlock}>
+            <span className={styles.detailLabel}>{t('todo.linkProject')}</span>
+            <ProjectPicker
+              value={todo.projectId ?? ''}
+              projects={projects}
+              noProjectLabel={t('todo.noProject')}
+              ariaLabel={t('todo.linkProject')}
+              onChange={(projectId) => setTodoProject(todo.id, projectId || null)}
+            />
+          </div>
+
+          {sessions.length > 0 ? (
+            <div className={styles.detailBlock}>
+              <span className={styles.detailLabel}>{t('todo.sessionsTitle')}</span>
+              <div className={styles.sessionList}>
+                {sessions.map((session) => (
+                  <SessionRow
+                    key={session.link.terminalId}
+                    session={session}
+                    t={t}
+                    onOpen={() =>
+                      focusSession(session.link.projectId, session.link.terminalId)
+                    }
+                    onUnlink={() => unlinkTodoSession(todo.id, session.link.terminalId)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className={styles.detailFooter}>
+            <span className={styles.detailMeta}>
+              {todo.completed && todo.completedAt
+                ? t('todo.metaCompleted', { date: formatRelativeTimestamp(todo.completedAt) })
+                : todo.createdAt
+                  ? t('todo.metaCreated', { date: formatRelativeTimestamp(todo.createdAt) })
+                  : ''}
+            </span>
+            <button
+              type="button"
+              className={styles.startSessionButton}
+              onClick={() => openModal('taskSession', { todoId: todo.id })}
+            >
+              <Play size={12} />
+              {t('todo.startSession')}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function SessionRow({
+  session,
+  t,
+  onOpen,
+  onUnlink,
+}: {
+  session: ResolvedSession
+  t: TFunction
+  onOpen: () => void
+  onUnlink: () => void
+}) {
+  const terminal = session.terminal
+  const working = useTerminalsStore((state) =>
+    terminal ? isTerminalWorking(terminal, state.byPtyId) : false,
+  )
+  const label = AGENT_TYPE_LABELS[session.link.agent] ?? session.link.agent
+  const stateLabel = !terminal
+    ? t('todo.sessionGone')
+    : working
+      ? t('todo.sessionWorking')
+      : t('todo.sessionIdle')
+
+  return (
+    <div className={styles.sessionRow} data-gone={terminal ? 'false' : 'true'}>
+      <button
+        type="button"
+        className={styles.sessionRowMain}
+        onClick={onOpen}
+        disabled={!terminal}
+        title={terminal ? t('todo.sessionOpen') : t('todo.sessionGone')}
+      >
+        <span className={styles.sessionAgentDot} data-agent={session.link.agent} />
+        <span className={styles.sessionRowName}>{terminal?.name ?? label}</span>
+        <span className={styles.sessionRowMeta}>
+          {stateLabel} · {formatRelativeTimestamp(session.link.startedAt)}
+        </span>
+      </button>
+      <button
+        type="button"
+        className={styles.sessionUnlink}
+        onClick={onUnlink}
+        title={t('todo.sessionUnlink')}
+        aria-label={t('todo.sessionUnlink')}
+      >
+        <Unlink size={11} />
+      </button>
+    </div>
+  )
+}
+
 export function TodoSidebar() {
   const t = useT()
   const todos = useProjectsStore((state) => state.todos)
   const projects = useProjectsStore((state) => state.projects)
   const createTodo = useProjectsStore((state) => state.createTodo)
-  const renameTodo = useProjectsStore((state) => state.renameTodo)
-  const updateTodoTags = useProjectsStore((state) => state.updateTodoTags)
-  const setTodoProject = useProjectsStore((state) => state.setTodoProject)
-  const toggleTodo = useProjectsStore((state) => state.toggleTodo)
-  const deleteTodo = useProjectsStore((state) => state.deleteTodo)
   const reorderTodo = useProjectsStore((state) => state.reorderTodo)
   const [title, setTitle] = useState('')
   const [tagDraft, setTagDraft] = useState('')
   const [projectDraft, setProjectDraft] = useState('')
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editTitle, setEditTitle] = useState('')
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [composerExpanded, setComposerExpanded] = useState(false)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     () => new Set(['completed']),
   )
   const addInputRef = useRef<HTMLInputElement>(null)
 
-  const active = todos.filter((todo) => !todo.completed)
-  const completed = todos.filter((todo) => todo.completed)
-  const progress = todos.length > 0 ? Math.round((completed.length / todos.length) * 100) : 0
+  const availableTags = useMemo(() => collectTodoTags(todos), [todos])
+  useEffect(() => {
+    if (tagFilter && !availableTags.includes(tagFilter)) setTagFilter(null)
+  }, [availableTags, tagFilter])
+
+  const visible = useMemo(
+    () => (tagFilter ? todos.filter((todo) => todo.tags.includes(tagFilter)) : todos),
+    [tagFilter, todos],
+  )
+  const active = visible.filter((todo) => !todo.completed)
+  const completed = visible.filter((todo) => todo.completed)
+  const progress = visible.length > 0 ? Math.round((completed.length / visible.length) * 100) : 0
   const activeProjectSections = projects
     .map((project) => ({
       key: `project:${project.id}`,
       label: project.name,
       projectId: project.id,
       iconUrl: project.iconUrl,
-      items: active.filter((todo) => todo.projectId === project.id),
+      items: sortTodosByPriority(active.filter((todo) => todo.projectId === project.id)),
     }))
     .filter((section) => section.items.length > 0)
-  const unassigned = active.filter((todo) => !todo.projectId)
+  const unassigned = sortTodosByPriority(active.filter((todo) => !todo.projectId))
+
+  const runningCount = useTerminalsStore(
+    (state) =>
+      todos.filter((todo) =>
+        resolveSessions(todo, projects).some(
+          (session) => session.terminal && isTerminalWorking(session.terminal, state.byPtyId),
+        ),
+      ).length,
+  )
 
   useEffect(() => {
     const focusComposer = (event: KeyboardEvent) => {
@@ -181,28 +624,51 @@ export function TodoSidebar() {
     })
   }
 
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   const startProjectTodo = (projectId = '') => {
     setProjectDraft(projectId)
     setComposerExpanded(true)
     window.requestAnimationFrame(() => addInputRef.current?.focus())
   }
 
-  const startEditing = (todo: TodoItem) => {
-    setEditingId(todo.id)
-    setEditTitle(todo.title)
-  }
-
-  const finishEditing = () => {
-    if (!editingId) return
-    if (editTitle.trim()) renameTodo(editingId, editTitle)
-    setEditingId(null)
-    setEditTitle('')
-  }
-
-  const editTags = (todo: TodoItem) => {
-    const value = window.prompt(t('todo.tagsPrompt'), todo.tags.join(', '))
-    if (value === null) return
-    updateTodoTags(todo.id, parseTags(value))
+  const drag: DragState = {
+    draggedId,
+    dropTargetId,
+    onDragStart: (todo, event) => {
+      setDraggedId(todo.id)
+      setDropTargetId(null)
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('text/plain', todo.id)
+    },
+    onDragEnd: () => {
+      setDraggedId(null)
+      setDropTargetId(null)
+    },
+    onDragOver: (todo, event) => {
+      if (!draggedId) return
+      const dragged = todos.find((item) => item.id === draggedId)
+      if (dragged?.completed !== todo.completed) return
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      setDropTargetId(todo.id)
+    },
+    onDragLeave: (todo) => {
+      if (dropTargetId === todo.id) setDropTargetId(null)
+    },
+    onDrop: (todo, event) => {
+      event.preventDefault()
+      if (draggedId) reorderTodo(draggedId, todo.id)
+      setDraggedId(null)
+      setDropTargetId(null)
+    },
   }
 
   const renderSection = ({
@@ -222,215 +688,52 @@ export function TodoSidebar() {
   }) => {
     const collapsed = collapsedSections.has(key)
     return (
-    <section key={key} className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <button
-          type="button"
-          className={styles.sectionToggle}
-          onClick={() => toggleSection(key)}
-          aria-expanded={!collapsed}
-        >
-          <ChevronDown
-            size={13}
-            className={`${styles.sectionChevron} ${collapsed ? styles.sectionChevronClosed : ''}`}
-          />
-          {iconUrl ? <img src={iconUrl} alt="" className={styles.sectionIcon} /> : null}
-          <span className={styles.sectionName}>{label}</span>
-          <span className={styles.sectionCount}>{items.length}</span>
-          <span className={styles.sectionRule} />
-        </button>
-        {!completedSection ? (
+      <section key={key} className={styles.section}>
+        <div className={styles.sectionHeader}>
           <button
             type="button"
-            className={styles.sectionAdd}
-            onClick={() => startProjectTodo(projectId)}
-            title={t('todo.add')}
-            aria-label={t('todo.add')}
+            className={styles.sectionToggle}
+            onClick={() => toggleSection(key)}
+            aria-expanded={!collapsed}
           >
-            <Plus size={13} />
+            <ChevronDown
+              size={13}
+              className={`${styles.sectionChevron} ${collapsed ? styles.sectionChevronClosed : ''}`}
+            />
+            {iconUrl ? <img src={iconUrl} alt="" className={styles.sectionIcon} /> : null}
+            <span className={styles.sectionName}>{label}</span>
+            <span className={styles.sectionCount}>{items.length}</span>
+            <span className={styles.sectionRule} />
           </button>
-        ) : null}
-      </div>
-      {!collapsed && items.length > 0 ? (
-        <div className={styles.list}>
-          {items.map((todo) => {
-            const editing = editingId === todo.id
-            return (
-              <div
-                key={todo.id}
-                className={[
-                  styles.todoRow,
-                  todo.completed ? styles.todoRowCompleted : '',
-                  draggedId === todo.id ? styles.todoRowDragging : '',
-                  dropTargetId === todo.id && draggedId !== todo.id ? styles.todoRowDropTarget : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                draggable={!editing}
-                onDragStart={(event) => {
-                  setDraggedId(todo.id)
-                  setDropTargetId(null)
-                  event.dataTransfer.effectAllowed = 'move'
-                  event.dataTransfer.setData('text/plain', todo.id)
-                }}
-                onDragEnd={() => {
-                  setDraggedId(null)
-                  setDropTargetId(null)
-                }}
-                onDragOver={(event) => {
-                  if (!draggedId) return
-                  const dragged = todos.find((item) => item.id === draggedId)
-                  if (dragged?.completed !== todo.completed) return
-                  event.preventDefault()
-                  event.dataTransfer.dropEffect = 'move'
-                  setDropTargetId(todo.id)
-                }}
-                onDragLeave={() => {
-                  if (dropTargetId === todo.id) setDropTargetId(null)
-                }}
-                onDrop={(event) => {
-                  event.preventDefault()
-                  if (draggedId) reorderTodo(draggedId, todo.id)
-                  setDraggedId(null)
-                  setDropTargetId(null)
-                }}
-              >
-                <button
-                  type="button"
-                  className={styles.dragHandle}
-                  title={t('todo.drag')}
-                  aria-label={t('todo.drag')}
-                  tabIndex={-1}
-                >
-                  <GripVertical size={13} />
-                </button>
-                <button
-                  type="button"
-                  className={styles.checkButton}
-                  onClick={() => toggleTodo(todo.id)}
-                  title={todo.completed ? t('todo.reopen') : t('todo.complete')}
-                  aria-label={todo.completed ? t('todo.reopen') : t('todo.complete')}
-                >
-                  {todo.completed ? <Check size={12} /> : null}
-                </button>
-
-                {editing ? (
-                  <input
-                    autoFocus
-                    className={styles.editInput}
-                    value={editTitle}
-                    maxLength={TODO_TITLE_MAX_LENGTH}
-                    onChange={(event) => setEditTitle(event.target.value)}
-                    onBlur={() => {
-                      setEditingId(null)
-                      setEditTitle('')
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') finishEditing()
-                      if (event.key === 'Escape') {
-                        setEditingId(null)
-                        setEditTitle('')
-                      }
-                    }}
-                    aria-label={t('todo.edit')}
-                  />
-                ) : (
-                  <div className={styles.todoTitle}>
-                    <button
-                      type="button"
-                      className={styles.titleButton}
-                      onClick={() => startEditing(todo)}
-                      title={todo.title}
-                    >
-                      <span className={styles.todoTitleText}>{todo.title}</span>
-                    </button>
-                    {todo.tags.length > 0 ? (
-                      <span className={styles.tags}>
-                        {todo.tags.map((tag) => (
-                          <span key={tag} className={styles.tag}>
-                            #{tag}
-                          </span>
-                        ))}
-                      </span>
-                    ) : null}
-                    <ProjectPicker
-                      value={todo.projectId ?? ''}
-                      projects={projects}
-                      noProjectLabel={t('todo.noProject')}
-                      ariaLabel={t('todo.linkProject')}
-                      compact
-                      onChange={(projectId) => setTodoProject(todo.id, projectId || null)}
-                    />
-                  </div>
-                )}
-
-                <div className={styles.rowActions}>
-                  {editing ? (
-                    <>
-                      <button
-                        type="button"
-                        className={styles.rowAction}
-                        onClick={() => editTags(todo)}
-                        title={t('todo.editTags')}
-                        aria-label={t('todo.editTags')}
-                      >
-                        <Tag size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.rowAction}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={finishEditing}
-                        title={t('todo.saveEdit')}
-                        aria-label={t('todo.saveEdit')}
-                      >
-                        <Check size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.rowAction}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          setEditingId(null)
-                          setEditTitle('')
-                        }}
-                        title={t('common.cancel')}
-                        aria-label={t('common.cancel')}
-                      >
-                        <X size={13} />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className={styles.rowAction}
-                        onClick={() => startEditing(todo)}
-                        title={t('todo.edit')}
-                        aria-label={t('todo.edit')}
-                      >
-                        <Pencil size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.rowAction} ${styles.deleteAction}`}
-                        onClick={() => deleteTodo(todo.id)}
-                        title={t('todo.delete')}
-                        aria-label={t('todo.delete')}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+          {!completedSection ? (
+            <button
+              type="button"
+              className={styles.sectionAdd}
+              onClick={() => startProjectTodo(projectId)}
+              title={t('todo.add')}
+              aria-label={t('todo.add')}
+            >
+              <Plus size={13} />
+            </button>
+          ) : null}
         </div>
-      ) : completedSection && todos.length > 0 ? (
-        <p className={styles.sectionEmpty}>{t('todo.emptyCompleted')}</p>
-      ) : null}
-    </section>
+        {!collapsed && items.length > 0 ? (
+          <div className={styles.list}>
+            {items.map((todo) => (
+              <TodoRow
+                key={todo.id}
+                todo={todo}
+                projects={projects}
+                drag={drag}
+                expanded={expandedIds.has(todo.id)}
+                onToggleExpanded={() => toggleExpanded(todo.id)}
+              />
+            ))}
+          </div>
+        ) : completedSection && visible.length > 0 ? (
+          <p className={styles.sectionEmpty}>{t('todo.emptyCompleted')}</p>
+        ) : null}
+      </section>
     )
   }
 
@@ -442,19 +745,31 @@ export function TodoSidebar() {
             <ListTodo size={17} />
             <span>{t('todo.title')}</span>
           </div>
+          {runningCount > 0 ? (
+            <span className={styles.runningPill}>
+              <DotmCircular2
+                size={11}
+                dotSize={2}
+                cellPadding={1}
+                speed={1.2}
+                ariaLabel={t('todo.sessionWorking')}
+              />
+              {t('todo.runningCount', { count: runningCount })}
+            </span>
+          ) : null}
         </div>
         <div
           className={styles.progress}
           role="progressbar"
           aria-valuemin={0}
-          aria-valuemax={todos.length}
+          aria-valuemax={visible.length}
           aria-valuenow={completed.length}
         >
           <span className={styles.progressTrack}>
             <span className={styles.progressFill} style={{ width: `${progress}%` }} />
           </span>
           <span className={styles.progressCount}>
-            {completed.length} / {todos.length}
+            {completed.length} / {visible.length}
           </span>
         </div>
         <div className={styles.filters} role="tablist" aria-label={t('todo.filters')}>
@@ -486,6 +801,27 @@ export function TodoSidebar() {
             {t('todo.completed')}
           </button>
         </div>
+        {availableTags.length > 0 ? (
+          <div className={styles.tagFilters} aria-label={t('todo.tagFilterLabel')}>
+            <button
+              type="button"
+              className={`${styles.tagFilter} ${!tagFilter ? styles.tagFilterActive : ''}`}
+              onClick={() => setTagFilter(null)}
+            >
+              {t('todo.tagFilterAll')}
+            </button>
+            {availableTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className={`${styles.tagFilter} ${tagFilter === tag ? styles.tagFilterActive : ''}`}
+                onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </header>
 
       <form
@@ -545,7 +881,7 @@ export function TodoSidebar() {
 
       <div className={styles.content}>
         {filter !== 'completed' ? <GsdSyncSection /> : null}
-        {todos.length === 0 ? (
+        {visible.length === 0 ? (
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>
               <ListTodo size={20} />
@@ -588,14 +924,12 @@ function ProjectPicker({
   projects,
   noProjectLabel,
   ariaLabel,
-  compact = false,
   onChange,
 }: {
   value: string
   projects: Array<{ id: string; name: string }>
   noProjectLabel: string
   ariaLabel: string
-  compact?: boolean
   onChange: (value: string) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -645,8 +979,8 @@ function ProjectPicker({
   }
 
   return (
-    <div className={compact ? styles.projectLink : styles.projectInputWrap}>
-      <FolderKanban size={compact ? 11 : 13} aria-hidden="true" />
+    <div className={styles.projectInputWrap}>
+      <FolderKanban size={13} aria-hidden="true" />
       <button
         ref={triggerRef}
         type="button"

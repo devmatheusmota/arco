@@ -201,8 +201,7 @@
   background: var(--bg-sunken);
 }
 
-.projectInputWrap::after,
-.projectLink::after {
+.projectInputWrap::after {
   content: '⌄';
   position: absolute;
   right: 6px;
@@ -485,10 +484,15 @@
   gap: 1px;
 }
 
+.todoItem {
+  display: flex;
+  flex-direction: column;
+}
+
 .todoRow {
   min-height: 36px;
   display: grid;
-  grid-template-columns: 13px 19px minmax(0, 1fr) auto;
+  grid-template-columns: 3px 13px 19px minmax(0, 1fr) auto;
   align-items: center;
   gap: 5px;
   padding: 2px 5px 2px 1px;
@@ -563,31 +567,81 @@
   background: var(--status-working);
 }
 
-.todoTitle {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 0;
-  overflow: hidden;
-  color: inherit;
-  font-size: 12px;
-  line-height: 1.35;
-  text-align: left;
-}
-
 .titleButton {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   width: auto;
-  flex: 1;
   min-width: 0;
-  padding: 0;
+  padding: 4px 0;
   overflow: hidden;
   color: inherit;
   background: transparent;
   border: 0;
-  font: inherit;
+  font: 12px/1.35 var(--font-sans);
   text-align: left;
+  cursor: pointer;
+}
+
+/* Priority reads as a spine on the row edge, not as another badge competing for space. */
+.priorityMarker {
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.priorityMarker[data-priority='high'] {
+  background: var(--status-offline);
+}
+
+.priorityMarker[data-priority='normal'] {
+  background: var(--border-strong);
+}
+
+.priorityMarker[data-priority='low'] {
+  background: transparent;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.metaRow:empty {
+  display: none;
+}
+
+.metaIcon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--fg-faint);
+}
+
+.sessionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 5px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--fg-muted);
+  font: 9px/1 var(--font-mono);
+}
+
+.sessionBadge[data-working='true'] {
+  color: var(--status-working);
+}
+
+.sessionDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--status-idle);
 }
 
 .todoTitleText {
@@ -596,43 +650,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.projectLink {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  flex: 0 1 84px;
-  margin-top: 0;
-  color: var(--fg-faint);
-  position: relative;
-  min-height: 21px;
-  padding: 0 6px;
-  box-sizing: border-box;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg-sunken) 72%, transparent);
-}
-
-.projectLink:hover,
-.projectLink:focus-within {
-  color: var(--fg-muted);
-  border-color: var(--border);
-  background: var(--bg-sunken);
-}
-
-.projectLink select {
-  font-size: 12px;
-}
-
-.tags {
-  display: inline-flex;
-  flex: 0 1 auto;
-  flex-wrap: nowrap;
-  gap: 3px;
-  margin-top: 0;
-  overflow: hidden;
 }
 
 .tag {
@@ -649,7 +666,7 @@
   white-space: nowrap;
 }
 
-.todoRowCompleted .todoTitle {
+.todoRowCompleted .todoTitleText {
   color: var(--fg-faint);
   text-decoration: line-through;
 }
@@ -679,7 +696,7 @@
 .todoRow:hover .rowActions,
 .todoRow:focus-within .rowActions {
   width: auto;
-  max-width: 66px;
+  max-width: 88px;
   opacity: 1;
   pointer-events: auto;
 }
@@ -687,6 +704,292 @@
 .rowAction {
   width: 20px;
   height: 20px;
+}
+
+.startAction:hover {
+  color: var(--status-working);
+}
+
+.todoRowExpanded {
+  background: var(--panel-hover);
+}
+
+/* ---- expanded task detail ---- */
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 2px 0 8px 21px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  animation: todoPanelIn 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.detailBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.detailLabel {
+  color: var(--fg-faint);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.priorityRow {
+  display: flex;
+  gap: 4px;
+}
+
+.priorityPill {
+  height: 22px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.priorityPill::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.priorityPill[data-priority='high']::before {
+  background: var(--status-offline);
+}
+
+.priorityPill:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+
+.priorityPillActive {
+  color: var(--fg);
+  border-color: var(--border-strong);
+  background: var(--panel-hover);
+}
+
+.notesInput {
+  width: 100%;
+  min-height: 58px;
+  padding: 6px 8px;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: vertical;
+  font: 11px/1.5 var(--font-sans);
+}
+
+.notesInput:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+
+.notesInput::placeholder {
+  color: var(--fg-faint);
+}
+
+.sessionList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sessionRow[data-gone='true'] {
+  opacity: 0.55;
+}
+
+.sessionRowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  font: 11px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sessionRowMain:hover:not(:disabled) {
+  background: var(--panel-hover);
+}
+
+.sessionRowMain:disabled {
+  cursor: default;
+}
+
+.sessionAgentDot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: var(--fg-faint);
+}
+
+.sessionAgentDot[data-agent='claude'] {
+  background: var(--agent-claude);
+}
+
+.sessionAgentDot[data-agent='codex'] {
+  background: var(--agent-codex);
+}
+
+.sessionAgentDot[data-agent='opencode'] {
+  background: var(--agent-opencode);
+}
+
+.sessionAgentDot[data-agent='antigravity'] {
+  background: var(--agent-antigravity);
+}
+
+.sessionAgentDot[data-agent='mimo'] {
+  background: var(--agent-mimo);
+}
+
+.sessionAgentDot[data-agent='freebuff'] {
+  background: var(--agent-freebuff);
+}
+
+.sessionAgentDot[data-agent='shell'] {
+  background: var(--agent-shell);
+}
+
+.sessionRowName {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessionRowMeta {
+  flex: 0 0 auto;
+  color: var(--fg-faint);
+  font: 9px var(--font-mono);
+}
+
+.sessionUnlink {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 20px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-faint);
+}
+
+.sessionUnlink:hover {
+  color: var(--status-offline);
+  background: var(--panel-hover);
+}
+
+.detailFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 2px;
+  border-top: 1px solid var(--border);
+}
+
+.detailMeta {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-faint);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.startSessionButton {
+  flex: 0 0 auto;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.startSessionButton:hover {
+  border-color: var(--accent-border);
+  background: var(--panel-hover);
+  color: var(--accent);
+}
+
+.runningPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 19px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--status-working-soft);
+  color: var(--status-working);
+  font: 9px/1 var(--font-mono);
+}
+
+.tagFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 7px 0 6px;
+}
+
+.tagFilter {
+  height: 19px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-faint);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.tagFilter:hover {
+  color: var(--fg-muted);
+  border-color: var(--border-strong);
+}
+
+.tagFilterActive {
+  color: var(--fg);
+  border-color: var(--border-strong);
+  background: var(--panel-hover);
 }
 
 .filterEmpty {
@@ -908,7 +1211,7 @@
 }
 
 :global([data-visual-style='clean'])
-  :is(.addInput, .editInput, .tagInputWrap, .projectInputWrap, .projectLink) {
+  :is(.addInput, .editInput, .tagInputWrap, .projectInputWrap) {
   border-radius: var(--clean-control-radius);
   background: transparent;
   box-shadow: none;
@@ -939,13 +1242,24 @@
   color: var(--fg);
 }
 
-:global([data-visual-style='clean']) .projectLink {
-  min-height: 20px;
-  border-color: transparent;
-}
-
 :global([data-visual-style='clean']) .tag {
   background: transparent;
   border-color: var(--border);
   border-radius: var(--clean-control-radius);
+}
+
+:global([data-visual-style='clean']) .details {
+  animation: none;
+  border-radius: var(--clean-row-radius);
+  background: transparent;
+}
+
+:global([data-visual-style='clean'])
+  :is(.notesInput, .startSessionButton, .priorityPill, .tagFilter, .sessionRowMain) {
+  border-radius: var(--clean-control-radius);
+  box-shadow: none;
+}
+
+:global([data-visual-style='clean']) .notesInput {
+  background: transparent;
 }

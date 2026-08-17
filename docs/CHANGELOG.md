@@ -21,6 +21,20 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Added
 
+- A task can now start the agent session that works on it. The **Start session** action on a task row
+  opens a launcher preloaded with the target project, agent, folder, worktree isolation and a first
+  message built from the task title, tags and notes. The new pane is named after the task, focused
+  right away, and linked back to the task.
+- Tasks record the sessions they launched. The task row shows a live badge with how many linked panes
+  exist and whether any of them is working, the expanded task lists each session with its agent, state
+  and age, one click jumps to that pane, and a session can be unlinked once it is no longer relevant.
+  Closing a pane, deleting its project, or deleting a group with its projects unlinks the affected
+  sessions automatically. The sidebar header shows how many tasks have a session working right now.
+- Tasks gained priority (high / normal / low), free-form notes and creation/completion timestamps.
+  Priority shows as a marker on the row and floats a task up inside its section; notes travel into the
+  session prompt. Expanding a task reveals notes, priority, project and session history inline —
+  clicking the title now expands the task instead of editing it, and the pencil action still renames.
+- The Todo sidebar can be filtered by tag, with the chips ordered by how many tasks use each tag.
 - Claude Code and Codex conversations can now be continued in the other agent from the terminal
   toolbar or Recent chats. Alethe builds an editable, locally redacted context packet, opens the
   target agent in a new pane, keeps the source conversation available, and removes the temporary
@@ -138,6 +152,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Fixed
 
+- Deleting a group together with its projects no longer leaves tasks pointing at a project that is
+  gone — those tasks now fall back to the unassigned section instead of disappearing from the list.
 - The topbar widgets no longer jump sideways when you hover them. The pencil button that opens the
   widget settings used to expand from zero width on hover, pushing every pill 26px to the left —
   enough for the pill you were reaching for to slide out from under the cursor, which dropped the

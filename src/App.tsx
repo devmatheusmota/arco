@@ -2,8 +2,6 @@ import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Bell, X } from 'lucide-react'
 import { type CSSProperties, lazy, Suspense, useEffect, useRef } from 'react'
-
-import { startCliBridge } from './lib/cliBridge'
 import { Group as PanelGroup, Panel, Separator, usePanelRef } from 'react-resizable-panels'
 
 import styles from './App.module.css'
@@ -35,6 +33,7 @@ import { RecentChatsModal } from './components/modals/RecentChatsModal'
 import { RemoteControlModal } from './components/modals/RemoteControlModal'
 import { SuspendGroupModal } from './components/modals/SuspendGroupModal'
 import { SyncModal } from './components/modals/SyncModal'
+import { TaskSessionModal } from './components/modals/TaskSessionModal'
 import { ThemePickerModal } from './components/modals/ThemePickerModal'
 import { TodoSettingsModal } from './components/modals/TodoSettingsModal'
 import { TopbarSettingsModal } from './components/modals/TopbarSettingsModal'
@@ -56,6 +55,7 @@ import { useRemoteControlService } from './hooks/useRemoteControlService'
 import { useResourceSupervisor } from './hooks/useResourceSupervisor'
 import { startActivityTracker } from './lib/activityTracker'
 import { APP_SHELL_ID } from './lib/appShell'
+import { startCliBridge } from './lib/cliBridge'
 import { AGENT_SANDBOX_ENABLED } from './lib/featureFlags'
 import { intlLocale, translate, useT } from './lib/i18n'
 import { visibilityFromPanelResize, widthFromPanelResize } from './lib/sidebarPanelState'
@@ -623,6 +623,7 @@ export default function App() {
         ) : null}
         <ThemePickerModal />
         <TodoSettingsModal />
+        <TaskSessionModal />
         <TopbarSettingsModal />
         <AiUsageModal />
         <UpdateModal />

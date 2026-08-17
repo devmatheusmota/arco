@@ -39,6 +39,7 @@ type ModalKind =
   | 'profiles'
   | 'sync'
   | 'todoSettings'
+  | 'taskSession'
   | 'topbarSettings'
   | 'updateAvailable'
   | 'whatsNew'

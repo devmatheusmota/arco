@@ -30,6 +30,8 @@ import {
   type Terminal,
   type Theme,
   type TodoItem,
+  type TodoPriority,
+  type TodoSessionLink,
   type WorkspaceContainer,
   type WorkspaceRecentTab,
   type WorkspaceTab,
@@ -179,10 +181,20 @@ export type ProjectsState = ProjectsFile & {
   setWorkspaceGridLayout: (layout: GridLayout | null, recordHistory?: boolean) => void
 
                   
-  createTodo: (title: string, tags?: string[], projectId?: string) => TodoItem | null
+  createTodo: (
+    title: string,
+    tags?: string[],
+    projectId?: string,
+    extra?: { notes?: string; priority?: TodoPriority },
+  ) => TodoItem | null
   renameTodo: (id: string, title: string) => void
   updateTodoTags: (id: string, tags: string[]) => void
+  updateTodoNotes: (id: string, notes: string) => void
+  setTodoPriority: (id: string, priority: TodoPriority) => void
   setTodoProject: (id: string, projectId: string | null) => void
+  /** Records the session a task launched so the row can jump back to that pane. */
+  linkTodoSession: (id: string, link: TodoSessionLink) => void
+  unlinkTodoSession: (id: string, terminalId: string) => void
   resetTodosToDefault: () => void
   toggleTodo: (id: string) => void
   deleteTodo: (id: string) => void

@@ -101,6 +101,19 @@ export type VisualStyle = 'normal' | 'clean'
 export type FeatureId = 'todos' | 'git' | 'browser' | 'graphify' | 'aiMemory' | 'mcp'
 
                                                                                        
+/** Task urgency. Drives the colored marker and the ordering hint in the sidebar. */
+export type TodoPriority = 'low' | 'normal' | 'high'
+
+export const TODO_PRIORITIES: TodoPriority[] = ['high', 'normal', 'low']
+
+/** An agent session that was launched from a task, kept so the task can jump back to it. */
+export type TodoSessionLink = {
+  projectId: string
+  terminalId: string
+  agent: AgentType
+  startedAt: number
+}
+
 export type TodoItem = {
   id: string
   title: string
@@ -108,6 +121,13 @@ export type TodoItem = {
   tags: string[]
                                                                    
   projectId?: string
+  /** Extra context handed to the agent when a session is started from this task. */
+  notes?: string
+  priority?: TodoPriority
+  createdAt?: number
+  completedAt?: number
+  /** Sessions launched from this task, newest first. */
+  sessions?: TodoSessionLink[]
 }
 
 export type SubTab = {

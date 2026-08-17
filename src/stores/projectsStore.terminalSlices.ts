@@ -19,6 +19,7 @@ import {
   touchTerminalUsage,
 } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
+import { pruneTodoSessions } from '../lib/todos'
 import type { Terminal } from '../lib/types'
 import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
 import type { ProjectsState } from './projectsStore'
@@ -404,6 +405,8 @@ export function createTerminalsSlice({ get, update, updateTerminal }: SliceCtx):
           }))
         return {
           projects,
+          // A task that launched one of these panes must not keep pointing at it.
+          todos: pruneTodoSessions(state.todos, (link) => !idsToRemove.has(link.terminalId)),
           workspace: {
             ...state.workspace,
             containers,
