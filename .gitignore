@@ -44,3 +44,8 @@ pnpm-debug.log*
 
 # Graphify — grafo gerado (cache/AST/graph.json ~80MB). Sempre reconstruível.
 graphify-out/
+
+# Worktrees que o próprio Arco cria para as sessões de agente. Cada uma é uma
+# árvore de trabalho completa, então versioná-las duplicaria o repo — e um
+# `?? .arco/` derruba o check de árvore limpa do scripts/release.mjs.
+.arco/

@@ -2,6 +2,8 @@ dist
 node_modules
 src-tauri/target
 graphify-out
+# Worktrees das sessões de agente — cópias completas do repo.
+.arco
 package-lock.json
 *.md
 *.snap

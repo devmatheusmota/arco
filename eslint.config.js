@@ -13,6 +13,9 @@ export default tseslint.config(
       'node_modules',
       'src-tauri',
       'graphify-out',
+      // Worktrees das sessões de agente: cada uma é uma cópia completa de src/,
+      // então sem isto `eslint .` reporta o repo inteiro uma vez por worktree.
+      '.arco',
       'scripts',
       'tests',
       '*.config.js',
