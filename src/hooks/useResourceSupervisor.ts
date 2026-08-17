@@ -1,13 +1,17 @@
 import { useEffect } from 'react'
 
+import { getLocale, translate } from '../lib/i18n'
 import { computeVisibleFocusedPtyIds } from '../lib/ptyVisibility'
 import {
   getMemoryStats,
   getRuntimeSnapshot,
+  type HibernationHintPayload,
+  listenHibernationSuggested,
   listenPtySuspended,
   type PtyRuntimeMeta,
   type ResourcePolicyInput,
   setResourcePolicy,
+  suspendPty,
   updatePtyRuntimeMeta,
 } from '../lib/tauri'
 import { useProjectsStore } from '../stores/projectsStore'
@@ -19,7 +23,7 @@ const SAMPLE_INTERVAL_MS = 5_000
 function currentPolicy(): ResourcePolicyInput {
   const policy = useProjectsStore.getState().preferences.resourcePolicy
   return {
-    mode: 'manual',
+    mode: policy.mode,
     memoryBudgetMb: policy.memoryBudgetMb,
     warningThresholdMb: policy.warningThresholdMb,
     recoveryTargetMb: policy.recoveryTargetMb,
@@ -118,6 +122,30 @@ export function useResourceSupervisor(hydrated: boolean): void {
       useTerminalsStore.getState().markSuspended(id)
     }
 
+    // Smart LRU never parks a runtime on its own — it offers, and the toast's
+    // action is the only path that suspends. Parking frees the whole process
+    // subtree while the scrollback and the resume identity stay on disk.
+    const onHibernationSuggested = (payload: HibernationHintPayload) => {
+      const count = payload.candidates.length
+      if (count === 0) return
+      const locale = getLocale()
+      useUiStore.getState().pushToast({
+        title: translate(locale, 'toast.hibernationTitle'),
+        body: translate(locale, 'toast.hibernationBody', {
+          count,
+          mb: Math.round(payload.reclaimableMb),
+        }),
+        action: {
+          label: translate(locale, 'toast.hibernationAction'),
+          run: () => {
+            for (const candidate of payload.candidates) {
+              void suspendPty(candidate.id).catch(() => false)
+            }
+          },
+        },
+      })
+    }
+
     const tick = async () => {
       if (running || cancelled) return
       running = true
@@ -160,6 +188,14 @@ export function useResourceSupervisor(hydrated: boolean): void {
     void listenPtySuspended((payload) => {
       if (cancelled) return
       onSuspended(payload.id)
+    }).then((unlisten) => {
+      if (cancelled) unlisten()
+      else unlisteners.push(unlisten)
+    })
+
+    void listenHibernationSuggested((payload) => {
+      if (cancelled) return
+      onHibernationSuggested(payload)
     }).then((unlisten) => {
       if (cancelled) unlisten()
       else unlisteners.push(unlisten)

@@ -58,6 +58,12 @@ export type MemorySample = MemoryStats & {
   ts: number
 }
 
+/** Confirmation a toast can offer. Kept out of the history entry, which outlives the banner. */
+export type ToastAction = {
+  label: string
+  run: () => void
+}
+
 export type InAppToast = {
   id: string
   title: string
@@ -65,6 +71,7 @@ export type InAppToast = {
   createdAt: number
   /** Agent that originated the notification and determines its icon and color. */
   agent?: AgentType
+  action?: ToastAction
 }
 
 const MAX_MEMORY_HISTORY = 720
@@ -152,6 +159,7 @@ type UiState = {
     agent?: AgentType
     /** Record in history without showing an ephemeral banner. */
     silent?: boolean
+    action?: ToastAction
   }) => void
   dismissToast: (id: string) => void
   clearNotifications: () => void
@@ -282,7 +290,7 @@ export const useUiStore = create<UiState>((set) => ({
   showMcpSidebar: () => set({ rightSidebarMode: 'mcp' }),
   setAgentCanvasSession: (session) => set({ agentCanvasSession: session }),
   setAgentCanvasBudget: (usd) => set({ agentCanvasBudgetUsd: usd }),
-  pushToast: ({ title, body, agent, silent }) =>
+  pushToast: ({ title, body, agent, silent, action }) =>
     set((s) => {
       const entry: InAppToast = {
         id: `${Date.now()}:${Math.random().toString(36).slice(2)}`,
@@ -291,9 +299,11 @@ export const useUiStore = create<UiState>((set) => ({
         createdAt: Date.now(),
         agent,
       }
+      // History keeps the plain entry: its action would outlive the state that
+      // made it meaningful, and replaying it days later is not what it meant.
       const notifications = [entry, ...s.notifications].slice(0, MAX_NOTIFICATIONS)
       if (silent) return { notifications }
-      const toasts = [...s.toasts, entry].slice(-MAX_TOASTS)
+      const toasts = [...s.toasts, action ? { ...entry, action } : entry].slice(-MAX_TOASTS)
       return { toasts, notifications }
     }),
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((toast) => toast.id !== id) })),

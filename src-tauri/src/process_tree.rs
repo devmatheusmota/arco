@@ -1,25 +1,33 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
-use sysinfo::{Pid, ProcessesToUpdate, System};
+use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 
 /// Mapeia ptyId → PID raiz do PTY (pwsh.exe / bash).
 static PTY_ROOTS: OnceLock<Mutex<HashMap<String, u32>>> = OnceLock::new();
 
-static TREE_CACHE: OnceLock<Mutex<Option<(Instant, HashMap<u32, Vec<u32>>)>>> = OnceLock::new();
+type ParentMap = Arc<HashMap<u32, Vec<u32>>>;
+
+static TREE_CACHE: OnceLock<Mutex<Option<(Instant, ParentMap)>>> = OnceLock::new();
+
+/// Kept across sweeps. A fresh `System` re-reads every process from scratch, and
+/// this map is rebuilt on every spawn, kill and tree count.
+static TREE_SYSTEM: OnceLock<Mutex<System>> = OnceLock::new();
 
 fn roots() -> &'static Mutex<HashMap<String, u32>> {
     PTY_ROOTS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn tree_cache() -> &'static Mutex<Option<(Instant, HashMap<u32, Vec<u32>>)>> {
+fn tree_cache() -> &'static Mutex<Option<(Instant, ParentMap)>> {
     TREE_CACHE.get_or_init(|| Mutex::new(None))
 }
 
 fn build_parent_map(sys: &mut System) -> HashMap<u32, Vec<u32>> {
-    sys.refresh_processes(ProcessesToUpdate::All);
+    // Parentage only — no memory, cpu or disk usage, which the callers of this
+    // map never read and which cost one extra read per process on every sweep.
+    sys.refresh_processes_specifics(ProcessesToUpdate::All, ProcessRefreshKind::new());
     let mut map: HashMap<u32, Vec<u32>> = HashMap::new();
     for (pid, process) in sys.processes() {
         // contagem/kill de PTY tree e deixando spawn/kill bem mais lentos.
@@ -34,19 +42,22 @@ fn build_parent_map(sys: &mut System) -> HashMap<u32, Vec<u32>> {
     map
 }
 
-fn get_parent_map() -> HashMap<u32, Vec<u32>> {
+fn get_parent_map() -> ParentMap {
     let cache = tree_cache();
     let mut guard = cache
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some((at, map)) = guard.as_ref() {
         if at.elapsed() < Duration::from_secs(2) {
-            return map.clone();
+            return Arc::clone(map);
         }
     }
-    let mut sys = System::new();
-    let fresh = build_parent_map(&mut sys);
-    *guard = Some((Instant::now(), fresh.clone()));
+    let mut sys = TREE_SYSTEM
+        .get_or_init(|| Mutex::new(System::new()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let fresh: ParentMap = Arc::new(build_parent_map(&mut sys));
+    *guard = Some((Instant::now(), Arc::clone(&fresh)));
     fresh
 }
 
@@ -113,8 +124,15 @@ fn persist_roots() {
     };
     let snapshot: Vec<PersistedRoot> = {
         let Ok(guard) = roots().lock() else { return };
+        // Runs on every PTY spawn and teardown, and only ever reads the handful
+        // of roots below — sweeping every process on the machine here would put
+        // a full `/proc` pass in the spawn path.
+        let pids: Vec<Pid> = guard.values().map(|&pid| Pid::from_u32(pid)).collect();
         let mut sys = System::new();
-        sys.refresh_processes(ProcessesToUpdate::All);
+        sys.refresh_processes_specifics(
+            ProcessesToUpdate::Some(&pids),
+            ProcessRefreshKind::new(),
+        );
         guard
             .values()
             .filter_map(|&pid| {

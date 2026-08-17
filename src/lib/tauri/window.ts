@@ -124,6 +124,21 @@ export type PtySuspendedPayload = {
   reason: 'memory-pressure' | string
 }
 
+export type HibernationCandidate = {
+  id: string
+  kind: string
+  memoryMb: number
+  idleMinutes: number
+}
+
+/** Idle hidden runtimes worth parking. Advisory — the user confirms the action. */
+export type HibernationHintPayload = {
+  candidates: HibernationCandidate[]
+  reclaimableMb: number
+  totalMb: number
+  budgetMb: number
+}
+
 export async function getRuntimeSnapshot(): Promise<RuntimeSnapshot> {
   return invoke<RuntimeSnapshot>('get_runtime_snapshot')
 }
@@ -150,6 +165,14 @@ export function listenPtySuspended(
   handler: (payload: PtySuspendedPayload) => void,
 ): Promise<UnlistenFn> {
   return listen<PtySuspendedPayload>('resource://pty-suspended', (event) => handler(event.payload))
+}
+
+export function listenHibernationSuggested(
+  handler: (payload: HibernationHintPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<HibernationHintPayload>('resource://hibernation-suggested', (event) =>
+    handler(event.payload),
+  )
 }
 
                                                                                   

@@ -10,6 +10,28 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- Terminals now render on the GPU. The pane on screen uses the WebGL renderer instead of building
+  one DOM element per cell, which is what made scrolling crawl in a workspace with several open
+  sessions. The context follows visibility, so hidden panes release it and only what is on screen
+  holds one; if the WebView cannot provide WebGL, the pane silently keeps the old renderer.
+- **Smart LRU** now does something. When the workspace is over its memory budget and hidden
+  sessions have been idle past their threshold, Arco offers to park them in a notification with a
+  **Park** action. Nothing is parked until you choose it, parking frees the whole process subtree,
+  and the scrollback and session identity survive so the agent resumes where it stopped. Visible,
+  focused, working and recently spawned runtimes are never offered.
+
+### Fixed
+
+- Terminals no longer inherit the AppImage's own runtime environment (Linux). `PYTHONHOME` and
+  `PYTHONPATH` pointed inside the AppImage mount, so every `python3` a session ran died with
+  "Failed to import encodings module" — which broke agent hooks written in Python. `LD_LIBRARY_PATH`,
+  `PATH`, `PERLLIB`, `XDG_DATA_DIRS` and the GTK/Qt/GStreamer variables leaked the same way and
+  could make a spawned binary load the bundle's libraries instead of the system's.
+- The **Memory monitoring** preference was never sent to the backend — the choice between
+  **Smart LRU** and **Monitor only** was ignored and the app always behaved as **Monitor only**.
+
 ### Changed
 
 - A workspace tab now shows a single project, always. Creating a terminal or opening a pane in
@@ -18,6 +40,12 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   tab per project of the group; those tabs sit together in the tab bar under a chip with the group
   name and color, and clicking the chip closes them all. The tab limit went from 10 to 20 to make
   room for groups.
+
+- The memory sampler got substantially cheaper. It no longer collects per-process disk usage it
+  never displayed, measures each process's private memory once per cycle instead of twice, reuses
+  its process table across sweeps, and slows from 5s to 30s while no window is on screen. Saving
+  the PTY root list — which runs on every spawn and every close — no longer sweeps every process on
+  the machine to read a handful of them.
 
 ### Removed
 
