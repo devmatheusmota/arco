@@ -99,7 +99,11 @@ describe('todos', () => {
 
   it('builds a session prompt from title, tags and notes', () => {
     expect(
-      buildTaskSessionPrompt({ title: 'Fix the parser', tags: ['bug', 'parser'], notes: 'Repro: …' }),
+      buildTaskSessionPrompt({
+        title: 'Fix the parser',
+        tags: ['bug', 'parser'],
+        notes: 'Repro: …',
+      }),
     ).toBe('Task: Fix the parser\nTags: #bug #parser\n\nRepro: …')
     expect(buildTaskSessionPrompt({ title: 'Plain', tags: [] })).toBe('Task: Plain')
   })

@@ -73,12 +73,9 @@ export function TaskSessionModal() {
 
   useEffect(() => {
     if (!open || !todo) return
-    const fallbackProject =
-      todo.projectId ?? activeProjectId ?? projects[0]?.id ?? ''
+    const fallbackProject = todo.projectId ?? activeProjectId ?? projects[0]?.id ?? ''
     setProjectId(projects.some((item) => item.id === fallbackProject) ? fallbackProject : '')
-    setAgent(
-      visibleAgents.includes('claude') ? 'claude' : (visibleAgents[0] ?? 'shell'),
-    )
+    setAgent(visibleAgents.includes('claude') ? 'claude' : (visibleAgents[0] ?? 'shell'))
     setPrompt(buildTaskSessionPrompt(todo))
     setUnrestricted(alwaysStartUnrestricted)
     setIsolate(false)

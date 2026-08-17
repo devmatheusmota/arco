@@ -1210,8 +1210,7 @@
   border-radius: var(--clean-control-radius);
 }
 
-:global([data-visual-style='clean'])
-  :is(.addInput, .editInput, .tagInputWrap, .projectInputWrap) {
+:global([data-visual-style='clean']) :is(.addInput, .editInput, .tagInputWrap, .projectInputWrap) {
   border-radius: var(--clean-control-radius);
   background: transparent;
   box-shadow: none;

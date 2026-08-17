@@ -18,7 +18,7 @@ import { createPortal } from 'react-dom'
 
 import { type GsdSyncSession, useGsdSyncSessions } from '../../hooks/useGsdSyncSessions'
 import { formatRelativeTimestamp } from '../../lib/greeting'
-import { type TFunction,useT } from '../../lib/i18n'
+import { type TFunction, useT } from '../../lib/i18n'
 import { formatShortcut } from '../../lib/platform'
 import { type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
 import {
@@ -57,7 +57,10 @@ function resolveSessions(todo: TodoItem, projects: Project[]): ResolvedSession[]
   })
 }
 
-function isTerminalWorking(terminal: Terminal, byPtyId: Record<string, { status: string }>): boolean {
+function isTerminalWorking(
+  terminal: Terminal,
+  byPtyId: Record<string, { status: string }>,
+): boolean {
   return terminal.tabs.some((tab) => tab.ptyId && byPtyId[tab.ptyId]?.status === 'working')
 }
 
@@ -138,7 +141,11 @@ function GsdSyncRow({
     }
   }, [terminal.cwd, session.busy])
 
-  const statusLabel = session.hasError ? t('todo.gsdError') : session.busy ? t('todo.gsdBusy') : t('todo.gsdIdle')
+  const statusLabel = session.hasError
+    ? t('todo.gsdError')
+    : session.busy
+      ? t('todo.gsdBusy')
+      : t('todo.gsdIdle')
   const progressLabel =
     status?.roadmapTotalCount != null && status.roadmapPendingCount != null
       ? t('todo.gsdProgress', {
@@ -153,7 +160,14 @@ function GsdSyncRow({
         {session.hasError ? (
           <span className={styles.gsdErrorDot} />
         ) : session.busy ? (
-          <DotmCircular2 size={13} dotSize={2} cellPadding={1} speed={1.2} bloom ariaLabel={statusLabel} />
+          <DotmCircular2
+            size={13}
+            dotSize={2}
+            cellPadding={1}
+            speed={1.2}
+            bloom
+            ariaLabel={statusLabel}
+          />
         ) : (
           <span className={styles.gsdIdleDot} />
         )}
@@ -460,9 +474,7 @@ function TodoRow({
                     key={session.link.terminalId}
                     session={session}
                     t={t}
-                    onOpen={() =>
-                      focusSession(session.link.projectId, session.link.terminalId)
-                    }
+                    onOpen={() => focusSession(session.link.projectId, session.link.terminalId)}
                     onUnlink={() => unlinkTodoSession(todo.id, session.link.terminalId)}
                   />
                 ))}
@@ -959,9 +971,10 @@ function ProjectPicker({
       const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))
       const estimatedHeight = Math.min(240, (projects.length + 1) * 32 + 8)
       const roomBelow = window.innerHeight - rect.bottom - 8
-      const top = roomBelow >= Math.min(estimatedHeight, 180)
-        ? rect.bottom + 5
-        : Math.max(8, rect.top - estimatedHeight - 5)
+      const top =
+        roomBelow >= Math.min(estimatedHeight, 180)
+          ? rect.bottom + 5
+          : Math.max(8, rect.top - estimatedHeight - 5)
       setMenuPosition({ left, top, width })
     }
     updatePosition()
@@ -1020,20 +1033,20 @@ function ProjectPicker({
                 {noProjectLabel}
               </button>
               {projects.map((project) => (
-            <button
-              key={project.id}
-              type="button"
-              role="option"
-              aria-selected={project.id === value}
-              className={`${styles.projectOption} ${project.id === value ? styles.projectOptionSelected : ''}`}
-              title={project.name}
-              onClick={(event) => {
-                event.stopPropagation()
-                choose(project.id)
-              }}
-            >
-              {project.name}
-            </button>
+                <button
+                  key={project.id}
+                  type="button"
+                  role="option"
+                  aria-selected={project.id === value}
+                  className={`${styles.projectOption} ${project.id === value ? styles.projectOptionSelected : ''}`}
+                  title={project.name}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    choose(project.id)
+                  }}
+                >
+                  {project.name}
+                </button>
               ))}
             </div>,
             document.body,
