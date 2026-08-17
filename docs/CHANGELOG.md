@@ -26,6 +26,9 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Fixed
 
+- The Claude Code usage tooltip in the title bar no longer shows `NaNm` as the reset time. When the
+  API reports no reset timestamp for a window, the tooltip now shows `—`, and an already-elapsed
+  window shows the translated "resetting…" label instead of untranslated English.
 - Typing in a terminal feels immediate again. A keystroke no longer waits out the backend's output
   coalescing window nor an animation frame before its echo reaches the screen, and the pane stopped
   flushing layout twice per character. Bulk output still batches as before.

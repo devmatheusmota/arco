@@ -3,38 +3,13 @@ import { useState, type ReactNode } from 'react'
 import { getCachedClaudeUsage } from '../../lib/claudeUsageCache'
 import { getCachedCodexUsage } from '../../lib/codexUsageCache'
 import { getCachedAntigravityUsage } from '../../lib/antigravityUsageCache'
-import { translate, getLocale, useT } from '../../lib/i18n'
+import { useT } from '../../lib/i18n'
 import type { AntigravityUsage, ClaudeUsage, CodexUsage } from '../../lib/tauri'
+import { formatResetIso as formatResetTime, formatResetMs } from '../../lib/usageFormat'
 import { useUiStore } from '../../stores/uiStore'
 import { AntigravityIcon, ClaudeIcon, CodexIcon } from '../icons/AgentIcons'
 import { ActivityGraph } from './ActivityGraph'
 import styles from './HomeView.module.css'
-
-function formatDiff(diff: number): string {
-  if (Number.isNaN(diff)) return '—'
-  if (diff <= 0) return translate(getLocale(), 'widget.resetting')
-  const h = Math.floor(diff / 3_600_000)
-  const m = Math.floor((diff % 3_600_000) / 60_000)
-  if (h >= 24) {
-    const d = Math.floor(h / 24)
-    return `${d}d ${h % 24}h`
-  }
-  return h > 0 ? `${h}h ${m}m` : `${m}m`
-}
-
-function formatResetTime(resetsAt: string): string {
-  if (!resetsAt) return '—'
-  try {
-    return formatDiff(new Date(resetsAt).getTime() - Date.now())
-  } catch {
-    return resetsAt
-  }
-}
-
-function formatResetMs(resetsAtMs: number): string {
-  if (!resetsAtMs) return '—'
-  return formatDiff(resetsAtMs - Date.now())
-}
 
                                                                                    
 function meterColor(util: number, base: string): string {

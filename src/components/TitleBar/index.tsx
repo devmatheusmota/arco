@@ -28,6 +28,7 @@ import { observeClaudeReset, observeCodexReset } from '../../lib/limitResetWatch
 import { formatShortcut } from '../../lib/platform'
 import { killPty, remoteControlConnectedDevices } from '../../lib/tauri'
 import type { Group, WorkspaceTab } from '../../lib/types'
+import { formatResetIso as formatResetTime } from '../../lib/usageFormat'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { AntigravityIcon, ClaudeIcon, CodexIcon } from '../icons/AgentIcons'
@@ -43,18 +44,6 @@ function usagePillColor(utilization: number): string {
   if (utilization >= 80) return 'var(--status-offline)'
   if (utilization >= 50) return 'var(--status-waiting)'
   return 'var(--status-working)'
-}
-
-function formatResetTime(resetsAt: string): string {
-  try {
-    const diff = new Date(resetsAt).getTime() - Date.now()
-    if (diff <= 0) return 'resetting...'
-    const h = Math.floor(diff / 3_600_000)
-    const m = Math.floor((diff % 3_600_000) / 60_000)
-    return h > 0 ? `${h}h ${m}m` : `${m}m`
-  } catch {
-    return resetsAt
-  }
 }
 
 function formatPct(value: number): string {
