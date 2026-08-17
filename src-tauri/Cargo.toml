@@ -16,6 +16,14 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # cfg" toda vez que aparece em #[cfg(...)] (lib.rs, ghostty_bridge.rs).
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(ghostty_linked)"] }
 
+[features]
+# Sem esta feature, `tauri-build` liga o cfg `dev` e a WebView vai buscar o
+# `devUrl` (http://localhost:1422) em vez do frontend embutido — um
+# `cargo build --release` puro gera um binário que abre em branco com
+# "Connection refused". O `tauri build` já passa a feature; declará-la aqui faz
+# `cargo build --release --features custom-protocol` concordar com ele.
+custom-protocol = ["tauri/custom-protocol"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
