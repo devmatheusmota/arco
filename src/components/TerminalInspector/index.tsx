@@ -13,12 +13,11 @@ import {
   TerminalSquare,
   Trash2,
 } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 
 import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
-import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import { useT } from '../../lib/i18n'
-import { agentCliCommand, type SubTab, type Terminal } from '../../lib/types'
+import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import {
   getPtyCwd,
   openInBrowser,
@@ -26,6 +25,7 @@ import {
   openInVscode,
   restartPty,
 } from '../../lib/tauri'
+import { agentCliCommand, type SubTab, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -77,12 +77,14 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
     () => terminal.tabs.find((tab) => tab.id === terminal.activeTabId) ?? terminal.tabs[0],
     [terminal.activeTabId, terminal.tabs],
   )
-  const runtime = useTerminalsStore((state) =>
-    activeTab?.ptyId ? (state.byPtyId[activeTab.ptyId] ?? null) : null,
+  // Only the status matters here; selecting the runtime object would rerender
+  // the inspector on every I/O timestamp bump.
+  const runtimeStatus = useTerminalsStore((state) =>
+    activeTab?.ptyId ? (state.byPtyId[activeTab.ptyId]?.status ?? null) : null,
   )
   const status = terminal.disabled
     ? 'disabled'
-    : (runtime?.status ?? (activeTab ? 'waiting' : 'stopped'))
+    : (runtimeStatus ?? (activeTab ? 'waiting' : 'stopped'))
   const isFocusMode = focusedTerminalId === terminal.id
   const effectiveLaneVisible = terminal.tabs.length > 1 ? true : terminal.laneVisible === true
   const cwd = activeTab?.cwd?.trim() || terminal.cwd?.trim() || ''

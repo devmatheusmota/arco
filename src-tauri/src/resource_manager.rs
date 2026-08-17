@@ -204,7 +204,10 @@ fn publish_metrics(app: &AppHandle, metrics: &ResourceMetrics) {
 }
 
 fn tick(app: &AppHandle) {
-    let mem = stats::collect_memory_stats();
+    // Shares the cached sample: this tick, the crash watchdog and the resource
+    // supervisor run on overlapping timers, and scanning every process on the
+    // machine is the expensive half of a sample.
+    let mem = stats::memory_stats_cached();
     let available_mb = mem.system_available_mb;
 
     let mut s = state().lock().unwrap();
@@ -326,7 +329,7 @@ pub fn start(app: AppHandle) {
 
 #[tauri::command]
 pub fn get_resource_metrics() -> ResourceMetrics {
-    let mem = stats::collect_memory_stats();
+    let mem = stats::memory_stats_cached();
     let s = state().lock().unwrap();
     ResourceMetrics {
         memory_pressure: s.pressure,

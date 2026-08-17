@@ -1,7 +1,7 @@
 import { getLocale, translate } from './i18n'
-import type { AgentType } from './types'
 import { notifyAgentDone } from './notifications'
 import { pathSegments } from './paths'
+import type { AgentType } from './types'
 
 const RESPONSE_IDLE_MS = 4500
 const MIN_RESPONSE_MS = 700
@@ -17,7 +17,7 @@ export type AgentCompletionMonitorOptions = {
   cwd?: string | null
   onStatusChange?: (status: 'working' | 'waiting') => void
   onComplete?: () => void
-                                                                                    
+
   notifyOnComplete?: boolean
 }
 
@@ -134,7 +134,22 @@ function shortPath(path: string): string {
   return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`
 }
 
+// Every PTY chunk reaches two monitors — the pane's own and the one the
+// activity tracker keeps for the same agent — so the five passes below used to
+// run twice over identical bytes. One slot is enough: the second call arrives
+// with the very same string, right after the first.
+let lastStrippedInput: string | null = null
+let lastStrippedOutput = ''
+
 function stripTerminalControls(value: string): string {
+  if (value === lastStrippedInput) return lastStrippedOutput
+  const stripped = stripTerminalControlsUncached(value)
+  lastStrippedInput = value
+  lastStrippedOutput = stripped
+  return stripped
+}
+
+function stripTerminalControlsUncached(value: string): string {
   return value
     .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '')
     .replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, '')

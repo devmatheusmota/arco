@@ -163,11 +163,15 @@ export const TerminalPane = memo(function TerminalPane({
   const showFloatingIdentity = Boolean(activeTab && !isShell)
   const showLeftFloating = showFloatingIdentity || (canDragPane && !isShell)
 
-  const ptyRuntime = useTerminalsStore((s) =>
-    activeTab?.ptyId ? (s.byPtyId[activeTab.ptyId] ?? null) : null,
+  // Selecting the runtime object would rerender the whole pane every time its
+  // I/O timestamp moves — four times a second while an agent streams.
+  const ptyExited = useTerminalsStore((s) => {
+    const runtime = activeTab?.ptyId ? s.byPtyId[activeTab.ptyId] : undefined
+    return runtime !== undefined && !runtime.alive
+  })
+  const ptyParked = useTerminalsStore((s) =>
+    activeTab?.ptyId ? s.byPtyId[activeTab.ptyId]?.parked === true : false,
   )
-  const ptyExited = ptyRuntime !== null && !ptyRuntime.alive
-  const ptyParked = ptyRuntime?.parked === true
   const canHandoff = activeTab?.type === 'claude' || activeTab?.type === 'codex'
   const handoffSuggested =
     (activeTab?.type === 'claude' && (claudeUsage?.five_hour.utilization ?? 0) >= 100) ||
@@ -409,9 +413,7 @@ export const TerminalPane = memo(function TerminalPane({
                     })
                   }
                   title={
-                    handoffSuggested
-                      ? t('ui.terminal.handoffSuggested')
-                      : t('ui.terminal.handoff')
+                    handoffSuggested ? t('ui.terminal.handoffSuggested') : t('ui.terminal.handoff')
                   }
                   aria-label={t('ui.terminal.handoff')}
                 >
@@ -559,9 +561,7 @@ export const TerminalPane = memo(function TerminalPane({
                     setSubTabCompletionUnread(projectId, terminal.id, activeTab.id, true)
                     if (!activeTab.handoff) return
                     void completeAgentHandoff(activeTab.handoff.id)
-                      .then(() =>
-                        setSubTabHandoff(projectId, terminal.id, activeTab.id, undefined),
-                      )
+                      .then(() => setSubTabHandoff(projectId, terminal.id, activeTab.id, undefined))
                       .catch((cause) =>
                         console.warn('[handoff] could not clean the completed packet:', cause),
                       )

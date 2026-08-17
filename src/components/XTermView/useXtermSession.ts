@@ -81,14 +81,25 @@ import {
   getLogicalTerminalLine,
   makeXtermLink,
 } from './terminalLinks'
-import { attachWebglRenderer, detachWebglRenderer } from './terminalRenderer'
-import { TERMINAL_WRITE_FRAME_BUDGET, writePtyChunked, writePtyWithTimeout } from './terminalWrite'
+import {
+  attachTerminalRenderer,
+  detachTerminalRenderer,
+  type TerminalRenderer,
+} from './terminalRenderer'
+import {
+  DIRECT_WRITE_FRAME_LIMIT,
+  TERMINAL_WRITE_FRAME_BUDGET,
+  writePtyChunked,
+  writePtyWithTimeout,
+} from './terminalWrite'
 import { getXtermTheme, type LinkActionState } from './xtermThemes'
 
 // Early exits trigger a single fresh-session retry.
 const EARLY_EXIT_MS = 4000
 
 const PANEL_RESYNC_DEBOUNCE_MS = 80
+
+const OVERFLOW_PROBE_INTERVAL_MS = 1000
 
 function isBrowserInputPending(): boolean {
   const scheduling = (
@@ -198,7 +209,7 @@ export function useXtermSession(params: {
   const lastIoWhenHiddenRef = useRef<number | null>(null)
 
   const resyncTerminalRef = useRef<(() => Promise<void>) | null>(null)
-  const webglAddonRef = useRef<ReturnType<typeof attachWebglRenderer>>(null)
+  const rendererRef = useRef<TerminalRenderer | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -222,6 +233,9 @@ export function useXtermSession(params: {
     let writeFrame: number | null = null
     let pendingWrites: string[] = []
     let pendingWriteLength = 0
+    let directWriteResetFrame: number | null = null
+    let directWriteBytes = 0
+    let lastOverflowProbeAt = 0
     let pendingWriteDrainResolvers: Array<() => void> = []
     let resumeErrorBuffer = ''
 
@@ -266,18 +280,30 @@ export function useXtermSession(params: {
     terminal.unicode.activeVersion = '11'
     terminal.open(container)
     if (isPanelVisibleRef.current) {
-      webglAddonRef.current = attachWebglRenderer(terminal)
+      rendererRef.current = attachTerminalRenderer(terminal)
     }
     terminalRef.current = terminal
+    // Focusing xterm's off-screen helper textarea makes the WebView scroll the
+    // pane sideways even under `overflow: hidden`. Clamping now reacts to the
+    // scroll event instead of running on every keystroke and every write frame:
+    // the element lookups plus the inline style write forced a style recalc and
+    // a layout flush per frame, which is what typing felt like. `.xterm-screen`
+    // keeps its width through the `max-width` rule in the stylesheet, so no
+    // inline style is needed here.
+    let xtermElement: HTMLElement | null = null
+    let viewportElement: HTMLElement | null = null
     const clampHorizontalScroll = () => {
-      container.scrollLeft = 0
-      const xterm = container.querySelector<HTMLElement>('.xterm')
-      const viewport = container.querySelector<HTMLElement>('.xterm-viewport')
-      const screen = container.querySelector<HTMLElement>('.xterm-screen')
-      if (xterm) xterm.scrollLeft = 0
-      if (viewport) viewport.scrollLeft = 0
-      if (screen) screen.style.maxWidth = '100%'
+      if (container.scrollLeft !== 0) container.scrollLeft = 0
+      if (!xtermElement?.isConnected) {
+        xtermElement = container.querySelector<HTMLElement>('.xterm')
+      }
+      if (!viewportElement?.isConnected) {
+        viewportElement = container.querySelector<HTMLElement>('.xterm-viewport')
+      }
+      if (xtermElement && xtermElement.scrollLeft !== 0) xtermElement.scrollLeft = 0
+      if (viewportElement && viewportElement.scrollLeft !== 0) viewportElement.scrollLeft = 0
     }
+    container.addEventListener('scroll', clampHorizontalScroll, { capture: true, passive: true })
     linkProviderDisposable = terminal.registerLinkProvider({
       provideLinks: (bufferLineNumber, callback) => {
         const logicalLine = getLogicalTerminalLine(terminal.buffer.active, bufferLineNumber)
@@ -321,18 +347,7 @@ export function useXtermSession(params: {
       if (output) {
         try {
           const isLastQueuedWrite = pendingWriteLength === 0
-          terminal.write(
-            output,
-            isLastQueuedWrite
-              ? () => {
-                  if (disposed || pendingWriteLength > 0 || writeFrame !== null) return
-                  const resolvers = pendingWriteDrainResolvers
-                  pendingWriteDrainResolvers = []
-                  resolvers.forEach((resolve) => resolve())
-                }
-              : undefined,
-          )
-          clampHorizontalScroll()
+          terminal.write(output, isLastQueuedWrite ? drainWriteWaiters : undefined)
         } catch {}
       }
       if (pendingWriteLength > 0) {
@@ -340,8 +355,38 @@ export function useXtermSession(params: {
       }
     }
 
+    const drainWriteWaiters = () => {
+      if (disposed || pendingWriteLength > 0 || writeFrame !== null) return
+      const resolvers = pendingWriteDrainResolvers
+      pendingWriteDrainResolvers = []
+      resolvers.forEach((resolve) => resolve())
+    }
+
     const queueTerminalWrite = (chunk: string) => {
       if (!chunk) return
+      // The echo of a keystroke is a handful of bytes. Parking it until the next
+      // animation frame added a frame of latency to every character typed and
+      // batched nothing, since there was nothing else in the queue. Only the
+      // backlog needs the frame budget, so hand small chunks straight to xterm
+      // while keeping a per-frame ceiling: a flood of tiny chunks still has to
+      // go through the budgeted path.
+      if (
+        pendingWriteLength === 0 &&
+        writeFrame === null &&
+        directWriteBytes + chunk.length <= DIRECT_WRITE_FRAME_LIMIT
+      ) {
+        directWriteBytes += chunk.length
+        if (directWriteResetFrame === null) {
+          directWriteResetFrame = window.requestAnimationFrame(() => {
+            directWriteResetFrame = null
+            directWriteBytes = 0
+          })
+        }
+        try {
+          terminal.write(chunk, drainWriteWaiters)
+        } catch {}
+        return
+      }
       pendingWrites.push(chunk)
       pendingWriteLength += chunk.length
       if (writeFrame !== null) return
@@ -813,8 +858,14 @@ export function useXtermSession(params: {
       completionMonitor?.handleInput(data)
       const trackedPtyId = ptyIdRef.current
       if (trackedPtyId) recordAgentActivityInput(trackedPtyId, data)
-      if (container.scrollWidth > container.clientWidth + 2) scheduleResize(true)
-      clampHorizontalScroll()
+      // Reading scrollWidth flushes layout, and a pane only starts overflowing
+      // sideways after a resize — sampling it per keystroke paid that flush on
+      // every character. The scroll listener clamps the drift meanwhile.
+      const now = Date.now()
+      if (now - lastOverflowProbeAt > OVERFLOW_PROBE_INTERVAL_MS) {
+        lastOverflowProbeAt = now
+        if (container.scrollWidth > container.clientWidth + 2) scheduleResize(true)
+      }
       queueInput(id, data)
       if (startsNewSession && command && command !== 'shell') {
         if (writeFrame !== null) {
@@ -877,9 +928,7 @@ export function useXtermSession(params: {
           }
           if (!launcherOverride) {
             const auto = await findCliLauncher(agentCliCommand(command) ?? command)
-            console.info(
-              `[pty-launch] ${command} findCliLauncher → ${auto ?? 'null (NOT FOUND)'}`,
-            )
+            console.info(`[pty-launch] ${command} findCliLauncher → ${auto ?? 'null (NOT FOUND)'}`)
             if (!auto) {
               console.warn(
                 `[pty-launch] ${command} unresolved — showing the not-found overlay and staying offline`,
@@ -892,9 +941,7 @@ export function useXtermSession(params: {
         }
 
         const savedSession =
-          command && RESUMABLE_AGENTS.includes(command)
-            ? peekSession(sessionPersistenceKey)
-            : null
+          command && RESUMABLE_AGENTS.includes(command) ? peekSession(sessionPersistenceKey) : null
         const savedConversationId = savedConversationIdFor(savedSession, command, cwd)
         let resumeId = sessionId ?? savedConversationId
         // Fallback: se a tentativa anterior morreu no nascimento usando resume,
@@ -1397,6 +1444,7 @@ export function useXtermSession(params: {
       disposed = true
       spawnQueueAbort.abort()
       container.removeEventListener('wheel', onWheel, true)
+      container.removeEventListener('scroll', clampHorizontalScroll, true)
       container.removeEventListener('pointerdown', focusTerminal, true)
       container.removeEventListener('click', focusTerminal)
       container.removeEventListener('paste', onPaste)
@@ -1411,6 +1459,7 @@ export function useXtermSession(params: {
       ro.disconnect()
       if (resizeTimer !== null) window.clearTimeout(resizeTimer)
       if (writeFrame !== null) window.cancelAnimationFrame(writeFrame)
+      if (directWriteResetFrame !== null) window.cancelAnimationFrame(directWriteResetFrame)
       pendingWrites = []
       pendingWriteLength = 0
       pendingWriteDrainResolvers = []
@@ -1425,7 +1474,7 @@ export function useXtermSession(params: {
       completionMonitor?.dispose()
       completionMonitor = null
       setLinkActions(null)
-      webglAddonRef.current = detachWebglRenderer(webglAddonRef.current)
+      rendererRef.current = detachTerminalRenderer(rendererRef.current)
       if (terminalRef.current === terminal) terminalRef.current = null
       ptyIdRef.current = null
       if (resyncTerminalRef.current === doResync) resyncTerminalRef.current = null
@@ -1445,10 +1494,10 @@ export function useXtermSession(params: {
     // pushes a visible pane past the WebView's limit.
     const terminal = terminalRef.current
     if (terminal) {
-      if (isPanelVisible && !webglAddonRef.current) {
-        webglAddonRef.current = attachWebglRenderer(terminal)
-      } else if (!isPanelVisible && webglAddonRef.current) {
-        webglAddonRef.current = detachWebglRenderer(webglAddonRef.current)
+      if (isPanelVisible && !rendererRef.current) {
+        rendererRef.current = attachTerminalRenderer(terminal)
+      } else if (!isPanelVisible && rendererRef.current) {
+        rendererRef.current = detachTerminalRenderer(rendererRef.current)
       }
     }
 
@@ -1476,7 +1525,8 @@ export function useXtermSession(params: {
           )
         }
         if (cancelled || !isPanelVisible || wasVisible) return
-        if (lastIoWhenHiddenRef.current !== null && ioAtNow() === lastIoWhenHiddenRef.current) return
+        if (lastIoWhenHiddenRef.current !== null && ioAtNow() === lastIoWhenHiddenRef.current)
+          return
         resyncTimer = window.setTimeout(() => {
           if (!cancelled) void resyncTerminalRef.current?.()
         }, PANEL_RESYNC_DEBOUNCE_MS)

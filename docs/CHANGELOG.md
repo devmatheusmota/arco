@@ -15,7 +15,9 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 - Terminals now render on the GPU. The pane on screen uses the WebGL renderer instead of building
   one DOM element per cell, which is what made scrolling crawl in a workspace with several open
   sessions. The context follows visibility, so hidden panes release it and only what is on screen
-  holds one; if the WebView cannot provide WebGL, the pane silently keeps the old renderer.
+  holds one. Where the WebView has no usable WebGL — WebKitGTK ships it off on some Linux builds —
+  the pane now falls back to the 2D canvas renderer instead of straight to the DOM, and the tier it
+  landed on is recorded in `app-events.log` as `terminal.renderer`.
 - **Smart LRU** now does something. When the workspace is over its memory budget and hidden
   sessions have been idle past their threshold, Arco offers to park them in a notification with a
   **Park** action. Nothing is parked until you choose it, parking frees the whole process subtree,
@@ -24,6 +26,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Fixed
 
+- Typing in a terminal feels immediate again. A keystroke no longer waits out the backend's output
+  coalescing window nor an animation frame before its echo reaches the screen, and the pane stopped
+  flushing layout twice per character. Bulk output still batches as before.
+- Idle CPU dropped sharply. Memory sampling scanned every process — and on Linux every thread of
+  every process — three times every few seconds, once through a quadratic subtree walk; the samplers
+  now share one scan, and between full scans only the app's own subtree is refreshed. A pane also no
+  longer rerenders four times a second while an agent streams output.
 - Terminals no longer inherit the AppImage's own runtime environment (Linux). `PYTHONHOME` and
   `PYTHONPATH` pointed inside the AppImage mount, so every `python3` a session ran died with
   "Failed to import encodings module" — which broke agent hooks written in Python. `LD_LIBRARY_PATH`,

@@ -24,6 +24,13 @@ pub const SCROLLBACK_FLUSH_INTERVAL_MS: u128 = 250;
 pub const SCROLLBACK_COMPACT_BYTES: u64 = SCROLLBACK_CAP_BYTES as u64 * 2;
 
 pub const PTY_ACTIVITY_EMIT_INTERVAL_MS: u128 = 450;
+
+/// Upper bound of a single emitted batch.
+const PTY_BATCH_MAX_BYTES: usize = 64 * 1024;
+/// A batch this size or larger is treated as a burst: it waits out the
+/// coalescing window so bulk output costs one IPC event instead of dozens.
+/// Anything smaller is interactive traffic and goes out immediately.
+const PTY_BATCH_COALESCE_MIN_BYTES: usize = 8 * 1024;
 const TEARDOWN_NORMAL: u8 = 0;
 const TEARDOWN_KILLED: u8 = 1;
 const TEARDOWN_SUSPENDED: u8 = 2;
@@ -632,19 +639,39 @@ pub async fn spawn_pty(
             }
 
                                                                      
-            let batch_started = Instant::now();
-            while batch.len() < 64 * 1024 {
-                let remaining =
-                    Duration::from_millis(16).saturating_sub(batch_started.elapsed());
-                if remaining.is_zero() {
-                    break;
+            // Take whatever the reader already produced without waiting for it.
+            let mut channel_closed = false;
+            while batch.len() < PTY_BATCH_MAX_BYTES {
+                match rx.try_recv() {
+                    Ok(chunk) => batch.extend_from_slice(&chunk),
+                    Err(tokio::sync::mpsc::error::TryRecvError::Empty) => break,
+                    Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => {
+                        channel_closed = true;
+                        break;
+                    }
                 }
-                match tokio::time::timeout(remaining, rx.recv()).await {
-                    Ok(Some(chunk)) => batch.extend_from_slice(&chunk),
-                    // None = canal fechou; ainda emitimos o lote acumulado.
-                    Ok(None) => break,
-                    // Timeout de 16ms estourou.
-                    Err(_) => break,
+            }
+
+            // Waiting out the full coalescing window on a quiet PTY charged that
+            // window to every keystroke echo, which is the shell answering a
+            // single character. Only a burst — a TUI repaint, a build log — has
+            // enough traffic for batching to pay for itself, so the wait now
+            // starts once the batch already looks like one.
+            if !channel_closed && batch.len() >= PTY_BATCH_COALESCE_MIN_BYTES {
+                let batch_started = Instant::now();
+                while batch.len() < PTY_BATCH_MAX_BYTES {
+                    let remaining =
+                        Duration::from_millis(16).saturating_sub(batch_started.elapsed());
+                    if remaining.is_zero() {
+                        break;
+                    }
+                    match tokio::time::timeout(remaining, rx.recv()).await {
+                        Ok(Some(chunk)) => batch.extend_from_slice(&chunk),
+                        // None = canal fechou; ainda emitimos o lote acumulado.
+                        Ok(None) => break,
+                        // Timeout de 16ms estourou.
+                        Err(_) => break,
+                    }
                 }
             }
 
@@ -689,8 +716,14 @@ pub async fn spawn_pty(
 
             batch.clear();
 
-                                                                     
-            tokio::time::sleep(Duration::from_millis(2)).await;
+            // Yielding between batches keeps a flooding PTY from starving the
+            // runtime, but on an interactive batch that pause lands straight in
+            // the echo path of the next keystroke.
+            if count >= PTY_BATCH_COALESCE_MIN_BYTES {
+                tokio::time::sleep(Duration::from_millis(2)).await;
+            } else {
+                tokio::task::yield_now().await;
+            }
         }
 
         // Flush de qualquer cauda restante no fim do stream.

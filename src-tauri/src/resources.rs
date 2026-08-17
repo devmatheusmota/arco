@@ -174,6 +174,20 @@ struct ResourceState {
 pub struct ResourceSupervisor {
     state: Mutex<ResourceState>,
     system: Mutex<System>,
+    scan: Mutex<ScanCache>,
+}
+
+/// A full scan reads `/proc` (or the process table) for every process on the
+/// machine — and on Linux for every thread of every process, which is tens of
+/// thousands of entries on a developer's desktop. The snapshot only reports the
+/// app's own subtree, so between full scans the sample refreshes just those
+/// pids and reuses the last known parent/child topology.
+const FULL_SCAN_EVERY_CYCLES: u32 = 6;
+
+#[derive(Default)]
+struct ScanCache {
+    cycles_since_full: u32,
+    tracked: Vec<Pid>,
 }
 
 impl Default for ResourceSupervisor {
@@ -188,6 +202,7 @@ impl Default for ResourceSupervisor {
                 last_hint_at_ms: 0,
             }),
             system: Mutex::new(System::new()),
+            scan: Mutex::new(ScanCache::default()),
         }
     }
 }
@@ -292,16 +307,22 @@ impl ResourceSupervisor {
             .unwrap_or_default();
 
         let mut system = self.system.lock().unwrap_or_else(|p| p.into_inner());
+        let mut scan = self.scan.lock().unwrap_or_else(|p| p.into_inner());
         // Only what the snapshot reads. The blanket `refresh_processes` also
         // pulls disk usage, which costs one extra `/proc/<pid>/io` read per
         // process on a machine that routinely runs 600 of them.
-        system.refresh_processes_specifics(
-            ProcessesToUpdate::All,
-            ProcessRefreshKind::new()
-                .with_memory()
-                .with_cpu()
-                .with_exe(UpdateKind::OnlyIfNotSet),
-        );
+        let refresh_kind = ProcessRefreshKind::new()
+            .with_memory()
+            .with_cpu()
+            .with_exe(UpdateKind::OnlyIfNotSet);
+        let full_scan = scan.tracked.is_empty() || scan.cycles_since_full >= FULL_SCAN_EVERY_CYCLES;
+        if full_scan {
+            scan.cycles_since_full = 0;
+            system.refresh_processes_specifics(ProcessesToUpdate::All, refresh_kind);
+        } else {
+            scan.cycles_since_full += 1;
+            system.refresh_processes_specifics(ProcessesToUpdate::Some(&scan.tracked), refresh_kind);
+        }
         system.refresh_memory();
 
         let mut children = HashMap::<u32, Vec<u32>>::new();
@@ -320,6 +341,10 @@ impl ResourceSupervisor {
 
         let app_pid = std::process::id();
         let app_tree = descendants(app_pid, &children);
+        // Every PTY subtree lives inside the app subtree, so this is the whole
+        // set the targeted refreshes above have to keep fresh.
+        scan.tracked = app_tree.iter().map(|pid| Pid::from_u32(*pid)).collect();
+        drop(scan);
         // Reading a process's private commit is the expensive half of a sample
         // (a `smaps_rollup` walk on Linux, an `OpenProcess` handle on Windows).
         // Every PTY subtree is contained in the app subtree, so without this the

@@ -14,6 +14,11 @@ export const PTY_WRITE_TIMEOUT_MS = 5_000
 // terminar > qualquer frame individual travando por muito tempo.
 export const TERMINAL_WRITE_FRAME_BUDGET = 16 * 1024
 
+// Chunks up to this size skip the frame queue and reach xterm right away, so an
+// idle pane does not pay a frame of latency to echo a keystroke. The ceiling is
+// per frame: past it, output goes back through the budgeted path.
+export const DIRECT_WRITE_FRAME_LIMIT = 4 * 1024
+
 export function loadPromptHistory(ptyId: string): string[] {
   const raw = readScopedStorage(PROMPT_HISTORY_KEY(ptyId), true)
   if (!raw) return []

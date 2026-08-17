@@ -14,6 +14,11 @@ pub struct MemoryStats {
     pub system_available_mb: f64,
 }
 
+/// A full process scan reads `/proc` for every process and every thread on the
+/// machine, so the callers on a 5 s and a 6 s timer have to share one sample
+/// instead of each paying for its own.
+const CACHE_TTL: Duration = Duration::from_secs(5);
+
 fn shared_system() -> &'static Mutex<System> {
     static SYS: OnceLock<Mutex<System>> = OnceLock::new();
     SYS.get_or_init(|| Mutex::new(System::new()))
@@ -31,23 +36,31 @@ pub fn collect_memory_stats() -> MemoryStats {
     let system_total_mb = sys.total_memory() as f64 / 1024.0 / 1024.0;
     let system_available_mb = sys.available_memory() as f64 / 1024.0 / 1024.0;
 
-    // BFS no subtree de processos a partir do PID atual.
+    // BFS over the subtree rooted at this process. The parent index is built
+    // once: walking every process for each visited pid turned a 30-process tree
+    // into hundreds of thousands of comparisons, because Linux lists every
+    // thread of every process on the machine as a process of its own.
     let root_pid = std::process::id() as usize;
+    let mut children = std::collections::HashMap::<usize, Vec<usize>>::new();
+    for (pid, process) in sys.processes() {
+        if process.thread_kind().is_some() {
+            continue;
+        }
+        if let Some(parent) = process.parent() {
+            children
+                .entry(parent.as_u32() as usize)
+                .or_default()
+                .push(pid.as_u32() as usize);
+        }
+    }
     let mut visited = std::collections::HashSet::<usize>::new();
     let mut frontier = vec![root_pid];
     while let Some(pid) = frontier.pop() {
         if !visited.insert(pid) {
             continue;
         }
-        for (other_pid, process) in sys.processes() {
-            if process.thread_kind().is_some() {
-                continue;
-            }
-            if let Some(parent) = process.parent() {
-                if parent.as_u32() as usize == pid {
-                    frontier.push(other_pid.as_u32() as usize);
-                }
-            }
+        if let Some(kids) = children.get(&pid) {
+            frontier.extend(kids.iter().copied());
         }
     }
 
@@ -90,7 +103,7 @@ fn cached_memory_stats() -> MemoryStats {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some((at, stats)) = guard.as_ref() {
-        if at.elapsed() < Duration::from_secs(2) {
+        if at.elapsed() < CACHE_TTL {
             return stats.clone();
         }
     }
