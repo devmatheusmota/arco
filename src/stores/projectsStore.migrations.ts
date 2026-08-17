@@ -7,7 +7,13 @@
 import { nanoid } from 'nanoid'
 
 import { normalizeEnabledFeatures } from '../lib/features'
-import { normalizeTodoTags, normalizeTodoTitle } from '../lib/todos'
+import {
+  normalizeTodoNotes,
+  normalizeTodoPriority,
+  normalizeTodoSessions,
+  normalizeTodoTags,
+  normalizeTodoTitle,
+} from '../lib/todos'
 import {
   DEFAULT_PREFERENCES,
   EMPTY_PROJECTS_FILE,
@@ -157,14 +163,24 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
     const title = normalizeTodoTitle(item?.title)
     if (!id || !title || seen.has(id)) continue
     seen.add(id)
+    const notes = normalizeTodoNotes(item?.notes)
+    const sessions = normalizeTodoSessions(item?.sessions)
+    const completed = Boolean(item?.completed)
     result.push({
       id,
       title,
-      completed: Boolean(item?.completed),
+      completed,
       tags: normalizeTodoTags(item?.tags),
+      priority: normalizeTodoPriority(item?.priority),
+      createdAt: typeof item?.createdAt === 'number' ? item.createdAt : Date.now(),
+      ...(completed && typeof item?.completedAt === 'number'
+        ? { completedAt: item.completedAt }
+        : {}),
       ...(typeof item?.projectId === 'string' && item.projectId
         ? { projectId: item.projectId }
         : {}),
+      ...(notes ? { notes } : {}),
+      ...(sessions.length > 0 ? { sessions } : {}),
     })
   }
   return [...result.filter((item) => !item.completed), ...result.filter((item) => item.completed)]
@@ -391,6 +407,9 @@ function migrateToV8(parsed: any): ProjectsFile {
   return normalizeStoredAccents({
     ...parsed,
     version: 8,
+    // Tasks gained priority, notes and session links; normalizing here backfills
+    // files written before those fields existed.
+    todos: normalizeTodos(parsed.todos),
     projects,
     groups,
     preferences,

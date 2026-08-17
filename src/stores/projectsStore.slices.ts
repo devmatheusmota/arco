@@ -7,9 +7,12 @@ import { resolveTerminalCwd, touchTerminalUsage } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import {
   DEFAULT_TODOS,
+  normalizeTodoNotes,
+  normalizeTodoPriority,
   normalizeTodoTags,
   normalizeTodoTitle,
   reorderTodoItems,
+  TODO_SESSIONS_MAX,
 } from '../lib/todos'
 import type {
   LayoutMode,
@@ -53,7 +56,11 @@ type TodosSlice = Pick<
   | 'createTodo'
   | 'renameTodo'
   | 'updateTodoTags'
+  | 'updateTodoNotes'
+  | 'setTodoPriority'
   | 'setTodoProject'
+  | 'linkTodoSession'
+  | 'unlinkTodoSession'
   | 'resetTodosToDefault'
   | 'toggleTodo'
   | 'deleteTodo'
@@ -62,15 +69,19 @@ type TodosSlice = Pick<
 
 export function createTodosSlice({ update }: SliceCtx): TodosSlice {
   return {
-    createTodo: (rawTitle, rawTags = [], projectId) => {
+    createTodo: (rawTitle, rawTags = [], projectId, extra) => {
       const title = normalizeTodoTitle(rawTitle)
       if (!title) return null
+      const notes = normalizeTodoNotes(extra?.notes)
       const todo: TodoItem = {
         id: nanoid(),
         title,
         completed: false,
         tags: normalizeTodoTags(rawTags),
+        priority: normalizeTodoPriority(extra?.priority),
+        createdAt: Date.now(),
         ...(projectId ? { projectId } : {}),
+        ...(notes ? { notes } : {}),
       }
       update((state) => {
         const completedIndex = state.todos.findIndex((item) => item.completed)
@@ -97,6 +108,50 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
         ),
       })),
 
+    updateTodoNotes: (id, rawNotes) =>
+      update((state) => ({
+        todos: state.todos.map((item) => {
+          if (item.id !== id) return item
+          const notes = normalizeTodoNotes(rawNotes)
+          const next = { ...item }
+          if (notes) next.notes = notes
+          else delete next.notes
+          return next
+        }),
+      })),
+
+    setTodoPriority: (id, priority) =>
+      update((state) => ({
+        todos: state.todos.map((item) =>
+          item.id === id ? { ...item, priority: normalizeTodoPriority(priority) } : item,
+        ),
+      })),
+
+    linkTodoSession: (id, link) =>
+      update((state) => ({
+        todos: state.todos.map((item) => {
+          if (item.id !== id) return item
+          const previous = (item.sessions ?? []).filter(
+            (session) => session.terminalId !== link.terminalId,
+          )
+          return { ...item, sessions: [link, ...previous].slice(0, TODO_SESSIONS_MAX) }
+        }),
+      })),
+
+    unlinkTodoSession: (id, terminalId) =>
+      update((state) => ({
+        todos: state.todos.map((item) => {
+          if (item.id !== id) return item
+          const sessions = (item.sessions ?? []).filter(
+            (session) => session.terminalId !== terminalId,
+          )
+          const next = { ...item }
+          if (sessions.length > 0) next.sessions = sessions
+          else delete next.sessions
+          return next
+        }),
+      })),
+
     setTodoProject: (id, projectId) =>
       update((state) => ({
         todos: state.todos.map((item) => {
@@ -110,14 +165,21 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
 
     resetTodosToDefault: () =>
       update(() => ({
-        todos: DEFAULT_TODOS.map((item) => ({ ...item, id: nanoid() })),
+        todos: DEFAULT_TODOS.map((item) => ({
+          ...item,
+          id: nanoid(),
+          priority: 'normal' as const,
+          createdAt: Date.now(),
+        })),
       })),
 
     toggleTodo: (id) =>
       update((state) => {
         const current = state.todos.find((item) => item.id === id)
         if (!current) return
-        const changed = { ...current, completed: !current.completed }
+        const changed: TodoItem = { ...current, completed: !current.completed }
+        if (changed.completed) changed.completedAt = Date.now()
+        else delete changed.completedAt
         const remaining = state.todos.filter((item) => item.id !== id)
         if (changed.completed) return { todos: [...remaining, changed] }
         const firstCompleted = remaining.findIndex((item) => item.completed)

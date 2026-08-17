@@ -1,0 +1,64 @@
+.taskLine {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0 0 14px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+}
+
+.taskLabel {
+  flex: 0 0 auto;
+  color: var(--fg-faint);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.taskTitle {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promptInput {
+  width: 100%;
+  min-height: 104px;
+  padding: 8px 10px;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: vertical;
+  font: 12px/1.5 var(--font-mono);
+}
+
+.promptInput:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.toggles span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+:global([data-visual-style='clean']) .promptInput,
+:global([data-visual-style='clean']) .taskLine {
+  border-radius: var(--clean-control-radius);
+  box-shadow: none;
+}

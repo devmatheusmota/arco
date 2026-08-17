@@ -11,6 +11,7 @@ import {
   getProjectRepoRoot,
 } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
+import { pruneTodoSessions } from '../lib/todos'
 import type { Group, Project } from '../lib/types'
 import { agentCliCommand, GROUP_COLORS } from '../lib/types'
 import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
@@ -239,6 +240,16 @@ export function createGroupsSlice({ update }: SliceCtx): GroupsSlice {
           return {
             groups: state.groups.filter((g) => !groupsToRemove.has(g.id)),
             projects: remainingProjects,
+            // Tasks outlive the projects they were filed under: unlink the dead
+            // sessions and let the task fall back to the unassigned section.
+            todos: pruneTodoSessions(state.todos, (link) => !projectsToRemove.has(link.projectId)).map(
+              (item) => {
+                if (!item.projectId || !projectsToRemove.has(item.projectId)) return item
+                const next = { ...item }
+                delete next.projectId
+                return next
+              },
+            ),
             workspace: {
               ...state.workspace,
               containers: state.workspace.containers.filter(
@@ -764,7 +775,9 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
         if (!project) return
         cleanupPtys(collectTerminalPtyIds(project.terminals))
         const projects = state.projects.filter((p) => p.id !== id)
-        const todos = state.todos.map((item) => {
+        // The project is gone, so every pane it owned is gone with it: unlink the
+        // sessions first, then drop the project link from the task itself.
+        const todos = pruneTodoSessions(state.todos, (link) => link.projectId !== id).map((item) => {
           if (item.projectId !== id) return item
           const next = { ...item }
           delete next.projectId
