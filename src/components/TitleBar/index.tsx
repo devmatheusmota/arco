@@ -174,8 +174,13 @@ export function TitleBar() {
     let cancelled = false
     let interval: number | null = null
     let consecutiveFailures = 0
+    let firstRun = true
     const tick = async () => {
-      if (!activeRef.current) return
+      // The first read always runs. Gating it on focus leaves the pill empty for
+      // the whole session whenever the window starts in the background, since
+      // the poll that would fill it never fires.
+      if (!firstRun && !activeRef.current) return
+      firstRun = false
       try {
         const usage = await getCachedClaudeUsage()
         if (!cancelled) {
@@ -205,8 +210,13 @@ export function TitleBar() {
     let cancelled = false
     let interval: number | null = null
     let consecutiveFailures = 0
+    let firstRun = true
     const tick = async () => {
-      if (!activeRef.current) return
+      // The first read always runs. Gating it on focus leaves the pill empty for
+      // the whole session whenever the window starts in the background, since
+      // the poll that would fill it never fires.
+      if (!firstRun && !activeRef.current) return
+      firstRun = false
       try {
         const usage = await getCachedCodexUsage()
         if (!cancelled) {
@@ -235,8 +245,13 @@ export function TitleBar() {
   useEffect(() => {
     let cancelled = false
     let interval: number | null = null
+    let firstRun = true
     const tick = async () => {
-      if (!activeRef.current) return
+      // The first read always runs. Gating it on focus leaves the pill empty for
+      // the whole session whenever the window starts in the background, since
+      // the poll that would fill it never fires.
+      if (!firstRun && !activeRef.current) return
+      firstRun = false
       try {
         const usage = await getCachedAntigravityUsage()
         if (!cancelled) {

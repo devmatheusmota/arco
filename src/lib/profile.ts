@@ -1,5 +1,5 @@
 import type { Preferences } from './types'
-import defaultProfileImage from '../assets/theme-icons/dark.png'
+import defaultProfileImage from '../assets/default-profile.svg'
 
 export const DEFAULT_PROFILE_IMAGE_URL = defaultProfileImage
 

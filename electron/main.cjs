@@ -15,6 +15,13 @@ const { buildCommands, missingCommand } = require('./commands/index.cjs')
 const paths = require('./commands/paths.cjs')
 const { collectFromArgv } = require('./pending-open.cjs')
 const { applyLoginEnv } = require('./login-env.cjs')
+const { handleCli } = require('./cli.cjs')
+
+// `arco todo` / `arco session` are answered here and the process exits. They
+// used to live only in the shell shim, so when that file was missing the
+// subcommand reached the binary, matched nothing, and fell through to opening a
+// window — the command hung instead of answering.
+if (handleCli(process.argv, (code) => app.exit(code))) return
 
 // Launched from the desktop entry, the app inherits a bare environment: agent
 // CLIs under ~/.local/bin are invisible and anything exported from the user's
@@ -232,6 +239,21 @@ function createWindow() {
       }, 12_000)
     })
   }
+
+  // Focus, in the shape `@tauri-apps/api`'s `onFocusChanged` listens for. The
+  // frontend gates its polling on it — usage pills, remote devices — so without
+  // these events a window that starts unfocused never polls again, and the
+  // pills stay empty for the rest of the session.
+  const emitFocus = (focused) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    mainWindow.webContents.send('tauri:event', {
+      event: focused ? 'tauri://focus' : 'tauri://blur',
+      payload: focused,
+    })
+  }
+  mainWindow.on('focus', () => emitFocus(true))
+  mainWindow.on('blur', () => emitFocus(false))
+  mainWindow.webContents.on('did-finish-load', () => emitFocus(mainWindow?.isFocused() ?? false))
 
   mainWindow.on('closed', () => {
     mainWindow = null

@@ -1,7 +1,8 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="128" height="128" rx="28" fill="#111827"/>
-  <circle cx="64" cy="50" r="20" fill="#38BDF8"/>
-  <path d="M30 104C34.6 84.6 47.3 74 64 74C80.7 74 93.4 84.6 98 104" fill="#22C55E"/>
-  <path d="M27 104H101" stroke="#F8FAFC" stroke-width="6" stroke-linecap="round"/>
-  <path d="M42 22L64 10L86 22" stroke="#F59E0B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <title>Default profile picture</title>
+  <!-- Neutral placeholder: a mid-tone ground reads on both themes, so the same
+       file works wherever the avatar frame lands. -->
+  <rect width="128" height="128" fill="#6B7280" />
+  <circle cx="64" cy="50" r="21" fill="#E5E7EB" />
+  <path d="M22 121c3-24 20-38 42-38s39 14 42 38" fill="#E5E7EB" />
 </svg>
