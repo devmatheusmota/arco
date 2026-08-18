@@ -346,14 +346,13 @@ export function createTerminalsSlice({
       if (terminal.cwd) {
         const pending = await countPendingChanges(gitStatus, terminal.cwd)
         if (pending > 0) {
-          const keep = !window.confirm(
+          // Cancel means cancel: the session stays open and the worktree stays on
+          // disk. Closing the pane here instead would still lose the session the
+          // user just chose to keep, and the work would only survive by accident.
+          const confirmed = window.confirm(
             t('term.worktreeDirtyOnClose', { count: pending, name: terminal.name }),
           )
-          if (keep) {
-            // Close the pane but leave the tree on disk: the work is still there.
-            get().deleteTerminal(projectId, terminalId)
-            return
-          }
+          if (!confirmed) return
         }
       }
 

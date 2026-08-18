@@ -37,26 +37,70 @@ function readBody(request) {
   })
 }
 
+/** Routes the `arco` terminal command posts to, mirroring the Rust listener. */
+const CLI_EVENTS = {
+  session: 'cli://session-new',
+  todo: 'cli://todo-add',
+}
+
+function json(response, payload, status = 200) {
+  response.writeHead(status, { 'content-type': 'application/json' })
+  response.end(JSON.stringify(payload))
+}
+
 function startHookListener(send, readTodos) {
   const server = http.createServer(async (request, response) => {
     if (request.headers['x-arco-token'] !== token) {
       response.writeHead(403).end('forbidden')
       return
     }
-    if (request.url === '/todos') {
-      response.writeHead(200, { 'content-type': 'application/json' })
-      response.end(JSON.stringify(readTodos()))
+    const route = (request.url ?? '').split('?')[0]
+    if (route === '/todos') {
+      json(response, readTodos())
       return
     }
+
+    // `/cli/*` is the surface the `arco` command talks to. Reads are answered
+    // here because the CLI needs an answer; the actions belong to the frontend,
+    // which owns workspace state, so they are handed over and reported queued.
+    if (route.startsWith('/cli/')) {
+      const name = route.slice('/cli/'.length)
+      if (name === 'todo/list') {
+        json(response, readTodos())
+        return
+      }
+      const event = CLI_EVENTS[name]
+      if (!event) {
+        response.writeHead(404).end(`rota /cli/${name} desconhecida`)
+        return
+      }
+      const raw = await readBody(request)
+      let payload
+      try {
+        payload = raw.trim() ? JSON.parse(raw) : {}
+      } catch {
+        response.writeHead(400).end('payload deve ser JSON')
+        return
+      }
+      send(event, payload)
+      json(response, { accepted: true, status: 'queued' })
+      return
+    }
+
     const body = await readBody(request)
     try {
       send('agent-hook', JSON.parse(body))
     } catch {}
-    response.writeHead(200, { 'content-type': 'application/json' })
-    response.end('{}')
+    json(response, {})
   })
   server.listen(0, '127.0.0.1', () => {
     port = server.address().port
+    // The `arco` command reads endpoint and token from this file. Writing it as
+    // soon as the port is known keeps the CLI usable from boot, instead of only
+    // after something in the UI happens to ask for the path.
+    try {
+      writeSettings()
+    } catch {}
   })
   return server
 }

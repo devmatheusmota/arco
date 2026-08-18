@@ -14,6 +14,12 @@ const { pathToFileURL } = require('node:url')
 const { buildCommands, missingCommand } = require('./commands/index.cjs')
 const paths = require('./commands/paths.cjs')
 const { collectFromArgv } = require('./pending-open.cjs')
+const { applyLoginEnv } = require('./login-env.cjs')
+
+// Launched from the desktop entry, the app inherits a bare environment: agent
+// CLIs under ~/.local/bin are invisible and anything exported from the user's
+// rc files is absent. Fill it in before anything spawns a child process.
+applyLoginEnv()
 
 // Identity, set before anything creates a window. On Linux the app_id (WM_CLASS
 // under Wayland) comes from the app name, and the desktop entry has to match it

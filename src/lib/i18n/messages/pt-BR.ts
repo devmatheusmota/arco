@@ -1067,7 +1067,7 @@ export const ptBR: Record<MessageKey, string> = {
   'term.runtimeProfile': 'Perfil do runtime',
   'term.worktree': 'Worktree',
   'term.worktreeDirtyOnClose':
-    'A worktree de "{name}" tem {count} alteração(ões) não commitada(s). Excluir a sessão apaga a worktree e esse trabalho. Cancele para fechar o pane e manter a worktree em disco.',
+    'A worktree de "{name}" tem {count} alteração(ões) não commitada(s). Excluir a sessão apaga a worktree e esse trabalho de vez. Cancele para manter a sessão e a worktree como estão.',
   'term.worktree.inherit': 'Padrão do projeto',
   'term.worktree.inherit.desc': 'Segue a configuração de isolamento do projeto.',
   'term.worktree.new': 'Nova worktree',

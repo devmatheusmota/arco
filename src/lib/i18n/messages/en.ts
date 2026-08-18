@@ -1055,7 +1055,7 @@ export const en = {
   'term.runtimeProfile': 'Runtime profile',
   'term.worktree': 'Worktree',
   'term.worktreeDirtyOnClose':
-    'The worktree for "{name}" has {count} uncommitted change(s). Deleting the session removes the worktree and that work. Cancel to close the pane and keep the worktree on disk.',
+    'The worktree for "{name}" has {count} uncommitted change(s). Deleting the session removes the worktree and that work for good. Cancel to keep the session and the worktree exactly as they are.',
   'term.worktree.inherit': 'Project default',
   'term.worktree.inherit.desc': "Follows the project's isolation setting.",
   'term.worktree.new': 'New worktree',

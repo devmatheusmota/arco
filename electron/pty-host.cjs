@@ -9,6 +9,7 @@
 const os = require('node:os')
 const fs = require('node:fs')
 const path = require('node:path')
+const { loginEnv, mergePath } = require('./login-env.cjs')
 const pty = require('@homebridge/node-pty-prebuilt-multiarch')
 
 const SCROLLBACK_CAP_BYTES = 512 * 1024
@@ -76,7 +77,10 @@ function enrichedPath() {
   return [...new Set([...current, ...extras])].join(path.delimiter)
 }
 
-const SPAWN_PATH = enrichedPath()
+const LOGIN_ENV = loginEnv()
+
+/** Login shell PATH first, then the entries a desktop launch would miss. */
+const SPAWN_PATH = mergePath(LOGIN_ENV.PATH, enrichedPath())
 
 /** Resolves a command name against the enriched PATH before handing it to the PTY. */
 function resolveExecutable(command) {
@@ -105,7 +109,7 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
     cols: cols ?? 80,
     rows: rows ?? 24,
     cwd: cwd && fs.existsSync(cwd) ? cwd : os.homedir(),
-    env: { ...process.env, ...(env ?? {}), PATH: SPAWN_PATH, TERM: 'xterm-256color' },
+    env: { ...process.env, ...LOGIN_ENV, ...(env ?? {}), PATH: SPAWN_PATH, TERM: 'xterm-256color' },
   })
 
   const session = {

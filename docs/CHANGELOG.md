@@ -10,6 +10,27 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.0.2] — 2026-08-18
+
+### Fixed
+
+- The app now starts with the environment of a login shell. Launched from the desktop entry it
+  inherited a bare one — no `~/.local/bin` on `PATH` and none of the variables exported from the
+  user's rc files — and the consequences read as unrelated bugs: the Codex usage pill vanished
+  because `codex` was "not installed", and agents started in a terminal came up missing API tokens,
+  which the tools they talk to report as expired credentials. The environment is read once from an
+  interactive login shell, cached for a day, and applied to the app and to every terminal it spawns,
+  without overwriting anything the runtime already set.
+- `arco session` and `arco todo` work again. The terminal command's subcommands live in the shim
+  script, and the one this shell generates had been reduced to opening a directory; the routes they
+  post to were missing from the local listener as well. Both are back, along with writing the
+  endpoint file as soon as the listener binds, so the command is usable from boot rather than only
+  after the interface happens to ask for it.
+- Cancelling the warning about uncommitted changes now cancels. Closing a session whose worktree has
+  pending work asks before deleting it, and answering no still closed the pane — keeping the files
+  but losing the session the user had just chosen to keep. Nothing is touched now.
+
+
 ## [2.0.1] — 2026-08-18
 
 ### Fixed
