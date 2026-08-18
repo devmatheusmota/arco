@@ -44,8 +44,29 @@ function reportRenderer(kind: TerminalRendererKind, detail?: string): void {
   void recordAppEvent('terminal.renderer', detail ? `${kind}: ${detail}` : kind).catch(() => {})
 }
 
+function rendererOverride(): TerminalRendererKind | null {
+  const value = (window as Window & { __ARCO_TERMINAL_RENDERER__?: string })
+    .__ARCO_TERMINAL_RENDERER__
+  return value === 'canvas' || value === 'dom' || value === 'webgl' ? value : null
+}
+
 /** Attaches the fastest renderer this WebView can provide. */
 export function attachTerminalRenderer(terminal: Terminal): TerminalRenderer {
+  const override = rendererOverride()
+  if (override === 'dom') {
+    reportRenderer('dom', 'forced by ARCO_TERMINAL_RENDERER')
+    return { kind: 'dom', addon: null }
+  }
+  if (override === 'canvas') {
+    try {
+      const addon = new CanvasAddon()
+      terminal.loadAddon(addon)
+      reportRenderer('canvas', 'forced by ARCO_TERMINAL_RENDERER')
+      return { kind: 'canvas', addon }
+    } catch (error) {
+      console.warn('[xterm-renderer] forced canvas failed; falling back', error)
+    }
+  }
   try {
     const addon = new WebglAddon()
     // A lost context leaves the pane blank. Dropping the addon falls the pane
@@ -80,4 +101,40 @@ export function detachTerminalRenderer(renderer: TerminalRenderer | null): null 
     renderer.addon.dispose()
   } catch {}
   return null
+}
+
+/**
+ * Attaches once the pane actually has a size.
+ *
+ * The GPU renderer reads the terminal's cell dimensions when it loads, and a
+ * pane mounted into a container that has not been laid out yet has none —
+ * Chromium throws on it where WebKit happened to tolerate it. Retrying on the
+ * next frames costs nothing and removes the race.
+ */
+export function attachTerminalRendererWhenSized(
+  terminal: Terminal,
+  container: HTMLElement,
+  onAttached: (renderer: TerminalRenderer) => void,
+  attemptsLeft = 30,
+): () => void {
+  let cancelled = false
+  let frame = 0
+
+  const tryAttach = () => {
+    if (cancelled) return
+    const rect = container.getBoundingClientRect()
+    const ready = rect.width > 0 && rect.height > 0 && terminal.element
+    if (!ready && attemptsLeft > 0) {
+      attemptsLeft -= 1
+      frame = requestAnimationFrame(tryAttach)
+      return
+    }
+    onAttached(attachTerminalRenderer(terminal))
+  }
+
+  frame = requestAnimationFrame(tryAttach)
+  return () => {
+    cancelled = true
+    cancelAnimationFrame(frame)
+  }
 }

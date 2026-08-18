@@ -6,6 +6,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 
 import App from './App'
+import { startIpcBenchIfRequested } from './lib/ipcBench'
+import { installKeyTraceIfRequested } from './lib/keyTrace'
+import { reactRenderTracingEnabled, recordReactRender } from './lib/mainThreadBudget'
 import { recordFrontendError } from './lib/tauri'
 
 // Capture uncaught errors that React boundaries cannot handle, such as PTY callbacks.
@@ -39,8 +42,17 @@ window.addEventListener('unhandledrejection', (event) => {
   )
 })
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+installKeyTraceIfRequested()
+startIpcBenchIfRequested()
+
+const tree = reactRenderTracingEnabled() ? (
+  <React.Profiler id="app" onRender={recordReactRender}>
     <App />
-  </React.StrictMode>,
+  </React.Profiler>
+) : (
+  <App />
+)
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>{tree}</React.StrictMode>,
 )

@@ -1,5 +1,11 @@
 import { invoke } from '@tauri-apps/api/core'
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event'
+
+import { measure } from '../mainThreadBudget'
+
+// Every event handler is timed so main-thread cost can be attributed by event.
+const listen = <T,>(event: string, handler: (payload: { payload: T }) => void) =>
+  tauriListen<T>(event, (received) => measure(`ev:${event.split('/')[0]}`, () => handler(received as { payload: T })))
 
    
                                                                               

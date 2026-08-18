@@ -53,7 +53,7 @@
 
 It is built for developers who use Claude Code, Codex, OpenCode, and local terminals across multiple repositories or client contexts.
 
-Built with Tauri, Rust, React, TypeScript, Vite, `portable-pty`, and `xterm.js`.
+Built with Electron, React, TypeScript, Vite, `node-pty`, and `xterm.js`.
 
 ## Product Philosophy
 
@@ -168,7 +168,7 @@ If Defender removes the app:
 
 1. Open **Windows Security → Virus & threat protection → Protection history**.
 2. Find the Arco entry and choose **Actions → Restore**.
-3. Add an exclusion for `%LOCALAPPDATA%\Arco` (and for `src-tauri/target` if you build from
+3. Add an exclusion for `%LOCALAPPDATA%\Arco` (and for `dist-electron` if you build from
    source, otherwise your dev binaries get quarantined too).
 
 You can also report the file at
@@ -190,23 +190,14 @@ npm run app
 
 ## Requirements
 
-- Node.js 18+
-- Rust stable
+- Node.js 20+ — also required on the machine that *runs* the packaged app: the terminal and speech
+  hosts execute under the system Node.
 - Windows 10/11, Linux, or macOS
-- Visual Studio Build Tools on Windows
-- Tauri system dependencies on Linux
-
-Linux dependencies:
-
-```sh
-sudo apt update
-sudo apt install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-```
 
 ## Commands
 
 ```sh
-# run the desktop app in development mode
+# run the desktop app
 npm run app
 
 # run only the frontend in the browser
@@ -215,14 +206,14 @@ npm run dev
 # build the frontend
 npm run build
 
-# build the desktop app/installers
-npm run tauri -- build
+# package the desktop app
+npm run package
 ```
 
 Build artifacts are written to:
 
 ```text
-src-tauri/target/release/bundle/
+dist-electron/
 ```
 
 ## Typical Workflows

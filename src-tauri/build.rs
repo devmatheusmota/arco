@@ -11,6 +11,13 @@ fn main() {
     #[cfg(target_os = "macos")]
     link_libghostty();
 
+    // `generate_context!` embeds `dist/` at compile time, but nothing tells
+    // cargo that those files are inputs — so a frontend-only change produced a
+    // successful `cargo build` that silently kept the previous bundle inside
+    // the binary. Watching the directory makes the link happen when it should.
+    println!("cargo:rerun-if-changed=../dist");
+    println!("cargo:rerun-if-changed=../dist/index.html");
+
     tauri_build::build()
 }
 

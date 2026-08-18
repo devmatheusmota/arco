@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { AgentInstallButton } from '../AgentInstall/AgentInstallButton'
 import { cliPathMatchesAgent } from '../../lib/agentCliPath'
 import { pickFile } from '../../lib/dialog'
 import { getLocale, translate, useT } from '../../lib/i18n'
@@ -28,6 +27,7 @@ import {
 } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
+import { AgentInstallButton } from '../AgentInstall/AgentInstallButton'
 import { type DetectedTerminalLink } from './terminalLinks'
 import { applyPromptHistoryInput, loadPromptHistory, PROMPT_HISTORY_KEY } from './terminalWrite'
 import { useXtermSession } from './useXtermSession'

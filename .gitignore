@@ -1,6 +1,8 @@
 node_modules/
 dist/
 dist-ssr/
+# Packaged app output (AppImage and unpacked tree).
+dist-electron/
 .vite/
 .turbo/
 .cache/

@@ -68,17 +68,9 @@ back in the pool.
 | **Rust (stable)** | Install via [rustup](https://rustup.rs). |
 | **Platform toolchain** | See per-OS notes below. |
 
-**Windows** — install [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/)
-with the *Desktop development with C++* workload (this gives you MSVC, which Rust links against).
-
-**Linux** — install the Tauri system dependencies:
-
-```sh
-sudo apt update
-sudo apt install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-```
-
-**macOS** — install Xcode Command Line Tools: `xcode-select --install`.
+Node.js 20 or newer is the only requirement. It is also needed on any machine that runs a packaged
+build: the terminal and speech hosts execute under the system Node, because their native bindings
+target Node's ABI and are not rebuilt for Electron.
 
 ### Clone and run
 
@@ -89,11 +81,14 @@ npm install
 npm run app
 ```
 
-`npm run app` runs the full desktop app (Tauri + Vite) with hot reload. **This is the command you
-want** for almost all work.
+`npm run app` builds the frontend and runs the full desktop app. **This is the command you want**
+for almost all work.
 
-The first `npm run app` compiles the Rust backend from scratch and takes several minutes. That is
-normal and it is not stuck. Subsequent runs are fast.
+For hot reload, run `npm run dev` in one terminal and point the shell at it in another:
+
+```sh
+ARCO_DEV_URL=http://localhost:1422 npm run app:nobuild
+```
 
 ### Working on the UI only
 
@@ -102,8 +97,8 @@ npm run dev   # frontend only, at http://localhost:1422
 ```
 
 Useful for pure styling work, but anything that calls the backend (terminals, projects, sessions
-— i.e. most of the app) will fail here, because there's no Tauri IPC in a plain browser. When in
-doubt, use `npm run app`.
+— i.e. most of the app) will fail here, because a plain browser has no command router behind it.
+When in doubt, use `npm run app`.
 
 ## Verifying your setup
 
@@ -158,8 +153,12 @@ src/                  React 18 + TypeScript frontend
     i18n/             messages/en.ts (source of truth) + messages/pt-BR.ts
   styles/theme.css    Design tokens for all 12 themes
 
-src-tauri/src/        Rust + Tauri backend
-  lib.rs              Command registry (#[tauri::command] handlers)
+electron/             Application shell
+  main.cjs            Window, app protocol, PTY host, command router
+  preload.cjs         The API surface the frontend calls
+  commands/           One module per domain; every invoke() lands here
+  pty-host.cjs        Terminals, in their own process
+src-tauri/src/        Previous Rust/Tauri shell, kept as legacy (not released)
   pty.rs              PTY spawn/attach/write/resize/kill + scrollback on disk
   projects.rs         Atomic load/save of projects.json
   cli_resolver.rs     Discovers installed CLIs (shells, Node managers, editors)
@@ -176,8 +175,8 @@ docs/                 Feature docs, changelog, brand
 - **Sub-tab** — a separate shell or agent session inside the same pane.
 - **PTY** — the real backend process, which keeps running even when the UI changes.
 
-The frontend talks to the backend through `invoke(...)` in `lib/tauri.ts`. Terminal output
-streams back as Tauri events: `pty://data/{id}` and `pty://exit/{id}`.
+The frontend talks to the shell through `invoke(...)` in `lib/tauri.ts`. Terminal output streams
+back as events: `pty://data/{id}` and `pty://exit/{id}`.
 
 ## House rules
 

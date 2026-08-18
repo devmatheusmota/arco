@@ -19,6 +19,23 @@ export const TERMINAL_WRITE_FRAME_BUDGET = 16 * 1024
 // per frame: past it, output goes back through the budgeted path.
 export const DIRECT_WRITE_FRAME_LIMIT = 4 * 1024
 
+// Ceiling on how often a pane repaints. requestAnimationFrame follows the
+// display, so a 144 Hz panel would repaint the terminal 144 times a second for
+// an agent that redraws its TUI continuously — the parsing is the same, the
+// painting is what saturates the renderer.
+//
+// The focused pane keeps a 60 fps ceiling so typing still echoes within a
+// frame. Panes that are only on screen repaint at 20 fps: an agent's spinner
+// reads the same, and a workspace of four running agents stops spending three
+// quarters of the renderer on output nobody is reading.
+export const FOCUSED_REPAINT_MS = 33
+export const BACKGROUND_REPAINT_MS = 50
+
+// Right after a keystroke the pane repaints with no ceiling at all: the echo of
+// what you typed has to land immediately, and a person types far below the
+// rate at which repainting gets expensive.
+export const ECHO_WINDOW_MS = 250
+
 export function loadPromptHistory(ptyId: string): string[] {
   const raw = readScopedStorage(PROMPT_HISTORY_KEY(ptyId), true)
   if (!raw) return []

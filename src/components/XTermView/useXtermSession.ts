@@ -11,8 +11,10 @@ import { cliPathMatchesAgent } from '../../lib/agentCliPath'
 import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
 import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { getLocale, translate } from '../../lib/i18n'
+import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
+import { measure } from '../../lib/mainThreadBudget'
 import { isWindows } from '../../lib/platform'
-import { usePtyPanelVisible } from '../../lib/ptyVisibility'
+import { usePtyPanelFocused, usePtyPanelVisible } from '../../lib/ptyVisibility'
 import {
   claimDiscoveredSession,
   claimMostRecentSession,
@@ -68,6 +70,7 @@ import {
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
+import { resolveTerminalFontFamily } from './terminalFont'
 import {
   formatDroppedPaths,
   getTerminalScrollbackRows,
@@ -82,12 +85,15 @@ import {
   makeXtermLink,
 } from './terminalLinks'
 import {
-  attachTerminalRenderer,
+  attachTerminalRendererWhenSized,
   detachTerminalRenderer,
   type TerminalRenderer,
 } from './terminalRenderer'
 import {
+  BACKGROUND_REPAINT_MS,
   DIRECT_WRITE_FRAME_LIMIT,
+  ECHO_WINDOW_MS,
+  FOCUSED_REPAINT_MS,
   TERMINAL_WRITE_FRAME_BUDGET,
   writePtyChunked,
   writePtyWithTimeout,
@@ -100,6 +106,51 @@ const EARLY_EXIT_MS = 4000
 const PANEL_RESYNC_DEBOUNCE_MS = 80
 
 const OVERFLOW_PROBE_INTERVAL_MS = 1000
+
+/**
+ * A boot step that must never hold the pane hostage.
+ *
+ * Session discovery, graph indexing and CLI probing are all conveniences: if
+ * one of them hangs — a huge repository, a stalled backend, a shell that never
+ * answers — the pane must still reach a terminal instead of showing
+ * "Preparing terminal…" forever.
+ */
+const BOOT_STEP_TIMEOUT_MS = 5_000
+
+/** A spawn that never answers must fail loudly, not spin forever. */
+async function spawnPtyWithTimeout(
+  options: Parameters<typeof spawnPty>[0],
+): Promise<{ id: string }> {
+  let timer: number | null = null
+  try {
+    return await Promise.race([
+      spawnPty(options),
+      new Promise<never>((_, reject) => {
+        timer = window.setTimeout(
+          () => reject(new Error('spawn_pty timed out after 30 s')),
+          30_000,
+        )
+      }),
+    ])
+  } finally {
+    if (timer !== null) window.clearTimeout(timer)
+  }
+}
+
+function withTimeout<T>(work: Promise<T>, fallback: T, timeoutMs = BOOT_STEP_TIMEOUT_MS): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timer = window.setTimeout(() => resolve(fallback), timeoutMs)
+    work
+      .then((value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      })
+      .catch(() => {
+        window.clearTimeout(timer)
+        resolve(fallback)
+      })
+  })
+}
 
 function isBrowserInputPending(): boolean {
   const scheduling = (
@@ -201,6 +252,9 @@ export function useXtermSession(params: {
   } = params
 
   const isPanelVisible = usePtyPanelVisible(ptyId)
+  const isPanelFocused = usePtyPanelFocused(ptyId)
+  const isPanelFocusedRef = useRef(isPanelFocused)
+  isPanelFocusedRef.current = isPanelFocused
   const isPanelVisibleRef = useRef(isPanelVisible)
   const wasPanelVisibleRef = useRef(isPanelVisible)
 
@@ -233,8 +287,13 @@ export function useXtermSession(params: {
     let writeFrame: number | null = null
     let pendingWrites: string[] = []
     let pendingWriteLength = 0
-    let directWriteResetFrame: number | null = null
-    let directWriteBytes = 0
+    let writeFrameIsTimeout = false
+    let lastUserInputAt = 0
+    const repaintIntervalMs = () => {
+      if (Date.now() - lastUserInputAt < ECHO_WINDOW_MS) return 0
+      return isPanelFocusedRef.current ? FOCUSED_REPAINT_MS : BACKGROUND_REPAINT_MS
+    }
+    let lastTerminalWriteAt = 0
     let lastOverflowProbeAt = 0
     let pendingWriteDrainResolvers: Array<() => void> = []
     let resumeErrorBuffer = ''
@@ -267,7 +326,7 @@ export function useXtermSession(params: {
       // (como o ConPTY faz), o que corrompe o repaint de TUIs densas que
 
       ...(isWindows() ? { windowsPty: { backend: 'conpty' as const, buildNumber: 22000 } } : {}),
-      fontFamily: 'Cascadia Mono, Consolas, "Courier New", monospace',
+      fontFamily: resolveTerminalFontFamily(),
       fontSize: 14,
       theme: getXtermTheme(terminalTheme),
     })
@@ -278,9 +337,46 @@ export function useXtermSession(params: {
 
     terminal.loadAddon(new Unicode11Addon())
     terminal.unicode.activeVersion = '11'
-    terminal.open(container)
-    if (isPanelVisibleRef.current) {
-      rendererRef.current = attachTerminalRenderer(terminal)
+    // Opening into a container the browser has not laid out yet leaves xterm's
+    // render service without dimensions, and its viewport then throws on the
+    // first scroll sync. So the open waits for a real size — but it must never
+    // wait forever: a hidden window gets no animation frames, and a pane that
+    // never opens shows "Preparing terminal…" for good. Hence a size observer
+    // plus a deadline, and the open happens on whichever comes first.
+    let cancelRendererAttach: (() => void) | null = null
+    let openObserver: ResizeObserver | null = null
+    let openDeadline: number | null = null
+    let opened = false
+    const openTerminal = () => {
+      if (disposed || opened) return
+      opened = true
+      openObserver?.disconnect()
+      openObserver = null
+      if (openDeadline !== null) {
+        window.clearTimeout(openDeadline)
+        openDeadline = null
+      }
+      terminal.open(container)
+      if (isPanelVisibleRef.current) {
+        cancelRendererAttach = attachTerminalRendererWhenSized(terminal, container, (renderer) => {
+          rendererRef.current = renderer
+        })
+      }
+      terminal.focus()
+      void start()
+    }
+    const openWhenSized = () => {
+      const rect = container.getBoundingClientRect()
+      if (rect.width >= 2 && rect.height >= 2) {
+        openTerminal()
+        return
+      }
+      openObserver = new ResizeObserver(() => {
+        const size = container.getBoundingClientRect()
+        if (size.width >= 2 && size.height >= 2) openTerminal()
+      })
+      openObserver.observe(container)
+      openDeadline = window.setTimeout(openTerminal, 500)
     }
     terminalRef.current = terminal
     // Focusing xterm's off-screen helper textarea makes the WebView scroll the
@@ -303,7 +399,26 @@ export function useXtermSession(params: {
       if (xtermElement && xtermElement.scrollLeft !== 0) xtermElement.scrollLeft = 0
       if (viewportElement && viewportElement.scrollLeft !== 0) viewportElement.scrollLeft = 0
     }
+    // Focusing the pane also makes the WebView scroll every ancestor that can
+    // scroll, to bring xterm's off-screen helper textarea into view — which is
+    // what leaves the whole workspace shifted sideways, sidebar cut off. Only
+    // the horizontal offset is reset: vertical scrolling is legitimate.
+    const clampAncestorScroll = () => {
+      let node: HTMLElement | null = container.parentElement
+      while (node && node !== document.body) {
+        if (node.scrollLeft !== 0) node.scrollLeft = 0
+        node = node.parentElement
+      }
+      if (document.body.scrollLeft !== 0) document.body.scrollLeft = 0
+      const root = document.scrollingElement as HTMLElement | null
+      if (root && root.scrollLeft !== 0) root.scrollLeft = 0
+    }
+    const clampAllHorizontalScroll = () => {
+      clampHorizontalScroll()
+      clampAncestorScroll()
+    }
     container.addEventListener('scroll', clampHorizontalScroll, { capture: true, passive: true })
+    document.addEventListener('scroll', clampAncestorScroll, { capture: true, passive: true })
     linkProviderDisposable = terminal.registerLinkProvider({
       provideLinks: (bufferLineNumber, callback) => {
         const logicalLine = getLogicalTerminalLine(terminal.buffer.active, bufferLineNumber)
@@ -324,12 +439,37 @@ export function useXtermSession(params: {
       if (linkActionsRef.current) setLinkActions(null)
     })
 
-    terminal.focus()
+    /** Reschedules the flush so no more than one repaint lands per frame slot. */
+    const scheduleWriteFlush = () => {
+      if (writeFrame !== null) return
+      const waitMs = repaintIntervalMs() - (Date.now() - lastTerminalWriteAt)
+      writeFrame =
+        waitMs > 1
+          ? window.setTimeout(flushPendingWrite, waitMs)
+          : window.requestAnimationFrame(flushPendingWrite)
+      writeFrameIsTimeout = waitMs > 1
+    }
+
+    const cancelWriteFlush = () => {
+      if (writeFrame === null) return
+      if (writeFrameIsTimeout) window.clearTimeout(writeFrame)
+      else window.cancelAnimationFrame(writeFrame)
+      writeFrame = null
+    }
 
     const flushPendingWrite = () => {
       writeFrame = null
       if (disposed) return
       if (pendingWriteLength === 0) return
+      // An animation frame fires at the display's rate, and a 144 Hz panel turns
+      // an agent repainting its TUI into 144 terminal repaints a second. The
+      // parse work is the same either way; the painting is what saturates the
+      // renderer, so the queue drains on a fixed slot instead of on every frame.
+      if (Date.now() - lastTerminalWriteAt < repaintIntervalMs()) {
+        scheduleWriteFlush()
+        return
+      }
+      lastTerminalWriteAt = Date.now()
 
       let budget = TERMINAL_WRITE_FRAME_BUDGET
       let output = ''
@@ -347,12 +487,12 @@ export function useXtermSession(params: {
       if (output) {
         try {
           const isLastQueuedWrite = pendingWriteLength === 0
-          terminal.write(output, isLastQueuedWrite ? drainWriteWaiters : undefined)
+          measure('xterm.write', () =>
+            terminal.write(output, isLastQueuedWrite ? drainWriteWaiters : undefined),
+          )
         } catch {}
       }
-      if (pendingWriteLength > 0) {
-        writeFrame = window.requestAnimationFrame(flushPendingWrite)
-      }
+      if (pendingWriteLength > 0) scheduleWriteFlush()
     }
 
     const drainWriteWaiters = () => {
@@ -364,6 +504,9 @@ export function useXtermSession(params: {
 
     const queueTerminalWrite = (chunk: string) => {
       if (!chunk) return
+      if ((window as Window & { __ARCO_DROP_TERMINAL_WRITES__?: boolean }).__ARCO_DROP_TERMINAL_WRITES__) {
+        return
+      }
       // The echo of a keystroke is a handful of bytes. Parking it until the next
       // animation frame added a frame of latency to every character typed and
       // batched nothing, since there was nothing else in the queue. Only the
@@ -373,24 +516,19 @@ export function useXtermSession(params: {
       if (
         pendingWriteLength === 0 &&
         writeFrame === null &&
-        directWriteBytes + chunk.length <= DIRECT_WRITE_FRAME_LIMIT
+        chunk.length <= DIRECT_WRITE_FRAME_LIMIT &&
+        Date.now() - lastTerminalWriteAt >= repaintIntervalMs()
       ) {
-        directWriteBytes += chunk.length
-        if (directWriteResetFrame === null) {
-          directWriteResetFrame = window.requestAnimationFrame(() => {
-            directWriteResetFrame = null
-            directWriteBytes = 0
-          })
-        }
+        lastTerminalWriteAt = Date.now()
         try {
-          terminal.write(chunk, drainWriteWaiters)
+          measure('xterm.write', () => terminal.write(chunk, drainWriteWaiters))
         } catch {}
         return
       }
       pendingWrites.push(chunk)
       pendingWriteLength += chunk.length
       if (writeFrame !== null) return
-      writeFrame = window.requestAnimationFrame(flushPendingWrite)
+      scheduleWriteFlush()
     }
 
     const queueTerminalWriteAndWait = (chunk: string): Promise<void> => {
@@ -512,6 +650,7 @@ export function useXtermSession(params: {
 
     terminal.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') return true
+      traceKeyDown(event)
       const ctrl = event.ctrlKey || event.metaKey
       if (!ctrl || event.altKey) return true
 
@@ -575,9 +714,11 @@ export function useXtermSession(params: {
     const focusTerminal = () => {
       shouldRestoreTerminalFocus = true
       terminal.focus()
+      clampAllHorizontalScroll()
     }
     const rememberTerminalFocus = () => {
       shouldRestoreTerminalFocus = true
+      clampAllHorizontalScroll()
     }
     const rememberPointerFocusIntent = (event: PointerEvent) => {
       const target = event.target
@@ -680,6 +821,20 @@ export function useXtermSession(params: {
 
         return
       }
+      // FitAddon rounds the row count from the container height, and with the
+      // pane's padding that can land one row past what is actually visible —
+      // the last line then renders below the fold, which is where the prompt
+      // lives. Give the row back when the rendered screen overflows.
+      const screen = container.querySelector<HTMLElement>('.xterm-screen')
+      if (screen) {
+        const overflow = screen.getBoundingClientRect().bottom - rect.bottom
+        if (overflow > 1 && terminal.rows > 1) {
+          try {
+            terminal.resize(terminal.cols, terminal.rows - 1)
+          } catch {}
+        }
+      }
+
       const resizedBuffer = terminal.buffer.active
       if (distanceFromBottom === 0) terminal.scrollToBottom()
       else terminal.scrollToLine(Math.max(0, resizedBuffer.baseY - distanceFromBottom))
@@ -743,10 +898,7 @@ export function useXtermSession(params: {
         terminal.reset()
         pendingWrites = []
         pendingWriteLength = 0
-        if (writeFrame !== null) {
-          window.cancelAnimationFrame(writeFrame)
-          writeFrame = null
-        }
+        cancelWriteFlush()
         if (replay) void writeReplayAtOnce(replay)
         for (const chunk of arrivedDuringFetch) queueTerminalWrite(chunk)
       } catch {
@@ -764,11 +916,13 @@ export function useXtermSession(params: {
       inspectChunk?: (chunk: string) => void,
     ): Promise<boolean> => {
       const dataUnlisten = await listenPtyData(id, (chunk) => {
-        useTerminalsStore.getState().recordIo(id)
-        if (resyncCaptureRef) resyncCaptureRef.push(chunk)
-        queueTerminalWrite(chunk)
-        completionMonitor?.handleOutput(chunk)
-        inspectChunk?.(chunk)
+        measure('pty.data', () => {
+          useTerminalsStore.getState().recordIo(id)
+          if (resyncCaptureRef) resyncCaptureRef.push(chunk)
+          queueTerminalWrite(chunk)
+          completionMonitor?.handleOutput(chunk)
+          inspectChunk?.(chunk)
+        })
       })
       if (disposed) {
         dataUnlisten()
@@ -777,9 +931,11 @@ export function useXtermSession(params: {
       unlistenData = dataUnlisten
 
       const activityUnlisten = await listenPtyActivity(id, (chunk) => {
-        useTerminalsStore.getState().recordIo(id)
-        completionMonitor?.handleOutput(chunk)
-        inspectChunk?.(chunk)
+        measure('pty.activity', () => {
+          useTerminalsStore.getState().recordIo(id)
+          completionMonitor?.handleOutput(chunk)
+          inspectChunk?.(chunk)
+        })
       })
       if (disposed) {
         activityUnlisten()
@@ -853,6 +1009,8 @@ export function useXtermSession(params: {
       if (readOnly) return
       const id = ptyIdRef.current
       if (!id) return
+      lastUserInputAt = Date.now()
+      traceKeyData()
       useTerminalsStore.getState().recordIo(id)
       const startsNewSession = recordPromptInput(data)
       completionMonitor?.handleInput(data)
@@ -868,10 +1026,7 @@ export function useXtermSession(params: {
       }
       queueInput(id, data)
       if (startsNewSession && command && command !== 'shell') {
-        if (writeFrame !== null) {
-          window.cancelAnimationFrame(writeFrame)
-          writeFrame = null
-        }
+        cancelWriteFlush()
         pendingWrites = []
         pendingWriteLength = 0
         terminal.clear()
@@ -903,7 +1058,7 @@ export function useXtermSession(params: {
           await attachExistingPty(ptyId)
           return
         }
-        const backendHasPty = await ptyExists(ptyId).catch(() => false)
+        const backendHasPty = await withTimeout(ptyExists(ptyId), false)
         if (backendHasPty) {
           await attachExistingPty(ptyId)
           return
@@ -927,7 +1082,7 @@ export function useXtermSession(params: {
             }
           }
           if (!launcherOverride) {
-            const auto = await findCliLauncher(agentCliCommand(command) ?? command)
+            const auto = await withTimeout(findCliLauncher(agentCliCommand(command) ?? command), null)
             console.info(`[pty-launch] ${command} findCliLauncher → ${auto ?? 'null (NOT FOUND)'}`)
             if (!auto) {
               console.warn(
@@ -983,14 +1138,16 @@ export function useXtermSession(params: {
           cwd
         ) {
           try {
-            const existing =
+            const existing = await withTimeout(
               command === 'claude'
-                ? await snapshotClaudeSessions(cwd)
+                ? snapshotClaudeSessions(cwd)
                 : command === 'codex'
-                  ? await snapshotCodexSessions(cwd)
+                  ? snapshotCodexSessions(cwd)
                   : command === 'antigravity'
-                    ? await snapshotAntigravitySessions(cwd)
-                    : await snapshotOpenCodeSessions(cwd)
+                    ? snapshotAntigravitySessions(cwd)
+                    : snapshotOpenCodeSessions(cwd),
+              [],
+            )
             const match = existing.find((session) => session.id === resumeId)
             const notListed = !match
 
@@ -1052,9 +1209,9 @@ export function useXtermSession(params: {
           graphifyRepo &&
           (command === 'claude' || command === 'codex' || command === 'opencode')
         ) {
-          void graphifyEnsureGraph(graphifyRepo).catch(() => undefined)
+          void withTimeout(graphifyEnsureGraph(graphifyRepo), undefined)
           if (command === 'claude') {
-            const p = await graphifyMcpConfigPath(graphifyRepo).catch(() => undefined)
+            const p = await withTimeout(graphifyMcpConfigPath(graphifyRepo), undefined)
             if (p) mcpConfigPaths.push(p)
           } else if (command === 'opencode') {
             await graphifyOpenCodeConfigWrite(graphifyRepo).catch(() => {})
@@ -1070,10 +1227,10 @@ export function useXtermSession(params: {
           cwd &&
           (command === 'claude' || command === 'codex' || command === 'opencode')
         ) {
-          const status = await aiMemoryDetect().catch(() => undefined)
+          const status = await withTimeout(aiMemoryDetect(), undefined)
           if (status?.installed) {
             if (command === 'claude') {
-              const p = await aiMemoryMcpConfigPath(cwd).catch(() => undefined)
+              const p = await withTimeout(aiMemoryMcpConfigPath(cwd), undefined)
               if (p) mcpConfigPaths.push(p)
             } else if (command === 'opencode') {
               await aiMemoryOpenCodeConfigWrite(cwd).catch(() => {})
@@ -1142,7 +1299,7 @@ export function useXtermSession(params: {
         setBootPhase('spawning')
         let response: { id: string }
         try {
-          response = await spawnPty({
+          response = await spawnPtyWithTimeout({
             cols: terminal.cols,
             rows: terminal.rows,
             id: ptyId,
@@ -1431,7 +1588,7 @@ export function useXtermSession(params: {
         if (!disposed) setBootPhase('ready')
       }
     }
-    void start()
+    openWhenSized()
 
     return () => {
       if (import.meta.env.DEV) {
@@ -1445,6 +1602,7 @@ export function useXtermSession(params: {
       spawnQueueAbort.abort()
       container.removeEventListener('wheel', onWheel, true)
       container.removeEventListener('scroll', clampHorizontalScroll, true)
+      document.removeEventListener('scroll', clampAncestorScroll, true)
       container.removeEventListener('pointerdown', focusTerminal, true)
       container.removeEventListener('click', focusTerminal)
       container.removeEventListener('paste', onPaste)
@@ -1458,8 +1616,7 @@ export function useXtermSession(params: {
       window.removeEventListener('arco:terminal-resize-request', onResizeRequest)
       ro.disconnect()
       if (resizeTimer !== null) window.clearTimeout(resizeTimer)
-      if (writeFrame !== null) window.cancelAnimationFrame(writeFrame)
-      if (directWriteResetFrame !== null) window.cancelAnimationFrame(directWriteResetFrame)
+      cancelWriteFlush()
       pendingWrites = []
       pendingWriteLength = 0
       pendingWriteDrainResolvers = []
@@ -1474,6 +1631,9 @@ export function useXtermSession(params: {
       completionMonitor?.dispose()
       completionMonitor = null
       setLinkActions(null)
+      openObserver?.disconnect()
+      if (openDeadline !== null) window.clearTimeout(openDeadline)
+      cancelRendererAttach?.()
       rendererRef.current = detachTerminalRenderer(rendererRef.current)
       if (terminalRef.current === terminal) terminalRef.current = null
       ptyIdRef.current = null
@@ -1495,7 +1655,12 @@ export function useXtermSession(params: {
     const terminal = terminalRef.current
     if (terminal) {
       if (isPanelVisible && !rendererRef.current) {
-        rendererRef.current = attachTerminalRenderer(terminal)
+        const host = containerRef.current
+        if (host) {
+          attachTerminalRendererWhenSized(terminal, host, (renderer) => {
+            rendererRef.current = renderer
+          })
+        }
       } else if (!isPanelVisible && rendererRef.current) {
         rendererRef.current = detachTerminalRenderer(rendererRef.current)
       }

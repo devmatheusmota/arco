@@ -147,7 +147,32 @@ pub fn run() {
     let resource_supervisor = Arc::new(resources::ResourceSupervisor::default());
     let resource_supervisor_for_setup = Arc::clone(&resource_supervisor);
 
+    // Escape hatch for diagnosing renderer cost on a given machine: the WebView's
+    // WebGL path is not always the fastest one (WebKitGTK can end up reading the
+    // framebuffer back on every frame). Unset, panes pick WebGL as usual.
+    let renderer_override = std::env::var("ARCO_TERMINAL_RENDERER").unwrap_or_default();
+    let mut renderer_script = match renderer_override.as_str() {
+        "canvas" | "dom" | "webgl" => {
+            format!("window.__ARCO_TERMINAL_RENDERER__ = {renderer_override:?};")
+        }
+        _ => String::new(),
+    };
+    // Opt-in keystroke round-trip measurement; see `lib/ipcBench.ts`.
+    if std::env::var("ARCO_IPC_BENCH").as_deref() == Ok("1") {
+        renderer_script.push_str("window.__ARCO_IPC_BENCH__ = true;");
+    }
+    // Opt-in keystroke latency breakdown; see `lib/keyTrace.ts`.
+    if std::env::var("ARCO_KEY_TRACE").as_deref() == Ok("1") {
+        renderer_script.push_str("window.__ARCO_KEY_TRACE__ = true;");
+    }
+    // Diagnostic: drop terminal writes so the cost of xterm's own parsing and
+    // drawing can be measured by subtraction, with everything else unchanged.
+    if std::env::var("ARCO_DROP_TERMINAL_WRITES").as_deref() == Ok("1") {
+        renderer_script.push_str("window.__ARCO_DROP_TERMINAL_WRITES__ = true;");
+    }
+
     let mut builder = tauri::Builder::default()
+        .append_invoke_initialization_script(&renderer_script)
         .manage(sessions.clone())
         .manage(codex_app_server_state)
         .manage(remote::hub())
@@ -174,6 +199,19 @@ pub fn run() {
             #[cfg(debug_assertions)]
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_title("(DEV) Arco");
+            }
+
+            // Diagnostic hook: repaint cost scales with the painted area, and the
+            // default window is far smaller than a real workspace. ARCO_WINDOW_SIZE
+            // ("2560x1080") makes that measurable without a display manager.
+            if let Ok(spec) = std::env::var("ARCO_WINDOW_SIZE") {
+                if let Some((width, height)) = spec.split_once('x') {
+                    if let (Ok(width), Ok(height)) = (width.parse::<f64>(), height.parse::<f64>()) {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.set_size(tauri::LogicalSize::new(width, height));
+                        }
+                    }
+                }
             }
 
             #[cfg(target_os = "linux")]

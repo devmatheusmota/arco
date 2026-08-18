@@ -27,10 +27,8 @@ pub const PTY_ACTIVITY_EMIT_INTERVAL_MS: u128 = 450;
 
 /// Upper bound of a single emitted batch.
 const PTY_BATCH_MAX_BYTES: usize = 64 * 1024;
-/// A batch this size or larger is treated as a burst: it waits out the
-/// coalescing window so bulk output costs one IPC event instead of dozens.
-/// Anything smaller is interactive traffic and goes out immediately.
-const PTY_BATCH_COALESCE_MIN_BYTES: usize = 8 * 1024;
+/// How long after a keystroke output still counts as its echo.
+const PTY_INPUT_ECHO_WINDOW_MS: u64 = 250;
 const TEARDOWN_NORMAL: u8 = 0;
 const TEARDOWN_KILLED: u8 = 1;
 const TEARDOWN_SUSPENDED: u8 = 2;
@@ -136,6 +134,9 @@ pub struct PtySession {
     /// sobrepunham na tela em vez de um substituir o outro (texto/blocos de
     /// um redraw colidindo com o outro), confirmado analisando os bytes
     pub opencode_nudge_lock: Arc<AtomicU64>,
+    /// Wall-clock of the last keystroke written to this PTY. The reader uses it
+    /// to tell an echo apart from an agent repainting its own TUI.
+    pub last_input_at_ms: Arc<AtomicU64>,
 }
 
 const OPENCODE_NUDGE_COOLDOWN_MS: u64 = 400;
@@ -487,6 +488,8 @@ pub async fn spawn_pty(
         let thread_read_active = Arc::clone(&read_active);
         let visible = Arc::new(AtomicBool::new(true));
         let thread_visible = Arc::clone(&visible);
+        let last_input_at_ms = Arc::new(AtomicU64::new(0));
+        let thread_last_input = Arc::clone(&last_input_at_ms);
         let remote_pty_id = id.clone();
 
                                                                                  
@@ -652,12 +655,14 @@ pub async fn spawn_pty(
                 }
             }
 
-            // Waiting out the full coalescing window on a quiet PTY charged that
-            // window to every keystroke echo, which is the shell answering a
-            // single character. Only a burst — a TUI repaint, a build log — has
-            // enough traffic for batching to pay for itself, so the wait now
-            // starts once the batch already looks like one.
-            if !channel_closed && batch.len() >= PTY_BATCH_COALESCE_MIN_BYTES {
+            // Output that answers a keystroke goes out immediately — waiting out
+            // the coalescing window there charges its full length to every
+            // character typed. Everything else is an agent repainting its TUI,
+            // where each emitted batch becomes a repaint in the WebView: that is
+            // what saturates the renderer, so those are always coalesced.
+            let echoing = now_ms().saturating_sub(thread_last_input.load(Ordering::Relaxed))
+                < PTY_INPUT_ECHO_WINDOW_MS;
+            if !channel_closed && !echoing {
                 let batch_started = Instant::now();
                 while batch.len() < PTY_BATCH_MAX_BYTES {
                     let remaining =
@@ -719,10 +724,10 @@ pub async fn spawn_pty(
             // Yielding between batches keeps a flooding PTY from starving the
             // runtime, but on an interactive batch that pause lands straight in
             // the echo path of the next keystroke.
-            if count >= PTY_BATCH_COALESCE_MIN_BYTES {
-                tokio::time::sleep(Duration::from_millis(2)).await;
-            } else {
+            if echoing {
                 tokio::task::yield_now().await;
+            } else {
+                tokio::time::sleep(Duration::from_millis(2)).await;
             }
         }
 
@@ -830,6 +835,7 @@ pub async fn spawn_pty(
             cwd,
             read_active,
             visible,
+            last_input_at_ms,
             opencode_nudge_lock,
         };
 
@@ -1017,6 +1023,9 @@ pub async fn write_pty(
             let session = sessions
                 .get(&id)
                 .ok_or_else(|| format!("PTY not found: {id}"))?;
+            session
+                .last_input_at_ms
+                .store(now_ms(), Ordering::Relaxed);
             Arc::clone(&session.writer)
         };
         let mut writer = writer

@@ -1,6 +1,6 @@
 {
   "name": "arco",
-  "version": "1.5.3",
+  "version": "2.0.0",
   "license": "AGPL-3.0-or-later",
   "private": true,
   "type": "module",
@@ -11,18 +11,22 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "app": "npm run build && electron --no-sandbox --disable-gpu-sandbox electron/main.cjs",
+    "package": "npm run build && electron-builder --config electron-builder.yml --linux AppImage",
     "tauri": "tauri",
-    "app": "tauri dev --config src-tauri/tauri.dev.json",
+    "app:tauri": "tauri dev --config src-tauri/tauri.dev.json",
     "smoke:ghostty": "bash scripts/smoke-ghostty.sh",
     "capture:window": "bash scripts/capture-window.sh",
     "test:rust": "cd src-tauri && cargo test --lib",
     "test:ghostty": "cd src-tauri && cargo test --lib -- --ignored --test-threads=1 terminal_runs",
     "test": "vitest run",
     "release": "node scripts/release.mjs",
-    "release:publish": "node scripts/release-publish.mjs"
+    "release:publish": "node scripts/release-publish.mjs",
+    "app:nobuild": "electron --no-sandbox --disable-gpu-sandbox electron/main.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
+    "@homebridge/node-pty-prebuilt-multiarch": "^0.14.1",
     "@radix-ui/react-dialog": "^1.1.2",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.7.0",
@@ -45,6 +49,7 @@
     "react-markdown": "^9.1.0",
     "react-resizable-panels": "^4.10.0",
     "remark-gfm": "^4.0.1",
+    "sherpa-onnx-node": "^1.13.5",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
@@ -55,6 +60,8 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -71,5 +78,7 @@
   },
   "allowScripts": {
     "esbuild@0.25.12": true
-  }
+  },
+  "desktopName": "arco-chromium.desktop",
+  "main": "electron/main.cjs"
 }

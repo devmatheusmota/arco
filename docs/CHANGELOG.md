@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-08-18
+
 ### Added
 
 - Terminals now render on the GPU. The pane on screen uses the WebGL renderer instead of building
@@ -24,57 +26,28 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   and the scrollback and session identity survive so the agent resumes where it stopped. Visible,
   focused, working and recently spawned runtimes are never offered.
 
-### Fixed
-
-- The Claude Code usage tooltip in the title bar no longer shows `NaNm` as the reset time. When the
-  API reports no reset timestamp for a window, the tooltip now shows `—`, and an already-elapsed
-  window shows the translated "resetting…" label instead of untranslated English.
-- Typing in a terminal feels immediate again. A keystroke no longer waits out the backend's output
-  coalescing window nor an animation frame before its echo reaches the screen, and the pane stopped
-  flushing layout twice per character. Bulk output still batches as before.
-- Idle CPU dropped sharply. Memory sampling scanned every process — and on Linux every thread of
-  every process — three times every few seconds, once through a quadratic subtree walk; the samplers
-  now share one scan, and between full scans only the app's own subtree is refreshed. A pane also no
-  longer rerenders four times a second while an agent streams output.
-- Terminals no longer inherit the AppImage's own runtime environment (Linux). `PYTHONHOME` and
-  `PYTHONPATH` pointed inside the AppImage mount, so every `python3` a session ran died with
-  "Failed to import encodings module" — which broke agent hooks written in Python. `LD_LIBRARY_PATH`,
-  `PATH`, `PERLLIB`, `XDG_DATA_DIRS` and the GTK/Qt/GStreamer variables leaked the same way and
-  could make a spawned binary load the bundle's libraries instead of the system's.
-- The **Memory monitoring** preference was never sent to the backend — the choice between
-  **Smart LRU** and **Monitor only** was ignored and the app always behaved as **Monitor only**.
-
-### Changed
-
-- A workspace tab now shows a single project, always. Creating a terminal or opening a pane in
-  another project switches to that project's tab instead of adding it to the tab you are on, so
-  panes of two projects can no longer end up mixed on the same screen. Opening a group now opens one
-  tab per project of the group; those tabs sit together in the tab bar under a chip with the group
-  name and color, and clicking the chip closes them all. The tab limit went from 10 to 20 to make
-  room for groups.
-
-- The memory sampler got substantially cheaper. It no longer collects per-process disk usage it
-  never displayed, measures each process's private memory once per cycle instead of twice, reuses
-  its process table across sweeps, and slows from 5s to 30s while no window is on screen. Saving
-  the PTY root list — which runs on every spawn and every close — no longer sweeps every process on
-  the machine to read a handful of them.
-
-### Removed
-
-- Everything that only existed to arrange several projects on one screen: flat mode, the workspace
-  grid designer, the group grid designer, dragging one project container over another, and the
-  "Add to current view" action for projects, groups, terminals, and saved tabs. The grid designer
-  remains for the panes of a project. Existing files are migrated: a tab that held several projects
-  becomes one tab per project, keeping pins and history.
-
-- The Merge Center is gone: its sidebar panel, the **Merge** tab of the project editor, the branch
-  testing dialog, the merge store, and the `merge_analyze` / `merge_prepare` / `merge_finalize` /
-  `merge_abort` / `merge_preflight_abort` / `merge_rebase_onto_target` / `merge_force_cleanup`
-  backend commands, along with the `merge_analyzer` and `conflict_resolution` modules behind them.
-  Projects no longer carry a post-merge action setting. Worktrees, the conflict-resolution agent
-  settings and GSD Sync are untouched — they only shared the `merge.` prefix.
-
-### Added
+- **Experimental Chromium build.** Arco can now run its interface on Electron/Chromium instead of
+  the system WebView, launched with `arco-chromium` or the "Arco (Chromium)" desktop entry. The
+  frontend is the same one the regular build ships — `electron/preload.cjs` implements the contract
+  `@tauri-apps/api` expects, so `invoke()` and `listen()` work unchanged — and terminals run in a
+  separate PTY host process. Ported so far: terminals, workspace persistence, profiles, CLI
+  discovery, session listing, window controls, dialogs and the file sidebar; anything else answers
+  with a neutral value and is recorded in `logs/electron-missing-commands.log`. Git (status,
+  staging, diffs, branches, worktree listing), MCP configuration reading and the clipboard are
+  ported too, along with Claude and Codex quota, per-session cost read from the transcripts,
+  activity stats, the agent library, backup and restore, agent worktrees, project stack detection
+  and the agent hook listener that drives live status. Dictation works too: audio is captured
+  locally and recognised by the same on-device model the regular build uses, in its own process.
+  The port is now complete: profiles (create, rename, delete, switch, with real project and
+  terminal counts), the planning gate and its GSD side-channel, planning audit commits, the task
+  scheduler, validation runs, provider handoffs, the skill catalog for every agent, plugins, graph
+  snapshots with diff and rollback, the dictation model catalog with resumable checksum-verified
+  downloads, per-transcript cost, MCP health probing, the `arco` CLI shim, GitHub gist sync, the
+  Codex app server bridge, the resource sampler that drives Smart LRU (per-terminal memory and CPU
+  read from the process tree), window opacity, native dialogs and notifications, and the pending
+  path a `arco <dir>` launch hands to the running window. Deliberately absent: Spotify, Discord
+  presence and remote control. `npm run electron:package` produces an AppImage; the terminal host
+  needs Node installed on the machine, since its native binding is not rebuilt for Electron.
 
 - A task can now start the agent session that works on it. The **Start session** action on a task row
   opens a launcher preloaded with the target project, agent, folder, worktree isolation and a first
@@ -188,6 +161,30 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Changed
 
+- **Arco now runs on Chromium.** The interface moved off the system WebView (WebKitGTK on Linux,
+  WebView2 on Windows) onto Electron, which is what the app ships and what `npm run app` starts.
+  Typing, scrolling and rendering in the terminals are visibly faster; the WebView was the ceiling
+  the previous release kept hitting. The frontend is unchanged — it still calls `invoke()` and
+  listens to `pty://data/{id}` — and the workspace, profiles, scrollback and settings on disk are
+  the same files, so an existing installation carries over untouched. The previous Rust/Tauri shell
+  stays in `src-tauri/` as legacy and is no longer built or released.
+- Packaging is now `npm run package`, producing an AppImage in `dist-electron/`. The machine that
+  runs it needs Node installed: the terminal and speech hosts run under the system Node, because
+  their native bindings target Node's ABI.
+
+- A workspace tab now shows a single project, always. Creating a terminal or opening a pane in
+  another project switches to that project's tab instead of adding it to the tab you are on, so
+  panes of two projects can no longer end up mixed on the same screen. Opening a group now opens one
+  tab per project of the group; those tabs sit together in the tab bar under a chip with the group
+  name and color, and clicking the chip closes them all. The tab limit went from 10 to 20 to make
+  room for groups.
+
+- The memory sampler got substantially cheaper. It no longer collects per-process disk usage it
+  never displayed, measures each process's private memory once per cycle instead of twice, reuses
+  its process table across sweeps, and slows from 5s to 30s while no window is on screen. Saving
+  the PTY root list — which runs on every spawn and every close — no longer sweeps every process on
+  the machine to read a handful of them.
+
 - GitHub Copilot is drawn with its official mark instead of the generic robot placeholder, so every
   agent in the app now carries its own logo.
 - Setting MCP up is no longer a step of first-run onboarding. It is offered once as its own card
@@ -205,159 +202,11 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   for being idle while they stay mounted. A tab that produced no output while it was away skips the
   redraw entirely and comes back untouched.
 
-### Fixed
-
-- Deleting a group together with its projects no longer leaves tasks pointing at a project that is
-  gone — those tasks now fall back to the unassigned section instead of disappearing from the list.
-- The topbar widgets no longer jump sideways when you hover them. The pencil button that opens the
-  widget settings used to expand from zero width on hover, pushing every pill 26px to the left —
-  enough for the pill you were reaching for to slide out from under the cursor, which dropped the
-  hover, collapsed the button and shifted everything back, flickering in place. Its slot is now
-  reserved at all times and only the button itself fades in.
-- An extensionless path in terminal output no longer swallows the rest of the sentence as a link:
-  `/pt-br/vitrine-dupla/trajetoria — 5 variações` used to underline the whole line. A space now ends
-  the link unless a file extension is waiting on the other side, which is what a path with spaces
-  actually looks like.
-- Invalid CLI overrides are rejected instead of being saved and launched. Existing invalid overrides
-  are cleared automatically, preventing the Antigravity desktop application from opening when Alethe
-  expects the `agy` command-line executable.
-- The agent update button in onboarding no longer fails silently. It decided success purely by
-  checking whether the CLI binary was still on PATH, which is true even when the update itself
-  failed (network error, permission denied, ...), since the previous binary is still there. The
-  installer's real exit code is now checked first, and a failed update shows a toast instead of
-  quietly leaving the CLI on its old version. It also now catches the case where the installer
-  genuinely succeeds but a second, unmanaged install of the same CLI earlier on PATH shadows the
-  one that was just updated: if the resolved binary's version hasn't moved, the update is reported
-  as failed and the toast names the shadowing binary's path instead of reporting a false success.
-- Antigravity no longer shows "Version unknown" forever in onboarding. Latest-version lookup only
-  ever checked the npm registry, and Antigravity ships through a native installer instead of npm,
-  so it never had a package to look up. It now falls back to the latest tag on its public GitHub
-  releases when an agent has no npm package.
-- A terminal that accepted keystrokes but rendered nothing — recoverable only by restarting it — now
-  recovers on its own. Output is gated per PTY by a visibility flag, and the call that switches it
-  back on was silently ignored whenever it landed while the session was spawning or restarting,
-  leaving the stream off with nothing to turn it back on. The resource sampler now re-asserts
-  visibility for every PTY on each pass, so a stuck stream clears within one sample instead of
-  lasting until the terminal is restarted.
-- Terminals start faster. Resolving an agent's launcher scanned every directory in PATH on every
-  boot; successful lookups are now remembered and revalidated against the file itself, so installing
-  or removing a CLI is still picked up immediately.
-- An agent pane no longer loses the conversation it was resuming when you leave and come back to it
-  quickly. The saved session was being read destructively at launch, so a pane torn down mid-launch —
-  switching workspace tabs with Ctrl+Tab, for example — erased the only record of its conversation and
-  came back on a different chat. The record now survives until a new session actually replaces it.
-- The terminal "command not found" overlay was written in English regardless of the selected
-  language; its text now goes through the translation system like the rest of the app.
-- A pane no longer starts an empty chat when you come back to it after a long time away. The session
-  claim that prevents two panes from writing to the same conversation was tied to the PTY id, so a
-  PTY that ended on its own — parked by memory control, suspended, or killed — left the conversation
-  permanently marked as taken and the pane silently dropped its own session id.
-- Reopening a pane no longer replays its history line by line. The stored scrollback was fed to the
-  terminal in 16 KB slices, one rendered frame each, so a large buffer visibly scrolled from the top
-  down to the prompt and took seconds; it is now written in a single pass straight to the bottom.
-- Switching conversation from inside the CLI with `/new` or `/resume` now sticks. Alethe pinned the
-  session id given at launch and sent the old one back on the next restart, dragging the pane to the
-  previous chat.
-- Ctrl+Tab did nothing after coming back to the app from another window. Returning left the webview
-  with no focused element, and WebView2 then kept the key for its own focus traversal instead of
-  handing it to the app. Focus is now parked on the app shell whenever nothing else holds it, so
-  every shortcut keeps working. Ctrl+Tab also focuses the first terminal of the tab it switches to,
-  instead of switching with the keyboard pointed at nothing.
-- Agent CLIs installed through Homebrew were invisible on macOS. An `.app` launched from Finder does
-  not run as a login shell, so it inherits the minimal Launch Services PATH without `.zshrc` /
-  `.zprofile`. Launcher discovery and the PATH rebuilt for terminals now include the default Homebrew
-  prefixes (`/opt/homebrew/bin` and `sbin` on Apple Silicon, `/usr/local/bin` and `sbin` on Intel) as
-  a fixed fallback.
-- The Antigravity usage widget showed "—" on Linux. The OAuth token lookup used an explicit keyring
-  target required by the Windows Credential Manager, which prevented the Linux Secret Service (GNOME
-  Keyring / KWallet) from finding the entry written by the `agy` CLI. Credential discovery now
-  supports both layouts and also looks for the `agy` binary in `~/.local/bin` and `~/.cargo/bin` on
-  Linux and macOS.
-- Pasting an image or files into a terminal did nothing on Linux, silently. `read_clipboard_payload`
-  was implemented on Windows only and errored out everywhere else without falling back. A Linux/BSD
-  backend using `wl-paste` / `wl-copy` (Wayland) or `xclip` (X11) now handles screenshots, images
-  copied from the web (`image/png`) and files copied in a file manager (`text/uri-list`). macOS is
-  still unimplemented.
-
-- The Files sidebar now supports quick previews, adding or dragging files into the workspace grid,
-  revealing entries in File Explorer, renaming, and confirmed deletion. Git file rows can also open
-  the working file in the grid or reveal it alongside the existing stage, discard, commit, and sync actions.
-- Browser panes now offer app-first, balanced, and keep-alive resource modes. App-first is the default,
-  and every mode releases hidden native webviews when Alethe detects memory pressure.
-- The layout organizer now includes adaptive presets and keeps the eight most recently saved layouts
-  separately for each project, group, and workspace.
-- New **Ember** interface theme: cool charcoal surfaces, hairline dividers and a single ember-orange
-  accent for live state, with a matching terminal palette. Selectable in Preferences → Appearance and
-  as the terminal theme; it does not ship a native app icon variant.
-- Remote control now pairs through a **short-lived pairing window**. The QR code is valid for two
-  minutes and stops working as soon as one device pairs; a paired device receives its own session
-  token and can be revoked individually. Preferences → Remote control can reopen or close the window
-  at any time.
-- A message sent from a paired phone now raises a desktop notification naming the device and showing
-  what it sent, so remote input is never silently typed into a terminal.
-- Individual terminals can now be hidden from remote devices from the sidebar context menu. A hidden
-  terminal disappears from the phone's list and its output and input are refused server-side.
-- Remote control gained a **read-only mode** (on by default) and a separate switch that decides
-  whether plain shell terminals accept remote input. With both at their defaults a paired phone can
-  watch terminals but cannot type into them.
-
-### Changed
-
 - **Remote control is now off by default and stays off until you turn it on.** Alethe used to open a
   LAN listener on every launch, and the on/off switch was lost when the app restarted. The setting is
   now saved with your preferences and the listener only starts while it is enabled.
 - The remote pairing address and QR code are only shown while a pairing window is open, and the
   address the phone uses is no longer carried in the page URL after pairing.
-
-### Fixed
-
-- Remote control session lifetime, the device limit, and per-device revocation now apply to the whole
-  remote surface. They previously only guarded the live WebSocket, so an expired or revoked device
-  could still read terminal output and send messages over HTTP.
-- A paired phone now only receives output from the terminal it is watching. Every terminal's output
-  was previously broadcast to every connected device.
-- The remote workspace listing now sends only the fields the phone renders, instead of copying raw
-  workspace records.
-- Remote requests split across network packets are no longer truncated, oversized requests are
-  rejected, and a failed request always gets a response instead of leaving the phone waiting.
-- Remote connections now time out, are capped in number, must authenticate within ten seconds, and
-  repeated bad tokens temporarily block the offending address — a device on the same network can no
-  longer exhaust the app's connections.
-- Remote control now re-reads the machine's network address every time it is enabled, so the pairing
-  QR code stays valid after switching Wi-Fi networks.
-
-- The **App icon** setting in Preferences → Appearance now actually changes the taskbar and window
-  icon. It previously sent the bundled asset URL to the native window, which silently failed, so the
-  icon never left the default variant. Each icon now ships at 32, 48, and 64 pixels and the variant
-  matching the display scaling is used, so the taskbar no longer shows a blurry downscale.
-- Critical Windows memory pressure now suspends one eligible hidden idle runtime at a time, preserving
-  session scrollback while preventing system-wide stalls that can make even Alt+Tab stop responding.
-- Submitting `/new` in an agent terminal now clears both the visible conversation and its persisted
-  terminal scrollback, so the fresh session no longer inherits the previous conversation on screen.
-- Terminals now recover automatically when a native PTY write stalls instead of blocking every
-  later keystroke until a manual refresh, and use the stable xterm DOM renderer to avoid a renderer
-  transition race that could leave the terminal unable to accept input.
-- Large terminal pastes now use bounded high-throughput IPC chunks, preserve Unicode boundaries, share
-  the normal input queue, skip synchronous per-character prompt-history work, and always close
-  bracketed-paste mode after partial failures. This prevents Claude Code and Codex pastes from freezing
-  the app, interleaving with typing, or stopping halfway.
-- Native browser panes now remain hidden for the full lifetime of modal and menu overlays, including
-  closing animations, preventing them from flashing above or interfering with dialogs.
-- Opening a terminal's tabs lane now moves only its left floating identity to the right, while the
-  existing right-side actions remain anchored in place. The pane drag handle moves into the lane,
-  directly above its tab items, so it no longer covers terminal content.
-- Fixed the freezes and runaway memory growth introduced with the new sidebar. The conversation
-  title shown on each session row was rescanning and fully parsing every Claude session file of the
-  project — up to hundreds of MB — every 12 seconds, on the thread that serves the whole UI. Rows
-  now read only their own session file, off the main thread, and stop once the title is known.
-- Session scans no longer load a whole record into memory, so a single oversized message can no
-  longer abort the app with an out-of-memory error and take every open terminal down with it.
-- Session scans that take longer than 250 ms are now recorded in `logs/app-events.log`.
-- Closing the app no longer crashes or becomes unresponsive mid-shutdown. Process-tree cleanup now
-  runs outside the native event loop, while a frontend deadline destroys the window if the native
-  quit request does not settle, so slow Windows process termination cannot hold the interface open.
-
-### Changed
 
 - High-volume terminal output now coalesces runtime activity timestamps, avoiding repeated global
   state updates and skips remote-control serialization when no remote device is connected, without
@@ -466,7 +315,212 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 - Removed the Infinite Rainbow project-color option, its animated styles, and its workspace focus
   treatment. Existing invalid or retired accent values now fall back to a stable solid color.
 
+### Removed
+
+- **Spotify, Discord presence and remote control** are not part of this release. They existed only
+  in the previous shell and were not carried over.
+
+- Everything that only existed to arrange several projects on one screen: flat mode, the workspace
+  grid designer, the group grid designer, dragging one project container over another, and the
+  "Add to current view" action for projects, groups, terminals, and saved tabs. The grid designer
+  remains for the panes of a project. Existing files are migrated: a tab that held several projects
+  becomes one tab per project, keeping pins and history.
+
+- The Merge Center is gone: its sidebar panel, the **Merge** tab of the project editor, the branch
+  testing dialog, the merge store, and the `merge_analyze` / `merge_prepare` / `merge_finalize` /
+  `merge_abort` / `merge_preflight_abort` / `merge_rebase_onto_target` / `merge_force_cleanup`
+  backend commands, along with the `merge_analyzer` and `conflict_resolution` modules behind them.
+  Projects no longer carry a post-merge action setting. Worktrees, the conflict-resolution agent
+  settings and GSD Sync are untouched — they only shared the `merge.` prefix.
+
 ### Fixed
+
+- The last line of a terminal is no longer cut off at the bottom edge. The fitted row count could
+  land one row past what the pane can actually show, which pushed the prompt — the line an agent
+  writes to — below the fold. The extra row is now given back when the rendered screen overflows
+  its pane.
+- A confirmation dialog in the Chromium build now really asks. It answered "yes" without showing
+  anything, so a destructive confirmation went through untouched.
+- Panes no longer sit on "Preparing terminal…" when a step of the boot stalls. Session discovery,
+  CLI probing and graph indexing each get five seconds, spawning gets thirty, and the terminal is
+  opened as soon as its container has a size rather than waiting for an animation frame that a
+  hidden window never delivers. Graph indexing also stopped blocking the boot: on a large repository
+  it held the pane for minutes.
+
+- The Claude Code usage tooltip in the title bar no longer shows `NaNm` as the reset time. When the
+  API reports no reset timestamp for a window, the tooltip now shows `—`, and an already-elapsed
+  window shows the translated "resetting…" label instead of untranslated English.
+- A pane no longer opens its terminal into a container the browser has not laid out yet, which left
+  xterm's render service without dimensions and threw on the first scroll sync. The GPU renderer is
+  attached on the same condition.
+- Terminals now use a font the machine actually has. The stack named Windows fonts only, so on
+  Linux every cell fell back to the generic `monospace` and every glyph an agent TUI draws — the
+  braille spinner, box drawing, Nerd Font icons — went through font fallback and a fresh texture
+  upload into the renderer's glyph atlas on each repaint. The pane now picks the first installed
+  family from a per-platform list.
+- The build no longer ships a stale frontend. `cargo build` had no idea the compiled bundle in
+  `dist/` was an input, so a frontend-only change produced a successful build that kept the previous
+  UI inside the binary.
+- A workspace of running agents no longer saturates the renderer. Each pane repainted on every
+  animation frame, which on a 144 Hz display meant 144 repaints a second per pane — measured on a
+  four-agent workspace, that alone pinned a CPU core and made typing, scrolling and dictation lag
+  everywhere in the app. Panes now repaint at most 30 times a second, and 20 for panes that are on
+  screen without the focus; the same workspace went from a saturated core to about a third of one.
+  Output that answers a keystroke keeps bypassing every ceiling, so the echo is still immediate.
+- Typing in a terminal feels immediate again. A keystroke no longer waits out the backend's output
+  coalescing window nor an animation frame before its echo reaches the screen, and the pane stopped
+  flushing layout twice per character. Bulk output still batches as before.
+- Idle CPU dropped sharply. Memory sampling scanned every process — and on Linux every thread of
+  every process — three times every few seconds, once through a quadratic subtree walk; the samplers
+  now share one scan, and between full scans only the app's own subtree is refreshed. A pane also no
+  longer rerenders four times a second while an agent streams output.
+- Terminals no longer inherit the AppImage's own runtime environment (Linux). `PYTHONHOME` and
+  `PYTHONPATH` pointed inside the AppImage mount, so every `python3` a session ran died with
+  "Failed to import encodings module" — which broke agent hooks written in Python. `LD_LIBRARY_PATH`,
+  `PATH`, `PERLLIB`, `XDG_DATA_DIRS` and the GTK/Qt/GStreamer variables leaked the same way and
+  could make a spawned binary load the bundle's libraries instead of the system's.
+- The **Memory monitoring** preference was never sent to the backend — the choice between
+  **Smart LRU** and **Monitor only** was ignored and the app always behaved as **Monitor only**.
+
+- Deleting a group together with its projects no longer leaves tasks pointing at a project that is
+  gone — those tasks now fall back to the unassigned section instead of disappearing from the list.
+- The topbar widgets no longer jump sideways when you hover them. The pencil button that opens the
+  widget settings used to expand from zero width on hover, pushing every pill 26px to the left —
+  enough for the pill you were reaching for to slide out from under the cursor, which dropped the
+  hover, collapsed the button and shifted everything back, flickering in place. Its slot is now
+  reserved at all times and only the button itself fades in.
+- An extensionless path in terminal output no longer swallows the rest of the sentence as a link:
+  `/pt-br/vitrine-dupla/trajetoria — 5 variações` used to underline the whole line. A space now ends
+  the link unless a file extension is waiting on the other side, which is what a path with spaces
+  actually looks like.
+- Invalid CLI overrides are rejected instead of being saved and launched. Existing invalid overrides
+  are cleared automatically, preventing the Antigravity desktop application from opening when Alethe
+  expects the `agy` command-line executable.
+- The agent update button in onboarding no longer fails silently. It decided success purely by
+  checking whether the CLI binary was still on PATH, which is true even when the update itself
+  failed (network error, permission denied, ...), since the previous binary is still there. The
+  installer's real exit code is now checked first, and a failed update shows a toast instead of
+  quietly leaving the CLI on its old version. It also now catches the case where the installer
+  genuinely succeeds but a second, unmanaged install of the same CLI earlier on PATH shadows the
+  one that was just updated: if the resolved binary's version hasn't moved, the update is reported
+  as failed and the toast names the shadowing binary's path instead of reporting a false success.
+- Antigravity no longer shows "Version unknown" forever in onboarding. Latest-version lookup only
+  ever checked the npm registry, and Antigravity ships through a native installer instead of npm,
+  so it never had a package to look up. It now falls back to the latest tag on its public GitHub
+  releases when an agent has no npm package.
+- A terminal that accepted keystrokes but rendered nothing — recoverable only by restarting it — now
+  recovers on its own. Output is gated per PTY by a visibility flag, and the call that switches it
+  back on was silently ignored whenever it landed while the session was spawning or restarting,
+  leaving the stream off with nothing to turn it back on. The resource sampler now re-asserts
+  visibility for every PTY on each pass, so a stuck stream clears within one sample instead of
+  lasting until the terminal is restarted.
+- Terminals start faster. Resolving an agent's launcher scanned every directory in PATH on every
+  boot; successful lookups are now remembered and revalidated against the file itself, so installing
+  or removing a CLI is still picked up immediately.
+- An agent pane no longer loses the conversation it was resuming when you leave and come back to it
+  quickly. The saved session was being read destructively at launch, so a pane torn down mid-launch —
+  switching workspace tabs with Ctrl+Tab, for example — erased the only record of its conversation and
+  came back on a different chat. The record now survives until a new session actually replaces it.
+- The terminal "command not found" overlay was written in English regardless of the selected
+  language; its text now goes through the translation system like the rest of the app.
+- A pane no longer starts an empty chat when you come back to it after a long time away. The session
+  claim that prevents two panes from writing to the same conversation was tied to the PTY id, so a
+  PTY that ended on its own — parked by memory control, suspended, or killed — left the conversation
+  permanently marked as taken and the pane silently dropped its own session id.
+- Reopening a pane no longer replays its history line by line. The stored scrollback was fed to the
+  terminal in 16 KB slices, one rendered frame each, so a large buffer visibly scrolled from the top
+  down to the prompt and took seconds; it is now written in a single pass straight to the bottom.
+- Switching conversation from inside the CLI with `/new` or `/resume` now sticks. Alethe pinned the
+  session id given at launch and sent the old one back on the next restart, dragging the pane to the
+  previous chat.
+- Ctrl+Tab did nothing after coming back to the app from another window. Returning left the webview
+  with no focused element, and WebView2 then kept the key for its own focus traversal instead of
+  handing it to the app. Focus is now parked on the app shell whenever nothing else holds it, so
+  every shortcut keeps working. Ctrl+Tab also focuses the first terminal of the tab it switches to,
+  instead of switching with the keyboard pointed at nothing.
+- Agent CLIs installed through Homebrew were invisible on macOS. An `.app` launched from Finder does
+  not run as a login shell, so it inherits the minimal Launch Services PATH without `.zshrc` /
+  `.zprofile`. Launcher discovery and the PATH rebuilt for terminals now include the default Homebrew
+  prefixes (`/opt/homebrew/bin` and `sbin` on Apple Silicon, `/usr/local/bin` and `sbin` on Intel) as
+  a fixed fallback.
+- The Antigravity usage widget showed "—" on Linux. The OAuth token lookup used an explicit keyring
+  target required by the Windows Credential Manager, which prevented the Linux Secret Service (GNOME
+  Keyring / KWallet) from finding the entry written by the `agy` CLI. Credential discovery now
+  supports both layouts and also looks for the `agy` binary in `~/.local/bin` and `~/.cargo/bin` on
+  Linux and macOS.
+- Pasting an image or files into a terminal did nothing on Linux, silently. `read_clipboard_payload`
+  was implemented on Windows only and errored out everywhere else without falling back. A Linux/BSD
+  backend using `wl-paste` / `wl-copy` (Wayland) or `xclip` (X11) now handles screenshots, images
+  copied from the web (`image/png`) and files copied in a file manager (`text/uri-list`). macOS is
+  still unimplemented.
+
+- The Files sidebar now supports quick previews, adding or dragging files into the workspace grid,
+  revealing entries in File Explorer, renaming, and confirmed deletion. Git file rows can also open
+  the working file in the grid or reveal it alongside the existing stage, discard, commit, and sync actions.
+- Browser panes now offer app-first, balanced, and keep-alive resource modes. App-first is the default,
+  and every mode releases hidden native webviews when Alethe detects memory pressure.
+- The layout organizer now includes adaptive presets and keeps the eight most recently saved layouts
+  separately for each project, group, and workspace.
+- New **Ember** interface theme: cool charcoal surfaces, hairline dividers and a single ember-orange
+  accent for live state, with a matching terminal palette. Selectable in Preferences → Appearance and
+  as the terminal theme; it does not ship a native app icon variant.
+- Remote control now pairs through a **short-lived pairing window**. The QR code is valid for two
+  minutes and stops working as soon as one device pairs; a paired device receives its own session
+  token and can be revoked individually. Preferences → Remote control can reopen or close the window
+  at any time.
+- A message sent from a paired phone now raises a desktop notification naming the device and showing
+  what it sent, so remote input is never silently typed into a terminal.
+- Individual terminals can now be hidden from remote devices from the sidebar context menu. A hidden
+  terminal disappears from the phone's list and its output and input are refused server-side.
+- Remote control gained a **read-only mode** (on by default) and a separate switch that decides
+  whether plain shell terminals accept remote input. With both at their defaults a paired phone can
+  watch terminals but cannot type into them.
+
+- Remote control session lifetime, the device limit, and per-device revocation now apply to the whole
+  remote surface. They previously only guarded the live WebSocket, so an expired or revoked device
+  could still read terminal output and send messages over HTTP.
+- A paired phone now only receives output from the terminal it is watching. Every terminal's output
+  was previously broadcast to every connected device.
+- The remote workspace listing now sends only the fields the phone renders, instead of copying raw
+  workspace records.
+- Remote requests split across network packets are no longer truncated, oversized requests are
+  rejected, and a failed request always gets a response instead of leaving the phone waiting.
+- Remote connections now time out, are capped in number, must authenticate within ten seconds, and
+  repeated bad tokens temporarily block the offending address — a device on the same network can no
+  longer exhaust the app's connections.
+- Remote control now re-reads the machine's network address every time it is enabled, so the pairing
+  QR code stays valid after switching Wi-Fi networks.
+
+- The **App icon** setting in Preferences → Appearance now actually changes the taskbar and window
+  icon. It previously sent the bundled asset URL to the native window, which silently failed, so the
+  icon never left the default variant. Each icon now ships at 32, 48, and 64 pixels and the variant
+  matching the display scaling is used, so the taskbar no longer shows a blurry downscale.
+- Critical Windows memory pressure now suspends one eligible hidden idle runtime at a time, preserving
+  session scrollback while preventing system-wide stalls that can make even Alt+Tab stop responding.
+- Submitting `/new` in an agent terminal now clears both the visible conversation and its persisted
+  terminal scrollback, so the fresh session no longer inherits the previous conversation on screen.
+- Terminals now recover automatically when a native PTY write stalls instead of blocking every
+  later keystroke until a manual refresh, and use the stable xterm DOM renderer to avoid a renderer
+  transition race that could leave the terminal unable to accept input.
+- Large terminal pastes now use bounded high-throughput IPC chunks, preserve Unicode boundaries, share
+  the normal input queue, skip synchronous per-character prompt-history work, and always close
+  bracketed-paste mode after partial failures. This prevents Claude Code and Codex pastes from freezing
+  the app, interleaving with typing, or stopping halfway.
+- Native browser panes now remain hidden for the full lifetime of modal and menu overlays, including
+  closing animations, preventing them from flashing above or interfering with dialogs.
+- Opening a terminal's tabs lane now moves only its left floating identity to the right, while the
+  existing right-side actions remain anchored in place. The pane drag handle moves into the lane,
+  directly above its tab items, so it no longer covers terminal content.
+- Fixed the freezes and runaway memory growth introduced with the new sidebar. The conversation
+  title shown on each session row was rescanning and fully parsing every Claude session file of the
+  project — up to hundreds of MB — every 12 seconds, on the thread that serves the whole UI. Rows
+  now read only their own session file, off the main thread, and stop once the title is known.
+- Session scans no longer load a whole record into memory, so a single oversized message can no
+  longer abort the app with an out-of-memory error and take every open terminal down with it.
+- Session scans that take longer than 250 ms are now recorded in `logs/app-events.log`.
+- Closing the app no longer crashes or becomes unresponsive mid-shutdown. Process-tree cleanup now
+  runs outside the native event loop, while a frontend deadline destroys the window if the native
+  quit request does not settle, so slow Windows process termination cannot hold the interface open.
 
 - Prevented private browser panes from failing to start when development-mode effect remounts
   briefly overlap while a previous native webview is closing.

@@ -1,0 +1,30 @@
+# Packaging for Arco. The app runs its interface on Electron/Chromium; the
+# Tauri bundle in src-tauri/ is kept as the previous shell and is not built
+# from here.
+appId: com.mota.arco
+# node-pty ships prebuilt binaries for Node's ABI and the PTY host runs under
+# the system Node, so there is nothing to rebuild for Electron here.
+npmRebuild: false
+productName: Arco
+artifactName: Arco-${version}.${ext}
+directories:
+  output: dist-electron
+  buildResources: src-tauri/icons
+files:
+  - electron/**/*
+  - dist/**/*
+  - package.json
+  - '!**/*.map'
+asarUnpack:
+  # The PTY and speech hosts run under the system Node, which cannot read inside
+  # an asar, so they and their native dependencies stay on disk.
+  - 'electron/**'
+  - '**/node_modules/@homebridge/node-pty-prebuilt-multiarch/**'
+  - '**/node_modules/sherpa-onnx-*/**'
+linux:
+  target: AppImage
+  syncDesktopName: true
+  executableName: arco
+  synopsis: Reveal the state of every agent, shell, and project
+  category: Development
+  icon: src-tauri/icons

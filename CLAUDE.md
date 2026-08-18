@@ -18,7 +18,8 @@ real terminals (PTYs), layouts, themes, history, and RAM control.
 At the repository root — the app directory. It contains:
 
 - `src/` — React frontend.
-- `src-tauri/` — Rust/Tauri backend.
+- `electron/` — the application shell: window, command router (`commands/`), PTY and speech hosts.
+- `src-tauri/` — the previous Rust/Tauri shell, kept as legacy (not released).
 - `docs/` — versioned docs (`FEATURES.md`, `CHANGELOG.md`, `OVERVIEW.md`, `BRAND.md`,
   `DIAGNOSTICO_MATURIDADE_TECNICA.md`).
 - `package.json`, `vite.config.ts`, `tsconfig.json`, `tests/`.
@@ -26,34 +27,38 @@ At the repository root — the app directory. It contains:
 ## 3. Stack
 
 - **Frontend:** React 18.3 · TypeScript 5.6 · Vite 6 · Zustand 5 · xterm.js 5.5 (`@xterm/addon-fit`, `-search`, `-webgl`) · `react-resizable-panels` · `@dnd-kit/core` · `@radix-ui/react-dialog` · `lucide-react` · `nanoid`.
-- **Backend:** Rust (edition 2021) · Tauri 2 · `portable-pty` (ConPTY on Windows) · `tokio` · `reqwest` · `keyring` · `serde`.
+- **Shell / backend:** Electron 43 (Chromium) · `electron/main.cjs` command router · PTY host on
+  `@homebridge/node-pty-prebuilt-multiarch` · speech host on `sherpa-onnx`.
+- **Legacy shell:** `src-tauri/` still holds the Rust/Tauri build the app used before v2. It is kept
+  for reference and is not part of a release. Do not add features there.
 - **Styling:** CSS Modules + CSS custom properties (no Tailwind, no styled-components).
 
 ## 4. Commands (from `package.json`)
 
-```powershell
+```bash
 npm install
-npm run app      # = tauri dev — runs the full app with hot reload (RECOMMENDED WAY)
+npm run app      # builds the frontend and runs the full app (RECOMMENDED WAY)
 npm run dev      # Vite frontend only, at http://localhost:1422 (strictPort)
 npm run build    # tsc + vite build — tsc typechecks and VALIDATES i18n (see §5)
+npm run package  # AppImage into dist-electron/
 npm test         # vitest run over tests/**/*.test.ts (test:node runs via node --test, separately)
 ```
 
-**Building the Windows installer (MSI/NSIS)** requires the MSVC environment (`vcvars64`):
+To iterate with hot reload, run `npm run dev` and start the shell against it:
+`ARCO_DEV_URL=http://localhost:1422 npm run app:nobuild`.
 
-```powershell
-cmd /c '"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >NUL && npm run tauri build'
-```
+The packaged app needs **Node installed on the machine**: the PTY and speech hosts run under the
+system Node, because their native bindings target Node's ABI and are not rebuilt for Electron.
 
-When returning the path of a generated installer, always report the **full absolute path on the PC**
-(for example, `D:\project\src-tauri\target\release\bundle\nsis\Arco_setup.exe`), never just the
-path relative to the repository.
+When returning the path of a generated installer or bundle, always report the **full absolute path**
+(for example, `/home/user/projects/arco/dist-electron/Arco-2.0.0.AppImage`), never just the path
+relative to the repository.
 
 
 
 ## 5. Non-negotiable rules
 
-1. **DO NOT stop or restart the app or the dev server** (`tauri dev` / Vite). Do not kill the
+1. **DO NOT stop or restart the app or the dev server** (the shell / Vite). Do not kill the
    process, do not run `npm run app` "just to test" if it is already running. Apply changes through
    **HMR** and trust the reload.
 2. **DO NOT commit / push / tag / release without explicit permission from the owner at that
@@ -83,7 +88,16 @@ path relative to the repository.
 - `lib/types.ts` — domain types (`AgentType`, `Terminal`, `Project`, `Group`, `GridLayout`…).
 - `styles/theme.css` + `styles/reset.css` — tokens and reset.
 
-**Backend (`src-tauri/src/`)**
+**Shell (`electron/`)**
+- `main.cjs` — window, `arco://` app protocol, PTY host supervision, `tauri:invoke` router.
+- `preload.cjs` — implements the `window.__TAURI_INTERNALS__` contract the frontend calls.
+- `commands/` — one module per domain (`git`, `sessions`, `usage`, `planning`, `skills`,
+  `resources`, `telemetry`, `platform`, `system`, `library`, `worktrees`, `hooks`, `dictation`).
+  Every command reads and writes the same files the legacy Rust build did.
+- `pty-host.cjs` / `speech-host.cjs` — separate Node processes, so a crash there cannot take the
+  window down.
+
+**Legacy backend (`src-tauri/src/`)**
 - `lib.rs` — `invoke_handler` (registration of every `#[tauri::command]`).
 - `pty.rs` — spawn/attach/write/resize/restart/kill of PTYs + on-disk scrollback.
 - `projects.rs` — atomic load/save of `projects.json`. `profiles` — isolated multi-profile support.
@@ -105,8 +119,7 @@ streaming through the Tauri events `pty://data/{id}` and `pty://exit/{id}`.
 
 ## 8. Gotchas / security
 
-- `csp: null` in `tauri.conf.json` → the webview has full IPC access. Treat any rendered input as
-  untrusted.
+- The renderer reaches every command through `tauri:invoke`. Treat any rendered input as untrusted.
 - `spawn_pty` runs a shell with the command/args coming from the frontend — **validate input on the
   frontend** before spawning.
 - OAuth tokens (Spotify, Claude) are stored in **plaintext** in app data; do not log or expose them.

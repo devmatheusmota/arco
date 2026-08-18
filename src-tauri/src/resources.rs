@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -184,10 +184,20 @@ pub struct ResourceSupervisor {
 /// pids and reuses the last known parent/child topology.
 const FULL_SCAN_EVERY_CYCLES: u32 = 6;
 
+/// Reading a process's private commit walks its whole VMA list — `smaps_rollup`
+/// on Linux — and an agent workspace routinely holds 200+ processes, where that
+/// costs ~400 ms of CPU per cycle. The value barely moves between samples, so
+/// each process is re-measured at most every `PRIVATE_COMMIT_TTL` and at most
+/// `PRIVATE_COMMIT_PER_CYCLE` of them are refreshed per sample; the rest come
+/// from the cache.
+const PRIVATE_COMMIT_TTL: Duration = Duration::from_secs(30);
+const PRIVATE_COMMIT_PER_CYCLE: usize = 40;
+
 #[derive(Default)]
 struct ScanCache {
     cycles_since_full: u32,
     tracked: Vec<Pid>,
+    private_commit: HashMap<u32, (u64, Instant)>,
 }
 
 impl Default for ResourceSupervisor {
@@ -341,15 +351,12 @@ impl ResourceSupervisor {
 
         let app_pid = std::process::id();
         let app_tree = descendants(app_pid, &children);
-        // Every PTY subtree lives inside the app subtree, so this is the whole
-        // set the targeted refreshes above have to keep fresh.
-        scan.tracked = app_tree.iter().map(|pid| Pid::from_u32(*pid)).collect();
-        drop(scan);
         // Reading a process's private commit is the expensive half of a sample
         // (a `smaps_rollup` walk on Linux, an `OpenProcess` handle on Windows).
         // Every PTY subtree is contained in the app subtree, so without this the
         // same pid is measured twice per cycle.
         let mut private_cache = HashMap::<u32, u64>::new();
+        let mut refreshed_private = 0_usize;
         let mut app_bytes = 0_u64;
         let mut webview_bytes = 0_u64;
         let mut pty_bytes = 0_u64;
@@ -361,7 +368,20 @@ impl ResourceSupervisor {
             let working = process.memory();
 
             // processos.
-            let private = process_private_commit_bytes(*pid, working);
+            let cached = scan.private_commit.get(pid).copied();
+            let private = match cached {
+                Some((bytes, at)) if at.elapsed() < PRIVATE_COMMIT_TTL => bytes,
+                _ if refreshed_private >= PRIVATE_COMMIT_PER_CYCLE => {
+                    cached.map(|(bytes, _)| bytes).unwrap_or(working)
+                }
+                _ => {
+                    refreshed_private += 1;
+                    let measured = process_private_commit_bytes(*pid, working);
+                    scan.private_commit
+                        .insert(*pid, (measured, Instant::now()));
+                    measured
+                }
+            };
             private_cache.insert(*pid, private);
             private_total += private;
             let name = process.name().to_string_lossy().to_ascii_lowercase();
@@ -373,6 +393,12 @@ impl ResourceSupervisor {
                 pty_bytes += private;
             }
         }
+
+        // Every PTY subtree lives inside the app subtree, so this is the whole
+        // set the targeted refreshes above have to keep fresh.
+        scan.tracked = app_tree.iter().map(|pid| Pid::from_u32(*pid)).collect();
+        scan.private_commit.retain(|pid, _| app_tree.contains(pid));
+        drop(scan);
 
         let to_mb = |bytes: u64| bytes as f64 / 1024.0 / 1024.0;
         let memory = MemoryStats {
@@ -401,7 +427,7 @@ impl ResourceSupervisor {
                         let process_private = private_cache
                             .get(pid)
                             .copied()
-                            .unwrap_or_else(|| process_private_commit_bytes(*pid, process_working));
+                            .unwrap_or(process_working);
                         working += process_working;
                         private += process_private;
                         Some(RuntimeProcess {
