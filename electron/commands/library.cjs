@@ -53,7 +53,7 @@ function readGraph(file) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'))
   } catch (error) {
-    throw new Error(`invalid_graph_json:${error.message}`)
+    throw new Error(`invalid_graph_json:${error.message}`, { cause: error })
   }
 }
 
@@ -94,7 +94,7 @@ function buildLibraryCommands() {
   return {
     list_installed_agents: ({ folder }) => {
       if (!folder) return []
-      let names = []
+      let names
       try {
         names = fs.readdirSync(agentsDir(folder)).filter((name) => name.endsWith('.md'))
       } catch {
@@ -103,7 +103,7 @@ function buildLibraryCommands() {
       return names
         .map((name) => {
           const file = path.join(agentsDir(folder), name)
-          let contents = ''
+          let contents
           try {
             contents = fs.readFileSync(file, 'utf8')
           } catch {}

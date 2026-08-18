@@ -77,7 +77,7 @@ export function WorkspaceView() {
       focusedTerminalId: s.workspace.focusedTerminalId,
       createFilePane: s.createFilePane,
       openPane: s.openPane,
-    }))
+    })),
   )
 
   const { openModal, requestPaneFocus, setKeptAlivePanes, setMountedPanes } = useUiStore(
@@ -86,7 +86,7 @@ export function WorkspaceView() {
       requestPaneFocus: s.requestPaneFocus,
       setKeptAlivePanes: s.setKeptAlivePanes,
       setMountedPanes: s.setMountedPanes,
-    }))
+    })),
   )
   const initialWorkspaceEnsured = useRef(false)
   const fileDragDepth = useRef(0)
@@ -380,7 +380,6 @@ function SurfaceLayout({
     />
   )
 }
-
 
 function NoWorkspace({
   project,

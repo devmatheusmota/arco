@@ -20,7 +20,10 @@ export type ShortcutParts = {
 
 export function parseShortcut(raw: string | undefined, fallback = 'ctrl+e'): ShortcutParts {
   const source = (raw?.trim() || fallback).toLowerCase()
-  const tokens = source.split('+').map((token) => token.trim()).filter(Boolean)
+  const tokens = source
+    .split('+')
+    .map((token) => token.trim())
+    .filter(Boolean)
   const parts: ShortcutParts = { ctrl: false, alt: false, shift: false, key: '' }
   for (const token of tokens) {
     if (token === 'ctrl' || token === 'meta' || token === 'cmd') parts.ctrl = true

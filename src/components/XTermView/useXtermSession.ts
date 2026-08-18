@@ -126,10 +126,7 @@ async function spawnPtyWithTimeout(
     return await Promise.race([
       spawnPty(options),
       new Promise<never>((_, reject) => {
-        timer = window.setTimeout(
-          () => reject(new Error('spawn_pty timed out after 30 s')),
-          30_000,
-        )
+        timer = window.setTimeout(() => reject(new Error('spawn_pty timed out after 30 s')), 30_000)
       }),
     ])
   } finally {
@@ -137,7 +134,11 @@ async function spawnPtyWithTimeout(
   }
 }
 
-function withTimeout<T>(work: Promise<T>, fallback: T, timeoutMs = BOOT_STEP_TIMEOUT_MS): Promise<T> {
+function withTimeout<T>(
+  work: Promise<T>,
+  fallback: T,
+  timeoutMs = BOOT_STEP_TIMEOUT_MS,
+): Promise<T> {
   return new Promise<T>((resolve) => {
     const timer = window.setTimeout(() => resolve(fallback), timeoutMs)
     work
@@ -504,7 +505,10 @@ export function useXtermSession(params: {
 
     const queueTerminalWrite = (chunk: string) => {
       if (!chunk) return
-      if ((window as Window & { __ARCO_DROP_TERMINAL_WRITES__?: boolean }).__ARCO_DROP_TERMINAL_WRITES__) {
+      if (
+        (window as Window & { __ARCO_DROP_TERMINAL_WRITES__?: boolean })
+          .__ARCO_DROP_TERMINAL_WRITES__
+      ) {
         return
       }
       // The echo of a keystroke is a handful of bytes. Parking it until the next
@@ -1082,7 +1086,10 @@ export function useXtermSession(params: {
             }
           }
           if (!launcherOverride) {
-            const auto = await withTimeout(findCliLauncher(agentCliCommand(command) ?? command), null)
+            const auto = await withTimeout(
+              findCliLauncher(agentCliCommand(command) ?? command),
+              null,
+            )
             console.info(`[pty-launch] ${command} findCliLauncher → ${auto ?? 'null (NOT FOUND)'}`)
             if (!auto) {
               console.warn(

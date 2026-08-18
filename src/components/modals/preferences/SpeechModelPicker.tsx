@@ -62,9 +62,8 @@ export function SpeechModelPicker({ value, onChange }: Props) {
         const active = model.id === value
         const running = progress[model.id]
         const downloading = busy === model.id && !running?.done
-        const percent = running && running.total > 0
-          ? Math.round((running.received / running.total) * 100)
-          : 0
+        const percent =
+          running && running.total > 0 ? Math.round((running.received / running.total) * 100) : 0
 
         return (
           <div key={model.id} className={styles.modelRow}>

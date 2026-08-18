@@ -377,7 +377,6 @@ function buildCommands({ ptyHost, mainWindow, send }) {
       window()?.webContents.setZoomFactor(args?.value ?? 1)
       return null
     },
-
   }
 }
 

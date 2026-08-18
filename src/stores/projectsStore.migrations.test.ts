@@ -104,8 +104,20 @@ describe('projects file migration', () => {
       },
     ]
     const containers = [
-      { projectId: 'project-a', paneIds: ['pane-a'], size: 1, internalLayout: 'auto', collapsed: false },
-      { projectId: 'project-b', paneIds: ['pane-b'], size: 1, internalLayout: 'auto', collapsed: false },
+      {
+        projectId: 'project-a',
+        paneIds: ['pane-a'],
+        size: 1,
+        internalLayout: 'auto',
+        collapsed: false,
+      },
+      {
+        projectId: 'project-b',
+        paneIds: ['pane-b'],
+        size: 1,
+        internalLayout: 'auto',
+        collapsed: false,
+      },
     ]
 
     const migrated = migrate({

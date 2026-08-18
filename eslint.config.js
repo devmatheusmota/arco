@@ -10,6 +10,7 @@ export default tseslint.config(
   {
     ignores: [
       'dist',
+      'dist-electron',
       'node_modules',
       'src-tauri',
       'graphify-out',
@@ -25,6 +26,27 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    // The application shell is CommonJS running on Node, not browser ESM:
+    // `require`, `module` and `process` are the language here, and an empty
+    // catch is how a best-effort read says "not available".
+    files: ['electron/**/*.cjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: { ...globals.node },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-useless-assignment': 'error',
+    },
+  },
+  {
+    // The preload runs in the renderer, where the DOM globals exist.
+    files: ['electron/preload.cjs'],
+    languageOptions: { globals: { ...globals.browser } },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -42,6 +64,9 @@ export default tseslint.config(
       // App de terminal: regexes casam sequências ANSI/controle (\x1b, \x07…)
       // de propósito — a regra é só falso-positivo aqui.
       'no-control-regex': 'off',
+      // A best-effort call that must not fail the caller ends in an empty
+      // catch; every other empty block stays an error.
+      'no-empty': ['error', { allowEmptyCatch: true }],
       // Hooks — a regra dura fica em error (bug real), deps fica em warn.
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',

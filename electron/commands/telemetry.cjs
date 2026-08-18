@@ -60,7 +60,7 @@ function computeCost(entry) {
 
 function parseClaudeCost(file) {
   const byModel = new Map()
-  let contents = ''
+  let contents
   try {
     contents = fs.readFileSync(file, 'utf8')
   } catch {
@@ -209,7 +209,9 @@ function buildTelemetryCommands({ send }) {
     },
 
     get_telemetry_traces: ({ correlationId }) =>
-      correlationId ? traces.filter((event) => event.correlation_id === correlationId) : [...traces],
+      correlationId
+        ? traces.filter((event) => event.correlation_id === correlationId)
+        : [...traces],
 
     github_sync_push: async () => {
       const state = githubState()

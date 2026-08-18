@@ -144,7 +144,7 @@ function computePlanningStatus(root) {
 // Tasks live in memory, as they do in Rust: `.planning/task.md` is the source,
 // each item depends on the one before it, and a tick promotes what is unblocked.
 
-const scheduler = { tasks: new Map(), leases: new Set() }
+const taskScheduler = { tasks: new Map(), leases: new Set() }
 
 /** Deterministic per (project, item text), so a reload keeps task identity. */
 function deriveTaskId(projectId, text) {
@@ -180,36 +180,36 @@ function loadGsdTasks(projectId, root) {
   }
   // Keep what is mid-flight or already resolved; drop the rest, so a rewritten
   // task.md leaves no ghosts behind.
-  for (const [id, task] of scheduler.tasks) {
+  for (const [id, task] of taskScheduler.tasks) {
     if (task.projectId !== projectId) continue
     if (fresh.has(id)) continue
     if (['running', 'completed', 'failed'].includes(task.status)) continue
-    scheduler.tasks.delete(id)
+    taskScheduler.tasks.delete(id)
   }
   for (const task of built) {
-    const existing = scheduler.tasks.get(task.id)
+    const existing = taskScheduler.tasks.get(task.id)
     if (existing && ['running', 'failed'].includes(existing.status)) {
       existing.title = task.title
       existing.dependencies = task.dependencies
       continue
     }
-    scheduler.tasks.set(task.id, task)
+    taskScheduler.tasks.set(task.id, task)
   }
 }
 
 function runSchedulerTick(projectId, worktreePath) {
-  for (const task of scheduler.tasks.values()) {
+  for (const task of taskScheduler.tasks.values()) {
     if (task.projectId !== projectId || task.status !== 'pending') continue
     const unblocked = task.dependencies.every(
-      (dependency) => scheduler.tasks.get(dependency)?.status === 'completed',
+      (dependency) => taskScheduler.tasks.get(dependency)?.status === 'completed',
     )
     if (unblocked) task.status = 'ready'
   }
-  for (const task of scheduler.tasks.values()) {
+  for (const task of taskScheduler.tasks.values()) {
     if (task.projectId !== projectId || task.status !== 'ready') continue
     const resource = `worktree:${task.id}`
-    if (scheduler.leases.has(resource)) continue
-    scheduler.leases.add(resource)
+    if (taskScheduler.leases.has(resource)) continue
+    taskScheduler.leases.add(resource)
     task.leaseResource = resource
     task.worktreePath = worktreePath ?? null
   }
@@ -323,7 +323,7 @@ function resolveSourceFile(provider, cwd, sessionId) {
       : [path.join(os.homedir(), '.codex', 'sessions')]
   const files = []
   const walk = (dir, depth) => {
-    let entries = []
+    let entries
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true })
     } catch {
@@ -451,7 +451,7 @@ function buildPlanningCommands() {
 
     // ── scheduler ─────────────────────────────────────────────────────────
     get_scheduler_tasks: ({ projectId }) =>
-      [...scheduler.tasks.values()]
+      [...taskScheduler.tasks.values()]
         .filter((task) => task.projectId === projectId)
         .sort((a, b) => b.priority - a.priority),
     trigger_scheduler_tick: async ({ projectId, repoPath, worktreeMode }) => {
@@ -461,9 +461,9 @@ function buildPlanningCommands() {
       return null
     },
     cancel_task: ({ taskId }) => {
-      const task = scheduler.tasks.get(taskId)
+      const task = taskScheduler.tasks.get(taskId)
       if (!task) return null
-      if (task.leaseResource) scheduler.leases.delete(task.leaseResource)
+      if (task.leaseResource) taskScheduler.leases.delete(task.leaseResource)
       task.status = 'failed'
       task.leaseResource = null
       task.assignedAgentId = null

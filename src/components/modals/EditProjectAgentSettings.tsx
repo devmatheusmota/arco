@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react'
 import { readableError } from '../../lib/errors'
 import { useT } from '../../lib/i18n'
 import { discoverProviderModels, gitInit, gitStatus } from '../../lib/tauri'
-import { AGENT_TYPE_LABELS, ALL_AGENT_TYPES, PROVIDER_MODELS, type AgentType } from '../../lib/types'
+import {
+  AGENT_TYPE_LABELS,
+  ALL_AGENT_TYPES,
+  PROVIDER_MODELS,
+  type AgentType,
+} from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { AgentIcon } from '../icons/AgentIcons'
@@ -18,17 +23,9 @@ const ALL_AGENTS: { type: AgentType; label: string }[] = ALL_AGENT_TYPES.map((ty
 }))
 
 // Cache module-level (sobrevive a troca de aba/remount deste componente) —
-                                                                                  
+
 const globalModelsCache: Record<string, ModelOption[]> = {}
 
-   
-                                                                                
-                                                                               
-                                                                          
-                                                                            
-                                                                       
-                                                                           
-   
 export function EditProjectAgentSettings({
   projectId,
   cwd,
@@ -67,7 +64,9 @@ export function EditProjectAgentSettings({
   const t = useT()
   const pushToast = useUiStore((s) => s.pushToast)
   const enabledAgents = useProjectsStore((s) => s.preferences.enabledAgents)
-  const terminalTheme = useProjectsStore((s) => s.preferences.terminalTheme ?? s.preferences.uiTheme)
+  const terminalTheme = useProjectsStore(
+    (s) => s.preferences.terminalTheme ?? s.preferences.uiTheme,
+  )
   const migrateProjectTerminalsToWorktrees = useProjectsStore(
     (s) => s.migrateProjectTerminalsToWorktrees,
   )
@@ -79,10 +78,6 @@ export function EditProjectAgentSettings({
   const [loadingModels, setLoadingModels] = useState(false)
   const [migratingWorktrees, setMigratingWorktrees] = useState(false)
 
-                                                                          
-                                                                        
-                                                                             
-                                                                              
   const [hasGit, setHasGit] = useState<boolean | null>(null)
   const [gitInitBusy, setGitInitBusy] = useState(false)
 
@@ -257,19 +252,14 @@ export function EditProjectAgentSettings({
         />
       </div>
 
-      <div
-        className={`${controls.field} ${styles.toggleRow}`}
-      >
+      <div className={`${controls.field} ${styles.toggleRow}`}>
         <input
           type="checkbox"
           id="autoWorktree"
           checked={autoWorktree}
           onChange={(e) => onAutoWorktreeChange(e.target.checked)}
         />
-        <label
-          htmlFor="autoWorktree"
-          className={styles.toggleLabel}
-        >
+        <label htmlFor="autoWorktree" className={styles.toggleLabel}>
           {t('multiAgent.autoWorktree')}
         </label>
       </div>
@@ -292,43 +282,35 @@ export function EditProjectAgentSettings({
             )
           }}
         >
-          {migratingWorktrees ? t('multiAgent.migrateExistingBusy') : t('multiAgent.migrateExisting')}
+          {migratingWorktrees
+            ? t('multiAgent.migrateExistingBusy')
+            : t('multiAgent.migrateExisting')}
         </button>
         <p style={{ fontSize: 10, color: 'var(--fg-muted)', marginTop: 4 }}>
           {t('multiAgent.migrateExistingHint')}
         </p>
       </div>
 
-      <div
-        className={`${controls.field} ${styles.toggleRow}`}
-      >
+      <div className={`${controls.field} ${styles.toggleRow}`}>
         <input
           type="checkbox"
           id="graphifyEnabled"
           checked={graphifyEnabled}
           onChange={(e) => onGraphifyEnabledChange(e.target.checked)}
         />
-        <label
-          htmlFor="graphifyEnabled"
-          className={styles.toggleLabel}
-        >
+        <label htmlFor="graphifyEnabled" className={styles.toggleLabel}>
           {t('project.graphifyEnabled')}
         </label>
       </div>
 
-      <div
-        className={`${controls.field} ${styles.toggleRow}`}
-      >
+      <div className={`${controls.field} ${styles.toggleRow}`}>
         <input
           type="checkbox"
           id="gsdWatcher"
           checked={gsdWatcherEnabled}
           onChange={(e) => onGsdWatcherEnabledChange(e.target.checked)}
         />
-        <label
-          htmlFor="gsdWatcher"
-          className={styles.toggleLabel}
-        >
+        <label htmlFor="gsdWatcher" className={styles.toggleLabel}>
           {t('crud.editProjectGsdWatcher')}
         </label>
       </div>

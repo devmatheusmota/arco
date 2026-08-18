@@ -43,26 +43,20 @@ jobs:
         run: npm run build
 
   rust:
-    name: Rust check (${{ matrix.label }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-            label: Windows
-          - platform: ubuntu-22.04
-            label: Linux
-          - platform: macos-latest
-            label: macOS
-    runs-on: ${{ matrix.platform }}
+    # src-tauri/ is the previous shell: still compiled so it does not rot, but
+    # no longer built or released, so one platform is enough. It used to run on
+    # Windows and macOS too, where `git_control`'s tests fail on line endings —
+    # a legacy-only failure that told nobody anything about the app that ships.
+    name: Rust check (legacy shell)
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
+            patchelf libasound2-dev
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable

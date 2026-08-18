@@ -159,7 +159,7 @@ const handlers = {
   spawn_pty: spawn,
   pty_exists: ({ id }) => sessions.has(id),
   write_pty({ id, data }) {
-    sessions.get(id)?.write?.(data) ?? sessions.get(id)?.child.write(data)
+    sessions.get(id)?.child.write(data)
     return null
   },
   resize_pty({ id, cols, rows }) {

@@ -45,12 +45,16 @@ describe('a workspace tab holds a single project', () => {
     const projectA = store.createProject({ name: 'A', defaultCwd: '/a' })
     const projectB = store.createProject({ name: 'B', defaultCwd: '/b' })
 
-    const terminalA = useProjectsStore.getState().createTerminal(projectA.id, newTerminalArgs('A1', '/a'))
+    const terminalA = useProjectsStore
+      .getState()
+      .createTerminal(projectA.id, newTerminalArgs('A1', '/a'))
     const afterA = useProjectsStore.getState()
     expect(afterA.workspace.tabs).toHaveLength(1)
     expect(afterA.workspace.containers.map((c) => c.projectId)).toEqual([projectA.id])
 
-    const terminalB = useProjectsStore.getState().createTerminal(projectB.id, newTerminalArgs('B1', '/b'))
+    const terminalB = useProjectsStore
+      .getState()
+      .createTerminal(projectB.id, newTerminalArgs('B1', '/b'))
     const afterB = useProjectsStore.getState()
 
     // Two tabs, one per project — never one tab holding both.
@@ -75,7 +79,9 @@ describe('a workspace tab holds a single project', () => {
     const store = useProjectsStore.getState()
     const projectA = store.createProject({ name: 'A', defaultCwd: '/a' })
     const projectB = store.createProject({ name: 'B', defaultCwd: '/b' })
-    const terminalA = useProjectsStore.getState().createTerminal(projectA.id, newTerminalArgs('A1', '/a'))
+    const terminalA = useProjectsStore
+      .getState()
+      .createTerminal(projectA.id, newTerminalArgs('A1', '/a'))
     useProjectsStore.getState().createTerminal(projectB.id, newTerminalArgs('B1', '/b'))
 
     // Active tab is B's; opening a pane of A must not append A to it.
@@ -83,9 +89,9 @@ describe('a workspace tab holds a single project', () => {
     const state = useProjectsStore.getState()
 
     expect(state.workspace.containers.map((c) => c.projectId)).toEqual([projectA.id])
-    expect(state.workspace.tabs.find((tab) => tab.id === state.workspace.activeTabId)?.projectId).toBe(
-      projectA.id,
-    )
+    expect(
+      state.workspace.tabs.find((tab) => tab.id === state.workspace.activeTabId)?.projectId,
+    ).toBe(projectA.id)
   })
 
   it('opening a group opens one tab per project of the group', () => {

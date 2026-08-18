@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../../lib/i18n'
 import { groupServersByName, matchesQuery, mcpErrorKey } from '../../lib/mcp'
 import { groupSkillsByName, matchesSkillQuery } from '../../lib/skills'
-import { type SkillAgentSnapshot,skillsScan } from '../../lib/tauri'
+import { type SkillAgentSnapshot, skillsScan } from '../../lib/tauri'
 import type { AgentType, McpAgent, McpAgentSnapshot, McpScope } from '../../lib/types'
 import type { McpView } from '../../stores/mcpStore'
 import { AGENT_TYPE_LABELS, MCP_AGENTS } from '../../lib/types'
@@ -190,15 +190,12 @@ export function McpPanel() {
 
       <div className={styles.stats}>
         <span>
-          <b>{visibleCount}</b>{' '}
-          {showingServers ? t('mcp.statServers') : t('mcp.statSkills')}
+          <b>{visibleCount}</b> {showingServers ? t('mcp.statServers') : t('mcp.statSkills')}
           {agentFilter.length > 0 || term.trim() ? ` ${t('mcp.ofTotal', { total })}` : ''}
         </span>
       </div>
 
-      {error && showingServers ? (
-        <div className={styles.error}>{t(mcpErrorKey(error))}</div>
-      ) : null}
+      {error && showingServers ? <div className={styles.error}>{t(mcpErrorKey(error))}</div> : null}
 
       {visibleCount === 0 ? (
         <div className={styles.emptyWrap}>

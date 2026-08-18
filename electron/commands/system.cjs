@@ -68,10 +68,7 @@ function profileCounts(id) {
   const stored = paths.readJson(path.join(paths.profileDir(id), 'projects.json'), null)
   if (!stored) return { project_count: 0, terminal_count: 0 }
   const projects = Array.isArray(stored.projects) ? stored.projects : []
-  const terminals = projects.reduce(
-    (total, project) => total + (project.terminals?.length ?? 0),
-    0,
-  )
+  const terminals = projects.reduce((total, project) => total + (project.terminals?.length ?? 0), 0)
   return { project_count: projects.length, terminal_count: terminals }
 }
 
@@ -80,14 +77,14 @@ function profileCounts(id) {
 /** Every descendant of `pid`, read from /proc — the same set the Rust side kills. */
 function descendantsOf(pid) {
   const children = new Map()
-  let entries = []
+  let entries
   try {
     entries = fs.readdirSync('/proc').filter((name) => /^\d+$/.test(name))
   } catch {
     return []
   }
   for (const entry of entries) {
-    let stat = ''
+    let stat
     try {
       stat = fs.readFileSync(`/proc/${entry}/stat`, 'utf8')
     } catch {

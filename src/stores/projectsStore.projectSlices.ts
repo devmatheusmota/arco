@@ -25,8 +25,6 @@ function t(key: Parameters<typeof translate>[1], params?: Record<string, string 
   return translate(getLocale(), key, params)
 }
 
-                                                                              
-                                                                              
 const migratingWorktreeProjectIds = new Set<string>()
 
 type GroupsSlice = Pick<
@@ -242,14 +240,15 @@ export function createGroupsSlice({ update }: SliceCtx): GroupsSlice {
             projects: remainingProjects,
             // Tasks outlive the projects they were filed under: unlink the dead
             // sessions and let the task fall back to the unassigned section.
-            todos: pruneTodoSessions(state.todos, (link) => !projectsToRemove.has(link.projectId)).map(
-              (item) => {
-                if (!item.projectId || !projectsToRemove.has(item.projectId)) return item
-                const next = { ...item }
-                delete next.projectId
-                return next
-              },
-            ),
+            todos: pruneTodoSessions(
+              state.todos,
+              (link) => !projectsToRemove.has(link.projectId),
+            ).map((item) => {
+              if (!item.projectId || !projectsToRemove.has(item.projectId)) return item
+              const next = { ...item }
+              delete next.projectId
+              return next
+            }),
             workspace: {
               ...state.workspace,
               containers: state.workspace.containers.filter(
@@ -488,16 +487,10 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
     setGraphifyEnabled: (id, graphifyEnabled) =>
       updateProject(id, (p) => ({ ...p, graphifyEnabled })),
 
-                                                                         
-                                                                               
-                                                                              
-                                                                             
-                                                                                          
-                                                          
     setAutoWorktree: (id, autoWorktree) => updateProject(id, (p) => ({ ...p, autoWorktree })),
 
     migrateProjectTerminalsToWorktrees: async (projectId, gsdWatcherEnabledOverride) => {
-      if (migratingWorktreeProjectIds.has(projectId)) return                                             
+      if (migratingWorktreeProjectIds.has(projectId)) return
       const project = get().projects.find((p) => p.id === projectId)
       if (!project) return
       const repo = getProjectRepoRoot(project)
@@ -514,12 +507,6 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
         const { worktreeProvision, restartPty, gitStatus, gsdOpenCodePluginWrite } =
           await import('../lib/tauri')
 
-                                                                                 
-                                                                            
-                                                                            
-                                                                           
-                                                                              
-                                                                             
         // o erro cru not_a_git_repository vazando pro toast final).
         let status: Awaited<ReturnType<typeof gitStatus>> | null = null
         try {
@@ -560,12 +547,7 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
             )
 
             // Terminal migrado com watcher GSD ligado e rodando OpenCode nunca
-                                                                                
-                                                                              
-                                                                               
-                                                                           
-                                                                                
-                                                           
+
             const gsdWatcherEnabled = gsdWatcherEnabledOverride ?? project.gsdWatcherEnabled
             if (gsdWatcherEnabled && terminal.tabs.some((tab) => tab.type === 'opencode')) {
               const modelChain = get().preferences.gsdSyncModelChain ?? []
@@ -577,17 +559,6 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
               })
             }
 
-                                                                               
-                                                                               
-                                                                               
-                                                                                
-                                                                               
-                                                                            
-                                                                             
-                                                                              
-                                                                            
-                                                                               
-                                                          
             for (const tab of terminal.tabs) {
               if (!tab.ptyId) continue
               const runtime = preparePtyRuntimeLaunch(
@@ -683,9 +654,7 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
         next[index] = {
           ...existing[index],
           ...entry,
-                                                                       
-                                                                                 
-                                                                           
+
           adminLockReason: entry.adminLockReason,
         }
         return { ...p, orphanWorktrees: next }
@@ -709,12 +678,9 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
       const { worktreeCleanup, worktreeRemove } = await import('../lib/tauri')
       set({ isCleaningOrphans: true })
 
-                                                                              
-                                                                         
       for (const orphan of orphans) {
         try {
           if (orphan.pruneOnly) {
-                                                                              
             // fantasma do git.
             await worktreeCleanup(repoPath)
             get().removeOrphanWorktree(projectId, orphan.path)
@@ -723,18 +689,15 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
           }
 
           // requiresRawDeletion (ou nenhuma flag ainda — primeira tentativa):
-                                                                             
-                                                                              
+
           const agentId = orphan.path.split(/[\\/]/).filter(Boolean).pop() ?? ''
           await worktreeRemove(repoPath, agentId, true)
 
-                                                                             
           try {
             await worktreeCleanup(repoPath)
             get().removeOrphanWorktree(projectId, orphan.path)
             summary.cleaned++
           } catch {
-                                                                           
             get().addOrphanWorktree(projectId, {
               path: orphan.path,
               mode: orphan.mode,
@@ -777,12 +740,14 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
         const projects = state.projects.filter((p) => p.id !== id)
         // The project is gone, so every pane it owned is gone with it: unlink the
         // sessions first, then drop the project link from the task itself.
-        const todos = pruneTodoSessions(state.todos, (link) => link.projectId !== id).map((item) => {
-          if (item.projectId !== id) return item
-          const next = { ...item }
-          delete next.projectId
-          return next
-        })
+        const todos = pruneTodoSessions(state.todos, (link) => link.projectId !== id).map(
+          (item) => {
+            if (item.projectId !== id) return item
+            const next = { ...item }
+            delete next.projectId
+            return next
+          },
+        )
         const groups = state.groups.map((g) =>
           g.id === project.groupId
             ? { ...g, projectIds: g.projectIds.filter((pid) => pid !== id) }

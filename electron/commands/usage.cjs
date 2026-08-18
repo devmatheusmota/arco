@@ -133,7 +133,7 @@ function addUsage(totals, usage) {
 function sessionCost(file) {
   const totals = emptyTotals()
   const byModel = new Map()
-  let lines = []
+  let lines
   try {
     lines = fs.readFileSync(file, 'utf8').split('\n')
   } catch {
@@ -168,7 +168,7 @@ function claudeActivity(days) {
   const cutoff = Date.now() - (days ?? 30) * 24 * 60 * 60 * 1000
   const perDay = new Map()
   for (const dir of claudeProjectDirs()) {
-    let names = []
+    let names
     try {
       names = fs.readdirSync(dir).filter((name) => name.endsWith('.jsonl'))
     } catch {
@@ -346,7 +346,13 @@ function buildUsageCommands() {
       })),
     get_opencode_usage_summary: ({ hours }) => {
       const file = opencodeDatabase()
-      const empty = { cost_usd: 0, input_tokens: 0, output_tokens: 0, session_count: 0, by_model: [] }
+      const empty = {
+        cost_usd: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        session_count: 0,
+        by_model: [],
+      }
       if (!fs.existsSync(file)) return empty
       let database
       try {

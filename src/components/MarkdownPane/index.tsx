@@ -32,7 +32,6 @@ import type { Terminal as TerminalEntry } from '../../lib/types'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import styles from './MarkdownPane.module.css'
 
-                                                                         
 const LIGHT_THEMES = new Set(['light', 'min-light'])
 const markdownPaneScrollPositions = new Map<string, number>()
 
@@ -125,7 +124,6 @@ export const MarkdownPane = memo(function MarkdownPane({
     }
   }
 
-                                                                         
   useEffect(() => {
     if (!filePath) return
     editingRef.current = false
@@ -144,7 +142,8 @@ export const MarkdownPane = memo(function MarkdownPane({
   useEffect(() => {
     if (!filePath || content === null) return
     const frame = window.requestAnimationFrame(() => {
-      if (scrollRef.current) scrollRef.current.scrollTop = markdownPaneScrollPositions.get(filePath) ?? 0
+      if (scrollRef.current)
+        scrollRef.current.scrollTop = markdownPaneScrollPositions.get(filePath) ?? 0
     })
     return () => window.cancelAnimationFrame(frame)
   }, [content, filePath])
@@ -156,7 +155,6 @@ export const MarkdownPane = memo(function MarkdownPane({
     paneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
   }, [focusReq, terminal.id])
 
-                                                                              
   const onDelete = () => {
     if (window.confirm(t('ui.markdown.confirmClose', { name: terminal.name }))) {
       deleteTerminal(projectId, terminal.id)
@@ -358,7 +356,9 @@ export const MarkdownPane = memo(function MarkdownPane({
           <div
             ref={scrollRef}
             className={styles.scroll}
-            onScroll={(event) => markdownPaneScrollPositions.set(filePath, event.currentTarget.scrollTop)}
+            onScroll={(event) =>
+              markdownPaneScrollPositions.set(filePath, event.currentTarget.scrollTop)
+            }
           >
             <pre className={styles.textView}>{content}</pre>
           </div>
@@ -366,7 +366,9 @@ export const MarkdownPane = memo(function MarkdownPane({
           <div
             ref={scrollRef}
             className={styles.scroll}
-            onScroll={(event) => markdownPaneScrollPositions.set(filePath, event.currentTarget.scrollTop)}
+            onScroll={(event) =>
+              markdownPaneScrollPositions.set(filePath, event.currentTarget.scrollTop)
+            }
           >
             <MarkdownRenderer content={content} dark={dark} />
           </div>

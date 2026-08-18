@@ -21,7 +21,7 @@ export function hasTranscript(session: object): boolean {
 }
 
 const claimedIds = new Map<string, Set<string>>()
-                                                                                                   
+
 const claimOwners = new Map<string, Array<{ key: string; sessionId: string }>>()
 
 function claimKey(agent: string, cwd: string): string {
@@ -59,14 +59,13 @@ export function isSessionClaimed(
   const key = claimKey(agent, cwd)
   if (!claimedIds.get(key)?.has(sessionId)) return false
   if (!ownerId) return true
-  return claimOwners.get(ownerId)?.some((claim) => claim.key === key && claim.sessionId === sessionId) !== true
+  return (
+    claimOwners
+      .get(ownerId)
+      ?.some((claim) => claim.key === key && claim.sessionId === sessionId) !== true
+  )
 }
 
-   
-                                                                            
-                                                                            
-                                                                          
-   
 export function claimDiscoveredSession(
   agent: string,
   cwd: string,
@@ -88,14 +87,6 @@ export function claimDiscoveredSession(
   return candidate
 }
 
-   
-                                                                          
-                                                                            
-                                                                       
-                                                                            
-                                                                            
-                                      
-   
 export function claimMostRecentSession(
   agent: string,
   cwd: string,
@@ -114,12 +105,6 @@ export function claimMostRecentSession(
   return candidate
 }
 
-   
-                                                                        
-                                                                                
-                                                                                
-                                                                         
-   
 export function releaseSessionClaim(ptyId: string): void {
   const owned = claimOwners.get(ptyId)
   if (!owned) return

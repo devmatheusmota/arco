@@ -8,7 +8,6 @@
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { execFile } = require('node:child_process')
 const { clipboard } = require('electron')
 
 const MCP_CONFIG_FILES = [
@@ -69,14 +68,6 @@ function writeServer(name, config) {
   if (config) parsed.mcpServers[name] = config
   else delete parsed.mcpServers[name]
   return writeClaudeConfig(file, parsed, name)
-}
-
-function commandExists(command) {
-  return new Promise((resolve) => {
-    execFile('/bin/sh', ['-lc', `command -v ${command}`], { timeout: 4000 }, (error) =>
-      resolve(!error),
-    )
-  })
 }
 
 function buildExtraCommands() {

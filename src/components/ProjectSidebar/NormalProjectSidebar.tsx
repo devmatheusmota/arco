@@ -170,7 +170,6 @@ export function NormalProjectSidebar() {
     if (!showGitControl && sidebarTab === 'git') setSidebarTab('projects')
   }, [showGitControl, sidebarTab])
 
-                                                                         
   const openPaneSets = useMemo(() => {
     const map: Record<string, Set<string>> = {}
     for (const c of containers) map[c.projectId] = new Set(c.paneIds)
@@ -235,7 +234,6 @@ export function NormalProjectSidebar() {
     const target = String(over.id)
     if (dragged === target) return
 
-                                                                                        
     if (dragged.startsWith('term:') && target.startsWith('proj:')) {
       const [, fromProject, terminalId] = dragged.split(':')
       const [, toProject] = target.split(':')
@@ -243,8 +241,6 @@ export function NormalProjectSidebar() {
       return
     }
 
-                                                                                
-                                                                              
     if (dragged.startsWith('proj:') && target.startsWith('proj:')) {
       const fromId = dragged.slice('proj:'.length)
       const toId = target.slice('proj:'.length)
@@ -287,7 +283,6 @@ export function NormalProjectSidebar() {
       return
     }
 
-                                                                           
     if (dragged.startsWith('proj:') && target.startsWith('group:')) {
       const [, projectId] = dragged.split(':')
       const [, groupId] = target.split(':')
@@ -313,7 +308,6 @@ export function NormalProjectSidebar() {
       return
     }
 
-                                                                        
     if (dragged.startsWith('grp:') && target.startsWith('group:')) {
       const [, srcGroupId] = dragged.split(':')
       const [, parentId] = target.split(':')
@@ -365,10 +359,6 @@ export function NormalProjectSidebar() {
       }}
       onToggleCollapsed={() => actions.toggleProjectCollapsed(p.id)}
       onTerminalClick={(t) => {
-                                                                             
-                                                                           
-                                                                           
-                                                               
         if (t.gsdSyncViewer) {
           actions.setFullscreenPane(t.id)
           setActiveView('workspace')

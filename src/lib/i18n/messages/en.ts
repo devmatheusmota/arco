@@ -239,7 +239,7 @@ export const en = {
   'onboarding.agentsStatInstallable': 'installable',
   'onboarding.agentsNoMatch': 'No agent matches this filter.',
   'onboarding.agentsMissing':
-    "Arco uses your own provider accounts and subscriptions. Missing a CLI or selected the wrong executable? Scan again or change it later in Preferences > Terminal > CLI paths.",
+    'Arco uses your own provider accounts and subscriptions. Missing a CLI or selected the wrong executable? Scan again or change it later in Preferences > Terminal > CLI paths.',
   'onboarding.agentsRescan': 'Scan again',
   'agentInstall.needsNode':
     'This agent installs through npm, and Node.js was not found on this machine.',
@@ -544,7 +544,8 @@ export const en = {
   'prefs.modelDeleteActive': 'Select another model before deleting this one.',
   'prefs.modelStreaming': 'streaming',
   'prefs.modelRecommended': 'recommended',
-  'prefs.modelUnsupported': 'Streaming models are not supported yet — they need a different recognizer.',
+  'prefs.modelUnsupported':
+    'Streaming models are not supported yet — they need a different recognizer.',
   'prefs.modelDownloading': 'Downloading {file} — {percent}%',
   'prefs.dictationDesc':
     'Show a mic button to dictate (speech-to-text) into the active terminal. Off by default.',
@@ -756,18 +757,30 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
-  'whatsNew.v150.note1': 'Full-profile backup export now archives the entire profile (todos, history, preferences, tokens, scrollback) instead of a fixed short list.',
-  'whatsNew.v150.note2': 'New “Erase all data (fresh install)” menu action wipes every profile, account, project, scrollback, setting and log.',
-  'whatsNew.v150.note3': 'Reworked startup loading screen to share Home’s background and ASCII-art treatment.',
-  'whatsNew.v150.note4': 'Fixed account switching hanging on “PTY reader flush barrier timed out” by closing parked terminals’ pseudoconsoles before the final flush wait.',
-  'whatsNew.v150.note5': 'Fixed creating a new account getting stuck on a broken loading state, and time-boxed CLI detection so onboarding can’t freeze on “Detecting installed CLIs…”.',
-  'whatsNew.v150.note6': 'LAN remote control: authenticated mobile web view to browse chats, watch terminal output live and send one message at a time.',
-  'whatsNew.v141.note1': 'Fixed the release notes shown here and on GitHub — they were pulling from a stray, outdated copy of the changelog.',
-  'whatsNew.v140.note1': 'Graphify is now optional: turn the code graph panel on or off from Preferences without touching the agents’ MCP config.',
-  'whatsNew.v140.note2': 'The `arco` terminal command opens the current folder as a project — or focuses the app if it is already open.',
-  'whatsNew.v140.note3': 'File Explorer: double-click any file to open it as a pane in the workspace.',
-  'whatsNew.v140.note4': 'Git Control: double-click a file under Changes or Staged to open its diff as a pane.',
-  'whatsNew.v140.note5': 'New "About & Updates" screen in Preferences, with visible progress and errors while updating.',
+  'whatsNew.v150.note1':
+    'Full-profile backup export now archives the entire profile (todos, history, preferences, tokens, scrollback) instead of a fixed short list.',
+  'whatsNew.v150.note2':
+    'New “Erase all data (fresh install)” menu action wipes every profile, account, project, scrollback, setting and log.',
+  'whatsNew.v150.note3':
+    'Reworked startup loading screen to share Home’s background and ASCII-art treatment.',
+  'whatsNew.v150.note4':
+    'Fixed account switching hanging on “PTY reader flush barrier timed out” by closing parked terminals’ pseudoconsoles before the final flush wait.',
+  'whatsNew.v150.note5':
+    'Fixed creating a new account getting stuck on a broken loading state, and time-boxed CLI detection so onboarding can’t freeze on “Detecting installed CLIs…”.',
+  'whatsNew.v150.note6':
+    'LAN remote control: authenticated mobile web view to browse chats, watch terminal output live and send one message at a time.',
+  'whatsNew.v141.note1':
+    'Fixed the release notes shown here and on GitHub — they were pulling from a stray, outdated copy of the changelog.',
+  'whatsNew.v140.note1':
+    'Graphify is now optional: turn the code graph panel on or off from Preferences without touching the agents’ MCP config.',
+  'whatsNew.v140.note2':
+    'The `arco` terminal command opens the current folder as a project — or focuses the app if it is already open.',
+  'whatsNew.v140.note3':
+    'File Explorer: double-click any file to open it as a pane in the workspace.',
+  'whatsNew.v140.note4':
+    'Git Control: double-click a file under Changes or Staged to open its diff as a pane.',
+  'whatsNew.v140.note5':
+    'New "About & Updates" screen in Preferences, with visible progress and errors while updating.',
   'whatsNew.v140.note6': 'The installed version is now always visible in the sidebar footer.',
   'whatsNew.v140.note7':
     'Security: the AgentCanvas internal HTTP listener now requires a secret token, and its request body is capped at 1 MB.',
@@ -1986,7 +1999,8 @@ export const en = {
   'mcp.errGeneric': 'The operation failed.',
   'mcp.healthCheck': 'Check',
   'mcp.healthChecking': 'Checking…',
-  'mcp.healthCheckHint': 'Ask the agent whether it can actually reach its servers. Claude connects to each one, so it takes a few seconds.',
+  'mcp.healthCheckHint':
+    'Ask the agent whether it can actually reach its servers. Claude connects to each one, so it takes a few seconds.',
   'mcp.health.connected': 'connected',
   'mcp.health.failed': 'failed',
   'mcp.health.needsAuth': 'needs auth',
@@ -2026,7 +2040,8 @@ export const en = {
   'mcp.registryCount': '{count} result(s)',
   'mcp.registryLoading': 'Searching the registry…',
   'mcp.registryNoResults': 'No server matched.',
-  'mcp.registryOffline': 'The registry could not be reached and nothing was cached for this search.',
+  'mcp.registryOffline':
+    'The registry could not be reached and nothing was cached for this search.',
   'mcp.registryStale': 'Registry unreachable — showing the copy saved on {date}.',
   'mcp.addWritten': '{count} server(s) added to {agents}',
   'mcp.fieldName': 'Name',
@@ -2066,7 +2081,8 @@ export const en = {
   'mcp.tabSkills': 'Skills',
   'skills.loading': 'Reading the skill folders…',
   'skills.emptyTitle': 'No skill installed',
-  'skills.emptyDescription': 'Arco looks in the skills folder of each agent and in the shared store.',
+  'skills.emptyDescription':
+    'Arco looks in the skills folder of each agent and in the shared store.',
   'skills.selectOne': 'Pick a skill to inspect it',
   'skills.sharedStore': 'Shared store',
   'skills.lockSource': 'source',
@@ -2086,7 +2102,6 @@ export const en = {
   'skills.removedLinkOnly': 'The shared copy was kept at {path}',
   'skills.removeFailed': 'Could not remove the skill',
   'skills.errBundled': 'This skill ships with the agent and cannot be removed from Arco.',
-
 } as const
 
 export type MessageKey = keyof typeof en

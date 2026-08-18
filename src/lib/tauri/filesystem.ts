@@ -4,8 +4,10 @@ import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event'
 import { measure } from '../mainThreadBudget'
 
 // Every event handler is timed so main-thread cost can be attributed by event.
-const listen = <T,>(event: string, handler: (payload: { payload: T }) => void) =>
-  tauriListen<T>(event, (received) => measure(`ev:${event.split('/')[0]}`, () => handler(received as { payload: T })))
+const listen = <T>(event: string, handler: (payload: { payload: T }) => void) =>
+  tauriListen<T>(event, (received) =>
+    measure(`ev:${event.split('/')[0]}`, () => handler(received as { payload: T })),
+  )
 
 export type DirectoryEntry = {
   name: string
@@ -46,7 +48,6 @@ export async function unwatchFile(path: string): Promise<void> {
   await invoke('unwatch_file', { path })
 }
 
-                                                                        
 export function listenFileChanged(handler: (path: string) => void): Promise<UnlistenFn> {
   return listen<{ path: string }>('md://changed', (event) => handler(event.payload.path))
 }

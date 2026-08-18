@@ -1,8 +1,10 @@
 dist
+dist-electron
 node_modules
-src-tauri/target
+# The previous Rust shell is legacy: kept as it was, not reformatted.
+src-tauri
 graphify-out
-# Worktrees das sessões de agente — cópias completas do repo.
+# Agent session worktrees are full copies of the repository.
 .arco
 package-lock.json
 *.md

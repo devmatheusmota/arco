@@ -108,7 +108,7 @@ function cpuPercent(pid, ticks) {
 /** Every pid in the tree rooted at `pid`, itself included. */
 function processTree(pid) {
   const children = new Map()
-  let entries = []
+  let entries
   try {
     entries = fs.readdirSync('/proc')
   } catch {
@@ -219,7 +219,8 @@ function buildResourceCommands({ ptyHost }) {
 
   const pressureFor = (totalMb) => {
     const { memoryBudgetMb, warningThresholdMb } = state.policy
-    const level = totalMb >= memoryBudgetMb ? 'critical' : totalMb >= warningThresholdMb ? 'warning' : 'normal'
+    const level =
+      totalMb >= memoryBudgetMb ? 'critical' : totalMb >= warningThresholdMb ? 'warning' : 'normal'
     return {
       level,
       spawnBlocked: level === 'critical',
@@ -250,7 +251,15 @@ function buildResourceCommands({ ptyHost }) {
       const used = memory.app_mb + memory.ptys_mb
       const ratio = used / Math.max(1, state.policy.memoryBudgetMb)
       const level =
-        ratio >= 1 ? 'Critical' : ratio >= 0.85 ? 'High' : ratio >= 0.6 ? 'Medium' : ratio >= 0.4 ? 'Low' : 'Ok'
+        ratio >= 1
+          ? 'Critical'
+          : ratio >= 0.85
+            ? 'High'
+            : ratio >= 0.6
+              ? 'Medium'
+              : ratio >= 0.4
+                ? 'Low'
+                : 'Ok'
       return {
         memory_pressure: level,
         system_available_mb: memory.system_available_mb,

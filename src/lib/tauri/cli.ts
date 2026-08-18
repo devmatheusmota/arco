@@ -4,26 +4,21 @@ import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event'
 import { measure } from '../mainThreadBudget'
 
 // Every event handler is timed so main-thread cost can be attributed by event.
-const listen = <T,>(event: string, handler: (payload: { payload: T }) => void) =>
-  tauriListen<T>(event, (received) => measure(`ev:${event.split('/')[0]}`, () => handler(received as { payload: T })))
+const listen = <T>(event: string, handler: (payload: { payload: T }) => void) =>
+  tauriListen<T>(event, (received) =>
+    measure(`ev:${event.split('/')[0]}`, () => handler(received as { payload: T })),
+  )
 
-   
-                                                                              
-                                                                                
-   
-
-                                                                   
 const OPEN_PATH_EVENT = 'arco://open-path'
 
 export type CliShimStatus = {
-                                                     
   supported: boolean
   installed: boolean
-                                                                              
+
   stale: boolean
   path: string | null
   binDir: string | null
-                                                                                   
+
   onPath: boolean
 }
 
@@ -48,10 +43,6 @@ function toCliShimStatus(raw: RawCliShimStatus): CliShimStatus {
   }
 }
 
-   
-                                                                              
-                                                                 
-   
 export async function cliTakePendingOpen(): Promise<string | null> {
   return invoke<string | null>('cli_take_pending_open')
 }

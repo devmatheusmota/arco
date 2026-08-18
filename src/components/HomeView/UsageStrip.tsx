@@ -11,7 +11,6 @@ import { AntigravityIcon, ClaudeIcon, CodexIcon } from '../icons/AgentIcons'
 import { ActivityGraph } from './ActivityGraph'
 import styles from './HomeView.module.css'
 
-                                                                                   
 function meterColor(util: number, base: string): string {
   if (util >= 80) return 'var(--status-offline)'
   if (util >= 50) return 'var(--status-waiting)'

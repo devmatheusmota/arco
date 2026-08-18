@@ -463,7 +463,11 @@ export function createWorkspaceSlice({
         const closedTabs = state.workspace.closedTabs ?? []
         const tab = closedTabs[0]
         if (!tab) return
-        const nextTab = { ...tab, snapshot: scopedTabSnapshot(tab, state.projects), updatedAt: Date.now() }
+        const nextTab = {
+          ...tab,
+          snapshot: scopedTabSnapshot(tab, state.projects),
+          updatedAt: Date.now(),
+        }
         const base = {
           ...state,
           workspace: {

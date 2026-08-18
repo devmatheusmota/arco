@@ -247,7 +247,14 @@ function buildDictationCommands(send = () => {}) {
         })
         throw error
       }
-      send('dictation://download', { id, received: total, total, file: '', done: true, error: null })
+      send('dictation://download', {
+        id,
+        received: total,
+        total,
+        file: '',
+        done: true,
+        error: null,
+      })
       return null
     },
     dictation_delete: ({ id }) => {

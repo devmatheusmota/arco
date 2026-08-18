@@ -162,7 +162,7 @@ function summarize(agent, root, dir, bundled) {
 }
 
 function collectRoot(agent, root) {
-  let entries = []
+  let entries
   try {
     entries = fs.readdirSync(root, { withFileTypes: true })
   } catch {
@@ -190,7 +190,7 @@ function collectRoot(agent, root) {
 
 function buildTree(dir, depth) {
   if (depth >= MAX_TREE_DEPTH) return []
-  let entries = []
+  let entries
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true })
   } catch {
@@ -278,14 +278,14 @@ function buildSkillsCommands() {
         try {
           fs.unlinkSync(dir)
         } catch (error) {
-          throw new Error(`remove_failed:${error.message}`)
+          throw new Error(`remove_failed:${error.message}`, { cause: error })
         }
         return { path: summary.path, removedLinkOnly: true, sharedCopyPath: summary.resolved_path }
       }
       try {
         fs.rmSync(dir, { recursive: true, force: true })
       } catch (error) {
-        throw new Error(`remove_failed:${error.message}`)
+        throw new Error(`remove_failed:${error.message}`, { cause: error })
       }
       return { path: summary.path, removedLinkOnly: false, sharedCopyPath: null }
     },

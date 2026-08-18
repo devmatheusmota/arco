@@ -10,7 +10,7 @@ const fs = require('node:fs')
 const net = require('node:net')
 const os = require('node:os')
 const path = require('node:path')
-const { execFile, spawn } = require('node:child_process')
+const { spawn } = require('node:child_process')
 
 const paths = require('./paths.cjs')
 
@@ -18,15 +18,6 @@ const SHIM_DIR = path.join(os.homedir(), '.local', 'bin')
 const SHIM_PATH = path.join(SHIM_DIR, 'arco')
 const SHIM_MARKER = '# arco-cli-shim'
 const GITHUB_STATE = () => path.join(paths.appLocalDataDir(), 'github-sync.json')
-
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    execFile(command, args, { timeout: 20_000, ...options }, (error, stdout, stderr) => {
-      if (error) reject(new Error(stderr?.trim() || error.message))
-      else resolve(stdout)
-    })
-  })
-}
 
 // ── MCP ─────────────────────────────────────────────────────────────────────
 
@@ -71,7 +62,10 @@ const MCP_CAPABILITIES = [
 async function checkServer(server) {
   if (server.url) {
     try {
-      const response = await fetch(server.url, { method: 'HEAD', signal: AbortSignal.timeout(4000) })
+      const response = await fetch(server.url, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(4000),
+      })
       return { name: server.name, status: response.ok ? 'ok' : 'error' }
     } catch {
       return { name: server.name, status: 'error' }
@@ -280,7 +274,7 @@ function buildPlatformCommands() {
     /** Warns about env vars a compose/env file declares but does not define. */
     contract_check: ({ envPath }) => {
       if (!envPath) return []
-      let contents = ''
+      let contents
       try {
         contents = fs.readFileSync(envPath, 'utf8')
       } catch {

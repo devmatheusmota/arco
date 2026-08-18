@@ -22,7 +22,7 @@ function claudeProjectDir(cwd) {
 function sessionTitle(cwd, sessionId) {
   if (!sessionId || /[/\\.]/.test(sessionId)) return null
   const file = path.join(claudeProjectDir(cwd), `${sessionId}.jsonl`)
-  let lines = []
+  let lines
   try {
     lines = fs.readFileSync(file, 'utf8').split('\n')
   } catch {
@@ -84,7 +84,7 @@ function firstUserText(entries) {
 }
 
 function snapshotDir(dir, extension = '.jsonl') {
-  let names = []
+  let names
   try {
     names = fs.readdirSync(dir).filter((name) => name.endsWith(extension))
   } catch {

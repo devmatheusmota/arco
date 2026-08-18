@@ -9,7 +9,7 @@ import {
   worktreeProvision,
   worktreeRemove,
 } from '../../lib/tauri'
-import { type AgentType,GROUP_COLORS } from '../../lib/types'
+import { type AgentType, GROUP_COLORS } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { ColorPalettePopover } from './ColorPalettePopover'
@@ -73,17 +73,9 @@ export function EditProjectModal() {
   }
 
   // `project` vem de um seletor Zustand (`s.projects.find(...)`) — troca de
-                                                                            
-                                                                            
-                                                                          
-                                                                              
-                                                                           
-                                                                            
-                                                                            
-                                                                     
+
   // resetado de volta ao valor antigo. `seededForRef` faz a semeadura valer
-                                                                          
-                                              
+
   const seededForRef = useRef<string | null>(null)
   useEffect(() => {
     if (!open || !project) {
@@ -131,8 +123,6 @@ export function EditProjectModal() {
     }
   }
 
-                                                                           
-                                                                 
   const handleCreateAgentEnv = async () => {
     const repoPath = project?.terminals[0]?.cwd
     const name = newAgentName.trim().replace(/[^A-Za-z0-9_-]/g, '-')
@@ -570,10 +560,8 @@ export function EditProjectModal() {
               {creatingAgent ? t('multiAgent.creatingEnv') : t('multiAgent.createEnv')}
             </button>
           </div>
-
         </div>
       ) : null}
-
 
       <ColorPalettePopover
         open={isColorPopoverOpen}

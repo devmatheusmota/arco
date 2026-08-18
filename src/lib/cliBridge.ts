@@ -50,8 +50,7 @@ function resolveProjectId(request: SessionRequest | TodoRequest): string | null 
   const wanted = request.project?.trim().toLowerCase()
   if (wanted) {
     const match = projects.find(
-      (project) =>
-        project.id === request.project || project.name.trim().toLowerCase() === wanted,
+      (project) => project.id === request.project || project.name.trim().toLowerCase() === wanted,
     )
     if (match) return match.id
   }

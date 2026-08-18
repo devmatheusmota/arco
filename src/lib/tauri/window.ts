@@ -5,7 +5,6 @@ export async function setWindowOpacity(opacity: number): Promise<void> {
   await invoke('set_window_opacity', { opacity })
 }
 
-                                                                            
 export async function quitApp(): Promise<void> {
   await invoke('quit_app')
 }
@@ -175,7 +174,6 @@ export function listenHibernationSuggested(
   )
 }
 
-                                                                                  
 export type CrashSession = {
   started_at_ms: number
   clean_exit: boolean
@@ -185,26 +183,19 @@ export type CrashSession = {
   ptys_mb: number
   webview_mb: number
   process_count: number
-                                                                              
-                                                                  
+
   job_guard_active: boolean
 }
 
-                                                                       
-                                                                      
-                                                                         
 export type CrashReport = {
   session: CrashSession
   orphans_reaped: number
 }
 
-                                                                   
 export async function getLastCrashReport(): Promise<CrashReport | null> {
   return invoke<CrashReport | null>('get_last_crash_report')
 }
 
-                                                                             
-                                     
 export async function getJobGuardStatus(): Promise<boolean> {
   return invoke<boolean>('get_job_guard_status')
 }

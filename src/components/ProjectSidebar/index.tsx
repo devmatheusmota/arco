@@ -112,7 +112,15 @@ export function ProjectSidebar() {
 function CleanProjectSidebar() {
   const t = useT()
   // --- data selectors (reactive) ---
-  const { projects, groups, ungroupedOrder, containers, activeProjectId, showGitControl, preferences } = useProjectsStore(
+  const {
+    projects,
+    groups,
+    ungroupedOrder,
+    containers,
+    activeProjectId,
+    showGitControl,
+    preferences,
+  } = useProjectsStore(
     useShallow((s) => ({
       projects: s.projects,
       groups: s.groups,
@@ -121,7 +129,7 @@ function CleanProjectSidebar() {
       activeProjectId: s.activeProjectId,
       showGitControl: s.preferences.enabledFeatures.git,
       preferences: s.preferences,
-    }))
+    })),
   )
 
   // --- action selectors (stable refs, grouped for readability) ---
@@ -182,7 +190,7 @@ function CleanProjectSidebar() {
       setActiveTerminal: s.setActiveTerminal,
       setFocusedTerminal: s.setFocusedTerminal,
       openMarkdownSidebar: s.openMarkdownSidebar,
-    }))
+    })),
   )
   const setPreferences = useProjectsStore((s) => s.setPreferences)
   const [menu, setMenu] = useState<ContextMenuState>(null)
@@ -194,7 +202,6 @@ function CleanProjectSidebar() {
     if (!showGitControl && sidebarTab === 'git') setSidebarTab('projects')
   }, [showGitControl, sidebarTab])
 
-                                                                         
   const openPaneSets = useMemo(() => {
     const map: Record<string, Set<string>> = {}
     for (const c of containers) map[c.projectId] = new Set(c.paneIds)
@@ -259,7 +266,6 @@ function CleanProjectSidebar() {
     const target = String(over.id)
     if (dragged === target) return
 
-                                                                                        
     if (dragged.startsWith('term:') && target.startsWith('proj:')) {
       const [, fromProject, terminalId] = dragged.split(':')
       const [, toProject] = target.split(':')
@@ -267,8 +273,6 @@ function CleanProjectSidebar() {
       return
     }
 
-                                                                                
-                                                                              
     if (dragged.startsWith('proj:') && target.startsWith('proj:')) {
       const fromId = dragged.slice('proj:'.length)
       const toId = target.slice('proj:'.length)
@@ -311,7 +315,6 @@ function CleanProjectSidebar() {
       return
     }
 
-                                                                           
     if (dragged.startsWith('proj:') && target.startsWith('group:')) {
       const [, projectId] = dragged.split(':')
       const [, groupId] = target.split(':')
@@ -337,7 +340,6 @@ function CleanProjectSidebar() {
       return
     }
 
-                                                                        
     if (dragged.startsWith('grp:') && target.startsWith('group:')) {
       const [, srcGroupId] = dragged.split(':')
       const [, parentId] = target.split(':')
@@ -388,10 +390,6 @@ function CleanProjectSidebar() {
         activateProject(p)
       }}
       onTerminalClick={(t) => {
-                                                                             
-                                                                           
-                                                                           
-                                                               
         if (t.gsdSyncViewer) {
           actions.setFullscreenPane(t.id)
           setActiveView('workspace')

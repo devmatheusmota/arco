@@ -62,10 +62,7 @@ function filterByView(snapshots: McpAgentSnapshot[], view: McpView): McpAgentSna
 }
 
 /** Merges the global and project scans per agent for the `all` view. */
-function mergeSnapshots(
-  first: McpAgentSnapshot[],
-  second: McpAgentSnapshot[],
-): McpAgentSnapshot[] {
+function mergeSnapshots(first: McpAgentSnapshot[], second: McpAgentSnapshot[]): McpAgentSnapshot[] {
   const byAgent = new Map<McpAgent, McpAgentSnapshot>()
   for (const snapshot of [...first, ...second]) {
     const existing = byAgent.get(snapshot.agent)
@@ -81,9 +78,7 @@ function mergeSnapshots(
     )
     existing.sources = [
       ...existing.sources,
-      ...snapshot.sources.filter(
-        (source) => !seenSources.has(`${source.kind}:${source.path}`),
-      ),
+      ...snapshot.sources.filter((source) => !seenSources.has(`${source.kind}:${source.path}`)),
     ]
     existing.servers = [
       ...existing.servers,

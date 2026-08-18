@@ -24,7 +24,6 @@ if (process.platform === 'linux' && typeof app.setDesktopName === 'function') {
 }
 
 let mainWindow = null
-let hostProcess = null
 
 const DIST_DIR = path.join(__dirname, '..', 'dist')
 
@@ -95,7 +94,6 @@ function startPtyHost(send) {
   const child = spawn(nodeBinary ?? 'node', [hostPath], {
     stdio: ['pipe', 'pipe', 'inherit'],
   })
-  hostProcess = child
   child.on('error', (error) => {
     console.error('[arco] could not start the PTY host — is Node installed?', error)
   })
@@ -140,7 +138,6 @@ function startPtyHost(send) {
     console.error(`[arco] PTY host exited (${code}); failing ${pending.size} pending call(s)`)
     for (const entry of pending.values()) entry.reject(new Error('pty host exited'))
     pending.clear()
-    hostProcess = null
   })
 
   const REQUEST_TIMEOUT_MS = 15_000

@@ -180,9 +180,7 @@ export function useResourceSupervisor(hydrated: boolean): void {
         useUiStore.getState().setRuntimeSnapshot(null)
         useUiStore.getState().addMemorySample(stats)
         useUiStore.getState().setRamMb(stats.total_mb)
-      } catch {
-                                                                          
-      }
+      } catch {}
     }
 
     void listenPtySuspended((payload) => {

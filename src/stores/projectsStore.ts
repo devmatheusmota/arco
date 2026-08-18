@@ -57,7 +57,6 @@ import {
 import { createContainersSlice, createTerminalsSlice } from './projectsStore.terminalSlices'
 import { createWorkspaceSlice } from './projectsStore.workspaceSlices'
 
-                                                                       
 export { getProjectDefaultCwd, getProjectRepoRoot }
 export {
   MAX_RECENT_PROJECT_TABS,
@@ -85,11 +84,11 @@ export type ProjectsState = ProjectsFile & {
   toggleGroupCollapsed: (id: string) => void
   archiveGroup: (id: string) => void
   unarchiveGroup: (id: string) => void
-                                                                                          
+
   suspendGroup: (groupId: string) => void
-                                                                                           
+
   resumeGroup: (groupId: string) => void
-                                                                                         
+
   deleteGroup: (id: string, mode: 'unassign' | 'cascade') => void
   reorderGroups: (fromIndex: number, toIndex: number) => void
   moveProjectToGroup: (projectId: string, groupId: string | null, atIndex?: number) => void
@@ -126,28 +125,16 @@ export type ProjectsState = ProjectsFile & {
   setReviewAgentModel: (id: string, model: string) => void
   setGraphifyEnabled: (id: string, enabled: boolean) => void
   setAutoWorktree: (id: string, enabled: boolean) => void
-                                                                                 
-                                                                         
-                                                                      
-                                                                              
-                                                                             
-                                                                            
-                                                                        
-                                     
+
   migrateProjectTerminalsToWorktrees: (
     projectId: string,
     gsdWatcherEnabledOverride?: boolean,
   ) => Promise<void>
-                                                                                     
-                                                                                   
+
   addOrphanWorktree: (projectId: string, entry: OrphanWorktree) => void
   removeOrphanWorktree: (projectId: string, path: string) => void
   setCleaningOrphans: (value: boolean) => void
-                                                                              
-                                                                             
-                                                                          
-                                                                               
-                                                      
+
   cleanupOrphanWorktrees: (projectId: string) => Promise<{
     cleaned: number
     partial: number
@@ -174,7 +161,6 @@ export type ProjectsState = ProjectsFile & {
   setLayoutMode: (projectId: string, layout: LayoutMode) => void
   setProjectGridLayout: (projectId: string, layout: GridLayout, recordHistory?: boolean) => void
 
-                  
   createTodo: (
     title: string,
     tags?: string[],
@@ -212,12 +198,7 @@ export type ProjectsState = ProjectsFile & {
       gsdSyncViewer?: boolean
     },
   ) => Terminal
-     
-                                                                               
-                                                                           
-                                                                            
-                                                               
-     
+
   createAgentTerminal: (
     projectId: string,
     args: {
@@ -238,51 +219,46 @@ export type ProjectsState = ProjectsFile & {
       }
     },
   ) => Promise<Terminal>
-                                                                              
+
   createFilePane: (projectId: string, args: { filePath: string; name?: string }) => Terminal
-                                                                  
+
   createDiffPane: (
     projectId: string,
     args: { filePath: string; repoRoot: string; staged: boolean; name?: string },
   ) => Terminal
-                                                                    
+
   createWebPane: (projectId: string, args: BrowserPaneOptions) => Terminal
   createGraphifyPane: (projectId: string, cwd: string) => Terminal
   renameTerminal: (projectId: string, terminalId: string, name: string) => void
-                                                                               
-                                                                            
+
   markGsdSyncViewer: (projectId: string, terminalId: string) => void
   deleteTerminal: (projectId: string, terminalId: string) => void
-                                                                              
-                                                                           
-                                                                
-                                                                  
+
   deleteTerminalWithWorktreeCleanup: (projectId: string, terminalId: string) => Promise<void>
-                                                                                   
-                                                                                      
+
   killTerminal: (projectId: string, terminalId: string) => void
   moveTerminal: (fromProjectId: string, terminalId: string, toProjectId: string) => void
   setTerminalDisabled: (projectId: string, terminalId: string, disabled: boolean) => void
-                                                                                          
+
   setProjectDisabled: (projectId: string, disabled: boolean) => void
   setLaneVisible: (projectId: string, terminalId: string, visible: boolean | null) => void
   /** Hides a terminal from every paired remote device. */
   setTerminalRemoteExcluded: (projectId: string, terminalId: string, excluded: boolean) => void
-                                                                         
+
   markTerminalUsed: (projectId: string, terminalId: string) => void
 
   // workspace containers (substituem activeTerminalIds)
-                                                                                             
+
   openPane: (projectId: string, terminalId: string) => void
-                                                                       
+
   closePane: (projectId: string, terminalId: string) => void
-                                                    
+
   togglePane: (projectId: string, terminalId: string) => void
-                                                                                 
+
   openContainerWithAllPanes: (projectId: string) => void
   /** Remove container inteiro da workspace. */
   closeContainer: (projectId: string) => void
-                                                                     
+
   closeOtherContainers: (keepProjectId: string) => void
   reorderPaneInContainer: (projectId: string, fromIndex: number, toIndex: number) => void
   groupPanes: (projectId: string, paneIds: string[]) => void
@@ -354,9 +330,6 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null
 let pendingSave = false
 let lastSaveErrorLoggedAt = 0
 
-                                                                                   
-                                                                                    
-                                                                                      
 let lastWriteSequence = Date.now()
 
 function nextWriteSequence(): number {
@@ -415,7 +388,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
       const workspaceChanged = Boolean(result.workspace)
       const visualPreferencesChanged = Boolean(
         result.preferences &&
-          result.preferences.fullscreenContainerId !== state.preferences.fullscreenContainerId,
+        result.preferences.fullscreenContainerId !== state.preferences.fullscreenContainerId,
       )
       if (!suppressNavigationSync && (workspaceChanged || visualPreferencesChanged)) {
         const nextState = { ...state, ...result } as ProjectsState
@@ -524,7 +497,6 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     let history = state.workspace.history
     let historyIndex = state.workspace.historyIndex
     if (tabs.length > MAX_WORKSPACE_TABS) {
-                                                                              
       const removable =
         tabs.find((item) => item.id !== tab.id && !item.pinned) ??
         tabs.find((item) => item.id !== tab.id)
@@ -641,9 +613,6 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     )
   }
 
-                                                                                
-                                                                              
-                                                                             
   const sliceCtx = {
     set,
     get,
@@ -746,7 +715,6 @@ export async function flushProjectsState(): Promise<void> {
 
 /* ------------ selectors ------------ */
 
-                                                                                
 export function selectProjectsById(state: ProjectsState): Map<string, Project> {
   return new Map(state.projects.map((p) => [p.id, p]))
 }
@@ -761,7 +729,6 @@ export function selectActiveProject(state: ProjectsState): Project | null {
   return state.projects.find((p) => p.id === state.activeProjectId) ?? null
 }
 
-                                              
 export function selectActiveContainer(state: ProjectsState): WorkspaceContainer | null {
   if (!state.activeProjectId) return null
   return state.workspace.containers.find((c) => c.projectId === state.activeProjectId) ?? null
@@ -792,10 +759,6 @@ export type RecentTerminalEntry = {
   lastUsedAt: number
 }
 
-   
-                                                                             
-                                                                       
-   
 export function selectRecentTerminals(n: number) {
   return (state: ProjectsState): RecentTerminalEntry[] => {
     const entries: RecentTerminalEntry[] = []
