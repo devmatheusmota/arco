@@ -42,6 +42,40 @@ jobs:
       - name: Typecheck and build
         run: npm run build
 
+  smoke:
+    # Nothing else here runs the app. Lint, vitest and `tsc && vite build` all
+    # pass with the Electron main process fatally broken, because none of them
+    # load it — which is exactly how v2.0.1 shipped an app that could not open.
+    # ubuntu-22.04 for the same reason the rust job uses it: predictable package
+    # names for the libraries Chromium needs.
+    name: Boot smoke (Electron)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1 \
+            libxss1 libxtst6
+
+      # The app loads the built frontend, so there has to be one.
+      - name: Build the frontend
+        run: npm run build
+
+      - name: Boot the app and check it answers
+        run: xvfb-run -a npm run smoke:boot
+
   rust:
     # src-tauri/ is the previous shell: still compiled so it does not rot, but
     # no longer built or released, so one platform is enough. It used to run on

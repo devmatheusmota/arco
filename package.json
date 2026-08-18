@@ -21,6 +21,7 @@
     "package": "npm run build && electron-builder --config electron-builder.yml --linux AppImage",
     "tauri": "tauri",
     "app:tauri": "tauri dev --config src-tauri/tauri.dev.json",
+    "smoke:boot": "node scripts/smoke-boot.mjs",
     "smoke:ghostty": "bash scripts/smoke-ghostty.sh",
     "capture:window": "bash scripts/capture-window.sh",
     "test:rust": "cd src-tauri && cargo test --lib",
