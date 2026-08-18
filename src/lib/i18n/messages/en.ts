@@ -768,6 +768,22 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v210.note1':
+    'A pane you left running no longer comes back garbled. Returning to a hidden pane used to reset the terminal and replay its raw history, which repainted old frames over the current screen — the state where scrolling shows scrambled text instead of the conversation. It now writes only what it missed.',
+  'whatsNew.v210.note2':
+    'Tasks have a status: to do, in progress, in review, done. It shows on the row and in the expanded task, and finishing a task still works exactly as before.',
+  'whatsNew.v210.note3':
+    'The terminal command edits tasks: `arco todo edit <ref>` changes title, tags, status, priority or notes, `arco todo status <ref> <status>` is the shorthand, and `arco todo list` prints the short id both take. Reinstall the command in Preferences > Integrations to pick these up.',
+  'whatsNew.v210.note4':
+    'Agents started here are told the `arco` command exists, so they can move their own task to in progress or review. Claude Code only, and it can be turned off in Preferences > Integrations.',
+  'whatsNew.v204.note1':
+    '`arco todo` and `arco session` answer again when the shim on PATH is missing: the binary handles the subcommands itself.',
+  'whatsNew.v204.note2':
+    'The Claude and Codex usage pills come back on a window that started in the background.',
+  'whatsNew.v204.note3':
+    'Muted text meets a 4.5:1 contrast ratio in all fourteen themes, and dialogs, menus and the task list are usable from the keyboard.',
+  'whatsNew.v203.note1':
+    'This dialog lists every 2.0.x release instead of stopping at v1.5.0.',
   'whatsNew.v200.note1':
     'Arco now runs on Chromium instead of the system WebView. Typing in a terminal no longer waits behind everything else the interface is drawing, which is what made panes feel sticky while an agent worked.',
   'whatsNew.v200.note2':

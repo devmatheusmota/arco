@@ -779,6 +779,22 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v210.note1':
+    'O pane que você deixou rodando não volta mais embaralhado. Ao reabrir um pane escondido, o terminal era zerado e todo o histórico bruto reescrito, o que repintava quadros antigos por cima da tela atual — aquele estado em que rolar mostra texto misturado em vez da conversa. Agora ele escreve só o que perdeu.',
+  'whatsNew.v210.note2':
+    'Tarefas têm status: a fazer, em andamento, em revisão e concluída. Aparece na linha da tarefa e no painel expandido, e concluir uma tarefa continua funcionando igual.',
+  'whatsNew.v210.note3':
+    'O comando de terminal edita tarefas: `arco todo edit <ref>` muda título, tags, status, prioridade ou notas, `arco todo status <ref> <status>` é o atalho, e `arco todo list` mostra o id curto que os dois aceitam. Reinstale o comando em Preferências > Integrações para receber isso.',
+  'whatsNew.v210.note4':
+    'Os agentes abertos aqui passam a saber que o comando `arco` existe e conseguem mover a própria tarefa para em andamento ou revisão. Só no Claude Code, e dá para desligar em Preferências > Integrações.',
+  'whatsNew.v204.note1':
+    '`arco todo` e `arco session` respondem de novo quando o atalho no PATH não está instalado: o próprio binário resolve os subcomandos.',
+  'whatsNew.v204.note2':
+    'Os indicadores de uso do Claude e do Codex voltam a aparecer numa janela que abriu em segundo plano.',
+  'whatsNew.v204.note3':
+    'O texto secundário alcança contraste de 4,5:1 nos quatorze temas, e diálogos, menus e a lista de tarefas funcionam pelo teclado.',
+  'whatsNew.v203.note1':
+    'Este diálogo lista todas as versões 2.0.x em vez de parar na v1.5.0.',
   'whatsNew.v200.note1':
     'O Arco agora roda no Chromium em vez da WebView do sistema. Digitar num terminal não espera mais tudo que a interface está desenhando, que era o motivo dos panes travarem enquanto um agente trabalhava.',
   'whatsNew.v200.note2':
