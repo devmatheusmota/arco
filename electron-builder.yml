@@ -22,9 +22,15 @@ asarUnpack:
   - '**/node_modules/@homebridge/node-pty-prebuilt-multiarch/**'
   - '**/node_modules/sherpa-onnx-*/**'
 linux:
-  target: AppImage
+  target:
+    - AppImage
+    - deb
   syncDesktopName: true
   executableName: arco
+  maintainer: Matheus Mota <devmatheusmota@gmail.com>
   synopsis: Reveal the state of every agent, shell, and project
+  description: |
+    Organizes, operates and resumes multiple coding agents and shells in
+    parallel, inside a persistent workspace with real terminals.
   category: Development
   icon: src-tauri/icons

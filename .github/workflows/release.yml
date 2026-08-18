@@ -1,89 +1,72 @@
 name: Release
 
 on:
-  # Tag NÃO dispara release. `npm run release` só marca a versão no git;
-  # publicar instaladores é uma ação deliberada via `npm run release:publish`
-  # (gh workflow run) ou pela aba Actions -> Release -> Run workflow.
+  # A tag does NOT trigger a release. `npm run release` only marks the version
+  # in git; publishing the installers is a deliberate action, through
+  # `npm run release:publish` (gh workflow run) or Actions -> Release -> Run workflow.
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build ${{ matrix.label }}
+    name: Build Linux x64
+    # The app runs on Electron; the packaged AppImage and .deb come from
+    # electron-builder. Windows and macOS are not built here yet: the terminal
+    # and speech hosts run under the system Node, and that path is only
+    # validated on Linux. Publishing an untested installer would be worse than
+    # publishing none.
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-            label: Windows x64
-            args: ''
-          - platform: ubuntu-22.04
-            label: Linux x64
-            args: ''
-          - platform: macos-latest
-            label: macOS Apple Silicon
-            args: '--target aarch64-apple-darwin'
-          - platform: macos-latest
-            label: macOS Intel
-            args: '--target x86_64-apple-darwin'
-
-    runs-on: ${{ matrix.platform }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          # libasound2-dev is required by cpal, which captures audio for voice
-          # dictation; without it the Rust build fails at alsa-sys.
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 20
           cache: npm
-          cache-dependency-path: package-lock.json
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-
-      - name: Install frontend dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build and upload Tauri bundles
-        uses: tauri-apps/tauri-action@v0
+      - name: Typecheck, i18n validation and tests
+        run: |
+          npm run build
+          npm test
+
+      - name: Package
+        run: npx electron-builder --config electron-builder.yml --linux AppImage deb
+
+      - name: Read version
+        id: version
+        run: echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Assinatura do updater (minisign). Sem estes secrets o build FALHA,
-          # porque bundle.createUpdaterArtifacts está ligado. Gere o par com
-          # `npm run tauri signer generate` e cadastre nos secrets do repo.
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          tagName: v__VERSION__
-          releaseName: 'Arco v__VERSION__'
-          releaseBody: |
-            Desktop build of Arco for Linux, macOS and Windows.
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          notes=$(cat <<'BODY'
+          Desktop build of Arco for Linux.
 
-            Download the file for your system: `.AppImage` runs as-is on Linux
-            (`chmod +x` then launch), `.deb` and `.rpm` install through the
-            package manager, `.dmg` on macOS, `.exe` on Windows.
+          `.AppImage` runs as-is (`chmod +x` then launch); `.deb` installs through the
+          package manager.
 
-            Voice dictation downloads its model on first use, from Preferences.
+          **Requires Node.js 20+ on the machine.** Terminals and voice dictation run in
+          their own Node processes, because their native bindings target Node's ABI.
 
-            Arco is a fork of [Alethe](https://github.com/Kc1t/alethe-agents),
-            AGPL-3.0-or-later. Source: this repository.
-          releaseDraft: false
-          prerelease: false
-          args: ${{ matrix.args }}
+          Voice dictation downloads its model on first use, from Preferences.
+
+          Arco is a fork of [Alethe](https://github.com/Kc1t/alethe-agents),
+          AGPL-3.0-or-later. Source: this repository.
+          BODY
+          )
+          # Re-runnable: attach to the tag's release when it already exists.
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" dist-electron/*.AppImage dist-electron/*.deb --clobber
+          else
+            gh release create "v${VERSION}" dist-electron/*.AppImage dist-electron/*.deb \
+              --title "Arco v${VERSION}" --notes "${notes}"
+          fi
