@@ -128,7 +128,12 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
   child.onData((data) => {
     session.scrollback += data
     if (session.scrollback.length > SCROLLBACK_CAP_BYTES) {
-      session.scrollback = session.scrollback.slice(-SCROLLBACK_CAP_BYTES)
+      // Cut on a line boundary: escape sequences never span a newline, so this
+      // is the only trim that cannot leave a half-written CSI at the front of a
+      // replay, where it would swallow the bytes that follow it.
+      const excess = session.scrollback.length - SCROLLBACK_CAP_BYTES
+      const boundary = session.scrollback.indexOf('\n', excess)
+      session.scrollback = session.scrollback.slice(boundary >= 0 ? boundary + 1 : excess)
     }
     session.dirty = true
     if (session.visible) {

@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A pane that had been hidden while its agent was working comes back readable. Returning to it used
+  to clear the terminal and replay the session's raw byte history, which re-ran repaints recorded
+  under an older window size: old frames piled up on screen, characters from different moments
+  landed interleaved on the same line, and the pane sometimes came back blank — a state where
+  scrolling shows garbled history instead of the conversation. The pane now writes only the output
+  it missed, in order, and never resets, so the agent and the terminal keep the same picture of the
+  screen. Trimming the stored history also cuts on a line boundary now, so it can no longer start
+  mid-escape-sequence.
+
 ## [2.0.4] — 2026-08-18
 
 ### Fixed

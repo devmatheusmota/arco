@@ -22,6 +22,7 @@ import {
   isSessionClaimed,
   registerSessionClaim,
 } from '../../lib/sessionDiscovery'
+import { buildCliContextArgs } from '../../lib/cliContext'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import {
   peekSession,
@@ -70,6 +71,7 @@ import {
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
+import { createHiddenBacklog, dropReplayOverlap } from './terminalBacklog'
 import { resolveTerminalFontFamily } from './terminalFont'
 import {
   formatDroppedPaths,
@@ -260,10 +262,10 @@ export function useXtermSession(params: {
   const wasPanelVisibleRef = useRef(isPanelVisible)
 
   const isFirstVisibilityRunRef = useRef(true)
-  /** lastIoAt captured when the panel went hidden; null until it has been hidden once. */
-  const lastIoWhenHiddenRef = useRef<number | null>(null)
 
   const resyncTerminalRef = useRef<(() => Promise<void>) | null>(null)
+  /** Writes what the pane missed while hidden; false when only a full resync can recover it. */
+  const flushHiddenBacklogRef = useRef<(() => boolean) | null>(null)
   const rendererRef = useRef<TerminalRenderer | null>(null)
 
   useEffect(() => {
@@ -890,6 +892,35 @@ export function useXtermSession(params: {
 
     // zero em vez de tentar reconciliar incrementalmente. `reset()` + replay
 
+    // What the pane missed while it was hidden. Taking these bytes in order
+    // keeps the terminal in the state the agent believes it is in; the reset +
+    // raw replay below re-runs repaints recorded under a different geometry and
+    // leaves the two disagreeing, so it is kept only for what the backlog can
+    // no longer cover.
+    const hiddenBacklog = createHiddenBacklog()
+
+    /** Writes in one shot when the frame queue is idle, which it is after a hidden stretch. */
+    const writeBacklogAtOnce = (chunk: string) => {
+      if (pendingWriteLength === 0 && writeFrame === null) {
+        try {
+          terminal.write(chunk)
+        } catch {}
+        return
+      }
+      queueTerminalWrite(chunk)
+    }
+
+    const flushHiddenBacklog = (): boolean => {
+      if (hiddenBacklog.overflowed) {
+        hiddenBacklog.reset()
+        return false
+      }
+      const pending = hiddenBacklog.drain()
+      if (pending) writeBacklogAtOnce(pending)
+      return true
+    }
+    flushHiddenBacklogRef.current = flushHiddenBacklog
+
     const doResync = async () => {
       const id = ptyIdRef.current
       if (!id || disposed) return
@@ -904,7 +935,10 @@ export function useXtermSession(params: {
         pendingWriteLength = 0
         cancelWriteFlush()
         if (replay) void writeReplayAtOnce(replay)
-        for (const chunk of arrivedDuringFetch) queueTerminalWrite(chunk)
+        // The host appends to its scrollback before it emits, so part of what
+        // arrived during the fetch is already inside the replay.
+        const pending = dropReplayOverlap(replay, arrivedDuringFetch.join(''))
+        if (pending) queueTerminalWrite(pending)
       } catch {
         resyncCaptureRef = null
       }
@@ -937,6 +971,10 @@ export function useXtermSession(params: {
       const activityUnlisten = await listenPtyActivity(id, (chunk) => {
         measure('pty.activity', () => {
           useTerminalsStore.getState().recordIo(id)
+          // This channel carries the output of a hidden pane in full. Holding it
+          // is what lets the pane come back without a reset and replay.
+          if (isPanelVisibleRef.current) queueTerminalWrite(chunk)
+          else hiddenBacklog.push(chunk)
           completionMonitor?.handleOutput(chunk)
           inspectChunk?.(chunk)
         })
@@ -1266,7 +1304,16 @@ export function useXtermSession(params: {
         const launch = command
           ? buildAgentLaunch(command, preparedRuntime.args, resumeId, undefined, mcpConfigPaths)
           : { args: preparedRuntime.args, sessionId: undefined, createdSession: false }
-        const spawnArgs = launch.args.length > 0 ? launch.args : undefined
+        // Every session started here is told the `arco` command exists, unless
+        // the preference says to leave the agent exactly as it starts elsewhere.
+        const cliContextArgs = command
+          ? buildCliContextArgs(
+              command,
+              useProjectsStore.getState().preferences.cliContextInjection !== false,
+            )
+          : []
+        const allArgs = [...launch.args, ...cliContextArgs]
+        const spawnArgs = allArgs.length > 0 ? allArgs : undefined
         if (command && command !== 'shell') {
           console.info(
             `[pty-launch] ${command} args=${JSON.stringify(spawnArgs ?? [])} resumeId=${resumeId ?? '—'} launcherOverride=${launcherOverride ?? '(auto/PATH)'}`,
@@ -1681,11 +1728,11 @@ export function useXtermSession(params: {
     let cancelled = false
     let resyncTimer: number | null = null
 
-    // While hidden the PTY still reports activity, so lastIoAt tells us whether anything was
-    // produced. If nothing was, the buffer on screen is already correct and resyncing would only
-    // clear the terminal and rewrite identical bytes — a visible flash for no reason.
-    const ioAtNow = () => useTerminalsStore.getState().byPtyId[ptyId]?.lastIoAt ?? 0
-    if (!isPanelVisible) lastIoWhenHiddenRef.current = ioAtNow()
+    // A pane coming back writes exactly the output it missed, so its terminal is
+    // never reset and the agent's own view of the screen stays valid. The full
+    // resync only runs when that backlog gave up — more output than the host
+    // itself retains, which leaves the raw scrollback as the only source.
+    const recovered = isPanelVisible && !wasVisible ? flushHiddenBacklogRef.current?.() : true
 
     void setPtyVisible(ptyId, isPanelVisible)
       .catch(() => false)
@@ -1696,9 +1743,7 @@ export function useXtermSession(params: {
               'the resource sampler will reconcile it',
           )
         }
-        if (cancelled || !isPanelVisible || wasVisible) return
-        if (lastIoWhenHiddenRef.current !== null && ioAtNow() === lastIoWhenHiddenRef.current)
-          return
+        if (cancelled || !isPanelVisible || wasVisible || recovered !== false) return
         resyncTimer = window.setTimeout(() => {
           if (!cancelled) void resyncTerminalRef.current?.()
         }, PANEL_RESYNC_DEBOUNCE_MS)
