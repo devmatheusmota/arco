@@ -1,9 +1,15 @@
 {
   "name": "arco",
   "version": "2.0.0",
+  "description": "Organizes, operates and resumes multiple coding agents and shells in parallel, inside a persistent workspace with real terminals.",
+  "author": {
+    "name": "Matheus Mota",
+    "email": "devmatheusmota@gmail.com"
+  },
   "license": "AGPL-3.0-or-later",
   "private": true,
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -79,6 +85,5 @@
   "allowScripts": {
     "esbuild@0.25.12": true
   },
-  "desktopName": "arco.desktop",
-  "main": "electron/main.cjs"
+  "desktopName": "arco.desktop"
 }

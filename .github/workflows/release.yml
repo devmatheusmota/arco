@@ -36,7 +36,10 @@ jobs:
           npm test
 
       - name: Package
-        run: npx electron-builder --config electron-builder.yml --linux AppImage deb
+        # `--publish never`: electron-builder detects CI and would otherwise try
+        # to publish the artifacts itself, which needs a token it has no reason
+        # to hold — the release step below does the upload.
+        run: npx electron-builder --config electron-builder.yml --linux AppImage deb --publish never
 
       - name: Read version
         id: version
