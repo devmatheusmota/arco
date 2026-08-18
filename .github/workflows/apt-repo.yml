@@ -62,11 +62,21 @@ jobs:
       - name: Build the index
         run: |
           cd repo
+          mkdir -p dists/stable/main/binary-amd64
           # Paths inside Packages must be relative to the repo root, so scan from here.
-          dpkg-scanpackages --arch amd64 pool/main > dists/stable/main/binary-amd64/Packages 2>/dev/null || {
-            mkdir -p dists/stable/main/binary-amd64
-            dpkg-scanpackages --arch amd64 pool/main > dists/stable/main/binary-amd64/Packages
-          }
+          # No `--arch`: that flag does not filter by architecture, it narrows the
+          # file-name pattern to *_arch.deb, and silently indexes nothing when the
+          # artifact is named otherwise.
+          dpkg-scanpackages pool/main > dists/stable/main/binary-amd64/Packages
+          # An empty index publishes a repository that installs nothing, and every
+          # step still reports success — so fail here instead.
+          entries=$(grep -c '^Package:' dists/stable/main/binary-amd64/Packages || true)
+          if [ "$entries" -lt 1 ]; then
+            echo "the index has no packages; pool/main holds:" >&2
+            ls -la pool/main >&2
+            exit 1
+          fi
+          echo "indexed $entries package(s)"
           gzip -9fk dists/stable/main/binary-amd64/Packages
 
       - name: Write and sign Release

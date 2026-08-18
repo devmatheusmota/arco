@@ -6,6 +6,10 @@ appId: com.mota.arco
 npmRebuild: false
 productName: Arco
 artifactName: Arco-${version}.${ext}
+deb:
+  # Debian tooling keys off the file name: dpkg-scanpackages only sees a package
+  # named `name_version_arch.deb`.
+  artifactName: ${name}_${version}_${arch}.${ext}
 directories:
   output: dist-electron
   buildResources: src-tauri/icons
