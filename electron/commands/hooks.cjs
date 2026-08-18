@@ -6,6 +6,7 @@
 // what drives live agent status. Same contract as the Rust listener, including
 // the shared-secret header, so the settings file works for either shell.
 
+const { randomBytes } = require('node:crypto')
 const http = require('node:http')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -22,7 +23,7 @@ const HOOK_EVENTS = [
   'TaskCompleted',
 ]
 
-const token = crypto.randomBytes(16).toString('hex')
+const token = randomBytes(16).toString('hex')
 let port = 0
 
 function readBody(request) {

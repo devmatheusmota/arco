@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.0.1] — 2026-08-18
+
+### Fixed
+
+- The app no longer fails to start. The agent hook listener called `crypto.randomBytes` without
+  requiring `node:crypto`, so it resolved to the Web Crypto global, which has no such method. The
+  exception was thrown while the module loaded, before any window existed, and the process stayed
+  alive holding the single-instance lock — so launching Arco again from the desktop entry did
+  nothing at all.
+
+
 ## [2.0.0] — 2026-08-18
 
 ### Added
