@@ -10,9 +10,9 @@ import {
 import { useProjectsStore } from '../../../stores/projectsStore'
 import controls from '../controls.module.css'
 import styles from '../PreferencesModal.module.css'
+import { SettingsSection } from './primitives'
 import { ShortcutField } from './ShortcutField'
 import { SpeechModelPicker } from './SpeechModelPicker'
-import { SettingsSection } from './primitives'
 
 function TerminalCommandSection() {
   const t = useT()
@@ -107,6 +107,29 @@ export function IntegrationsPage() {
   return (
     <>
       <TerminalCommandSection />
+
+      <SettingsSection
+        id="cli-context"
+        title={t('prefs.cliContext')}
+        description={t('prefs.cliContextDesc')}
+      >
+        <div className={styles.segmented}>
+          <button
+            type="button"
+            className={preferences.cliContextInjection !== false ? styles.segmentActive : undefined}
+            onClick={() => setPreferences({ cliContextInjection: true })}
+          >
+            {t('prefs.cliContextOn')}
+          </button>
+          <button
+            type="button"
+            className={preferences.cliContextInjection === false ? styles.segmentActive : undefined}
+            onClick={() => setPreferences({ cliContextInjection: false })}
+          >
+            {t('prefs.cliContextOff')}
+          </button>
+        </div>
+      </SettingsSection>
 
       <SettingsSection id="spotify" title={t('prefs.spotify')} description={t('prefs.spotifyDesc')}>
         <div className={styles.integrationFields}>

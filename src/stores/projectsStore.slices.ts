@@ -6,11 +6,14 @@ import type { StoreApi } from 'zustand'
 import { resolveTerminalCwd, touchTerminalUsage } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import {
+  applyTodoStatus,
   DEFAULT_TODOS,
   normalizeTodoNotes,
   normalizeTodoPriority,
+  normalizeTodoStatus,
   normalizeTodoTags,
   normalizeTodoTitle,
+  placeTodoInList,
   reorderTodoItems,
   TODO_SESSIONS_MAX,
 } from '../lib/todos'
@@ -58,6 +61,7 @@ type TodosSlice = Pick<
   | 'updateTodoTags'
   | 'updateTodoNotes'
   | 'setTodoPriority'
+  | 'setTodoStatus'
   | 'setTodoProject'
   | 'linkTodoSession'
   | 'unlinkTodoSession'
@@ -79,6 +83,7 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
         completed: false,
         tags: normalizeTodoTags(rawTags),
         priority: normalizeTodoPriority(extra?.priority),
+        status: normalizeTodoStatus(extra?.status, false),
         createdAt: Date.now(),
         ...(projectId ? { projectId } : {}),
         ...(notes ? { notes } : {}),
@@ -169,24 +174,25 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
           ...item,
           id: nanoid(),
           priority: 'normal' as const,
+          status: 'todo' as const,
           createdAt: Date.now(),
         })),
       })),
+
+    setTodoStatus: (id, status) =>
+      update((state) => {
+        const current = state.todos.find((item) => item.id === id)
+        if (!current) return
+        const normalized = normalizeTodoStatus(status, status === 'done')
+        if (normalized === normalizeTodoStatus(current.status, current.completed)) return
+        return { todos: placeTodoInList(state.todos, applyTodoStatus(current, normalized)) }
+      }),
 
     toggleTodo: (id) =>
       update((state) => {
         const current = state.todos.find((item) => item.id === id)
         if (!current) return
-        const changed: TodoItem = { ...current, completed: !current.completed }
-        if (changed.completed) changed.completedAt = Date.now()
-        else delete changed.completedAt
-        const remaining = state.todos.filter((item) => item.id !== id)
-        if (changed.completed) return { todos: [...remaining, changed] }
-        const firstCompleted = remaining.findIndex((item) => item.completed)
-        const insertAt = firstCompleted === -1 ? remaining.length : firstCompleted
-        return {
-          todos: [...remaining.slice(0, insertAt), changed, ...remaining.slice(insertAt)],
-        }
+        return { todos: placeTodoInList(state.todos, applyTodoStatus(current, current.completed ? 'todo' : 'done')) }
       }),
 
     deleteTodo: (id) =>

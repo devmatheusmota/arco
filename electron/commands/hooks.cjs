@@ -41,6 +41,7 @@ function readBody(request) {
 const CLI_EVENTS = {
   session: 'cli://session-new',
   todo: 'cli://todo-add',
+  'todo/edit': 'cli://todo-edit',
 }
 
 function json(response, payload, status = 200) {

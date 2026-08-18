@@ -135,6 +135,17 @@ async function githubUser(token) {
 
 // ── CLI shim ────────────────────────────────────────────────────────────────
 
+/**
+ * Path the shim should call.
+ *
+ * Inside an AppImage `process.execPath` points at that run's temporary mount,
+ * which is gone by the time the shim runs again — `APPIMAGE` is the stable path
+ * to the file the user actually keeps.
+ */
+function appBinary() {
+  return process.env.APPIMAGE || process.execPath
+}
+
 function shimScript() {
   return `#!/bin/sh
 ${SHIM_MARKER}
@@ -156,114 +167,22 @@ ${SHIM_MARKER}
 #     --no-worktree           forca a mesma arvore
 #                             sem nenhum dos dois, segue o padrao do projeto
 #
-# arco todo <titulo> [--project <nome>] [--tag <tag>]...
-# arco todo list --json       -> lista as tarefas em JSON
+# arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
+# arco todo list [--json]     -> lista as tarefas
+# arco todo edit <ref> [--title|--tag|--add-tag|--remove-tag|--status|...]
+# arco todo status <ref> <status>
+#
+# "arco help" lista todas as opcoes.
 #
 # Os subcomandos exigem o app aberto: falam com o listener local dele.
 
 set -e
 
-arco_endpoint_and_token() {
-  hooks=\${TMPDIR:-/tmp}/arco-agent-hooks.json
-
-  if [ ! -f "$hooks" ]; then
-    echo "arco: o app nao esta rodando (sem $hooks)" >&2
-    exit 1
-  fi
-
-  # O mesmo arquivo que configura os hooks carrega endpoint e token.
-  endpoint=$(sed -n 's/.*"url"[[:space:]]*:[[:space:]]*"\\([^"]*\\)\\/hook".*/\\1/p' "$hooks" | head -1)
-  token=$(sed -n 's/.*"X-Arco-Token"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' "$hooks" | head -1)
-
-  if [ -z "$endpoint" ] || [ -z "$token" ]; then
-    echo "arco: nao consegui ler endpoint/token em $hooks" >&2
-    exit 1
-  fi
-}
-
-arco_api_get() {
-  arco_endpoint_and_token
-
-  curl -sS -f -X POST "$endpoint/cli/$1" \\
-    -H "X-Arco-Token: $token" --data '{}' || {
-      echo "arco: falha ao consultar o app" >&2
-      exit 1
-    }
-}
-
-arco_api() {
-  arco_endpoint_and_token
-
-  code=$(curl -sS -o /dev/null -w '%{http_code}' \\
-    -X POST "$endpoint/cli/$1" \\
-    -H 'Content-Type: application/json' \\
-    -H "X-Arco-Token: $token" \\
-    --data "$2") || {
-      echo "arco: falha ao falar com o app" >&2
-      exit 1
-    }
-
-  if [ "$code" != "200" ]; then
-    echo "arco: o app respondeu $code" >&2
-    exit 1
-  fi
-}
-
-# Escapa aspas e barras para interpolar com seguranca num literal JSON.
-json_escape() {
-  printf '%s' "$1" | sed -e 's/\\\\/\\\\\\\\/g' -e 's/"/\\\\"/g'
-}
-
+# Os subcomandos vivem no binario do app: uma implementacao so, que responde
+# igual com ou sem este atalho. Aqui eles sao apenas repassados.
 case "\${1:-}" in
-  session)
-    shift
-    agent=claude; project=; name=; prompt=; worktree=inherit
-    while [ $# -gt 0 ]; do
-      case $1 in
-        --agent) agent=$2; shift 2 ;;
-        --project) project=$2; shift 2 ;;
-        --name) name=$2; shift 2 ;;
-        --prompt) prompt=$2; shift 2 ;;
-        --worktree) worktree=new; shift ;;
-        --no-worktree) worktree=none; shift ;;
-        *) echo "arco session: opcao desconhecida: $1" >&2; exit 1 ;;
-      esac
-    done
-    body=$(printf '{"agent":"%s","cwd":"%s","worktree":"%s"' \\
-      "$(json_escape "$agent")" "$(json_escape "$(pwd)")" "$worktree")
-    [ -n "$project" ] && body="$body,\\"project\\":\\"$(json_escape "$project")\\""
-    [ -n "$name" ] && body="$body,\\"name\\":\\"$(json_escape "$name")\\""
-    [ -n "$prompt" ] && body="$body,\\"prompt\\":\\"$(json_escape "$prompt")\\""
-    arco_api session "$body}"
-    exit 0
-    ;;
-  todo)
-    shift
-    # \`todo list --json\` responde; os outros subcomandos so enfileiram.
-    if [ "\${1:-}" = "list" ]; then
-      shift
-      [ "\${1:-}" = "--json" ] && shift
-      arco_api_get todo/list
-      echo
-      exit 0
-    fi
-    title=; project=; tags=
-    while [ $# -gt 0 ]; do
-      case $1 in
-        --project) project=$2; shift 2 ;;
-        --tag) tags="$tags\\"$(json_escape "$2")\\","; shift 2 ;;
-        *) title="$title\${title:+ }$1"; shift ;;
-      esac
-    done
-    if [ -z "$title" ]; then
-      echo "arco todo: informe um titulo" >&2
-      exit 1
-    fi
-    body=$(printf '{"title":"%s","tags":[%s]' \\
-      "$(json_escape "$title")" "\${tags%,}")
-    [ -n "$project" ] && body="$body,\\"project\\":\\"$(json_escape "$project")\\""
-    arco_api todo "$body}"
-    exit 0
+  session|todo|help|--help|-h)
+    exec "${appBinary()}" "$@"
     ;;
 esac
 
@@ -277,7 +196,7 @@ fi
 # Caminho absoluto: o app compara com o cwd salvo dos projetos.
 target=$(cd "$target" && pwd)
 
-exec "${process.execPath}" --open-path "$target"
+exec "${appBinary()}" --open-path "$target"
 `
 }
 
@@ -287,7 +206,7 @@ function shimStatus() {
   try {
     const contents = fs.readFileSync(SHIM_PATH, 'utf8')
     installed = contents.includes(SHIM_MARKER)
-    stale = installed && !contents.includes(process.execPath)
+    stale = installed && !contents.includes(appBinary())
   } catch {}
   const onPath = (process.env.PATH ?? '').split(path.delimiter).includes(SHIM_DIR)
   return {

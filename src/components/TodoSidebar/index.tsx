@@ -24,6 +24,7 @@ import { type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
 import {
   collectTodoTags,
   normalizeTodoPriority,
+  normalizeTodoStatus,
   sortTodosByPriority,
   TODO_TITLE_MAX_LENGTH,
 } from '../../lib/todos'
@@ -32,9 +33,11 @@ import {
   type Project,
   type Terminal,
   TODO_PRIORITIES,
+  TODO_STATUSES,
   type TodoItem,
   type TodoPriority,
   type TodoSessionLink,
+  type TodoStatus,
 } from '../../lib/types'
 import { selectActiveProject, useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
@@ -216,6 +219,7 @@ function TodoRow({
   const updateTodoTags = useProjectsStore((state) => state.updateTodoTags)
   const updateTodoNotes = useProjectsStore((state) => state.updateTodoNotes)
   const setTodoPriority = useProjectsStore((state) => state.setTodoPriority)
+  const setTodoStatus = useProjectsStore((state) => state.setTodoStatus)
   const setTodoProject = useProjectsStore((state) => state.setTodoProject)
   const unlinkTodoSession = useProjectsStore((state) => state.unlinkTodoSession)
   const toggleTodo = useProjectsStore((state) => state.toggleTodo)
@@ -238,6 +242,7 @@ function TodoRow({
       liveSessions.filter((session) => isTerminalWorking(session.terminal!, state.byPtyId)).length,
   )
   const priority = normalizeTodoPriority(todo.priority)
+  const status = normalizeTodoStatus(todo.status, todo.completed)
 
   const finishEditing = () => {
     if (editTitle.trim()) renameTodo(todo.id, editTitle)
@@ -344,6 +349,11 @@ function TodoRow({
           >
             <span className={styles.todoTitleText}>{todo.title}</span>
             <span className={styles.metaRow}>
+              {status !== 'todo' && status !== 'done' ? (
+                <span className={styles.statusChip} data-status={status}>
+                  {t(`todo.statusValue.${status}`)}
+                </span>
+              ) : null}
               {todo.tags.map((tag) => (
                 <span key={tag} className={styles.tag}>
                   #{tag}
@@ -460,6 +470,24 @@ function TodoRow({
                   onClick={() => setTodoPriority(todo.id, value as TodoPriority)}
                 >
                   {t(`todo.priority.${value}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.detailBlock}>
+            <span className={styles.detailLabel}>{t('todo.status')}</span>
+            <div className={styles.statusRow}>
+              {TODO_STATUSES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`${styles.statusPill} ${status === value ? styles.priorityPillActive : ''}`}
+                  data-status={value}
+                  aria-pressed={status === value}
+                  onClick={() => setTodoStatus(todo.id, value as TodoStatus)}
+                >
+                  {t(`todo.statusValue.${value}`)}
                 </button>
               ))}
             </div>

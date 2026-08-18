@@ -85,6 +85,15 @@ export type TodoPriority = 'low' | 'normal' | 'high'
 
 export const TODO_PRIORITIES: TodoPriority[] = ['high', 'normal', 'low']
 
+/**
+ * Where a task stands. `completed` remains the flag the list is split by, and
+ * `done` is its mirror: the two are always set together, so nothing that reads
+ * the old field has to learn about this one.
+ */
+export type TodoStatus = 'todo' | 'in_progress' | 'review' | 'done'
+
+export const TODO_STATUSES: TodoStatus[] = ['todo', 'in_progress', 'review', 'done']
+
 /** An agent session that was launched from a task, kept so the task can jump back to it. */
 export type TodoSessionLink = {
   projectId: string
@@ -103,6 +112,8 @@ export type TodoItem = {
   /** Extra context handed to the agent when a session is started from this task. */
   notes?: string
   priority?: TodoPriority
+  /** Kept in step with `completed`: `done` there, anything else here means open. */
+  status?: TodoStatus
   createdAt?: number
   completedAt?: number
   /** Sessions launched from this task, newest first. */
@@ -443,6 +454,12 @@ export type Preferences = {
   rightSidebarWidth: number
 
   notifyOnLimitReset: boolean
+  /**
+   * Tells agents started here that the `arco` command exists and what it can do,
+   * so they can keep their own task up to date. Default true; off leaves the
+   * session exactly as the agent would start it outside Arco.
+   */
+  cliContextInjection: boolean
   /** Ditado por voz (speech-to-text) escreve no terminal ativo. Default false. */
   dictationEnabled: boolean
   /** Hold dita enquanto o atalho fica pressionado; toggle liga e desliga a cada toque. */
@@ -569,6 +586,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   leftSidebarWidth: 286,
   rightSidebarWidth: 300,
   notifyOnLimitReset: true,
+  cliContextInjection: true,
   dictationEnabled: false,
   dictationMode: 'hold',
   dictationShortcut: 'ctrl+e',

@@ -783,6 +783,58 @@
   background: var(--panel-hover);
 }
 
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.statusPill {
+  composes: priorityPill;
+  white-space: nowrap;
+}
+
+.statusPill::before {
+  background: var(--border-strong);
+}
+
+.statusPill[data-status='in_progress']::before {
+  background: var(--status-working);
+}
+
+.statusPill[data-status='review']::before {
+  background: var(--status-waiting);
+}
+
+.statusPill[data-status='done']::before {
+  background: var(--status-stopped);
+}
+
+/* Compact echo of the pill above, so the board position reads without expanding the row. */
+.statusChip {
+  padding: 0 6px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--fg-muted);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.statusChip[data-status='in_progress'] {
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+
+.statusChip[data-status='review'] {
+  color: var(--status-waiting);
+  border-color: var(--status-waiting);
+}
+
 .notesInput {
   width: 100%;
   min-height: 58px;

@@ -1,4 +1,4 @@
-import type { TodoItem, TodoPriority, TodoSessionLink } from './types'
+import type { TodoItem, TodoPriority, TodoSessionLink, TodoStatus } from './types'
 
 export const TODO_TITLE_MAX_LENGTH = 200
 export const TODO_TAG_MAX_LENGTH = 24
@@ -24,6 +24,56 @@ export function normalizeTodoNotes(value: unknown): string {
 
 export function normalizeTodoPriority(value: unknown): TodoPriority {
   return value === 'high' || value === 'low' ? value : 'normal'
+}
+
+/**
+ * Spellings accepted for a status.
+ *
+ * The command line and the agents that drive it type what they mean rather than
+ * the stored token — "doing", "wip", "code-review" — so the words map here
+ * instead of turning into an error the caller has to guess its way out of.
+ */
+const STATUS_ALIASES: Record<string, TodoStatus> = {
+  todo: 'todo',
+  open: 'todo',
+  backlog: 'todo',
+  pending: 'todo',
+  in_progress: 'in_progress',
+  'in-progress': 'in_progress',
+  inprogress: 'in_progress',
+  doing: 'in_progress',
+  wip: 'in_progress',
+  started: 'in_progress',
+  review: 'review',
+  'code-review': 'review',
+  code_review: 'review',
+  cr: 'review',
+  reviewing: 'review',
+  done: 'done',
+  complete: 'done',
+  completed: 'done',
+  finished: 'done',
+}
+
+/** Returns null for anything unrecognised, so a caller can tell a typo from a default. */
+export function parseTodoStatus(value: unknown): TodoStatus | null {
+  if (typeof value !== 'string') return null
+  return STATUS_ALIASES[value.trim().toLowerCase()] ?? null
+}
+
+/** Reads a stored status, falling back to what `completed` already says. */
+export function normalizeTodoStatus(value: unknown, completed: boolean): TodoStatus {
+  const status = parseTodoStatus(value)
+  if (completed) return 'done'
+  return status && status !== 'done' ? status : 'todo'
+}
+
+/** The task list is split by `completed`, so a status change has to move that flag with it. */
+export function applyTodoStatus(todo: TodoItem, status: TodoStatus): TodoItem {
+  const next: TodoItem = { ...todo, status, completed: status === 'done' }
+  if (next.completed) next.completedAt = todo.completedAt ?? Date.now()
+  else delete next.completedAt
+  return next
 }
 
 export function normalizeTodoTags(value: unknown): string[] {
@@ -91,6 +141,47 @@ export function sortTodosByPriority(items: TodoItem[]): TodoItem[] {
       return delta !== 0 ? delta : a.index - b.index
     })
     .map((entry) => entry.item)
+}
+
+/**
+ * Puts a task back in the list after its status changed: finished tasks sink to
+ * the bottom, reopened ones return just above the finished block.
+ */
+export function placeTodoInList(items: TodoItem[], changed: TodoItem): TodoItem[] {
+  const remaining = items.filter((item) => item.id !== changed.id)
+  if (changed.completed) return [...remaining, changed]
+  const firstCompleted = remaining.findIndex((item) => item.completed)
+  const insertAt = firstCompleted === -1 ? remaining.length : firstCompleted
+  return [...remaining.slice(0, insertAt), changed, ...remaining.slice(insertAt)]
+}
+
+export type TodoMatch = {
+  todo: TodoItem | null
+  /** Populated when the reference fits more than one task, so the caller can say which. */
+  ambiguous: TodoItem[]
+}
+
+/**
+ * Resolves the task a command line argument points at.
+ *
+ * Ids are generated, so nobody types them in full: an id prefix works, and so
+ * does a piece of the title, which is what a person — or an agent reading its
+ * own task — actually has at hand.
+ */
+export function findTodoByRef(items: TodoItem[], rawRef: string): TodoMatch {
+  const ref = rawRef.trim().toLowerCase()
+  if (!ref) return { todo: null, ambiguous: [] }
+
+  const exact = items.find((item) => item.id.toLowerCase() === ref)
+  if (exact) return { todo: exact, ambiguous: [] }
+
+  const byPrefix = ref.length >= 3 ? items.filter((item) => item.id.toLowerCase().startsWith(ref)) : []
+  if (byPrefix.length === 1) return { todo: byPrefix[0], ambiguous: [] }
+  if (byPrefix.length > 1) return { todo: null, ambiguous: byPrefix }
+
+  const byTitle = items.filter((item) => item.title.toLowerCase().includes(ref))
+  if (byTitle.length === 1) return { todo: byTitle[0], ambiguous: [] }
+  return { todo: null, ambiguous: byTitle }
 }
 
 /** Every tag currently in use, ordered by how many tasks carry it. */

@@ -44,8 +44,24 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --worktree              forca worktree nova
       --no-worktree           forca a mesma arvore
 
-  arco todo <titulo> [--project <nome>] [--tag <tag>]...
-  arco todo list [--json]     lista as tarefas
+  arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
+  arco todo list [--json] [--status <status>]
+      lista as tarefas; sem --json sai em tabela com id curto
+
+  arco todo edit <ref> [opcoes]   edita uma tarefa existente
+      --title <texto>         novo titulo
+      --tag <tag>...          substitui as tags
+      --add-tag <tag>...      acrescenta tags
+      --remove-tag <tag>...   remove tags
+      --status <status>       todo | in-progress | review | done
+      --priority <nivel>      high | normal | low
+      --notes <texto>         substitui as notas
+      --project <nome>        move a tarefa de projeto
+
+  arco todo status <ref> <status>   atalho para --status
+
+<ref> e o id (inteiro ou o prefixo que aparece em "arco todo list") ou um
+trecho do titulo, desde que so uma tarefa corresponda.
 
 Os subcomandos exigem o app aberto: falam com o listener local dele.`
 
@@ -84,12 +100,79 @@ function parseTodo(args) {
   const tags = []
   const words = []
   let project = null
+  let status = null
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--project') project = args[++index]
     else if (args[index] === '--tag') tags.push(args[++index])
+    else if (args[index] === '--status') status = args[++index]
     else words.push(args[index])
   }
-  return { title: words.join(' '), tags: tags.filter(Boolean), project }
+  return { title: words.join(' '), tags: tags.filter(Boolean), project, status }
+}
+
+/**
+ * `arco todo edit <ref> [flags]`.
+ *
+ * Only the flags that appear are sent, so an edit never clears a field it was
+ * not asked about — the difference between renaming a task and wiping its notes.
+ */
+function parseTodoEdit(args) {
+  const [ref, ...rest] = args
+  const payload = { ref: ref ?? '' }
+  const push = (key, value) => {
+    if (!value) return
+    payload[key] = [...(payload[key] ?? []), value]
+  }
+  for (let index = 0; index < rest.length; index += 1) {
+    const flag = rest[index]
+    if (flag === '--title') payload.title = rest[++index]
+    else if (flag === '--tag') push('tags', rest[++index])
+    else if (flag === '--add-tag') push('addTags', rest[++index])
+    else if (flag === '--remove-tag') push('removeTags', rest[++index])
+    else if (flag === '--status') payload.status = rest[++index]
+    else if (flag === '--priority') payload.priority = rest[++index]
+    else if (flag === '--notes') payload.notes = rest[++index]
+    else if (flag === '--project') payload.project = rest[++index]
+    else throw new Error(`arco todo edit: opcao desconhecida: ${flag}`)
+  }
+  if (!payload.ref) throw new Error('arco todo edit: informe a tarefa (id ou trecho do titulo)')
+  if (Object.keys(payload).length === 1) throw new Error('arco todo edit: informe o que mudar')
+  return payload
+}
+
+const STATUS_LABEL = {
+  todo: 'todo',
+  in_progress: 'in-progress',
+  review: 'review',
+  done: 'done',
+}
+
+/** Status as stored, so `--status` on the app side sees the same word it prints. */
+function statusOf(todo) {
+  if (todo.completed) return 'done'
+  return STATUS_LABEL[todo.status] ? todo.status : 'todo'
+}
+
+/** Table with the short id `arco todo edit` takes, so a listing is directly actionable. */
+function formatTodoTable(todos) {
+  if (todos.length === 0) return 'nenhuma tarefa\n'
+  const rows = todos.map((todo) => ({
+    id: String(todo.id ?? '').slice(0, 8),
+    status: STATUS_LABEL[statusOf(todo)],
+    title: String(todo.title ?? ''),
+    tags: (todo.tags ?? []).map((tag) => `#${tag}`).join(' '),
+  }))
+  const width = (key) => Math.max(...rows.map((row) => row[key].length))
+  const idWidth = width('id')
+  const statusWidth = width('status')
+  return `${rows
+    .map(
+      (row) =>
+        `${row.id.padEnd(idWidth)}  ${row.status.padEnd(statusWidth)}  ${row.title}${
+          row.tags ? `  ${row.tags}` : ''
+        }`,
+    )
+    .join('\n')}\n`
 }
 
 function parseSession(args) {
@@ -112,13 +195,38 @@ async function run(argv) {
 
   if (command === 'todo') {
     if (rest[0] === 'list') {
+      const wantsJson = rest.includes('--json')
+      const statusIndex = rest.indexOf('--status')
+      const wantedStatus = statusIndex === -1 ? null : rest[statusIndex + 1]
       const response = await post('todo/list')
-      writeOut(`${JSON.stringify(await response.json())}\n`)
+      const todos = await response.json()
+      const filtered = wantedStatus
+        ? todos.filter((todo) => statusOf(todo) === wantedStatus.replace(/-/g, '_'))
+        : todos
+      writeOut(wantsJson ? `${JSON.stringify(filtered)}\n` : formatTodoTable(filtered))
       return
     }
-    const { title, tags, project } = parseTodo(rest)
+
+    if (rest[0] === 'edit') {
+      await post('todo/edit', parseTodoEdit(rest.slice(1)))
+      return
+    }
+
+    if (rest[0] === 'status') {
+      const [, ref, status] = rest
+      if (!ref || !status) throw new Error('arco todo status: informe a tarefa e o status')
+      await post('todo/edit', { ref, status })
+      return
+    }
+
+    const { title, tags, project, status } = parseTodo(rest)
     if (!title) throw new Error('arco todo: informe um titulo')
-    await post('todo', { title, tags, ...(project ? { project } : {}) })
+    await post('todo', {
+      title,
+      tags,
+      ...(project ? { project } : {}),
+      ...(status ? { status } : {}),
+    })
     return
   }
 
@@ -172,4 +280,4 @@ function handleCli(rawArgv, exit = process.exit) {
   return true
 }
 
-module.exports = { handleCli, USAGE }
+module.exports = { handleCli, USAGE, parseTodoEdit, formatTodoTable, statusOf }

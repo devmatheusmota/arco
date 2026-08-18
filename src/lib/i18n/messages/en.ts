@@ -497,6 +497,11 @@ export const en = {
   'todo.priority.normal': 'Normal',
   'todo.priority.low': 'Low',
   'todo.priorityMarker': 'Priority: {priority}',
+  'todo.status': 'Status',
+  'todo.statusValue.todo': 'To do',
+  'todo.statusValue.in_progress': 'In progress',
+  'todo.statusValue.review': 'In review',
+  'todo.statusValue.done': 'Done',
   'todo.tagFilterAll': 'All tags',
   'todo.tagFilterLabel': 'Filter by tag',
   'todo.startSession': 'Start a session for this task',
@@ -675,6 +680,11 @@ export const en = {
     'The installed command points to an older copy of Arco. Reinstall it to update the path.',
   'prefs.cliNotOnPath':
     '{dir} is not in your PATH. Add it to your shell profile: export PATH="{dir}:$PATH"',
+  'prefs.cliContext': 'Tell agents about the terminal command',
+  'prefs.cliContextDesc':
+    'Sessions started here learn that `arco` exists and how to move a task to in-progress, review or done. Claude Code only — Codex and OpenCode have no way to take extra instructions without replacing their own.',
+  'prefs.cliContextOn': 'On',
+  'prefs.cliContextOff': 'Off',
   'prefs.cliUnsupported': 'The terminal command is not available on this platform.',
   'prefs.spotify': 'Spotify',
   'prefs.spotifyDesc': 'Configure the Spotify application used by the Now Playing widget.',

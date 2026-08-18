@@ -500,6 +500,11 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.priority.normal': 'Normal',
   'todo.priority.low': 'Baixa',
   'todo.priorityMarker': 'Prioridade: {priority}',
+  'todo.status': 'Status',
+  'todo.statusValue.todo': 'A fazer',
+  'todo.statusValue.in_progress': 'Em andamento',
+  'todo.statusValue.review': 'Em revisão',
+  'todo.statusValue.done': 'Concluída',
   'todo.tagFilterAll': 'Todas as tags',
   'todo.tagFilterLabel': 'Filtrar por tag',
   'todo.startSession': 'Iniciar uma sessão para esta tarefa',
@@ -683,6 +688,11 @@ export const ptBR: Record<MessageKey, string> = {
     'O comando instalado aponta pra uma cópia antiga do Arco. Reinstale pra atualizar o caminho.',
   'prefs.cliNotOnPath':
     '{dir} não está no seu PATH. Adicione no perfil do shell: export PATH="{dir}:$PATH"',
+  'prefs.cliContext': 'Contar aos agentes sobre o comando de terminal',
+  'prefs.cliContextDesc':
+    'As sessões abertas aqui passam a saber que o `arco` existe e como mover uma tarefa para em andamento, revisão ou concluída. Só no Claude Code — Codex e OpenCode não têm como receber instruções extras sem substituir as próprias.',
+  'prefs.cliContextOn': 'Ligado',
+  'prefs.cliContextOff': 'Desligado',
   'prefs.cliUnsupported': 'O comando de terminal não está disponível nesta plataforma.',
   'prefs.spotify': 'Spotify',
   'prefs.spotifyDesc': 'Configure o aplicativo do Spotify usado no widget Now Playing.',

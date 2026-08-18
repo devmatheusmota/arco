@@ -10,6 +10,22 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- Tasks carry a status — to do, in progress, in review, done — shown as a chip on the row and as
+  buttons in the expanded task. Finishing a task and marking it done are the same act, so the list
+  still splits into open and completed exactly as before. Existing tasks keep their state: a
+  completed one reads as done, everything else as to do.
+- `arco todo edit <ref> …` edits an existing task from the terminal: title, tags (replace, add or
+  remove), status, priority, notes and project. `arco todo status <ref> <status>` is the shorthand,
+  and `arco todo list` now prints a table with the short id those commands take — `--json` keeps the
+  raw output, `--status` filters. A reference is that short id or any unique piece of the title;
+  when it matches more than one task, the app says which instead of guessing.
+- Sessions started here are told the `arco` command exists and how to move a task through the
+  board, so an agent can keep its own task current instead of leaving it to you. Claude Code only —
+  Codex and OpenCode cannot take extra instructions without replacing their own. Turn it off in
+  Preferences › Integrations.
+
 ### Fixed
 
 - A pane that had been hidden while its agent was working comes back readable. Returning to it used

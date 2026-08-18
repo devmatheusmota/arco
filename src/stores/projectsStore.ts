@@ -31,6 +31,7 @@ import {
   type Theme,
   type TodoItem,
   type TodoPriority,
+  type TodoStatus,
   type TodoSessionLink,
   type WorkspaceContainer,
   type WorkspaceRecentTab,
@@ -165,12 +166,14 @@ export type ProjectsState = ProjectsFile & {
     title: string,
     tags?: string[],
     projectId?: string,
-    extra?: { notes?: string; priority?: TodoPriority },
+    extra?: { notes?: string; priority?: TodoPriority; status?: TodoStatus },
   ) => TodoItem | null
   renameTodo: (id: string, title: string) => void
   updateTodoTags: (id: string, tags: string[]) => void
   updateTodoNotes: (id: string, notes: string) => void
   setTodoPriority: (id: string, priority: TodoPriority) => void
+  /** Moves a task across the board; `done` and `completed` always travel together. */
+  setTodoStatus: (id: string, status: TodoStatus) => void
   setTodoProject: (id: string, projectId: string | null) => void
   /** Records the session a task launched so the row can jump back to that pane. */
   linkTodoSession: (id: string, link: TodoSessionLink) => void

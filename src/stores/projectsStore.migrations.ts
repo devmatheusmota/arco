@@ -5,6 +5,7 @@ import {
   normalizeTodoNotes,
   normalizeTodoPriority,
   normalizeTodoSessions,
+  normalizeTodoStatus,
   normalizeTodoTags,
   normalizeTodoTitle,
 } from '../lib/todos'
@@ -165,6 +166,7 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
       completed,
       tags: normalizeTodoTags(item?.tags),
       priority: normalizeTodoPriority(item?.priority),
+      status: normalizeTodoStatus(item?.status, completed),
       createdAt: typeof item?.createdAt === 'number' ? item.createdAt : Date.now(),
       ...(completed && typeof item?.completedAt === 'number'
         ? { completedAt: item.completedAt }

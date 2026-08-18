@@ -2,6 +2,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 import { useProjectsStore } from '../stores/projectsStore'
 import { useUiStore } from '../stores/uiStore'
+import { findTodoByRef, parseTodoStatus } from './todos'
 import type { AgentType, TodoPriority, WorktreeChoice } from './types'
 
 /**
@@ -28,6 +29,20 @@ type TodoRequest = {
   tags?: string[]
   notes?: string
   priority?: TodoPriority
+  status?: string
+}
+
+/** `arco todo edit` — every field is optional, and only what is present changes. */
+type TodoEditRequest = {
+  ref?: string
+  title?: string
+  tags?: string[]
+  addTags?: string[]
+  removeTags?: string[]
+  notes?: string
+  priority?: TodoPriority
+  status?: string
+  project?: string
 }
 
 const AGENTS: readonly AgentType[] = ['shell', 'claude', 'codex', 'opencode']
@@ -45,7 +60,7 @@ function normalizeWorktree(value: SessionRequest['worktree']): WorktreeChoice {
  * project whose directory matches `cwd` — the common case, since the CLI is
  * usually run from inside the repo — and the active project last.
  */
-function resolveProjectId(request: SessionRequest | TodoRequest): string | null {
+function resolveProjectId(request: SessionRequest | TodoRequest | TodoEditRequest): string | null {
   const { projects, activeProjectId } = useProjectsStore.getState()
   const wanted = request.project?.trim().toLowerCase()
   if (wanted) {
@@ -103,11 +118,71 @@ function handleTodo(request: TodoRequest) {
     reportProblem('Tarefa sem título.')
     return
   }
+  const status = request.status ? parseTodoStatus(request.status) : null
+  if (request.status && !status) {
+    reportProblem(`Status desconhecido: ${request.status}`)
+    return
+  }
   const store = useProjectsStore.getState()
   store.createTodo(title, request.tags ?? [], resolveProjectId(request) ?? undefined, {
     notes: request.notes,
     priority: request.priority,
+    ...(status ? { status } : {}),
   })
+}
+
+/**
+ * Applies an edit to the task a reference points at.
+ *
+ * Agents drive this as much as people do — a session started from a task moves
+ * it to `in_progress` and to `review` on its own — so an ambiguous reference
+ * answers with the candidates instead of picking one.
+ */
+function handleTodoEdit(request: TodoEditRequest) {
+  const ref = request.ref?.trim()
+  if (!ref) {
+    reportProblem('Informe qual tarefa editar.')
+    return
+  }
+  const store = useProjectsStore.getState()
+  const { todo, ambiguous } = findTodoByRef(store.todos, ref)
+  if (!todo) {
+    if (ambiguous.length > 0) {
+      const names = ambiguous.slice(0, 3).map((item) => item.title).join(', ')
+      reportProblem(`"${ref}" corresponde a ${ambiguous.length} tarefas: ${names}…`)
+      return
+    }
+    reportProblem(`Nenhuma tarefa encontrada para "${ref}".`)
+    return
+  }
+
+  if (request.status) {
+    const status = parseTodoStatus(request.status)
+    if (!status) {
+      reportProblem(`Status desconhecido: ${request.status}`)
+      return
+    }
+    store.setTodoStatus(todo.id, status)
+  }
+  if (request.title?.trim()) store.renameTodo(todo.id, request.title)
+  if (request.notes !== undefined) store.updateTodoNotes(todo.id, request.notes)
+  if (request.priority) store.setTodoPriority(todo.id, request.priority)
+  if (request.project !== undefined) {
+    store.setTodoProject(todo.id, request.project ? resolveProjectId(request) : null)
+  }
+
+  const tags = nextTags(todo.tags, request)
+  if (tags) store.updateTodoTags(todo.id, tags)
+}
+
+/** Returns the new tag list, or null when the request does not touch tags. */
+function nextTags(current: string[], request: TodoEditRequest): string[] | null {
+  const replace = request.tags
+  const added = request.addTags ?? []
+  const removed = new Set((request.removeTags ?? []).map((tag) => tag.trim().toLowerCase()))
+  if (!replace && added.length === 0 && removed.size === 0) return null
+  const base = replace ?? current
+  return [...base, ...added].filter((tag) => !removed.has(tag.trim().toLowerCase()))
 }
 
 /** Wires the CLI events. Returns a disposer for the app to call on teardown. */
@@ -120,6 +195,9 @@ export async function startCliBridge(): Promise<UnlistenFn> {
     }),
     listen<TodoRequest>('cli://todo-add', (event) => {
       handleTodo(event.payload ?? {})
+    }),
+    listen<TodoEditRequest>('cli://todo-edit', (event) => {
+      handleTodoEdit(event.payload ?? {})
     }),
   ])
   return () => unlisteners.forEach((dispose) => dispose())
