@@ -9,6 +9,7 @@ import {
   FolderPlus,
   Github,
   Layers,
+  Loader2,
   PackageOpen,
   Send,
   TerminalSquare,
@@ -202,6 +203,9 @@ export function HomeView() {
     if (!quickCwd && quickTarget) setQuickCwd(getProjectDefaultCwd(quickTarget, projects))
   }, [projects, quickCwd, quickTarget])
 
+  const [quickLaunching, setQuickLaunching] = useState(false)
+  const [quickError, setQuickError] = useState<string | null>(null)
+
   const browseQuickFolder = async () => {
     const folder = await pickDirectory({ defaultPath: quickCwd || undefined })
     if (folder) setQuickCwd(folder)
@@ -210,26 +214,37 @@ export function HomeView() {
   const submitQuickPrompt = async (event: React.FormEvent) => {
     event.preventDefault()
     const prompt = quickPromptRef.current?.value.trim() ?? ''
-    if (!quickTarget || !prompt) return
+    if (!quickTarget || !prompt || quickLaunching) return
     const cwd = quickCwd.trim() || getProjectDefaultCwd(quickTarget, projects)
     const flag = quickUnrestricted ? UNRESTRICTED_FLAG[quickAgent] : null
     const label = QUICK_AGENTS.find((agent) => agent.type === quickAgent)?.label ?? quickAgent
-    const terminal = await createAgentTerminal(quickTarget.id, {
-      name: label,
-      cwd,
-      firstTab: {
-        type: quickAgent,
+    // Spawning a session takes long enough to look unresponsive, and a second
+    // press while it runs starts a second session. The prompt survives a
+    // failure: retyping it is the one thing the user cannot recover.
+    setQuickLaunching(true)
+    setQuickError(null)
+    try {
+      const terminal = await createAgentTerminal(quickTarget.id, {
+        name: label,
         cwd,
-        extraArgs: flag ? [flag] : undefined,
-        initialInput: prompt,
-      },
-    })
-    setActiveProjectOnly(quickTarget.id)
-    useProjectsStore.getState().focusWorkspaceTerminal(quickTarget.id, terminal.id)
-    setActiveTerminal(quickTarget.id, terminal.id)
-    requestPaneFocus(terminal.id)
-    if (quickPromptRef.current) quickPromptRef.current.value = ''
-    setActiveView('workspace')
+        firstTab: {
+          type: quickAgent,
+          cwd,
+          extraArgs: flag ? [flag] : undefined,
+          initialInput: prompt,
+        },
+      })
+      setActiveProjectOnly(quickTarget.id)
+      useProjectsStore.getState().focusWorkspaceTerminal(quickTarget.id, terminal.id)
+      setActiveTerminal(quickTarget.id, terminal.id)
+      requestPaneFocus(terminal.id)
+      if (quickPromptRef.current) quickPromptRef.current.value = ''
+      setActiveView('workspace')
+    } catch (error) {
+      setQuickError(String(error))
+    } finally {
+      setQuickLaunching(false)
+    }
   }
 
   const handleNewTerminal = () => {
@@ -408,13 +423,23 @@ export function HomeView() {
             <button
               type="submit"
               className={styles.quickSend}
-              disabled={!quickTarget || quickAgents.length === 0}
-              title={t('home.quickSend')}
-              aria-label={t('home.quickSend')}
+              disabled={!quickTarget || quickAgents.length === 0 || quickLaunching}
+              aria-busy={quickLaunching}
+              title={quickLaunching ? t('home.quickLaunching') : t('home.quickSend')}
+              aria-label={quickLaunching ? t('home.quickLaunching') : t('home.quickSend')}
             >
-              <Send size={14} />
+              {quickLaunching ? (
+                <Loader2 size={14} className={styles.quickSpinner} />
+              ) : (
+                <Send size={14} />
+              )}
             </button>
           </div>
+          {quickError ? (
+            <p className={styles.quickError} role="alert">
+              {t('home.quickLaunchFailed')} {quickError}
+            </p>
+          ) : null}
         </form>
 
         <div className={styles.heroFooter}>
@@ -509,7 +534,10 @@ export function HomeView() {
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>{t('home.usageActivity')}</div>
-        <UsageStrip />
+        {/* The strip carries the usage summaries; the activity heatmap lives in
+            its own section below, where it has room. Rendering it in both put
+            the same graph on screen twice and ran the query twice. */}
+        <UsageStrip showActivity={false} />
       </section>
 
       <section className={`${styles.section} ${styles.timeAnalyticsSection}`}>
@@ -684,6 +712,16 @@ function FooterShortcut({
   label: string
   onClick?: () => void
 }) {
+  // Without a handler this is a hint, not a control. Rendering it as a button
+  // put it in the tab order and promised something to press.
+  if (!onClick) {
+    return (
+      <span className={styles.footerShortcut}>
+        <kbd className={styles.kbd}>{keys}</kbd>
+        <span>{label}</span>
+      </span>
+    )
+  }
   return (
     <button type="button" className={styles.footerShortcut} onClick={onClick}>
       <kbd className={styles.kbd}>{keys}</kbd>

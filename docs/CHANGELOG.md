@@ -10,6 +10,43 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.0.4] — 2026-08-18
+
+### Fixed
+
+- `arco todo` and `arco session` answer again. The subcommands only ever existed in the shell shim
+  the app installs on PATH; without it they reached the binary, matched nothing and fell through to
+  opening a window, so the command hung. The binary handles them itself now. Two failures were
+  hiding behind that one: output written while exiting was lost whenever it went to a pipe, and the
+  argument offset assumed a shape that Chromium's own switches break.
+- The Claude and Codex usage pills come back. The frontend gates its polling on window focus, and
+  this shell never emitted the focus events it listens for, so a window that started in the
+  background never polled again and the pills stayed empty for the rest of the session.
+- Cancelling a session with uncommitted work no longer closes it anyway.
+- The default profile picture is a neutral placeholder instead of the upstream project's mascot.
+
+### Changed
+
+- Muted text meets a 4.5:1 contrast ratio in all fourteen themes. The small 9–11px labels were
+  sitting between 1.9:1 and 3.7:1, worst on the light themes; hue and saturation are unchanged, only
+  lightness moved.
+- Starting an agent shows that it is starting. Both the home quick launch and the new terminal
+  dialog now block repeat presses, say what they are doing, and report a failure without discarding
+  what you typed or chose.
+- Closing a whole tab group is its own button. The group's name was the control, so clicking what
+  reads as a label closed every tab in it with no warning.
+- Todo items reorder from the keyboard, and editing a title saves when you click away instead of
+  silently discarding it.
+- The context menu takes focus when it opens, moves with the arrow keys, and returns focus where it
+  came from.
+- Reduced-motion preferences are respected by dialogs, terminal panes and the quick launch spinner.
+- Smaller repairs: the activity heatmap rendered twice on Home; the welcome dialog offered two
+  buttons that did the same thing; "Now playing" and the footer shortcuts were buttons that did
+  nothing; wide dialogs could overflow a narrow window; the subtab close button was invisible to
+  keyboard users; the agent picker nested buttons inside buttons; project name and path had no
+  label association and Cancel kept the abandoned draft; a colour token that was never defined.
+
+
 ## [2.0.3] — 2026-08-18
 
 ### Fixed

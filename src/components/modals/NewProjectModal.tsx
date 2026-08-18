@@ -88,7 +88,14 @@ export function NewProjectModal() {
       title={t('crud.newProjectTitle')}
       footer={
         <>
-          <button type="button" className={controls.btn} onClick={closeModal}>
+          <button
+            type="button"
+            className={controls.btn}
+            onClick={() => {
+              reset()
+              closeModal()
+            }}
+          >
             {t('crud.cancel')}
           </button>
           <button
@@ -103,13 +110,17 @@ export function NewProjectModal() {
       }
     >
       <div className={controls.field}>
-        <label className={controls.label}>{t('crud.nameLabel')}</label>
+        <label className={controls.label} htmlFor="new-project-name">
+          {t('crud.nameLabel')}
+        </label>
         <input
+          id="new-project-name"
           className={controls.input}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void submit()}
           placeholder={t('crud.projectNamePlaceholder')}
+          required
         />
       </div>
 
@@ -171,11 +182,14 @@ export function NewProjectModal() {
       ) : null}
 
       <div className={controls.field}>
-        <label className={controls.label}>{t('crud.projectPathLabel')}</label>
+        <label className={controls.label} htmlFor="new-project-path">
+          {t('crud.projectPathLabel')}
+        </label>
         <div className={controls.cwdRow}>
           <div className={controls.cwdInputWrap}>
             <Folder size={15} aria-hidden="true" />
             <input
+              id="new-project-path"
               className={controls.input}
               value={defaultCwd}
               onChange={(event) => setDefaultCwd(event.target.value)}

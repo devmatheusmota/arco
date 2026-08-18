@@ -81,7 +81,7 @@ export function ImageInput({
           {value ? (
             <img
               src={value}
-              alt="Icon Preview"
+              alt={t('ui.imageInput.previewAlt')}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {
                 e.currentTarget.style.display = 'none'

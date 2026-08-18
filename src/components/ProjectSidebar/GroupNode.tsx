@@ -121,7 +121,10 @@ export function GroupNode({
             e.stopPropagation()
             onToggle()
           }}
-          aria-label={t('ui.sidebar.collapse')}
+          // The label said "collapse" in both states, so it described the
+          // opposite of what pressing it would do half the time.
+          aria-label={group.collapsed ? t('ui.sidebar.expand') : t('ui.sidebar.collapse')}
+          aria-expanded={!group.collapsed}
         >
           <ChevronDown
             size={14}

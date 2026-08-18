@@ -16,10 +16,12 @@ export function NowPlayingWidget({ enabled }: Props) {
   if (!current) return null
 
   return (
-    <button
-      type="button"
+    // A button with nothing behind it: it took focus and did nothing when
+    // pressed. The widget is a readout, so it says so.
+    <div
       className={`${styles.nowPlaying} ${current.playing ? styles.nowPlayingActive : ''}`}
       aria-label={current.playing ? t('widget.nowPlaying') : t('widget.lastTrack')}
+      role="group"
     >
       <div className={styles.nowPlayingCover}>
         {current.cover_url ? (
@@ -51,7 +53,7 @@ export function NowPlayingWidget({ enabled }: Props) {
           )}
         </div>
       </div>
-    </button>
+    </div>
   )
 }
 

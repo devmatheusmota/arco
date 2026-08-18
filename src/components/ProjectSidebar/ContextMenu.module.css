@@ -39,14 +39,19 @@
 .danger .itemIcon {
   color: inherit;
 }
-.item:hover {
+/* Keyboard focus gets the same treatment as hover — the menu had only the
+   mouse state, so arrowing through it looked like nothing was happening. */
+.item:hover,
+.item:focus-visible {
   background: var(--panel-hover);
+  outline: none;
 }
 
 .danger {
   color: var(--status-offline);
 }
-.danger:hover {
+.danger:hover,
+.danger:focus-visible {
   background: rgba(239, 68, 68, 0.12);
 }
 

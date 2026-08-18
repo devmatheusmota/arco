@@ -132,16 +132,18 @@ export function NewSubTabModal() {
           {visibleAgents.map((a) => {
             const active = type === a.type
             return (
-              <button
-                key={a.type}
-                type="button"
-                className={`${picker.row} ${active ? picker.rowActive : ''}`}
-                onClick={() => setType(a.type)}
-              >
-                <span className={picker.rowIcon}>
-                  <AgentIcon type={a.type} size={18} theme={terminalTheme} />
-                </span>
-                <span className={picker.rowLabel}>{a.label}</span>
+              <div key={a.type} className={`${picker.row} ${active ? picker.rowActive : ''}`}>
+                <button
+                  type="button"
+                  className={picker.rowSelect}
+                  onClick={() => setType(a.type)}
+                  aria-pressed={active}
+                >
+                  <span className={picker.rowIcon}>
+                    <AgentIcon type={a.type} size={18} theme={terminalTheme} />
+                  </span>
+                  <span className={picker.rowLabel}>{a.label}</span>
+                </button>
                 <span className={picker.rowEnd}>
                   {UNRESTRICTED_FLAG[a.type] ? (
                     <button
@@ -182,7 +184,7 @@ export function NewSubTabModal() {
                     )}
                   </button>
                 </span>
-              </button>
+              </div>
             )
           })}
         </div>

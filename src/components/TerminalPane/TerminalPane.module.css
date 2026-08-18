@@ -491,3 +491,13 @@
 :global([data-visual-style='clean']) :is(.reactivateBtn, .restartBtn) {
   border-radius: var(--clean-control-radius);
 }
+
+/* Reduced motion: the focus sweep and the pulsing glow run while people work,
+   which is exactly what the preference is asking to stop. */
+@media (prefers-reduced-motion: reduce) {
+  .paneFocus,
+  .glow,
+  [class*='glow'] {
+    animation: none !important;
+  }
+}

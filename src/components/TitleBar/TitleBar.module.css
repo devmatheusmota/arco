@@ -807,10 +807,9 @@
   align-items: center;
   height: 20px;
   max-width: 92px;
-  margin: 0 2px 0 4px;
-  padding: 0 6px;
-  border: none;
-  border-radius: var(--radius-sm);
+  margin: 0 0 0 4px;
+  padding: 0 4px 0 6px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
   background: color-mix(in srgb, var(--tab-group-color) 28%, transparent);
   color: var(--fg);
   font-size: 10px;
@@ -819,9 +818,31 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Closing the whole group is its own control, sitting flush with the label so
+   the two still read as one chip. */
+.tabGroupClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  width: 18px;
+  margin: 0 2px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: color-mix(in srgb, var(--tab-group-color) 28%, transparent);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
-.tabGroupLabel:hover {
+.tabGroupClose:hover {
   background: color-mix(in srgb, var(--tab-group-color) 45%, transparent);
+  color: var(--fg);
+}
+
+.tabGroupClose:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: -2px;
 }

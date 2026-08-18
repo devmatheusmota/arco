@@ -2105,7 +2105,7 @@
 
 .quickTerminalTitle {
   margin-left: 4px;
-  color: var(--fg-subtle);
+  color: var(--text-tertiary);
   font: 9px var(--font-mono);
 }
 
@@ -2133,7 +2133,7 @@
 }
 
 .quickPrompt::placeholder {
-  color: var(--fg-subtle);
+  color: var(--text-tertiary);
 }
 
 .quickToolbar {
@@ -2165,7 +2165,7 @@
 }
 
 .quickControlLabel {
-  color: var(--fg-subtle);
+  color: var(--text-tertiary);
 }
 
 .quickAgentMenu summary > svg:last-child {
@@ -2339,7 +2339,7 @@
 }
 .quickSelectOptions button small {
   margin-left: auto;
-  color: var(--fg-subtle);
+  color: var(--text-tertiary);
   font: 8px var(--font-mono);
 }
 .quickSelectOptions button:hover,
@@ -2663,5 +2663,30 @@
 @media (prefers-reduced-motion: reduce) {
   .asciiBackdrop {
     opacity: 0.22;
+  }
+}
+
+/* Quick launch: pending and failure. The spinner replaces the send icon in
+   place, so the toolbar does not reflow while a session is being created. */
+.quickSpinner {
+  animation: quickSpin 0.9s linear infinite;
+}
+
+@keyframes quickSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.quickError {
+  margin: 8px 12px 0;
+  color: var(--danger, #f87171);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickSpinner {
+    animation: none;
   }
 }

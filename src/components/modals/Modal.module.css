@@ -31,6 +31,9 @@
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 80px);
+  /* The width comes in as a pixel value from the caller. On a narrow window, or
+     at high zoom, the wider modals ran past the viewport with no way back. */
+  max-width: calc(100vw - 32px);
 }
 
 .content[data-state='open'] {
@@ -54,9 +57,12 @@
   margin: 0;
 }
 
+/* The visual chip stays small; the hit area does not. 26px was below the
+   comfortable target size, and this is the control people reach for in a hurry. */
 .close {
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
+  margin: -4px -4px -4px 0;
   display: grid;
   place-items: center;
   color: var(--fg-muted);
@@ -193,4 +199,19 @@
 
 .contentNested {
   z-index: 111;
+}
+
+/* Reduced motion: the pop-in and the rotating close button are decoration, and
+   this dialog is on screen constantly. */
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .content {
+    animation: none !important;
+  }
+
+  .close,
+  .close:hover {
+    transition: none;
+    transform: none;
+  }
 }

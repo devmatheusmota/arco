@@ -8,23 +8,45 @@
   padding: 4px;
 }
 
+/* The row is a container, not a control: it holds the agent's own button plus
+   the per-agent actions. Nesting those inside one button is invalid HTML and
+   makes focus and clicks unpredictable. */
 .row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 0 12px 0 0;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--fg);
-  cursor: pointer;
   width: 100%;
-  text-align: left;
   font-size: 13px;
   transition: background 0.1s ease;
 }
 
+.rowSelect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0 8px 12px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
 .row:hover {
   background: var(--panel-hover);
+}
+
+.rowSelect:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: -2px;
 }
 
 .rowActive {

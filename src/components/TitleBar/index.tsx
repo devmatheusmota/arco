@@ -444,15 +444,20 @@ export function TitleBar() {
                 className={styles.tabGroupRun}
                 style={{ ['--tab-group-color' as string]: run.group.color }}
               >
+                {/* The name reads as identity, not as a control, and clicking
+                    it closed every tab in the group — a destructive action with
+                    no affordance and no way back. It labels; the × closes. */}
+                <span className={styles.tabGroupLabel}>{run.group.name}</span>
                 <button
                   type="button"
-                  className={styles.tabGroupLabel}
+                  className={styles.tabGroupClose}
                   title={t('ui.titlebar.closeGroupTabs', { name: run.group.name })}
+                  aria-label={t('ui.titlebar.closeGroupTabs', { name: run.group.name })}
                   onClick={() => {
                     for (const tab of run.tabs) closeSavedWorkspaceTab(tab.id)
                   }}
                 >
-                  {run.group.name}
+                  <X size={10} />
                 </button>
                 {tabItems}
               </div>

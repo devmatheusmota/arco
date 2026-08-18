@@ -524,10 +524,10 @@ export function NormalProjectSidebar() {
           type="button"
           className={styles.quickNavItem}
           onClick={() => openModal('findJump')}
-          title="Search"
+          title={t('ui.sidebar.search')}
         >
           <Search size={15} className={styles.quickNavIcon} />
-          <span>Search</span>
+          <span>{t('ui.sidebar.search')}</span>
         </button>
       </div>
 

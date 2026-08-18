@@ -196,12 +196,20 @@ function TodoRow({
   drag,
   expanded,
   onToggleExpanded,
+  position,
+  total,
+  onMoveUp,
+  onMoveDown,
 }: {
   todo: TodoItem
   projects: Project[]
   drag: DragState
   expanded: boolean
   onToggleExpanded: () => void
+  position: number
+  total: number
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }) {
   const t = useT()
   const renameTodo = useProjectsStore((state) => state.renameTodo)
@@ -278,12 +286,24 @@ function TodoRow({
           data-priority={priority}
           title={t('todo.priorityMarker', { priority: t(`todo.priority.${priority}`) })}
         />
+        {/* Reordering was mouse-only: the handle was unreachable by keyboard and
+            had no commands. Arrow keys move the item, and the label carries the
+            position so the change is announced. */}
         <button
           type="button"
           className={styles.dragHandle}
           title={t('todo.drag')}
-          aria-label={t('todo.drag')}
-          tabIndex={-1}
+          aria-label={t('todo.dragPosition', { position, total })}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowUp' && onMoveUp) {
+              event.preventDefault()
+              onMoveUp()
+            }
+            if (event.key === 'ArrowDown' && onMoveDown) {
+              event.preventDefault()
+              onMoveDown()
+            }
+          }}
         >
           <GripVertical size={13} />
         </button>
@@ -304,7 +324,10 @@ function TodoRow({
             value={editTitle}
             maxLength={TODO_TITLE_MAX_LENGTH}
             onChange={(event) => setEditTitle(event.target.value)}
-            onBlur={() => setEditing(false)}
+            // Clicking away used to close the field without saving, discarding
+            // a perfectly valid edit with no warning. Escape is the way out
+            // that keeps the original title.
+            onBlur={finishEditing}
             onKeyDown={(event) => {
               if (event.key === 'Enter') finishEditing()
               if (event.key === 'Escape') setEditing(false)
@@ -731,7 +754,7 @@ export function TodoSidebar() {
         </div>
         {!collapsed && items.length > 0 ? (
           <div className={styles.list}>
-            {items.map((todo) => (
+            {items.map((todo, index) => (
               <TodoRow
                 key={todo.id}
                 todo={todo}
@@ -739,6 +762,17 @@ export function TodoSidebar() {
                 drag={drag}
                 expanded={expandedIds.has(todo.id)}
                 onToggleExpanded={() => toggleExpanded(todo.id)}
+                position={index + 1}
+                total={items.length}
+                onMoveUp={index > 0 ? () => reorderTodo(todo.id, items[index - 1].id) : undefined}
+                // Moving down is the neighbour moving up: the reorder inserts
+                // the dragged item where the target sits, so aiming at the item
+                // below would land it back in place.
+                onMoveDown={
+                  index < items.length - 1
+                    ? () => reorderTodo(items[index + 1].id, todo.id)
+                    : undefined
+                }
               />
             ))}
           </div>

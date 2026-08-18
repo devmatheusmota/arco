@@ -65,10 +65,9 @@ export function WelcomeModal() {
 
             <p className={styles.subtitle}>{t('welcome.subtitle')}</p>
 
+            {/* "Skip" and "Start" both just closed the dialog, promising two
+                outcomes that were the same one. The × already covers dismissal. */}
             <div className={styles.actions}>
-              <button type="button" className={styles.secondary} onClick={closeModal}>
-                {t('common.skip')}
-              </button>
               <button type="button" className={styles.primary} onClick={closeModal}>
                 {t('common.start')}
               </button>

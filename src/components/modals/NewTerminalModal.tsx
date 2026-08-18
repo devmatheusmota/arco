@@ -118,8 +118,11 @@ export function NewTerminalModal() {
     })
   }
 
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const submit = async () => {
-    if (!context?.projectId) return
+    if (!context?.projectId || creating) return
     const finalName = selectedAgent.label
     const finalCwd = cwd.trim() || inheritedCwd
     const flag = UNRESTRICTED_FLAG[type]
@@ -131,10 +134,21 @@ export function NewTerminalModal() {
       worktree,
       firstTab: { type, cwd: finalCwd, extraArgs, runtimeProfile },
     }
-    await createAgentTerminal(context.projectId, creation)
-    setPreferences({ lastTerminalCreation: creation })
-    reset()
-    closeModal()
+    // Creating the session is slow enough to look stuck, and a second press
+    // starts a second session. The modal stays open on failure so the choices
+    // made here are not lost.
+    setCreating(true)
+    setError(null)
+    try {
+      await createAgentTerminal(context.projectId, creation)
+      setPreferences({ lastTerminalCreation: creation })
+      reset()
+      closeModal()
+    } catch (failure) {
+      setError(String(failure))
+    } finally {
+      setCreating(false)
+    }
   }
 
   const browse = async () => {
@@ -153,21 +167,37 @@ export function NewTerminalModal() {
       width={560}
       footer={
         <>
-          <button type="button" className={controls.btn} onClick={closeModal}>
+          <button
+            type="button"
+            className={controls.btn}
+            onClick={() => {
+              reset()
+              closeModal()
+            }}
+            disabled={creating}
+          >
             {t('term.cancel')}
           </button>
           <button
             type="button"
             className={`${controls.btn} ${controls.btnPrimary}`}
             onClick={() => void submit()}
-            disabled={!context?.projectId}
+            disabled={!context?.projectId || creating}
+            aria-busy={creating}
           >
-            {t('term.openAgent', { agent: selectedAgent.label })}
+            {creating
+              ? t('term.openingAgent')
+              : t('term.openAgent', { agent: selectedAgent.label })}
           </button>
         </>
       }
     >
       <p className={styles.description}>{t('term.newTerminalDescription')}</p>
+      {error ? (
+        <p className={styles.error} role="alert">
+          {t('term.openAgentFailed')} {error}
+        </p>
+      ) : null}
 
       <section className={styles.section}>
         <h3 className={styles.stepTitle}>{t('term.stepTerminal')}</h3>
