@@ -10,6 +10,14 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.0.3] — 2026-08-18
+
+### Fixed
+
+- The "What's new" dialog stopped at v1.5.0. Every 2.0.x release is listed now, including the move
+  to the Chromium shell and what it left behind.
+
+
 ## [2.0.2] — 2026-08-18
 
 ### Fixed

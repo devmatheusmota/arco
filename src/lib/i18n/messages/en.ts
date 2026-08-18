@@ -757,6 +757,21 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v200.note1':
+    'Arco now runs on Chromium instead of the system WebView. Typing in a terminal no longer waits behind everything else the interface is drawing, which is what made panes feel sticky while an agent worked.',
+  'whatsNew.v200.note2':
+    'Terminals render on the GPU, and hidden panes release the context instead of repainting off screen.',
+  'whatsNew.v200.note3':
+    'Dictation runs on-device in its own process, so recognition never blocks the window.',
+  'whatsNew.v200.note4': 'Spotify, Discord presence and LAN remote control are gone in this shell.',
+  'whatsNew.v201.note1':
+    'Fixed the app failing to start: an error while loading the agent hook listener killed it before any window existed, and the process stayed alive holding the single-instance lock, so launching again did nothing.',
+  'whatsNew.v202.note1':
+    'The app now starts with the environment of a login shell. Launched from the desktop entry it had none of it, so agent CLIs looked uninstalled and agents ran without the tokens exported from your shell — which the tools they talk to report as expired credentials.',
+  'whatsNew.v202.note2':
+    '`arco session` and `arco todo` work again, and the terminal command is usable as soon as the app is up.',
+  'whatsNew.v202.note3':
+    'Cancelling the warning about uncommitted changes now cancels: the session and its worktree are both left alone.',
   'whatsNew.v150.note1':
     'Full-profile backup export now archives the entire profile (todos, history, preferences, tokens, scrollback) instead of a fixed short list.',
   'whatsNew.v150.note2':

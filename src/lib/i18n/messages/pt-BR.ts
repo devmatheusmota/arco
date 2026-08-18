@@ -768,6 +768,22 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v200.note1':
+    'O Arco agora roda no Chromium em vez da WebView do sistema. Digitar num terminal não espera mais tudo que a interface está desenhando, que era o motivo dos panes travarem enquanto um agente trabalhava.',
+  'whatsNew.v200.note2':
+    'Terminais renderizam na GPU, e panes escondidos liberam o contexto em vez de repintar fora da tela.',
+  'whatsNew.v200.note3':
+    'A ditação roda no dispositivo, em processo próprio, então o reconhecimento nunca trava a janela.',
+  'whatsNew.v200.note4':
+    'Spotify, presença no Discord e controle remoto via LAN ficaram de fora deste shell.',
+  'whatsNew.v201.note1':
+    'Corrigido o app não abrir: um erro ao carregar o listener de hooks o matava antes de existir janela, e o processo seguia vivo segurando o lock de instância única, então abrir de novo não fazia nada.',
+  'whatsNew.v202.note1':
+    'O app agora sobe com o ambiente de um shell de login. Aberto pelo ícone ele não tinha nada disso, então CLIs de agente pareciam não instaladas e os agentes rodavam sem os tokens exportados no seu shell — que as ferramentas reportam como credencial expirada.',
+  'whatsNew.v202.note2':
+    '`arco session` e `arco todo` voltaram a funcionar, e o comando de terminal já responde assim que o app está aberto.',
+  'whatsNew.v202.note3':
+    'Cancelar o aviso de alterações não commitadas agora cancela mesmo: a sessão e a worktree ficam intactas.',
   'whatsNew.v150.note1':
     'O export de backup de perfil agora arquiva o perfil inteiro (todos, histórico, preferências, tokens, scrollback) em vez de uma lista curta fixa.',
   'whatsNew.v150.note2':
