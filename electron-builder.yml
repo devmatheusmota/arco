@@ -1,6 +1,5 @@
-# Packaging for Arco. The app runs its interface on Electron/Chromium; the
-# Tauri bundle in src-tauri/ is kept as the previous shell and is not built
-# from here.
+# Packaging for Arco. The Tauri bundle in src-tauri/ is the previous shell and
+# is not built from here.
 appId: com.mota.arco
 # node-pty ships prebuilt binaries for Node's ABI and the PTY host runs under
 # the system Node, so there is nothing to rebuild for Electron here.

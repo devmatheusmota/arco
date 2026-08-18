@@ -26,28 +26,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   and the scrollback and session identity survive so the agent resumes where it stopped. Visible,
   focused, working and recently spawned runtimes are never offered.
 
-- **Experimental Chromium build.** Arco can now run its interface on Electron/Chromium instead of
-  the system WebView, launched with `arco-chromium` or the "Arco (Chromium)" desktop entry. The
-  frontend is the same one the regular build ships — `electron/preload.cjs` implements the contract
-  `@tauri-apps/api` expects, so `invoke()` and `listen()` work unchanged — and terminals run in a
-  separate PTY host process. Ported so far: terminals, workspace persistence, profiles, CLI
-  discovery, session listing, window controls, dialogs and the file sidebar; anything else answers
-  with a neutral value and is recorded in `logs/electron-missing-commands.log`. Git (status,
-  staging, diffs, branches, worktree listing), MCP configuration reading and the clipboard are
-  ported too, along with Claude and Codex quota, per-session cost read from the transcripts,
-  activity stats, the agent library, backup and restore, agent worktrees, project stack detection
-  and the agent hook listener that drives live status. Dictation works too: audio is captured
-  locally and recognised by the same on-device model the regular build uses, in its own process.
-  The port is now complete: profiles (create, rename, delete, switch, with real project and
-  terminal counts), the planning gate and its GSD side-channel, planning audit commits, the task
+- **Command parity across the app.** Terminals, workspace persistence, profiles (create, rename,
+  delete, switch, with real project and terminal counts), CLI discovery, session listing, window
+  controls, dialogs and the file sidebar; git (status, staging, diffs, branches, worktree listing),
+  MCP configuration and health probing, the clipboard, Claude and Codex quota, per-session and
+  per-transcript cost, activity stats, the agent library, backup and restore, agent worktrees,
+  project stack detection, the agent hook listener that drives live status, dictation with the
+  on-device model, the planning gate and its GSD side-channel, planning audit commits, the task
   scheduler, validation runs, provider handoffs, the skill catalog for every agent, plugins, graph
-  snapshots with diff and rollback, the dictation model catalog with resumable checksum-verified
-  downloads, per-transcript cost, MCP health probing, the `arco` CLI shim, GitHub gist sync, the
-  Codex app server bridge, the resource sampler that drives Smart LRU (per-terminal memory and CPU
-  read from the process tree), window opacity, native dialogs and notifications, and the pending
-  path a `arco <dir>` launch hands to the running window. Deliberately absent: Spotify, Discord
-  presence and remote control. `npm run electron:package` produces an AppImage; the terminal host
-  needs Node installed on the machine, since its native binding is not rebuilt for Electron.
+  snapshots with diff and rollback, the `arco` CLI shim, GitHub gist sync, the Codex app server
+  bridge, the resource sampler that drives Smart LRU (per-terminal memory and CPU read from the
+  process tree), window opacity, native dialogs and notifications, and the pending path a
+  `arco <dir>` launch hands to the running window.
 
 - A task can now start the agent session that works on it. The **Start session** action on a task row
   opens a launcher preloaded with the target project, agent, folder, worktree isolation and a first
@@ -339,7 +329,7 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   land one row past what the pane can actually show, which pushed the prompt — the line an agent
   writes to — below the fold. The extra row is now given back when the rendered screen overflows
   its pane.
-- A confirmation dialog in the Chromium build now really asks. It answered "yes" without showing
+- A confirmation dialog now really asks. It answered "yes" without showing
   anything, so a destructive confirmation went through untouched.
 - Panes no longer sit on "Preparing terminal…" when a step of the boot stalls. Session discovery,
   CLI probing and graph indexing each get five seconds, spawning gets thirty, and the terminal is
