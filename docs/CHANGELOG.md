@@ -10,8 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-08-18
+
 ### Added
 
+- Windows and macOS installers. A release now builds `.exe` (Windows x64), `.dmg`/`.zip` (macOS
+  arm64 and x64) alongside the Linux `.AppImage` and `.deb`. Both are unsigned — SmartScreen and
+  Gatekeeper warn on first run — and neither has been exercised the way the Linux build has, since
+  the terminal and speech hosts run under the system Node and that path was only ever validated on
+  Linux. A failure on those platforms no longer blocks the Linux release or the apt update.
 - Tasks carry a status — to do, in progress, in review, done — shown as a chip on the row and as
   buttons in the expanded task. Finishing a task and marking it done are the same act, so the list
   still splits into open and completed exactly as before. Existing tasks keep their state: a

@@ -8,15 +8,46 @@ on:
 
 jobs:
   build:
-    name: Build Linux x64
-    # The app runs on Electron; the packaged AppImage and .deb come from
-    # electron-builder. Windows and macOS are not built here yet: the terminal
-    # and speech hosts run under the system Node, and that path is only
-    # validated on Linux. Publishing an untested installer would be worse than
-    # publishing none.
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
+    name: Build ${{ matrix.label }}
+    # One runner per platform and architecture, because the installers cannot be
+    # cross-built here: the PTY and speech hosts load native bindings, and npm
+    # resolves those per platform on install. macOS is split over two runners for
+    # the same reason — the Intel build needs an Intel host.
+    #
+    # Windows and macOS are packaged unsigned. Both hosts run under the system
+    # Node, and that path has only ever been exercised on Linux, so treat those
+    # installers as unverified until someone runs them.
+    runs-on: ${{ matrix.os }}
+    # Linux is the build that has to work: it feeds the apt repository, and a
+    # failure there must stop the publish. Windows and macOS are best-effort
+    # until they are exercised, so their failure leaves the rest of the release —
+    # and the apt update that follows it — untouched.
+    continue-on-error: ${{ matrix.os != 'ubuntu-22.04' }}
+    strategy:
+      # One platform failing should not throw away the installers that did build.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            label: Linux x64
+            targets: --linux AppImage deb
+            artifacts: linux-x64
+            test: true
+          - os: windows-latest
+            label: Windows x64
+            targets: --win nsis
+            artifacts: windows-x64
+            test: false
+          - os: macos-14
+            label: macOS arm64
+            targets: --mac --arm64
+            artifacts: macos-arm64
+            test: false
+          - os: macos-13
+            label: macOS x64
+            targets: --mac --x64
+            artifacts: macos-x64
+            test: false
 
     steps:
       - uses: actions/checkout@v4
@@ -30,16 +61,56 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck, i18n validation and tests
-        run: |
-          npm run build
-          npm test
+      - name: Typecheck and i18n validation
+        run: npm run build
+
+      - name: Tests
+        # The suite is platform-independent; running it four times would only
+        # cost minutes.
+        if: matrix.test
+        run: npm test
 
       - name: Package
         # `--publish never`: electron-builder detects CI and would otherwise try
         # to publish the artifacts itself, which needs a token it has no reason
-        # to hold — the release step below does the upload.
-        run: npx electron-builder --config electron-builder.yml --linux AppImage deb --publish never
+        # to hold — the release job below does the upload.
+        run: npx electron-builder --config electron-builder.yml ${{ matrix.targets }} --publish never
+
+      - name: Collect installers
+        # Keeps the blockmaps, unpacked directories and builder metadata out of
+        # the release: only what a person downloads is uploaded.
+        shell: bash
+        run: |
+          mkdir -p upload
+          find dist-electron -maxdepth 1 -type f \
+            \( -name '*.AppImage' -o -name '*.deb' -o -name '*.exe' -o -name '*.dmg' -o -name '*.zip' \) \
+            -exec cp {} upload/ \;
+          ls -l upload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.artifacts }}
+          path: upload/*
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    # Runs even when a platform failed, so the installers that did build are
+    # still published; it stops only if nothing was produced at all.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          merge-multiple: true
+          path: installers
 
       - name: Read version
         id: version
@@ -51,11 +122,22 @@ jobs:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           set -euo pipefail
+          ls -l installers
           notes=$(cat <<'BODY'
-          Desktop build of Arco for Linux.
+          Desktop build of Arco.
 
-          `.AppImage` runs as-is (`chmod +x` then launch); `.deb` installs through the
-          package manager.
+          **Linux** — `.AppImage` runs as-is (`chmod +x` then launch); `.deb` installs
+          through the package manager, and the apt repository picks up new versions.
+
+          **Windows** — `.exe` installer. It is unsigned, so SmartScreen warns on first
+          run: More info → Run anyway.
+
+          **macOS** — `.dmg` (or `.zip`), arm64 and x64 separately. Unsigned as well, so
+          the first launch needs System Settings → Privacy & Security → Open anyway.
+
+          Windows and macOS builds are new here and have not been exercised the way the
+          Linux one has — the terminal and speech hosts run under the system Node, and
+          that path was only ever validated on Linux.
 
           **Requires Node.js 20+ on the machine.** Terminals and voice dictation run in
           their own Node processes, because their native bindings target Node's ABI.
@@ -68,8 +150,8 @@ jobs:
           )
           # Re-runnable: attach to the tag's release when it already exists.
           if gh release view "v${VERSION}" >/dev/null 2>&1; then
-            gh release upload "v${VERSION}" dist-electron/*.AppImage dist-electron/*.deb --clobber
+            gh release upload "v${VERSION}" installers/* --clobber
           else
-            gh release create "v${VERSION}" dist-electron/*.AppImage dist-electron/*.deb \
+            gh release create "v${VERSION}" installers/* \
               --title "Arco v${VERSION}" --notes "${notes}"
           fi

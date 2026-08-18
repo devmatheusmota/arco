@@ -37,3 +37,25 @@ linux:
     parallel, inside a persistent workspace with real terminals.
   category: Development
   icon: src-tauri/icons
+
+win:
+  # Unsigned: there is no code-signing certificate here, so SmartScreen will
+  # warn on first run. Signing needs a certificate the project does not hold.
+  target:
+    - nsis
+  icon: src-tauri/icons/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: Arco-${version}-setup.${ext}
+mac:
+  # `identity: null` builds without signing rather than failing on a missing
+  # certificate. Gatekeeper blocks the first launch until it is allowed through
+  # System Settings.
+  target:
+    - dmg
+    - zip
+  icon: src-tauri/icons/icon.icns
+  category: public.app-category.developer-tools
+  identity: null
+  hardenedRuntime: false
