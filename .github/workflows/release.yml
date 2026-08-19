@@ -59,6 +59,8 @@ jobs:
     # Both are packaged unsigned, and both hosts have only ever been exercised on
     # Linux, so treat these installers as unverified until someone runs them.
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -111,6 +113,27 @@ jobs:
           name: installers-${{ matrix.artifacts }}
           path: upload/*
           if-no-files-found: error
+
+      - name: Attach to the release
+        # Each platform attaches its own installer as it finishes, so a runner
+        # stuck in a queue delays only itself. The release is created by the
+        # Linux job; wait for it rather than racing it.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          for attempt in $(seq 1 30); do
+            if gh release view "v${version}" >/dev/null 2>&1; then
+              gh release upload "v${version}" upload/* --clobber
+              exit 0
+            fi
+            echo "release v${version} ainda nao existe; tentativa ${attempt}"
+            sleep 20
+          done
+          echo "release v${version} nao apareceu em 10 minutos" >&2
+          exit 1
 
   publish:
     name: Publish release
@@ -174,49 +197,10 @@ jobs:
               --title "Arco v${VERSION}" --notes "${notes}"
           fi
 
-  attach:
-    name: Attach ${{ matrix.label }}
-    # Each platform attaches itself as it finishes, so one slow runner delays only
-    # its own installer. The release already exists by now: `publish` created it
-    # from the Linux build.
-    needs: [publish, build-desktop]
-    if: ${{ !cancelled() && needs.publish.result == 'success' }}
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - label: Windows x64
-            artifacts: windows-x64
-          - label: macOS arm64
-            artifacts: macos-arm64
-          - label: macOS x64
-            artifacts: macos-x64
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        # A platform that failed to build has no artifact, and that is not a
-        # reason to fail the attach — the others still belong on the release.
-        continue-on-error: true
-        id: download
-        with:
-          name: installers-${{ matrix.artifacts }}
-          path: installers
-
-      - name: Read version
-        id: version
-        run: echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Attach installers
-        if: steps.download.outcome == 'success'
+      - name: Update the apt repository
+        # The apt workflow keys off `workflow_run: completed`, which only fires
+        # once every platform is done — including a macOS runner that can sit in
+        # a queue for hours. The .deb is ready now, so start it now.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.value }}
-        run: |
-          set -euo pipefail
-          ls -l installers
-          gh release upload "v${VERSION}" installers/* --clobber
+        run: gh workflow run apt-repo.yml --ref "${GITHUB_REF_NAME}"

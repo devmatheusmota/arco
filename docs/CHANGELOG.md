@@ -12,10 +12,11 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Changed
 
-- A release publishes as soon as the Linux build finishes, instead of waiting for every platform.
-  The Windows and macOS installers attach themselves to the same release minutes later, each as it
-  finishes. The macOS Intel runner routinely sits in a queue, and it was holding back the `.deb` —
-  and with it the apt update — for work nobody was waiting on.
+- A release publishes as soon as the Linux build finishes, instead of waiting for every platform,
+  and the apt repository is updated right there rather than after the whole workflow ends. The
+  Windows and macOS installers attach themselves to the same release as each one finishes. The macOS
+  Intel runner routinely sits in a queue for hours, and it was holding back the `.deb` — and with it
+  the apt update — for work nobody was waiting on.
 
 ## [2.1.1] — 2026-08-18
 
