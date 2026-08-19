@@ -48,6 +48,37 @@ describe('claimDiscoveredSession', () => {
     expect(result?.id).toBe('free')
   })
 
+  it('ignores an automated run that appears while the pane waits for its own session', () => {
+    const claimed = claimDiscoveredSession(
+      'claude',
+      '/repo',
+      new Set(['old']),
+      [
+        { id: 'old', modified_at_ms: 1 },
+        { id: 'review', modified_at_ms: 2, interactive: false },
+      ],
+      'pty-1',
+    )
+
+    expect(claimed).toBeUndefined()
+  })
+
+  it('claims the typed session even when an automated run shows up alongside it', () => {
+    const claimed = claimDiscoveredSession(
+      'claude',
+      '/repo',
+      new Set(['old']),
+      [
+        { id: 'old', modified_at_ms: 1 },
+        { id: 'review', modified_at_ms: 2, interactive: false },
+        { id: 'typed', modified_at_ms: 3, interactive: true },
+      ],
+      'pty-1',
+    )
+
+    expect(claimed?.id).toBe('typed')
+  })
+
   it('does not claim when multiple new sessions make the pane mapping ambiguous', () => {
     const claimed = claimDiscoveredSession(
       'codex',
@@ -67,7 +98,9 @@ describe('claimDiscoveredSession', () => {
 
 describe('isInteractiveSession', () => {
   it('rejects a transcript written by an automated run', () => {
-    expect(isInteractiveSession({ id: 'review', modified_at_ms: 1, interactive: false })).toBe(false)
+    expect(isInteractiveSession({ id: 'review', modified_at_ms: 1, interactive: false })).toBe(
+      false,
+    )
   })
 
   it('accepts a session whose agent does not report the flag', () => {

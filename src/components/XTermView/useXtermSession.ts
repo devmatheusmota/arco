@@ -1218,29 +1218,39 @@ export function useXtermSession(params: {
               resumeId = undefined
               removeSession(sessionPersistenceKey)
               onSessionIdRef.current?.(undefined)
-            } else if (match && !hasTranscript(match) && command !== 'opencode') {
-              // The pointer survived a restart but names a session that never got
-              // a transcript — the agent had created the directory and nothing
-              // else. Resuming it opens a blank pane and buries the real
-              // conversation, so fall back to the newest one that has content.
-              //
-              // Only a conversation someone typed qualifies. Automated runs
-              // share the directory and are usually the newest file in it, so
-              // without this filter the pane came back showing a security
-              // review instead of the work it was doing.
+            } else if (
+              match &&
+              (!hasTranscript(match) || !isInteractiveSession(match)) &&
+              command !== 'opencode'
+            ) {
+              // The pointer survived a restart but names a session the pane must
+              // not come back to: either one that never got a transcript — the
+              // agent created the directory and nothing else — or one written by
+              // an automated run such as `/security-review`, which shares the
+              // per-project directory and can end up saved as the pane's session.
+              // Both bury the real conversation, so fall back to the newest one
+              // someone typed that has content.
+              const automated = !isInteractiveSession(match)
               const withContent = existing
                 .filter((session) => hasTranscript(session) && isInteractiveSession(session))
                 .sort((a, b) => b.modified_at_ms - a.modified_at_ms)[0]
               if (withContent) {
                 console.warn(
-                  `[pty-launch] ${command} sessão ${resumeId} está vazia; retomando ${withContent.id}`,
+                  `[pty-launch] ${command} sessão ${resumeId} não serve para retomar; retomando ${withContent.id}`,
                 )
-                dropped('pointed-session-empty', withContent.id)
+                dropped(
+                  automated ? 'pointed-session-automated' : 'pointed-session-empty',
+                  withContent.id,
+                )
                 resumeId = withContent.id
                 onSessionIdRef.current?.(withContent.id)
               } else {
-                console.warn(`[pty-launch] ${command} sessão ${resumeId} está vazia; sessão nova`)
-                dropped('pointed-session-empty-and-no-other')
+                console.warn(`[pty-launch] ${command} sessão ${resumeId} não serve; sessão nova`)
+                dropped(
+                  automated
+                    ? 'pointed-session-automated-and-no-other'
+                    : 'pointed-session-empty-and-no-other',
+                )
                 resumeId = undefined
                 removeSession(sessionPersistenceKey)
                 onSessionIdRef.current?.(undefined)

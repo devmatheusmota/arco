@@ -10,6 +10,16 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A pane no longer adopts a security review as its own conversation. `/security-review` and other
+  automated runs write their transcript to the same per-project directory as the pane's session, and
+  the watcher that figures out which conversation a pane started could pick one of them — the pane
+  then pointed at the review, and the work it was actually doing looked lost after a restart. Only a
+  conversation someone typed is adopted now, and a pane whose saved pointer already names an
+  automated run drops it and comes back to its newest real conversation, which repairs panes that
+  were already pointing at a review.
+
 ## [2.4.0] — 2026-08-19
 
 ### Changed

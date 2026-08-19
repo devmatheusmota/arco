@@ -92,8 +92,17 @@ export function claimDiscoveredSession(
 ): SessionSnapshot | undefined {
   const key = claimKey(agent, cwd)
   const claimed = claimedIds.get(key) ?? new Set<string>()
+  // An automated run — `/security-review`, an agent SDK call — writes its
+  // transcript to the same per-project directory as the pane's own session and
+  // often lands there first. Counting it as a candidate either made the pane
+  // adopt the review outright, or left two candidates and the pane never
+  // adopted anything, so its pointer stayed on a session that no longer had the
+  // conversation.
   const candidates = sessions
-    .filter((session) => !beforeIds.has(session.id) && !claimed.has(session.id))
+    .filter(
+      (session) =>
+        !beforeIds.has(session.id) && !claimed.has(session.id) && isInteractiveSession(session),
+    )
     .sort((a, b) => a.modified_at_ms - b.modified_at_ms)
   if (candidates.length !== 1) return undefined
   const candidate = candidates[0]
