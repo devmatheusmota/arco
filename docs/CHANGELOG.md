@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-08-18
+
 ### Added
 
 - Tasks can link to an Azure DevOps work item and pull request. The sidebar row shows a `#22447`
@@ -34,6 +36,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 - `arco todo edit <ref> --append-notes "<text>"` adds to the existing notes with a blank line as a
   separator, instead of replacing them. Useful when the morning briefing collects a new answer from
   the PM and wants the older context to survive.
+
+## [2.1.2] — 2026-08-18
 
 ### Fixed
 

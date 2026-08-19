@@ -799,6 +799,18 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v220.note1':
+    'Uma tarefa pode apontar para um work item e um pull request do Azure DevOps. A linha mostra os chips #22447 e !10681 — clique abre a página no navegador, Alt/Meta+clique abre dentro do app. Defina com `arco todo --ado <url|id>`, ou deixe o watcher achar o PR sozinho.',
+  'whatsNew.v220.note2':
+    'O ícone de olho numa tarefa vinculada liga o watcher: ele lê o work item e o PR a cada poucos minutos e move a tarefa quando o lado do ADO se move — Doing para em andamento, Completed ou merge para concluída, ajuste pedido de volta para em andamento. Precisa de um Personal Access Token em Preferências > Integrações > Azure DevOps.',
+  'whatsNew.v220.note3':
+    'Sessões de Codex e OpenCode abertas a partir de uma tarefa também passam a saber que podem movê-la. Essas CLIs não aceitam uma flag extra de system prompt, então o texto vai na primeira mensagem; o mesmo botão "Contar aos agentes sobre o comando de terminal" desliga.',
+  'whatsNew.v220.note4':
+    '`arco todo edit <ref> --append-notes "<texto>"` soma às notas em vez de substituir, então uma resposta nova da PM não apaga o contexto que já estava lá.',
+  'whatsNew.v212.note1':
+    '`arco todo "<título>" --notes "..." --priority high` anexa as notas e a prioridade em vez de jogar o nome das flags dentro do título.',
+  'whatsNew.v212.note2':
+    'A release publica assim que o build de Linux termina; os instaladores de Windows e macOS se anexam minutos depois. O runner Intel do macOS fica horas na fila e estava segurando a atualização por apt.',
   'whatsNew.v211.note1':
     'Tarefa que ainda não começou também mostra o status. O chip ficava escondido no "a fazer", então tarefa sem chip era indistinguível de tarefa sem status nenhum.',
   'whatsNew.v210.note1':

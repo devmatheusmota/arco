@@ -788,6 +788,18 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v220.note1':
+    'A task can point at an Azure DevOps work item and pull request. The row shows a #22447 and !10681 chip — click opens the page in the browser, Alt/Meta+click opens it inside the app. Set it with `arco todo --ado <url|id>`, or let the watcher find the PR on its own.',
+  'whatsNew.v220.note2':
+    'The eye icon on a linked task turns on the watcher: it reads the work item and the PR every few minutes and moves the task when the ADO side moves — Doing to in progress, Completed or merged to done, changes requested back to in progress. Needs a Personal Access Token under Preferences > Integrations > Azure DevOps.',
+  'whatsNew.v220.note3':
+    'Codex and OpenCode sessions started from a task now also learn that they can move it. Those CLIs reject an extra system flag, so the preamble rides in the first message; the same "Tell agents about the terminal command" toggle turns it off.',
+  'whatsNew.v220.note4':
+    '`arco todo edit <ref> --append-notes "<text>"` adds to the notes instead of replacing them, so a new answer from the PM does not erase the context already there.',
+  'whatsNew.v212.note1':
+    '`arco todo "<title>" --notes "..." --priority high` attaches the notes and the priority instead of folding the flag names into the title.',
+  'whatsNew.v212.note2':
+    'A release publishes as soon as the Linux build finishes; the Windows and macOS installers attach themselves minutes later. The macOS Intel runner sits in a queue for hours and was holding back the apt update.',
   'whatsNew.v211.note1':
     'A task waiting to be started now shows its status too. The chip was hidden on "to do", so a task with no chip was indistinguishable from a task with no status at all.',
   'whatsNew.v210.note1':
