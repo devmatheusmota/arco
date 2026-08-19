@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- A release publishes as soon as the Linux build finishes, instead of waiting for every platform.
+  The Windows and macOS installers attach themselves to the same release minutes later, each as it
+  finishes. The macOS Intel runner routinely sits in a queue, and it was holding back the `.deb` —
+  and with it the apt update — for work nobody was waiting on.
+
+## [2.1.1] — 2026-08-18
+
 ### Fixed
 
 - A task waiting to be started shows its status like every other one. The chip was hidden on `to do`,
