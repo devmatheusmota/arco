@@ -799,6 +799,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v221.note1':
+    'Este diálogo estava parado na 2.1.1 enquanto o app já rodava a 2.2.0 — as duas versões no meio nunca ganharam entrada, então a atualização parecia não ter chegado. As duas estão listadas agora, e não dá mais para cortar uma versão sem entrada aqui.',
   'whatsNew.v220.note1':
     'Uma tarefa pode apontar para um work item e um pull request do Azure DevOps. A linha mostra os chips #22447 e !10681 — clique abre a página no navegador, Alt/Meta+clique abre dentro do app. Defina com `arco todo --ado <url|id>`, ou deixe o watcher achar o PR sozinho.',
   'whatsNew.v220.note2':

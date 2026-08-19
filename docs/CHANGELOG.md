@@ -10,6 +10,21 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.2.1] — 2026-08-19
+
+### Fixed
+
+- The "What's new" dialog lists 2.1.2 and 2.2.0. Both shipped without an entry, so an app running
+  2.2.0 still announced 2.1.1 and the update looked like it had never arrived. The changelog had the
+  same gap: the entries existed but were left under `[Unreleased]`, so neither version was dated.
+
+### Changed
+
+- Releasing is documented step by step in [`docs/RELEASE.md`](RELEASE.md), and `npm run release`
+  refuses to cut a version whose changelog section or What's new entry is missing, or that leaves
+  content stranded under `[Unreleased]`. The test suite fails for the same reasons, so the gap
+  cannot reach a build.
+
 ## [2.2.0] — 2026-08-18
 
 ### Added

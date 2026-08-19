@@ -7,6 +7,9 @@ import { CHANGELOG_RELEASES, CURRENT_VERSION } from './changelogData'
 const require = createRequire(import.meta.url)
 const { version: packageVersion } = require('../../package.json') as { version: string }
 
+const rank = (version: string) =>
+  version.split('.').reduce((total, part) => total * 1000 + Number(part), 0)
+
 /**
  * The "What's new" dialog reads this list, and nothing until now noticed when a
  * release went out without an entry — which is how 2.1.2 and 2.2.0 shipped while
@@ -18,13 +21,14 @@ describe('CHANGELOG_RELEASES', () => {
     expect(versions).toContain(packageVersion)
   })
 
-  it('leads with the version being shipped, since the dialog announces the first entry', () => {
-    expect(CURRENT_VERSION).toBe(packageVersion)
+  // The entry is written before the version is cut, so the list is allowed to be
+  // one step ahead of package.json — never behind it, which is the failure this
+  // guards: the dialog announcing a version older than the app it ships in.
+  it('never leads with a version older than the one being shipped', () => {
+    expect(rank(CURRENT_VERSION)).toBeGreaterThanOrEqual(rank(packageVersion))
   })
 
   it('is ordered newest first', () => {
-    const rank = (version: string) =>
-      version.split('.').reduce((total, part) => total * 1000 + Number(part), 0)
     const ranks = CHANGELOG_RELEASES.map((release) => rank(release.version))
     expect(ranks).toEqual([...ranks].sort((a, b) => b - a))
   })

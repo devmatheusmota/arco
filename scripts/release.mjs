@@ -59,6 +59,46 @@ else if (bumpArg === 'patch') next = `${major}.${minor}.${patch + 1}`
 else fail(`Bump inválido: "${bumpArg}". Use: patch | minor | major | X.Y.Z`)
 
 const tag = `v${next}`
+/**
+ * Gates that must pass before a version exists in git.
+ *
+ * Both of these shipped broken already: 2.1.2 and 2.2.0 went out with their
+ * changelog entries still sitting under `[Unreleased]` and no entry at all in
+ * the in-app dialog, so a user running the new build was told the update had
+ * not arrived. Cheap to check here, invisible until someone complains.
+ */
+function readFile(path) {
+  return readFileSync(path, 'utf8')
+}
+
+const changelog = readFile('docs/CHANGELOG.md')
+const whatsNew = readFile('src/lib/changelogData.ts')
+
+if (!whatsNew.includes(`version: '${next}'`)) {
+  fail(
+    `O diálogo "What's new" não tem a versão ${next}.\n` +
+      `  Adicione a entrada em src/lib/changelogData.ts (topo da lista) e as chaves\n` +
+      `  whatsNew.v${next.replace(/\./g, '')}.noteN em src/lib/i18n/messages/en.ts e pt-BR.ts.`,
+  )
+}
+
+if (!changelog.includes(`## [${next}]`)) {
+  fail(
+    `docs/CHANGELOG.md não tem a seção da versão ${next}.\n` +
+      `  Feche o que está em [Unreleased] como "## [${next}] — YYYY-MM-DD" antes de cortar.`,
+  )
+}
+
+const unreleased = changelog.slice(
+  changelog.indexOf('## [Unreleased]') + '## [Unreleased]'.length,
+  changelog.indexOf(`## [${next}]`),
+)
+if (unreleased.trim()) {
+  fail(
+    `Sobrou conteúdo em [Unreleased] que não entrou em ${next}:\n${unreleased.trim().slice(0, 400)}`,
+  )
+}
+
 console.log(`\n  ${current}  →  ${next}   (tag ${tag})\n`)
 
 // 4) Reescreve a versão (primeira ocorrência) em cada arquivo.

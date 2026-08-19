@@ -788,6 +788,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v221.note1':
+    'This dialog was stuck on 2.1.1 while the app was already running 2.2.0 — the two releases in between never got an entry, so the update looked like it had never arrived. Both are listed now, and a release can no longer be cut without one.',
   'whatsNew.v220.note1':
     'A task can point at an Azure DevOps work item and pull request. The row shows a #22447 and !10681 chip — click opens the page in the browser, Alt/Meta+click opens it inside the app. Set it with `arco todo --ado <url|id>`, or let the watcher find the PR on its own.',
   'whatsNew.v220.note2':
