@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A session tab is named after the conversation again, not after the agent. Two Claude sessions in
+  the same project both read `claude`, with nothing to tell them apart — the tab bar was reading the
+  session's fallback name while the sidebar was already showing the conversation title. Both use the
+  same name now.
+- Switching sessions is immediate again. Only the session on screen kept streaming, so the ones
+  behind it collected their output in a throttled digest and handed it over in one burst when picked,
+  right as the pane was also rebuilding its GPU context. Every session of the open project streams
+  continuously now — they are all mounted and all the same size, so there is nothing to catch up on —
+  while the GPU context still follows what is actually painted.
+
 ## [2.6.0] — 2026-08-19
 
 ### Removed
