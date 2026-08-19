@@ -33,3 +33,18 @@ export function buildCliContextArgs(agent: AgentType, enabled: boolean): string[
   if (!enabled || agent !== 'claude') return []
   return ['--append-system-prompt', CLI_CONTEXT_PROMPT]
 }
+
+/**
+ * Best-effort fallback for the two agents that reject an additive system flag.
+ *
+ * Codex and OpenCode need the context delivered as chat text — worse than a
+ * real system prompt (an agent can forget it a few turns in), but honest:
+ * without this the task board they can move is invisible to them. Only used
+ * when a session already starts with a first message (the taskSession flow),
+ * so a plain terminal open of Codex stays exactly as the CLI would launch it.
+ */
+export function buildCliContextInitialInput(agent: AgentType, enabled: boolean): string | null {
+  if (!enabled) return null
+  if (agent !== 'codex' && agent !== 'opencode') return null
+  return CLI_CONTEXT_PROMPT
+}

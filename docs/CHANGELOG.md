@@ -18,6 +18,19 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   reference as `--ado <url|id>` on `arco todo` and on `arco todo edit`; `--clear-ado` removes it.
   Short forms like `#22447` and `!10681` resolve against the new "Azure DevOps" section under
   Preferences → Integrations, where the organization and default project are stored.
+- An eye icon on any task with an ADO reference opts it into the watcher. Every `adoPollSecs`
+  (default 300s), the watcher reads the work item and the pull request the task points at and
+  moves the task on the board when the ADO side moved — Doing → in-progress, Completed → done,
+  PR merged → done, PR asked-for-changes when you are the author → in-progress. A short toast
+  names the task and the reason. Auth is a Personal Access Token, stored under Preferences →
+  Integrations → Azure DevOps; no PAT, no polling.
+- The watcher also auto-attaches a `prId` to a task whose reference so far was only the work
+  item. The moment the pull request appears on the ADO side (through the work item's
+  `ArtifactLink`), the sidebar starts tracking it too — the same tick that reconciles the state.
+- Codex and OpenCode sessions launched from a task now start with the same "you can move this
+  task" preamble Claude gets, delivered as the first chat message since those CLIs reject the
+  additive system flag. Off through the same "Tell agents about the terminal command" toggle
+  that already covers Claude.
 - `arco todo edit <ref> --append-notes "<text>"` adds to the existing notes with a blank line as a
   separator, instead of replacing them. Useful when the morning briefing collects a new answer from
   the PM and wants the older context to survive.

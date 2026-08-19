@@ -66,6 +66,53 @@ async function request<T>(url: string, pat: string): Promise<T> {
   return (await response.json()) as T
 }
 
+export type AdoPullRequestLink = {
+  prId: number
+  repositoryId: string
+  projectId: string
+}
+
+/**
+ * Reads the pull requests a work item points at through its `ArtifactLink`
+ * relations. Used by the watcher to auto-attach a `prId` to a task whose
+ * only reference so far was the work item — the moment someone opens the PR
+ * on the ADO side, the sidebar starts tracking it too.
+ */
+export async function fetchWorkItemPullRequestLinks(
+  ref: TodoAdoRef,
+  pat: string,
+): Promise<AdoPullRequestLink[]> {
+  if (!ref.workItemId) return []
+  const url = `${baseUrl(ref)}/_apis/wit/workitems/${ref.workItemId}?$expand=relations&api-version=7.0`
+  const raw = (await request(url, pat)) as {
+    relations?: Array<{ rel?: string; url?: string; attributes?: { name?: string } }>
+  }
+  const relations = raw.relations ?? []
+  const links: AdoPullRequestLink[] = []
+  for (const relation of relations) {
+    if (relation.rel !== 'ArtifactLink' || !relation.url) continue
+    const parsed = parsePullRequestArtifactLink(relation.url)
+    if (parsed) links.push(parsed)
+  }
+  return links
+}
+
+/**
+ * Decodes an ADO `vstfs:///Git/PullRequestId/{project}/{repo}/{pr}` link — the
+ * shape used inside `ArtifactLink` relations. Non-PR links (commit, work item,
+ * anything else) return null.
+ */
+export function parsePullRequestArtifactLink(url: string): AdoPullRequestLink | null {
+  const match = /^vstfs:\/\/\/Git\/PullRequestId\/(.+)$/i.exec(url)
+  if (!match) return null
+  const decoded = decodeURIComponent(match[1])
+  const [projectId, repositoryId, prId] = decoded.split('/')
+  if (!projectId || !repositoryId || !prId) return null
+  const numericPrId = Number(prId)
+  if (!Number.isFinite(numericPrId) || numericPrId <= 0) return null
+  return { projectId, repositoryId, prId: numericPrId }
+}
+
 export async function fetchWorkItem(
   ref: TodoAdoRef,
   pat: string,

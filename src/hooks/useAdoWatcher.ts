@@ -6,6 +6,7 @@ import {
   type AdoWorkItemSnapshot,
   fetchPullRequest,
   fetchWorkItem,
+  fetchWorkItemPullRequestLinks,
 } from '../lib/adoApi'
 import { planTaskTransition, type WatcherIdentity } from '../lib/adoWatcher'
 import { getLocale, translate } from '../lib/i18n'
@@ -45,8 +46,27 @@ export function useAdoWatcher(): void {
       }
     }
 
-    async function reconcileTask(todo: TodoItem, pat: string): Promise<void> {
-      if (!todo.adoRef) return
+    async function autoAttachPullRequest(todo: TodoItem, pat: string): Promise<TodoItem> {
+      if (!todo.adoRef || todo.adoRef.prId || !todo.adoRef.workItemId) return todo
+      try {
+        const links = await fetchWorkItemPullRequestLinks(todo.adoRef, pat)
+        if (links.length === 0) return todo
+        // Pick the newest PR id — ADO does not order the relations, but the
+        // largest id is the most recent by construction.
+        const latest = links.reduce((best, link) => (link.prId > best.prId ? link : best))
+        const merged = { ...todo.adoRef, prId: latest.prId, repository: latest.repositoryId }
+        useProjectsStore.getState().setTodoAdoRef(todo.id, merged, 'merge')
+        return { ...todo, adoRef: merged }
+      } catch (error) {
+        if (error instanceof AdoApiError && error.status === 401) reportPatFailure()
+        return todo
+      }
+    }
+
+    async function reconcileTask(rawTodo: TodoItem, pat: string): Promise<void> {
+      if (!rawTodo.adoRef) return
+      const todo = await autoAttachPullRequest(rawTodo, pat)
+      if (cancelled || !todo.adoRef) return
       let workItem: AdoWorkItemSnapshot | null = null
       let pullRequest: AdoPullRequestSnapshot | null = null
       try {

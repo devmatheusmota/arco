@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { pickDirectory } from '../../lib/dialog'
 import { useT } from '../../lib/i18n'
+import { buildCliContextInitialInput } from '../../lib/cliContext'
 import { buildTaskSessionPrompt } from '../../lib/todos'
 import {
   AGENT_TYPE_LABELS,
@@ -101,6 +102,20 @@ export function TaskSessionModal() {
     const worktree: WorktreeChoice = agent === 'shell' ? 'none' : isolate ? 'new' : 'none'
     setStarting(true)
     try {
+      // Codex and OpenCode reject the additive system flag Claude accepts, so
+      // the CLI context rides in the first chat message instead. Not as sturdy
+      // as a system prompt, but the alternative is the agent not knowing about
+      // the task board at all.
+      const cliContextPreamble = buildCliContextInitialInput(
+        agent,
+        useProjectsStore.getState().preferences.cliContextInjection !== false,
+      )
+      const finalPrompt = agent === 'shell'
+        ? undefined
+        : cliContextPreamble
+          ? `${cliContextPreamble}\n\n${prompt.trim()}`.trim() || undefined
+          : prompt.trim() || undefined
+
       const terminal = await store.createAgentTerminal(project.id, {
         name: sessionName(todo.title),
         cwd: finalCwd,
@@ -109,7 +124,7 @@ export function TaskSessionModal() {
           type: agent,
           cwd: finalCwd,
           extraArgs: unrestricted && flag ? [flag] : undefined,
-          initialInput: agent === 'shell' ? undefined : prompt.trim() || undefined,
+          initialInput: finalPrompt,
         },
       })
       store.linkTodoSession(todo.id, {
