@@ -83,6 +83,12 @@ meio — não é parte do caminho normal.
 Linux publica primeiro e libera o apt; Windows e macOS se anexam depois, cada um
 quando termina. Não espere a matriz inteira para dar a release por feita.
 
+Job parado em `queued` sem começar não é fila cheia: é `runs-on` pedindo uma
+imagem que o GitHub aposentou, e o run inteiro fica preso atrás dele. Foi o que
+segurou seis releases em agosto de 2026, todas esperando um `macos-13` que não
+existe mais. Confira o label contra `actions/runner-images` antes de culpar a
+demora, e cancele o run — não dá para cancelar um job sozinho.
+
 ## 7. Confirmar
 
 ```bash
