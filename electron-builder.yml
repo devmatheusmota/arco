@@ -52,6 +52,13 @@ mac:
   # `identity: null` builds without signing rather than failing on a missing
   # certificate. Gatekeeper blocks the first launch until it is allowed through
   # System Settings.
+  #
+  # The architecture belongs in the name: Intel and Apple Silicon are built on
+  # two runners that attach to the same release, and with the default name both
+  # produced `Arco-<version>.dmg` — whichever finished last overwrote the other,
+  # and the loser's upload failed outright. The download page also has to say
+  # which one a person is getting.
+  artifactName: Arco-${version}-${arch}.${ext}
   target:
     - dmg
     - zip

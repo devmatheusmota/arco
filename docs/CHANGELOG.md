@@ -30,6 +30,10 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   Preferences, instead of reporting the number as unrecognized.
 - `arco --version` prints the version instead of hanging until it is killed: the flag matched no
   subcommand and fell through to opening a window.
+- The macOS installers stop overwriting each other. Intel and Apple Silicon are built on two runners
+  that attach to the same release, and both produced `Arco-<version>.dmg` — whichever finished last
+  won and the other upload failed. The architecture is now part of the file name, which also lets the
+  download page say which build a person is getting.
 - The command line no longer reports "o app nao esta rodando" while the window is open. The file it
   reads endpoint and token from lives in the temp directory, and once something replaced or removed
   it only a restart brought the command back; the app now rewrites it whenever it stops pointing at
