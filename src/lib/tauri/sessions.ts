@@ -62,6 +62,8 @@ export type ClaudeSessionSnapshot = {
   id: string
   modified_at_ms: number
   size_bytes: number
+  /** False for transcripts written by an automated run, such as `/security-review`. */
+  interactive?: boolean
 }
 
 export type CodexSessionSnapshot = {

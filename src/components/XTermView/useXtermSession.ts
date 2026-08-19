@@ -19,6 +19,7 @@ import {
   claimDiscoveredSession,
   claimMostRecentSession,
   hasTranscript,
+  isInteractiveSession,
   isSessionClaimed,
   registerSessionClaim,
 } from '../../lib/sessionDiscovery'
@@ -52,6 +53,7 @@ import {
   ptyExists,
   readClipboardPayload,
   readGsdChildSession,
+  recordAppEvent,
   resizePty,
   setPtyVisible,
   snapshotAntigravitySessions,
@@ -1146,8 +1148,21 @@ export function useXtermSession(params: {
         let resumeId = sessionId ?? savedConversationId
         // Fallback: se a tentativa anterior morreu no nascimento usando resume,
 
+        const intendedResumeId = resumeId
+        /**
+         * Every branch below can silently replace the conversation a pane comes
+         * back to. Recording the reason is what turns "my session vanished and
+         * something else took its place" into a line in `app-events.log`.
+         */
+        const dropped = (reason: string, replacement?: string) =>
+          void recordAppEvent(
+            'session.resume',
+            `agent=${command ?? '(shell)'} wanted=${intendedResumeId ?? '—'} got=${replacement ?? 'nova sessão'} reason=${reason}`,
+          )
+
         if (forceFreshRef.current) {
           console.warn(`[pty-launch] ${command} reabrindo SEM resume (fallback de early-exit)`)
+          if (resumeId) dropped('early-exit-fallback')
           resumeId = undefined
         }
         if (
@@ -1159,6 +1174,7 @@ export function useXtermSession(params: {
           console.warn(
             `[pty-launch] ${command} session ${resumeId} is already claimed; starting a fresh writer`,
           )
+          dropped('claimed-by-another-pane')
           resumeId = undefined
           removeSession(sessionPersistenceKey)
           onSessionIdRef.current?.(undefined)
@@ -1198,6 +1214,7 @@ export function useXtermSession(params: {
 
             if (notListed && command !== 'opencode') {
               console.warn(`[pty-launch] ${command} ignorando sessão órfã ${resumeId}`)
+              dropped(`not-listed-in=${cwd}`)
               resumeId = undefined
               removeSession(sessionPersistenceKey)
               onSessionIdRef.current?.(undefined)
@@ -1206,17 +1223,24 @@ export function useXtermSession(params: {
               // a transcript — the agent had created the directory and nothing
               // else. Resuming it opens a blank pane and buries the real
               // conversation, so fall back to the newest one that has content.
+              //
+              // Only a conversation someone typed qualifies. Automated runs
+              // share the directory and are usually the newest file in it, so
+              // without this filter the pane came back showing a security
+              // review instead of the work it was doing.
               const withContent = existing
-                .filter(hasTranscript)
+                .filter((session) => hasTranscript(session) && isInteractiveSession(session))
                 .sort((a, b) => b.modified_at_ms - a.modified_at_ms)[0]
               if (withContent) {
                 console.warn(
                   `[pty-launch] ${command} sessão ${resumeId} está vazia; retomando ${withContent.id}`,
                 )
+                dropped('pointed-session-empty', withContent.id)
                 resumeId = withContent.id
                 onSessionIdRef.current?.(withContent.id)
               } else {
                 console.warn(`[pty-launch] ${command} sessão ${resumeId} está vazia; sessão nova`)
+                dropped('pointed-session-empty-and-no-other')
                 resumeId = undefined
                 removeSession(sessionPersistenceKey)
                 onSessionIdRef.current?.(undefined)
@@ -1318,6 +1342,12 @@ export function useXtermSession(params: {
           console.info(
             `[pty-launch] ${command} args=${JSON.stringify(spawnArgs ?? [])} resumeId=${resumeId ?? '—'} launcherOverride=${launcherOverride ?? '(auto/PATH)'}`,
           )
+          if (RESUMABLE_AGENTS.includes(command) && resumeId === intendedResumeId) {
+            void recordAppEvent(
+              'session.resume',
+              `agent=${command} wanted=${intendedResumeId ?? '—'} got=${resumeId ?? 'nova sessão'} reason=${intendedResumeId ? 'resumed' : 'sem ponteiro salvo'}`,
+            )
+          }
         }
         if (launch.sessionId && launch.sessionId !== sessionId) {
           onSessionIdRef.current?.(launch.sessionId)

@@ -96,6 +96,24 @@ function resolveExecutable(command) {
   return null
 }
 
+/**
+ * The nearest existing ancestor of a directory, or the home directory.
+ *
+ * A pane can outlive the directory it was opened in — the usual case is an
+ * agent worktree under `<repo>/.arco/worktrees/<id>` that was removed while the
+ * pane still pointed at it. Falling straight back to home moved the pane to an
+ * unrelated project, where its agent found none of its own sessions; the repo
+ * one level up is where the work actually is.
+ */
+function nearestExistingDir(dir) {
+  let current = dir
+  while (current && current !== path.dirname(current)) {
+    if (fs.existsSync(current)) return current
+    current = path.dirname(current)
+  }
+  return os.homedir()
+}
+
 function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
   const existing = sessions.get(id)
   if (existing) return { id }
@@ -104,18 +122,19 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
   const requested = launcherOverride || command || shell
   const file = resolveExecutable(requested)
   if (!file) throw new Error(`command not found: ${requested}`)
+  const spawnCwd = cwd ? nearestExistingDir(cwd) : os.homedir()
   const child = pty.spawn(file, args ?? [], {
     name: 'xterm-256color',
     cols: cols ?? 80,
     rows: rows ?? 24,
-    cwd: cwd && fs.existsSync(cwd) ? cwd : os.homedir(),
+    cwd: spawnCwd,
     env: { ...process.env, ...LOGIN_ENV, ...(env ?? {}), PATH: SPAWN_PATH, TERM: 'xterm-256color' },
   })
 
   const session = {
     id,
     child,
-    cwd: cwd ?? os.homedir(),
+    cwd: spawnCwd,
     command: command ?? 'shell',
     visible: true,
     scrollback: '',

@@ -3,6 +3,23 @@ export type SessionSnapshot = {
   modified_at_ms: number
   /** Transcript size. Absent for agents whose snapshot does not report it. */
   size_bytes?: number
+  /** False for a transcript written by an automated run. Absent for agents that cannot tell. */
+  interactive?: boolean
+}
+
+/**
+ * Whether a session is a conversation someone typed, rather than an automated
+ * run such as `/security-review`.
+ *
+ * Those runs are written to the same per-project directory as the real
+ * conversations and are usually the newest file there, so anything that picks
+ * "the most recent session" has to skip them or it hands the user someone
+ * else's work. Agents whose snapshot does not report this are taken at face
+ * value.
+ */
+export function isInteractiveSession(session: object): boolean {
+  const interactive = (session as { interactive?: unknown }).interactive
+  return typeof interactive !== 'boolean' || interactive
 }
 
 /**
@@ -96,7 +113,7 @@ export function claimMostRecentSession(
   const key = claimKey(agent, cwd)
   const claimed = claimedIds.get(key) ?? new Set<string>()
   const candidate = [...sessions]
-    .filter((session) => !claimed.has(session.id))
+    .filter((session) => !claimed.has(session.id) && isInteractiveSession(session))
     .sort((a, b) => b.modified_at_ms - a.modified_at_ms)[0]
   if (!candidate) return undefined
   claimed.add(candidate.id)

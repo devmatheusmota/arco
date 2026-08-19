@@ -10,6 +10,33 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- The watcher can be turned on from the command line: `--watch` on `arco todo` and on
+  `arco todo edit` marks the task the same way the eye icon does, and `--no-watch` turns it off. A
+  task created by an agent no longer needs a manual click to start following its card. When the
+  task has no ADO reference, or the Azure DevOps PAT is missing from Preferences, the app says so
+  instead of leaving a watched task that nothing polls.
+
+### Fixed
+
+- A pane no longer comes back showing someone else's conversation. When the session it points at
+  has no transcript, it falls back to the most recent one in that directory — and automated runs
+  such as `/security-review` are written to the very same directory, are usually the newest file
+  there, and were therefore the ones picked. The snapshot now records whether a transcript belongs
+  to a conversation someone typed, and only those are eligible.
+- A pane whose directory no longer exists reopens in the nearest directory above it instead of the
+  home directory. An agent worktree removed under a running pane sent it to an unrelated place,
+  where its agent found none of its own sessions; the repository one level up is where the work is.
+
+### Changed
+
+- Reopening a pane records which conversation it came back to, and why, under `session.resume` in
+  `app-events.log`. A pane can legitimately land on a different session than the one it pointed at
+  — the pointer was claimed by another pane, the session was not listed for that directory, or it
+  had no transcript — and until now that only reached the developer console, so a session that
+  "disappeared" left no trace to read afterwards.
+
 ## [2.2.1] — 2026-08-19
 
 ### Fixed

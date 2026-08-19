@@ -71,6 +71,27 @@ function readJsonl(file, limit = 40) {
   }
 }
 
+/**
+ * Whether a transcript belongs to a conversation someone typed.
+ *
+ * Automated runs — `/security-review`, agent SDK calls — land in the same
+ * project directory as the real conversations and are usually the most recent
+ * file there. A pane looking for "the newest session with content" would pick
+ * one of those and show the user a review instead of their own work, so the
+ * entrypoint the transcript records is what tells the two apart.
+ */
+function isInteractive(entries) {
+  for (const entry of entries) {
+    if (entry?.type !== 'user') continue
+    if (typeof entry.entrypoint === 'string') return entry.entrypoint === 'cli'
+    if (typeof entry.promptSource === 'string') return entry.promptSource !== 'sdk'
+    return true
+  }
+  // Nothing to judge by — an unreadable or brand new transcript is taken at
+  // face value, the same way `hasTranscript` treats a missing size.
+  return true
+}
+
 function firstUserText(entries) {
   for (const entry of entries) {
     const content = entry?.message?.content
@@ -106,6 +127,7 @@ function snapshotDir(dir, extension = '.jsonl') {
         modified_at_ms: stats.mtimeMs,
         message_count: entries.length,
         size_bytes: stats.size,
+        interactive: isInteractive(entries),
       }
     })
     .filter(Boolean)
@@ -127,4 +149,4 @@ function buildSessionCommands() {
   }
 }
 
-module.exports = { buildSessionCommands }
+module.exports = { buildSessionCommands, isInteractive }

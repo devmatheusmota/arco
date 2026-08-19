@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import {
   claimDiscoveredSession,
+  claimMostRecentSession,
+  isInteractiveSession,
   registerSessionClaim,
   resetSessionClaimsForTests,
 } from './sessionDiscovery'
@@ -60,5 +62,30 @@ describe('claimDiscoveredSession', () => {
     )
 
     expect(claimed).toBeUndefined()
+  })
+})
+
+describe('isInteractiveSession', () => {
+  it('rejects a transcript written by an automated run', () => {
+    expect(isInteractiveSession({ id: 'review', modified_at_ms: 1, interactive: false })).toBe(false)
+  })
+
+  it('accepts a session whose agent does not report the flag', () => {
+    expect(isInteractiveSession({ id: 'codex', modified_at_ms: 1 })).toBe(true)
+  })
+})
+
+describe('claimMostRecentSession', () => {
+  beforeEach(() => {
+    resetSessionClaimsForTests()
+  })
+
+  it('skips an automated run even when it is the newest transcript', () => {
+    const claimed = claimMostRecentSession('claude', '/repo', [
+      { id: 'security-review', modified_at_ms: 300, interactive: false },
+      { id: 'minha-conversa', modified_at_ms: 200, interactive: true },
+    ])
+
+    expect(claimed?.id).toBe('minha-conversa')
   })
 })
