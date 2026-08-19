@@ -788,6 +788,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v241.note1':
+    'A pane no longer comes back showing a /security-review instead of your conversation. Those runs are written to the same folder as the pane\u2019s own session, and the watcher that decides which conversation a pane started could adopt one of them \u2014 so the work you were doing looked lost after a restart. Only a conversation someone typed is adopted now, and a pane already pointing at one of those runs returns to its newest real conversation on its own.',
   'whatsNew.v240.note1':
     'A new agent session now gets its own worktree by default — the box comes checked, and unchecking it is one click. An agent editing the checkout everything else shares is the expensive mistake; wanting the shared tree is the exception. Projects that already set this preference keep what they chose.',
   'whatsNew.v240.note2':
@@ -828,8 +830,7 @@ export const en = {
     'The Claude and Codex usage pills come back on a window that started in the background.',
   'whatsNew.v204.note3':
     'Muted text meets a 4.5:1 contrast ratio in all fourteen themes, and dialogs, menus and the task list are usable from the keyboard.',
-  'whatsNew.v203.note1':
-    'This dialog lists every 2.0.x release instead of stopping at v1.5.0.',
+  'whatsNew.v203.note1': 'This dialog lists every 2.0.x release instead of stopping at v1.5.0.',
   'whatsNew.v200.note1':
     'Arco now runs on Chromium instead of the system WebView. Typing in a terminal no longer waits behind everything else the interface is drawing, which is what made panes feel sticky while an agent worked.',
   'whatsNew.v200.note2':

@@ -799,6 +799,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v241.note1':
+    'Uma pane deixa de voltar mostrando um /security-review no lugar da sua conversa. Essas execu\u00e7\u00f5es s\u00e3o gravadas na mesma pasta da sess\u00e3o da pane, e o vigia que decide qual conversa a pane come\u00e7ou podia adotar uma delas \u2014 e a\u00ed o trabalho que voc\u00ea estava fazendo parecia perdido depois de reabrir. Agora s\u00f3 conversa digitada por algu\u00e9m \u00e9 adotada, e uma pane que j\u00e1 apontava para uma dessas execu\u00e7\u00f5es volta sozinha para a conversa real mais recente.',
   'whatsNew.v240.note1':
     'Uma nova sessão de agente já vem com worktree própria — a caixa nasce marcada, e desmarcar é um clique. Agente editando o checkout que todo mundo compartilha é o erro caro; querer a árvore compartilhada é a exceção. Projetos que já definiram essa preferência mantêm a escolha.',
   'whatsNew.v240.note2':
@@ -839,8 +841,7 @@ export const ptBR: Record<MessageKey, string> = {
     'Os indicadores de uso do Claude e do Codex voltam a aparecer numa janela que abriu em segundo plano.',
   'whatsNew.v204.note3':
     'O texto secundário alcança contraste de 4,5:1 nos quatorze temas, e diálogos, menus e a lista de tarefas funcionam pelo teclado.',
-  'whatsNew.v203.note1':
-    'Este diálogo lista todas as versões 2.0.x em vez de parar na v1.5.0.',
+  'whatsNew.v203.note1': 'Este diálogo lista todas as versões 2.0.x em vez de parar na v1.5.0.',
   'whatsNew.v200.note1':
     'O Arco agora roda no Chromium em vez da WebView do sistema. Digitar num terminal não espera mais tudo que a interface está desenhando, que era o motivo dos panes travarem enquanto um agente trabalhava.',
   'whatsNew.v200.note2':

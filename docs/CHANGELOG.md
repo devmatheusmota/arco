@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.4.1] — 2026-08-19
+
 ### Fixed
 
 - A pane no longer adopts a security review as its own conversation. `/security-review` and other
