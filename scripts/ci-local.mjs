@@ -2,21 +2,23 @@
 /**
  * The CI, run locally, in the same order the workflow runs it.
  *
- * This exists so a commit cannot land red. `.github/workflows/ci.yml` is the
- * contract; every gate below mirrors a step of it, and the boot smoke is in here
- * because nothing else in the list loads the Electron main process — lint,
- * vitest and `tsc && vite build` all pass with it fatally broken, which is
- * exactly how v2.0.1 shipped an app that could not open.
+ * It runs on pre-push, not pre-commit. What has to stay green is the branch
+ * everyone pulls, and that is decided at the push; charging 45 seconds for every
+ * local commit only makes people commit less often, which is worse for everyone.
  *
- * It checks the working tree, not the index: a partial commit is validated
- * together with whatever else is uncommitted around it. Good enough for the
- * failure this exists to stop — a red main — and cheaper than stashing.
+ * `.github/workflows/ci.yml` is the contract; every gate below mirrors a step of
+ * it. The boot smoke is in here because nothing else in the list loads the
+ * Electron main process — lint, vitest and `tsc && vite build` all pass with it
+ * fatally broken, which is exactly how v2.0.1 shipped an app that could not open.
+ *
+ * It checks the working tree, not what is being pushed: uncommitted work counts
+ * too. Cheaper than stashing, and it errs toward telling you more.
  *
  * The Rust check is not mirrored: `src-tauri/` is the legacy shell, `cargo check`
  * takes minutes, and nothing in a normal change touches it. CI still runs it.
  *
  * Escapes, for when the gate is wrong and you know why:
- *   git commit --no-verify     skip the hook entirely
+ *   git push --no-verify       skip the hook entirely
  *   ARCO_SKIP_SMOKE=1          run everything but the boot smoke
  */
 import { execSync } from 'node:child_process'

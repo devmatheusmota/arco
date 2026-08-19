@@ -52,10 +52,13 @@ Escreva para quem não leu o código: o que mudou e o que ele precisa fazer
 
 ## 4. Verificação
 
-Lint, formatação, testes, typecheck, build e boot smoke já rodaram: o hook de
-pre-commit (`husky` → `npm run ci`) roda a mesma sequência do
-`.github/workflows/ci.yml` em cada commit, então nada chega aqui vermelho. Se
-algum commit passou com `--no-verify`, rode `npm run ci` agora.
+Lint, formatação, testes, typecheck, build e boot smoke rodam sozinhos: o hook de
+pre-push (`husky` → `npm run ci`) roda a mesma sequência do
+`.github/workflows/ci.yml` antes de cada push, então nada chega vermelho na
+`main`. Rode `npm run ci` na mão se algum push passou com `--no-verify`.
+
+O corte no passo 5 dá dois pushes (branch e tag), logo o gate roda duas vezes —
+uns 90s no total. É o preço de não descobrir depois.
 
 O que o hook não cobre continua com você: mudança visível se olha no app rodando.
 Screenshot vale mais que dedução.

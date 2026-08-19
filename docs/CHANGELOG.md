@@ -12,9 +12,10 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Added
 
-- The CI now runs on every commit, on your machine. A pre-commit hook runs the same sequence the
+- The CI now runs before every push, on your machine. A pre-push hook runs the same sequence the
   workflow does — lint, formatting, tests, typecheck, build and the Electron boot smoke — in about
-  45 seconds, so a commit cannot land red. `git commit --no-verify` skips it when the gate is wrong.
+  45 seconds, so a red branch is caught before anyone else pulls it. `git push --no-verify` skips it
+  when the gate is wrong.
 
 ### Fixed
 

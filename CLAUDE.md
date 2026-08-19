@@ -94,12 +94,13 @@ relative to the repository.
    moment — the instant the user asks to see it. Measure on the real app, with several sessions open;
    a change that only feels fine with one pane has not been tested.
 
-8. **The CI runs on every commit, locally.** `husky` fires `npm run ci`, which mirrors
+8. **The CI runs before every push, locally.** `husky` fires `npm run ci`, which mirrors
    `.github/workflows/ci.yml` step by step: lint, formatting, unit tests, typecheck, build and the
-   Electron boot smoke — about 45s. A commit that lands red is a commit that skipped the hook.
-   `git commit --no-verify` exists for when the gate is wrong and you can say why; it is not for when
-   the gate is inconvenient. Change a step in the workflow and change `scripts/ci-local.mjs` with it,
-   or the two drift and the local green stops meaning anything.
+   Electron boot smoke — about 45s. It sits on pre-push, not pre-commit: what has to stay green is
+   the branch everyone pulls, and charging that on every local commit only teaches people to commit
+   less often. `git push --no-verify` exists for when the gate is wrong and you can say why; it is
+   not for when the gate is inconvenient. Change a step in the workflow and change
+   `scripts/ci-local.mjs` with it, or the two drift and the local green stops meaning anything.
 
 ## 6. Architecture at a glance
 
