@@ -77,7 +77,8 @@ relative to the repository.
    [`docs/CHANGELOG.md`](docs/CHANGELOG.md) in the same task, under the **`[Unreleased]`** section
    (top of the file), with a short, objective, user-facing description. Never skip this step — the
    changelog is the source for release notes.
-6. **Releasing follows [`docs/RELEASE.md`](docs/RELEASE.md), in order.** The changelog is not the
+6. **Releasing follows [`docs/RELEASE.md`](docs/RELEASE.md), in order.** The `/release` skill in
+   `.claude/skills/release/` runs it end to end. The changelog is not the
    only place a release has to touch: the dialog the user reads lives in `src/lib/changelogData.ts`
    plus the `whatsNew.*` keys in both message files, and a version shipped without an entry there
    tells the user the update never arrived. `main` must contain the release before it is cut —
