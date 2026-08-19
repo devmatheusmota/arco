@@ -55,7 +55,7 @@ export function EditProjectModal() {
   const [conflictProvider, setConflictProviderState] = useState<AgentType>('claude')
   const [conflictModel, setConflictModelState] = useState('')
   const [graphifyEnabled, setGraphifyEnabledState] = useState(false)
-  const [autoWorktree, setAutoWorktreeState] = useState(false)
+  const [autoWorktree, setAutoWorktreeState] = useState(true)
   const [newAgentName, setNewAgentName] = useState('')
   const [creatingAgent, setCreatingAgent] = useState(false)
   const [activeTab, setActiveTab] = useState<'focus' | 'agents' | 'worktrees'>('focus')
@@ -95,7 +95,7 @@ export function EditProjectModal() {
     setConflictProviderState(project.conflictAgentProvider ?? 'claude')
     setConflictModelState(project.conflictAgentModel ?? '')
     setGraphifyEnabledState(project.graphifyEnabled ?? false)
-    setAutoWorktreeState(project.autoWorktree ?? false)
+    setAutoWorktreeState(project.autoWorktree ?? true)
     setActiveTab('focus')
     setIsColorPopoverOpen(false)
 
@@ -194,7 +194,7 @@ export function EditProjectModal() {
       setGraphifyEnabled(project.id, graphifyEnabled)
     }
 
-    if (autoWorktree !== (project.autoWorktree ?? false)) {
+    if (autoWorktree !== (project.autoWorktree ?? true)) {
       setAutoWorktree(project.id, autoWorktree)
     }
 

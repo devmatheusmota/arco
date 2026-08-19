@@ -788,6 +788,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v240.note1':
+    'A new agent session now gets its own worktree by default — the box comes checked, and unchecking it is one click. An agent editing the checkout everything else shares is the expensive mistake; wanting the shared tree is the exception. Projects that already set this preference keep what they chose.',
+  'whatsNew.v240.note2':
+    'The pull request chip on a task now opens the right page, and stops pointing at pull requests that are already merged. Boards and code sit in different Azure DevOps projects, and the chip was pairing the board project with the code repository — ADO answered "Repository not found". It also attached the newest linked pull request without checking it was still open, so a card in refinement could show a merge from months ago.',
   'whatsNew.v230.note1':
     'A pane could come back showing a conversation you never had. When the session it pointed at had no transcript, it fell back to the newest one in that folder — and automated runs like /security-review are written to the same folder and are usually the newest file there. Only conversations someone typed are eligible now.',
   'whatsNew.v230.note2':

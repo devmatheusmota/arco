@@ -10,6 +10,16 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.4.0] — 2026-08-19
+
+### Changed
+
+- A new agent session gets its own worktree by default. The box is checked when the modal opens and
+  unchecking it is one click, which is the right way round: an agent editing the checkout everything
+  else shares is the expensive mistake, and wanting the shared tree is the exception. Projects that
+  already set the preference keep what they chose. The box stays hidden for a plain shell, which
+  never took a worktree.
+
 ### Fixed
 
 - The watcher no longer attaches a pull request that is already merged or abandoned. A work item

@@ -86,7 +86,7 @@ export function TaskSessionModal() {
 
   useEffect(() => {
     if (!open) return
-    setIsolate(Boolean(project?.autoWorktree) && agent !== 'shell')
+    setIsolate((project?.autoWorktree ?? true) && agent !== 'shell')
   }, [open, project?.autoWorktree, agent])
 
   const browse = async () => {

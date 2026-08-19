@@ -298,6 +298,11 @@ export type Project = {
 
   graphifyEnabled?: boolean
 
+  /**
+   * Whether a new agent session gets its own worktree. Absent means yes: an
+   * agent editing the checkout everything else shares is the costly default,
+   * and unchecking the box is one click for the times it is wanted.
+   */
   autoWorktree?: boolean
 
   githubUrl?: string

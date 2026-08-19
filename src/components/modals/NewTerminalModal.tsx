@@ -101,10 +101,17 @@ export function NewTerminalModal() {
     })
   }, [open, context?.projectId, inheritedCwd, defaultType, alwaysStartUnrestricted])
 
+  // Opening the modal has to re-read the project's choice; without this the box
+  // keeps whatever the last session left behind.
+  useEffect(() => {
+    if (!open) return
+    setIsolate(project?.autoWorktree ?? true)
+  }, [open, project?.autoWorktree])
+
   const reset = () => {
     setType(defaultType)
     setRuntimeProfile('full')
-    setIsolate(Boolean(project?.autoWorktree))
+    setIsolate(project?.autoWorktree ?? true)
     setCwd('')
     setUnrestricted({
       shell: false,

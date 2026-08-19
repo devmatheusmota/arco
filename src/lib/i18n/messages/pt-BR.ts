@@ -799,6 +799,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v240.note1':
+    'Uma nova sessão de agente já vem com worktree própria — a caixa nasce marcada, e desmarcar é um clique. Agente editando o checkout que todo mundo compartilha é o erro caro; querer a árvore compartilhada é a exceção. Projetos que já definiram essa preferência mantêm a escolha.',
+  'whatsNew.v240.note2':
+    'O chip de pull request numa tarefa agora abre a página certa, e para de apontar para PR já mergeado. Boards e código ficam em projetos diferentes no Azure DevOps, e o chip juntava o projeto do board com o repositório do código — o ADO respondia "Repository not found". Ele também anexava o PR vinculado mais recente sem conferir se ainda estava aberto, então um card em refinamento podia exibir um merge de meses atrás.',
   'whatsNew.v230.note1':
     'Um pane podia voltar mostrando uma conversa que você nunca teve. Quando a sessão apontada não tinha transcript, ele caía para a mais recente daquela pasta — e execuções automáticas como /security-review são gravadas na mesma pasta e costumam ser o arquivo mais novo. Agora só conversas que alguém digitou entram nessa conta.',
   'whatsNew.v230.note2':
