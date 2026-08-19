@@ -1,6 +1,8 @@
 import {
   Check,
   ChevronDown,
+  Eye,
+  EyeOff,
   FolderKanban,
   GripVertical,
   ListTodo,
@@ -223,6 +225,7 @@ function TodoRow({
   const setTodoPriority = useProjectsStore((state) => state.setTodoPriority)
   const setTodoStatus = useProjectsStore((state) => state.setTodoStatus)
   const setTodoProject = useProjectsStore((state) => state.setTodoProject)
+  const setTodoWatch = useProjectsStore((state) => state.setTodoWatch)
   const unlinkTodoSession = useProjectsStore((state) => state.unlinkTodoSession)
   const toggleTodo = useProjectsStore((state) => state.toggleTodo)
   const deleteTodo = useProjectsStore((state) => state.deleteTodo)
@@ -438,6 +441,19 @@ function TodoRow({
               >
                 <Play size={12} />
               </button>
+              {todo.adoRef ? (
+                <button
+                  type="button"
+                  className={styles.rowAction}
+                  data-active={todo.watch ? 'true' : undefined}
+                  onClick={() => setTodoWatch(todo.id, !todo.watch)}
+                  title={todo.watch ? t('todo.adoWatchOff') : t('todo.adoWatchOn')}
+                  aria-label={todo.watch ? t('todo.adoWatchOff') : t('todo.adoWatchOn')}
+                  aria-pressed={Boolean(todo.watch)}
+                >
+                  {todo.watch ? <Eye size={12} /> : <EyeOff size={12} />}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={styles.rowAction}

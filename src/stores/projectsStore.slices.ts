@@ -67,6 +67,7 @@ type TodosSlice = Pick<
   | 'setTodoStatus'
   | 'setTodoProject'
   | 'setTodoAdoRef'
+  | 'setTodoWatch'
   | 'linkTodoSession'
   | 'unlinkTodoSession'
   | 'resetTodosToDefault'
@@ -161,6 +162,17 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
             mode === 'merge' ? mergeAdoRef(item.adoRef, ref) : ref
           if (merged) next.adoRef = merged
           else delete next.adoRef
+          return next
+        }),
+      })),
+
+    setTodoWatch: (id, watch) =>
+      update((state) => ({
+        todos: state.todos.map((item) => {
+          if (item.id !== id) return item
+          const next = { ...item }
+          if (watch) next.watch = true
+          else delete next.watch
           return next
         }),
       })),

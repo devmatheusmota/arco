@@ -520,6 +520,13 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.metaCompleted': 'Concluída em {date}',
   'todo.adoWorkItem': 'Abrir work item #{id} no Azure DevOps',
   'todo.adoPullRequest': 'Abrir pull request !{id} no Azure DevOps',
+  'todo.adoWatchOn': 'Acompanhar esta tarefa no Azure DevOps',
+  'todo.adoWatchOff': 'Parar de acompanhar esta tarefa',
+  'toast.adoTransitionTitle': 'Tarefa reconciliada',
+  'toast.adoTransitionBody': '{title} — {reason}',
+  'toast.adoAuthTitle': 'Azure DevOps',
+  'toast.adoAuthBody':
+    'O PAT armazenado foi recusado (401). Atualize em Preferências → Integrações → Azure DevOps.',
 
   /* ---- iniciar sessão de agente a partir de uma tarefa ---- */
   'taskSession.title': 'Iniciar uma sessão a partir desta tarefa',
@@ -703,6 +710,10 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.adoProject': 'Projeto padrão',
   'prefs.adoHint':
     'A organização é o trecho logo depois de `dev.azure.com/` na URL de um work item. Deixe em branco para exigir URL completa em todo `--ado`.',
+  'prefs.adoPat': 'Personal Access Token',
+  'prefs.adoPollSecs': 'Intervalo de polling (segundos)',
+  'prefs.adoPatHint':
+    'Armazenado em plaintext junto com os outros tokens. Só tarefas marcadas com o ícone de olho são acompanhadas — sem PAT, sem polling, sem tráfego.',
   'prefs.spotify': 'Spotify',
   'prefs.spotifyDesc': 'Configure o aplicativo do Spotify usado no widget Now Playing.',
   'prefs.discordPresence': 'Rich Presence do Discord',

@@ -188,6 +188,8 @@ export type ProjectsState = ProjectsFile & {
    * `merge` keeps existing fields when the new reference only carries a subset.
    */
   setTodoAdoRef: (id: string, ref: TodoAdoRef | null, mode?: 'replace' | 'merge') => void
+  /** Opts a task in or out of the ADO watcher. */
+  setTodoWatch: (id: string, watch: boolean) => void
   /** Records the session a task launched so the row can jump back to that pane. */
   linkTodoSession: (id: string, link: TodoSessionLink) => void
   unlinkTodoSession: (id: string, terminalId: string) => void

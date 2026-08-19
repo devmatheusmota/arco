@@ -517,6 +517,13 @@ export const en = {
   'todo.metaCompleted': 'Completed {date}',
   'todo.adoWorkItem': 'Open work item #{id} on Azure DevOps',
   'todo.adoPullRequest': 'Open pull request !{id} on Azure DevOps',
+  'todo.adoWatchOn': 'Watch this task on Azure DevOps',
+  'todo.adoWatchOff': 'Stop watching this task',
+  'toast.adoTransitionTitle': 'Task reconciled',
+  'toast.adoTransitionBody': '{title} — {reason}',
+  'toast.adoAuthTitle': 'Azure DevOps',
+  'toast.adoAuthBody':
+    'The stored PAT was refused (401). Refresh it under Preferences → Integrations → Azure DevOps.',
 
   /* ---- start an agent session from a task ---- */
   'taskSession.title': 'Start a session from this task',
@@ -695,6 +702,10 @@ export const en = {
   'prefs.adoProject': 'Default project',
   'prefs.adoHint':
     'The organization slug is the segment right after `dev.azure.com/` in a work-item URL. Leave blank to require full URLs on every `--ado`.',
+  'prefs.adoPat': 'Personal Access Token',
+  'prefs.adoPollSecs': 'Poll interval (seconds)',
+  'prefs.adoPatHint':
+    'Kept in plaintext next to the other tokens. Only tasks marked with the eye icon are polled — no PAT, no polling, no traffic.',
   'prefs.spotify': 'Spotify',
   'prefs.spotifyDesc': 'Configure the Spotify application used by the Now Playing widget.',
   'prefs.discordPresence': 'Discord Rich Presence',

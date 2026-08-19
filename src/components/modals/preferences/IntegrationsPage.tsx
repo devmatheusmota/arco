@@ -153,7 +153,34 @@ export function IntegrationsPage() {
               spellCheck={false}
             />
           </label>
+          <label>
+            <span>{t('prefs.adoPat')}</span>
+            <input
+              className={controls.input}
+              type="password"
+              value={preferences.adoPat}
+              placeholder="pat_xxxxxxxx"
+              onChange={(event) => setPreferences({ adoPat: event.target.value })}
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </label>
+          <label>
+            <span>{t('prefs.adoPollSecs')}</span>
+            <input
+              className={controls.input}
+              type="number"
+              min={60}
+              max={3600}
+              step={60}
+              value={preferences.adoPollSecs}
+              onChange={(event) =>
+                setPreferences({ adoPollSecs: Number(event.target.value) || 300 })
+              }
+            />
+          </label>
           <p>{t('prefs.adoHint')}</p>
+          <p>{t('prefs.adoPatHint')}</p>
         </div>
       </SettingsSection>
 

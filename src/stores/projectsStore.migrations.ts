@@ -128,6 +128,8 @@ export function normalizePreferences(raw: LegacyPreferences | undefined): Prefer
     spotifyClientSecret: preferences.spotifyClientSecret.trim(),
     adoOrg: (preferences.adoOrg ?? '').trim(),
     adoProject: (preferences.adoProject ?? '').trim(),
+    adoPat: (preferences.adoPat ?? '').trim(),
+    adoPollSecs: Math.min(3600, Math.max(60, Math.round(Number(preferences.adoPollSecs ?? 300)))),
     uiZoom: clampUiZoom(preferences.uiZoom),
     spawnConcurrency: clampSpawnConcurrency(preferences.spawnConcurrency),
     resourcePolicy: {
@@ -181,6 +183,7 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
       ...(notes ? { notes } : {}),
       ...(sessions.length > 0 ? { sessions } : {}),
       ...(adoRef ? { adoRef } : {}),
+      ...(item?.watch ? { watch: true } : {}),
     })
   }
   return [...result.filter((item) => !item.completed), ...result.filter((item) => item.completed)]

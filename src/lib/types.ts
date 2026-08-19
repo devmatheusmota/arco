@@ -129,6 +129,12 @@ export type TodoItem = {
   sessions?: TodoSessionLink[]
   /** Azure DevOps work item and PR the task refers to. Used by the sidebar chip and the watcher. */
   adoRef?: TodoAdoRef
+  /**
+   * Opt-in flag for the ADO watcher — a task with `watch: true` is polled and
+   * reconciled automatically. Off by default so the fleet does not silently
+   * start hitting the ADO API the moment a PAT is configured.
+   */
+  watch?: boolean
 }
 
 export type SubTab = {
@@ -478,6 +484,14 @@ export type Preferences = {
    */
   adoOrg: string
   adoProject: string
+  /** Personal Access Token used by the ADO watcher; kept in plaintext alongside the other tokens. */
+  adoPat: string
+  /**
+   * How often the watcher polls the tasks that have `watch: true`, in seconds.
+   * Only work items and PRs on those tasks are read, so the traffic is bounded
+   * by what the user marked, not by how many tasks exist.
+   */
+  adoPollSecs: number
   /** Ditado por voz (speech-to-text) escreve no terminal ativo. Default false. */
   dictationEnabled: boolean
   /** Hold dita enquanto o atalho fica pressionado; toggle liga e desliga a cada toque. */
@@ -607,6 +621,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   cliContextInjection: true,
   adoOrg: '',
   adoProject: '',
+  adoPat: '',
+  adoPollSecs: 300,
   dictationEnabled: false,
   dictationMode: 'hold',
   dictationShortcut: 'ctrl+e',
