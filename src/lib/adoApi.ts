@@ -146,7 +146,9 @@ export async function fetchPullRequest(
   pat: string,
 ): Promise<AdoPullRequestSnapshot | null> {
   if (!ref.prId) return null
-  const url = `${baseUrl(ref)}/_apis/git/pullrequests/${ref.prId}?api-version=7.0`
+  // The pull request answers in its own project, which is not always the work
+  // item's — asking the board's project for it returns 404.
+  const url = `${baseUrl({ org: ref.org, project: ref.prProject?.trim() || ref.project })}/_apis/git/pullrequests/${ref.prId}?api-version=7.0`
   const raw = (await request(url, pat)) as {
     pullRequestId: number
     status: string

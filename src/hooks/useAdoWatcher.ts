@@ -51,10 +51,34 @@ export function useAdoWatcher(): void {
       try {
         const links = await fetchWorkItemPullRequestLinks(todo.adoRef, pat)
         if (links.length === 0) return todo
-        // Pick the newest PR id — ADO does not order the relations, but the
-        // largest id is the most recent by construction.
-        const latest = links.reduce((best, link) => (link.prId > best.prId ? link : best))
-        const merged = { ...todo.adoRef, prId: latest.prId, repository: latest.repositoryId }
+        // Newest first — ADO does not order the relations, but the largest id is
+        // the most recent by construction.
+        const ordered = [...links].sort((a, b) => b.prId - a.prId)
+        // A work item keeps its pull request links forever, so the newest one
+        // can be a merge from months ago. Attaching that puts a dead PR on a
+        // card that is still being refined, which is what #19394 showed: the
+        // chip pointed at !10398, completed back in July.
+        let latest: (typeof ordered)[number] | undefined
+        for (const link of ordered) {
+          const snapshot = await fetchPullRequest(
+            { ...todo.adoRef, prId: link.prId, prProject: link.projectId },
+            pat,
+          )
+          if (snapshot && snapshot.status === 'active') {
+            latest = link
+            break
+          }
+        }
+        if (!latest) return todo
+        // The link carries the pull request's own project, and it is usually not
+        // the work item's. Keeping the board's project here builds a URL that
+        // resolves to nothing.
+        const merged = {
+          ...todo.adoRef,
+          prId: latest.prId,
+          repository: latest.repositoryId,
+          prProject: latest.projectId,
+        }
         useProjectsStore.getState().setTodoAdoRef(todo.id, merged, 'merge')
         return { ...todo, adoRef: merged }
       } catch (error) {

@@ -109,6 +109,13 @@ export type TodoAdoRef = {
   workItemId: number
   prId?: number
   repository?: string
+  /**
+   * The ADO project the pull request lives in, when it is not the work item's.
+   * Boards and code routinely sit in different projects — a work item in
+   * "Plataforma EMR" pointing at a pull request in "SOA" — and a single
+   * `project` cannot address both. Absent means the two share a project.
+   */
+  prProject?: string
 }
 
 export type TodoItem = {

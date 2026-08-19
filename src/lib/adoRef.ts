@@ -14,6 +14,13 @@ export type AdoRef = {
   prId?: number
   /** Repository slug for `_git/<repo>/pullrequest/<id>` URLs. Missing for pure work-item refs. */
   repository?: string
+  /**
+   * Project the pull request lives in, when it differs from the work item's.
+   * Boards and code sit in separate ADO projects here — a work item in
+   * "Plataforma EMR" pointing at a pull request in "SOA" — and one `project`
+   * field cannot address both endpoints.
+   */
+  prProject?: string
 }
 
 /** Defaults filled in when the input is just an id (`#22447`, `!10681`, or `22447`). */
@@ -116,6 +123,9 @@ export function mergeAdoRef(base: AdoRef | undefined, next: AdoRef): AdoRef {
     ...(next.repository || base.repository
       ? { repository: next.repository ?? base.repository }
       : {}),
+    ...(next.prProject || base.prProject
+      ? { prProject: next.prProject ?? base.prProject }
+      : {}),
   }
 }
 
@@ -134,6 +144,9 @@ export function normalizeAdoRef(value: unknown): AdoRef | null {
   if (typeof raw.repository === 'string' && raw.repository.trim()) {
     ref.repository = raw.repository.trim()
   }
+  if (typeof raw.prProject === 'string' && raw.prProject.trim()) {
+    ref.prProject = raw.prProject.trim()
+  }
   return ref
 }
 
@@ -142,10 +155,18 @@ export function workItemUrl(ref: AdoRef): string {
   return `https://dev.azure.com/${encodeURIComponent(ref.org)}/${encodeURIComponent(ref.project)}/_workitems/edit/${ref.workItemId}`
 }
 
-/** Public URL for a pull request; requires the repository, which is captured on parse. */
+/**
+ * Public URL for a pull request; requires the repository, which is captured on parse.
+ *
+ * The project is the pull request's own when it has one. A work item in
+ * "Plataforma EMR" routinely points at a pull request in "SOA", and pairing the
+ * board's project with the code's repository produces a URL that resolves to
+ * nothing — ADO answers "Repository not found".
+ */
 export function pullRequestUrl(ref: AdoRef): string | null {
   if (!ref.prId || !ref.repository) return null
-  return `https://dev.azure.com/${encodeURIComponent(ref.org)}/${encodeURIComponent(ref.project)}/_git/${encodeURIComponent(ref.repository)}/pullrequest/${ref.prId}`
+  const project = ref.prProject?.trim() || ref.project
+  return `https://dev.azure.com/${encodeURIComponent(ref.org)}/${encodeURIComponent(project)}/_git/${encodeURIComponent(ref.repository)}/pullrequest/${ref.prId}`
 }
 
 /** Decodes `%20` back into spaces so a stored project name reads as the user sees it. */

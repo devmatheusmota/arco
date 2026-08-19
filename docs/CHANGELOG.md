@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- The watcher no longer attaches a pull request that is already merged or abandoned. A work item
+  keeps its pull request links forever, so the newest one can be a merge from months ago — a card
+  still being refined ended up with a chip pointing at a pull request completed in July. Only an
+  active pull request is attached now.
+- The pull request chip opens the right page when the code lives in another ADO project. Boards and
+  repositories routinely sit apart — a work item in "Plataforma EMR" pointing at a repository in
+  "SOA" — and the chip was pairing the board's project with the code's repository, which ADO
+  answers with "Repository not found". The reference now records the pull request's own project,
+  and the watcher reads it from the same `ArtifactLink` it already parsed.
+
 ## [2.3.0] — 2026-08-19
 
 ### Added

@@ -115,3 +115,34 @@ describe('urls', () => {
     ).toContain('/_git/SOA/pullrequest/10681')
   })
 })
+
+describe('pullRequestUrl across projects', () => {
+  const base = {
+    org: 'EuMedicoResidente',
+    project: 'Plataforma EMR',
+    workItemId: 19394,
+    prId: 10398,
+    repository: 'EGA',
+  }
+
+  it('builds the URL in the pull request own project, not the work item one', () => {
+    expect(pullRequestUrl({ ...base, prProject: 'Eduardo' })).toBe(
+      'https://dev.azure.com/EuMedicoResidente/Eduardo/_git/EGA/pullrequest/10398',
+    )
+  })
+
+  it('falls back to the work item project when both share one', () => {
+    expect(pullRequestUrl(base)).toBe(
+      'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_git/EGA/pullrequest/10398',
+    )
+  })
+
+  it('keeps prProject through normalize and merge', () => {
+    expect(normalizeAdoRef({ ...base, prProject: 'Eduardo' })).toMatchObject({
+      prProject: 'Eduardo',
+    })
+    expect(
+      mergeAdoRef({ org: 'o', project: 'p', workItemId: 1 }, { ...base, prProject: 'Eduardo' }),
+    ).toMatchObject({ prProject: 'Eduardo' })
+  })
+})
