@@ -799,6 +799,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v250.note1':
+    'Subcomando errado em `arco todo` \u00e9 recusado em vez de virar tarefa. `arco todo show <id>` n\u00e3o existia, ent\u00e3o as palavras digitadas viravam t\u00edtulo \u2014 quatro tentativas de ler tarefas deixaram quatro tarefas com o nome delas, sem imprimir nada e relatando sucesso. Agora qualquer primeira palavra que soe como subcomando \u00e9 recusada, e id de tarefa sozinho tamb\u00e9m; criar continua funcionando com `arco todo add "<t\u00edtulo>"` ou um t\u00edtulo com mais de uma palavra.',
+  'whatsNew.v250.note2':
+    'Toda escrita do `arco todo` agora imprime o que gravou e falha em voz alta quando n\u00e3o gravou. Criar e editar n\u00e3o respondiam nada, ent\u00e3o um `--ado 22657` recusado por falta da organiza\u00e7\u00e3o e do projeto do Azure DevOps em Prefer\u00eancias ficava id\u00eantico a um v\u00ednculo salvo \u2014 e a listagem rodada logo depois lia o arquivo em disco, que ainda podia mostrar o estado anterior \u00e0 sua mudan\u00e7a. Agora o comando espera o app, imprime a tarefa resultante e diz o motivo quando o app recusa.',
+  'whatsNew.v250.note3':
+    'Novidades no terminal: `arco todo show <ref>` imprime uma tarefa inteira \u2014 notas, tags, prioridade e o card do Azure DevOps ligado \u2014 e `arco todo delete <ref> --yes` apaga uma, que \u00e9 como limpar tarefa criada por engano sem procurar a lixeira na barra lateral. `arco --version` responde em vez de pendurar, e o comando para de dizer que o app est\u00e1 fechado com a janela aberta na sua frente. Para os subcomandos novos chegarem pelo atalho `arco`, reinstale ele em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es \u2192 Comando de terminal.',
   'whatsNew.v242.note1':
     'A lista de sess\u00f5es mostra o nome de cada conversa no lugar de Session 2289fbbc. Antes toda entrada caía para o id e dizia 20 mensagens, fosse qual fosse a conversa; agora aparece o t\u00edtulo que o Claude deu a ela, ou a primeira coisa que voc\u00ea digitou quando ainda n\u00e3o h\u00e1 t\u00edtulo, mais a contagem real de mensagens. Transcript sem nenhuma mensagem fica de fora \u2014 retomar um desses abre uma conversa vazia.',
   'whatsNew.v242.note2':

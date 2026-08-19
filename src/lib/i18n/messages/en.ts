@@ -788,6 +788,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v250.note1':
+    'A mistyped `arco todo` subcommand is refused instead of becoming a task. `arco todo show <id>` did not exist, so the words you typed were taken as a title \u2014 four attempts to read tasks left four tasks named after them, printed nothing and reported success. Any first word that reads as a subcommand is now refused, and so is a lone task id; creating still works with `arco todo add "<title>"` or a plain title of more than one word.',
+  'whatsNew.v250.note2':
+    'Every `arco todo` write now prints what it wrote and fails out loud when it did not. Creating and editing answered nothing at all, so `--ado 22657` rejected for want of the Azure DevOps organization and project in Preferences looked exactly like a link that had been saved \u2014 and the listing you ran afterwards read the file on disk, which could still be showing the state from before your change. The command now waits for the app, prints the resulting task, and says why when the app refuses.',
+  'whatsNew.v250.note3':
+    'New in the terminal: `arco todo show <ref>` prints one task in full \u2014 notes, tags, priority and the linked Azure DevOps card \u2014 and `arco todo delete <ref> --yes` removes one, which is how you clean up a task created by mistake without hunting for the bin in the sidebar. `arco --version` answers instead of hanging, and the command stops reporting that the app is closed while the window is open in front of you. To get the new subcommands through the `arco` shortcut, reinstall it in Preferences \u2192 Integrations \u2192 Terminal command.',
   'whatsNew.v242.note1':
     'The session list names each conversation instead of showing Session 2289fbbc. Every entry used to fall back to its id and claim 20 messages, whichever conversation it was; you now see the title Claude gave it, or the first thing you typed when it has no title yet, plus the real message count. A transcript with no message in it is left out \u2014 resuming one opens an empty conversation.',
   'whatsNew.v242.note2':

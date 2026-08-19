@@ -3,10 +3,21 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { parseTodo, parseTodoEdit, formatTodoTable, statusOf } = require('../../electron/cli.cjs') as {
+const {
+  parseTodo,
+  parseTodoImplicit,
+  parseTodoEdit,
+  formatTodoTable,
+  formatTodoReceipt,
+  formatTodoDetail,
+  statusOf,
+} = require('../../electron/cli.cjs') as {
   parseTodo: (args: string[]) => Record<string, unknown>
+  parseTodoImplicit: (args: string[]) => Record<string, unknown>
   parseTodoEdit: (args: string[]) => Record<string, unknown>
   formatTodoTable: (todos: unknown[]) => string
+  formatTodoReceipt: (verb: string, todo: unknown) => string
+  formatTodoDetail: (todo: unknown, projectName?: string | null) => string
   statusOf: (todo: unknown) => string
 }
 
@@ -142,5 +153,83 @@ describe('formatTodoTable', () => {
 
   it('says so when there is nothing to list', () => {
     expect(formatTodoTable([])).toBe('nenhuma tarefa\n')
+  })
+})
+
+describe('parseTodoImplicit', () => {
+  it('refuses a mistyped subcommand instead of creating a task named after it', () => {
+    expect(() => parseTodoImplicit(['show', '2vaJ6Oop'])).toThrow(/subcomando desconhecido: show/)
+    expect(() => parseTodoImplicit(['delete', 'abc'])).toThrow(/subcomando desconhecido/)
+    expect(() => parseTodoImplicit(['done', 'abc'])).toThrow(/subcomando desconhecido/)
+  })
+
+  it('refuses a lone short id, which is a reference and never a title', () => {
+    expect(() => parseTodoImplicit(['2vaJ6Oop'])).toThrow(/parece o id de uma tarefa/)
+  })
+
+  it('still creates a task from a plain multi-word title', () => {
+    expect(parseTodoImplicit(['revisar', 'PR', '10900', '--tag', 'review'])).toMatchObject({
+      title: 'revisar PR 10900',
+      tags: ['review'],
+    })
+  })
+
+  it('leaves a single word that reads as a title alone', () => {
+    expect(parseTodoImplicit(['deploy'])).toMatchObject({ title: 'deploy' })
+  })
+})
+
+describe('parseTodo', () => {
+  it('refuses an unknown option instead of dragging it into the title', () => {
+    expect(() => parseTodo(['tarefa', '--adoo', '22657'])).toThrow(/opcao desconhecida: --adoo/)
+  })
+})
+
+describe('formatTodoReceipt', () => {
+  it('names what happened, with the id and the resulting status', () => {
+    const receipt = formatTodoReceipt('criada', {
+      id: 'abcdefgh1234',
+      title: 'Fix the parser',
+      tags: ['cli'],
+      status: 'todo',
+    })
+    expect(receipt).toBe('criada  abcdefgh  todo  Fix the parser  #cli\n')
+  })
+})
+
+describe('formatTodoDetail', () => {
+  it('prints the linked card and the notes', () => {
+    const detail = formatTodoDetail(
+      {
+        id: 'abcdefgh1234',
+        title: 'Fix the parser',
+        tags: ['cli'],
+        status: 'todo',
+        notes: 'primeira linha\nsegunda',
+        adoRef: { org: 'EuMedicoResidente', project: 'Plataforma EMR', workItemId: 22657 },
+      },
+      'Arco',
+    )
+    expect(detail).toContain('EuMedicoResidente/Plataforma EMR#22657')
+    expect(detail).toContain('projeto')
+    expect(detail).toContain('Arco')
+    expect(detail).toContain('  primeira linha')
+  })
+
+  it('shows a pull request alongside the work item', () => {
+    const detail = formatTodoDetail({
+      id: 'abcdefgh1234',
+      title: 'PR',
+      tags: [],
+      adoRef: {
+        org: 'EuMedicoResidente',
+        project: 'SOA',
+        workItemId: 22674,
+        prId: 10900,
+        repository: 'SOA',
+      },
+    })
+    expect(detail).toContain('!10900')
+    expect(detail).toContain('(SOA)')
   })
 })

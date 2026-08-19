@@ -62,3 +62,21 @@ export async function cliShimUninstall(): Promise<CliShimStatus> {
 export function listenCliOpenPath(handler: (path: string) => void): Promise<UnlistenFn> {
   return listen<string>(OPEN_PATH_EVENT, (event) => handler(event.payload))
 }
+
+/** What the terminal command prints, and whether it exits 0. */
+export type CliResult = {
+  ok: boolean
+  message?: string
+  data?: unknown
+}
+
+/**
+ * Answers a `/cli/*` request the listener is still holding open.
+ *
+ * The command line waits for this: without it the request times out and the
+ * command fails, which is the point — a write that never reached the store must
+ * not report success.
+ */
+export async function cliReply(requestId: string, result: CliResult): Promise<void> {
+  await invoke('cli_reply', { requestId, result })
+}

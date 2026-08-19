@@ -15,12 +15,16 @@ export const CLI_CONTEXT_PROMPT = [
   'and to review when you hand the work back.',
   '',
   '  arco todo list                      tasks with their short id, status and tags',
-  '  arco todo "<title>" [--tag <tag>] [--status <status>]',
+  '  arco todo show <ref>                one task in full: notes, tags, linked card',
+  '  arco todo add "<title>" [--tag <tag>] [--status <status>]',
   '  arco todo status <ref> <status>     todo | in-progress | review | done',
   '  arco todo edit <ref> [--title <text>] [--add-tag <tag>] [--remove-tag <tag>]',
   '                      [--priority high|normal|low] [--notes <text>]',
+  '  arco todo delete <ref> --yes        removes a task, including one created by mistake',
   '',
   '<ref> is the short id from `arco todo list` or a unique piece of the title.',
+  'Every command prints what it did and fails loudly; an unknown subcommand is',
+  'refused instead of becoming a new task.',
   'Run `arco help` for the full surface. Do not edit the task board any other way.',
 ].join('\n')
 

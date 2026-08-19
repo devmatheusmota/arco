@@ -10,6 +10,38 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-08-19
+
+### Fixed
+
+- `arco todo` no longer turns a mistyped subcommand into a task. `arco todo show <ref>` — a command
+  that did not exist — matched the "create a task from the words you typed" branch, so four attempts
+  to read tasks left four tasks named after them on a real board, printed nothing and exited 0. Any
+  first word that reads as a subcommand is refused now, and so is a lone short id; creating still
+  works through `arco todo add "<title>"` or a plain multi-word title. An unknown option is refused
+  as well, instead of ending up inside the title.
+- Every `arco todo` write now says what it wrote, and fails when it did not write. Creation and
+  editing answered nothing at all and always exited 0, so `--ado <id>` rejected for want of the
+  Azure DevOps defaults looked exactly like a link that had been saved — the only way to know was to
+  run `arco todo list` afterwards, which read the file on disk and could still be showing the state
+  from before the write. Commands now wait for the app, print the resulting task, and exit non-zero
+  with the reason when the app refuses.
+- A bare work item id that cannot be resolved says the organization and the project are missing from
+  Preferences, instead of reporting the number as unrecognized.
+- `arco --version` prints the version instead of hanging until it is killed: the flag matched no
+  subcommand and fell through to opening a window.
+- The command line no longer reports "o app nao esta rodando" while the window is open. The file it
+  reads endpoint and token from lives in the temp directory, and once something replaced or removed
+  it only a restart brought the command back; the app now rewrites it whenever it stops pointing at
+  the running instance.
+
+### Added
+
+- `arco todo show <ref>` prints one task in full — notes, tags, priority, project and the linked
+  Azure DevOps card — instead of forcing a `--json` listing to be read by hand.
+- `arco todo delete <ref>` removes a task from the terminal, with `--yes` for non-interactive
+  callers. Cleaning up a task created by mistake used to mean clicking the bin in the sidebar.
+
 ## [2.4.2] — 2026-08-19
 
 ### Fixed

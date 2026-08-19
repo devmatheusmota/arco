@@ -13,7 +13,8 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
-const SETTINGS_FILE = path.join(os.tmpdir(), 'arco-agent-hooks.json')
+const SETTINGS_FILE =
+  process.env.ARCO_HOOKS_SETTINGS_FILE || path.join(os.tmpdir(), 'arco-agent-hooks.json')
 
 /**
  * Writes and exits without losing the output.
@@ -35,6 +36,7 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
 
   arco                        abre o diretorio atual
   arco <caminho>              abre o diretorio informado
+  arco --version              versao do app
 
   arco session [opcoes]       cria uma sessao de agente
       --agent claude|codex|opencode|shell   (padrao: claude)
@@ -44,11 +46,15 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --worktree              forca worktree nova
       --no-worktree           forca a mesma arvore
 
-  arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
-                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
-                    [--watch]
   arco todo list [--json] [--status <status>]
       lista as tarefas; sem --json sai em tabela com id curto
+
+  arco todo show <ref> [--json]   mostra uma tarefa inteira: notas, tags, card do ADO
+
+  arco todo add <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
+                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
+                    [--watch]
+  arco todo <titulo> [opcoes]     atalho de "add", so para titulo com mais de uma palavra
 
   arco todo edit <ref> [opcoes]   edita uma tarefa existente
       --title <texto>         novo titulo
@@ -66,6 +72,7 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --no-watch              para de acompanhar o card
 
   arco todo status <ref> <status>   atalho para --status
+  arco todo delete <ref> [--yes]    apaga a tarefa; --yes dispensa a confirmacao
 
 <ref> e o id (inteiro ou o prefixo que aparece em "arco todo list") ou um
 trecho do titulo, desde que so uma tarefa corresponda.
@@ -86,6 +93,13 @@ function listener() {
   return { base: hook.url.replace(/\/hook$/, ''), token }
 }
 
+/**
+ * Posts a request and returns what the app did with it.
+ *
+ * The app answers every route with `{ ok, message, data }` after the change has
+ * been applied, so a rejected reference or a task that does not exist arrives
+ * here as an error instead of an empty success.
+ */
 async function post(route, payload) {
   const { base, token } = listener()
   let response
@@ -98,8 +112,69 @@ async function post(route, payload) {
   } catch {
     throw new Error('falha ao falar com o app')
   }
-  if (!response.ok) throw new Error(`o app respondeu ${response.status}`)
-  return response
+  let body = null
+  try {
+    body = await response.json()
+  } catch {}
+  if (body && body.ok === false) throw new Error(body.message || `o app respondeu ${response.status}`)
+  if (!response.ok) throw new Error(body?.message || `o app respondeu ${response.status}`)
+  return body ?? {}
+}
+
+/**
+ * Words that name a subcommand, real or expected.
+ *
+ * `arco todo <titulo>` creates a task, which used to mean that a mistyped
+ * subcommand — `arco todo show abc123` — became a task called "show abc123",
+ * printed nothing and exited 0. Four read commands left four junk tasks on a
+ * real board before anyone noticed. Anything that reads like a verb is refused
+ * instead: creating still works, through `add` or a plain multi-word title.
+ */
+const TODO_SUBCOMMANDS = new Set([
+  'list',
+  'ls',
+  'show',
+  'get',
+  'view',
+  'info',
+  'add',
+  'new',
+  'create',
+  'edit',
+  'update',
+  'set',
+  'status',
+  'delete',
+  'del',
+  'rm',
+  'remove',
+  'done',
+  'complete',
+  'close',
+  'reopen',
+  'open',
+  'start',
+  'move',
+  'tag',
+  'note',
+  'notes',
+  'watch',
+  'unwatch',
+  'help',
+])
+
+/**
+ * Whether a lone word reads as a generated id rather than a title.
+ *
+ * Ids come from nanoid, so they mix cases, digits and `_`/`-` in a way an
+ * ordinary word does not: `nEoxCda2` and `r8rxXKOs` are refused, `deploy` and
+ * `22657` are titles like any other.
+ */
+function looksLikeRef(word) {
+  if (!/^[A-Za-z0-9_-]{6,24}$/.test(word)) return false
+  const mixedCase = /[a-z]/.test(word) && /[A-Z]/.test(word)
+  const lettersAndDigits = /[A-Za-z]/.test(word) && /\d/.test(word)
+  return mixedCase || lettersAndDigits || word.includes('_')
 }
 
 /** Options first, everything else joined as the title — the shim's rules. */
@@ -113,15 +188,19 @@ function parseTodo(args) {
   let adoRefInput = null
   let watch = null
   for (let index = 0; index < args.length; index += 1) {
-    if (args[index] === '--project') project = args[++index]
-    else if (args[index] === '--tag') tags.push(args[++index])
-    else if (args[index] === '--status') status = args[++index]
-    else if (args[index] === '--priority') priority = args[++index]
-    else if (args[index] === '--notes') notes = args[++index]
-    else if (args[index] === '--ado') adoRefInput = args[++index]
-    else if (args[index] === '--watch') watch = true
-    else if (args[index] === '--no-watch') watch = false
-    else words.push(args[index])
+    const arg = args[index]
+    if (arg === '--project') project = args[++index]
+    else if (arg === '--tag') tags.push(args[++index])
+    else if (arg === '--status') status = args[++index]
+    else if (arg === '--priority') priority = args[++index]
+    else if (arg === '--notes') notes = args[++index]
+    else if (arg === '--ado') adoRefInput = args[++index]
+    else if (arg === '--watch') watch = true
+    else if (arg === '--no-watch') watch = false
+    // A mistyped option used to end up inside the title, which is how
+    // `--adoo 22657` became part of a task's name instead of an error.
+    else if (arg.startsWith('--')) throw new Error(`arco todo: opcao desconhecida: ${arg}`)
+    else words.push(arg)
   }
   return {
     title: words.join(' '),
@@ -133,6 +212,33 @@ function parseTodo(args) {
     adoRefInput,
     ...(watch === null ? {} : { watch }),
   }
+}
+
+/**
+ * Guards the implicit `arco todo <titulo>` form.
+ *
+ * Returns the parsed request, or throws with what to type instead. `add` skips
+ * this: naming a task `show` is legitimate when the intent is explicit.
+ */
+function parseTodoImplicit(args) {
+  const first = args[0] ?? ''
+  if (TODO_SUBCOMMANDS.has(first.toLowerCase())) {
+    throw new Error(
+      `arco todo: subcomando desconhecido: ${first}. Use: list | show | add | edit | status | delete`,
+    )
+  }
+  const parsed = parseTodo(args)
+  const words = parsed.title.split(' ').filter(Boolean)
+  // A short title carrying a generated id is a command that went wrong —
+  // `show 2vaJ6Oop`, or the same with the subcommand mistyped. A long title
+  // that happens to quote an id is left alone.
+  const ref = words.length <= 3 ? words.find(looksLikeRef) : undefined
+  if (ref) {
+    throw new Error(
+      `arco todo: "${ref}" parece o id de uma tarefa, nao um titulo. Use "arco todo show ${ref}" para ver, ou "arco todo add ${parsed.title}" para criar mesmo assim`,
+    )
+  }
+  return parsed
 }
 
 /**
@@ -205,6 +311,49 @@ function formatTodoTable(todos) {
     .join('\n')}\n`
 }
 
+/**
+ * One line naming what a write did, so no command exits 0 in silence.
+ *
+ * Creating and editing printed nothing at all, so the only way to know whether
+ * a command took was to run `arco todo list` after it.
+ */
+function formatTodoReceipt(verb, todo) {
+  if (!todo) return `${verb}\n`
+  const id = String(todo.id ?? '').slice(0, 8)
+  const tags = (todo.tags ?? []).map((tag) => `#${tag}`).join(' ')
+  return `${verb}  ${id}  ${STATUS_LABEL[statusOf(todo)]}  ${String(todo.title ?? '')}${
+    tags ? `  ${tags}` : ''
+  }\n`
+}
+
+function formatAdoRef(ref) {
+  if (!ref) return null
+  const parts = [`${ref.org}/${ref.project}`]
+  if (ref.workItemId) parts.push(`#${ref.workItemId}`)
+  if (ref.prId) parts.push(` !${ref.prId}`)
+  if (ref.repository) parts.push(` (${ref.repository})`)
+  return parts.join('')
+}
+
+/** `arco todo show` — everything the sidebar shows about a task, as text. */
+function formatTodoDetail(todo, projectName) {
+  const lines = [
+    ['id', String(todo.id ?? '')],
+    ['titulo', String(todo.title ?? '')],
+    ['status', STATUS_LABEL[statusOf(todo)]],
+    ['prioridade', String(todo.priority ?? 'normal')],
+    ['tags', (todo.tags ?? []).map((tag) => `#${tag}`).join(' ') || '-'],
+    ['projeto', projectName || todo.projectId || '-'],
+    ['ado', formatAdoRef(todo.adoRef) || '-'],
+    ['watch', todo.watch ? 'sim' : 'nao'],
+  ]
+  if (todo.createdAt) lines.push(['criada em', new Date(todo.createdAt).toISOString()])
+  const width = Math.max(...lines.map(([label]) => label.length))
+  const head = lines.map(([label, value]) => `${label.padEnd(width)}  ${value}`).join('\n')
+  const notes = String(todo.notes ?? '').trim()
+  return `${head}\n${notes ? `notas\n${notes.replace(/^/gm, '  ')}\n` : ''}`
+}
+
 function parseSession(args) {
   const payload = { agent: 'claude', cwd: process.cwd(), worktree: 'inherit' }
   for (let index = 0; index < args.length; index += 1) {
@@ -220,52 +369,115 @@ function parseSession(args) {
   return payload
 }
 
+/** Prints whatever the app warned about, without failing the command. */
+function writeWarnings(result) {
+  for (const warning of result?.data?.warnings ?? []) writeErr(`aviso: ${warning}\n`)
+}
+
+/** Confirms a delete. Non-interactive callers pass `--yes`; there is no prompt to answer. */
+async function confirmDelete(todoLine) {
+  if (!process.stdin.isTTY) {
+    throw new Error('arco todo delete: sem terminal interativo, use --yes para confirmar')
+  }
+  const readline = require('node:readline')
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+  const answer = await new Promise((resolve) => {
+    rl.question(`apagar ${todoLine.trim()}? [s/N] `, (value) => resolve(value))
+  })
+  rl.close()
+  return /^(s|sim|y|yes)$/i.test(answer.trim())
+}
+
+async function runTodo(rest) {
+  const [subcommand, ...args] = rest
+
+  if (subcommand === 'list' || subcommand === 'ls') {
+    const wantsJson = args.includes('--json')
+    const statusIndex = args.indexOf('--status')
+    const wantedStatus = statusIndex === -1 ? null : args[statusIndex + 1]
+    const result = await post('todo/list')
+    const todos = result.data?.todos ?? []
+    if (result.stale) writeErr('aviso: o app nao respondeu; lista lida do arquivo em disco\n')
+    const filtered = wantedStatus
+      ? todos.filter((todo) => statusOf(todo) === wantedStatus.replace(/-/g, '_'))
+      : todos
+    writeOut(wantsJson ? `${JSON.stringify(filtered)}\n` : formatTodoTable(filtered))
+    return
+  }
+
+  if (subcommand === 'show' || subcommand === 'get' || subcommand === 'view' || subcommand === 'info') {
+    const ref = args.find((arg) => !arg.startsWith('--'))
+    if (!ref) throw new Error('arco todo show: informe a tarefa (id ou trecho do titulo)')
+    const result = await post('todo/show', { ref })
+    const todo = result.data?.todo
+    if (!todo) throw new Error(`nenhuma tarefa encontrada para "${ref}"`)
+    writeOut(
+      args.includes('--json')
+        ? `${JSON.stringify(todo)}\n`
+        : formatTodoDetail(todo, result.data?.projectName),
+    )
+    return
+  }
+
+  if (subcommand === 'edit') {
+    const result = await post('todo/edit', parseTodoEdit(args))
+    writeOut(formatTodoReceipt('editada', result.data?.todo))
+    writeWarnings(result)
+    return
+  }
+
+  if (subcommand === 'status') {
+    const [ref, status] = args
+    if (!ref || !status) throw new Error('arco todo status: informe a tarefa e o status')
+    const result = await post('todo/edit', { ref, status })
+    writeOut(formatTodoReceipt(status, result.data?.todo))
+    return
+  }
+
+  if (subcommand === 'delete' || subcommand === 'del' || subcommand === 'rm' || subcommand === 'remove') {
+    const ref = args.find((arg) => !arg.startsWith('--'))
+    if (!ref) throw new Error('arco todo delete: informe a tarefa (id ou trecho do titulo)')
+    const found = await post('todo/show', { ref })
+    const todo = found.data?.todo
+    if (!todo) throw new Error(`nenhuma tarefa encontrada para "${ref}"`)
+    const line = formatTodoReceipt('', todo)
+    if (!args.includes('--yes') && !args.includes('-y') && !(await confirmDelete(line))) {
+      writeOut('cancelado\n')
+      return
+    }
+    const result = await post('todo/delete', { ref: todo.id })
+    writeOut(formatTodoReceipt('apagada', result.data?.todo ?? todo))
+    return
+  }
+
+  const isExplicitAdd = subcommand === 'add' || subcommand === 'new' || subcommand === 'create'
+  const parsed = isExplicitAdd ? parseTodo(args) : parseTodoImplicit(rest)
+  if (!parsed.title) throw new Error('arco todo: informe um titulo')
+  const result = await post('todo', {
+    title: parsed.title,
+    tags: parsed.tags,
+    ...(parsed.project ? { project: parsed.project } : {}),
+    ...(parsed.status ? { status: parsed.status } : {}),
+    ...(parsed.priority ? { priority: parsed.priority } : {}),
+    ...(parsed.notes !== null ? { notes: parsed.notes } : {}),
+    ...(parsed.adoRefInput ? { adoRefInput: parsed.adoRefInput } : {}),
+    ...(parsed.watch === undefined ? {} : { watch: parsed.watch }),
+  })
+  writeOut(formatTodoReceipt('criada', result.data?.todo))
+  writeWarnings(result)
+}
+
 async function run(argv) {
   const [command, ...rest] = argv
 
   if (command === 'todo') {
-    if (rest[0] === 'list') {
-      const wantsJson = rest.includes('--json')
-      const statusIndex = rest.indexOf('--status')
-      const wantedStatus = statusIndex === -1 ? null : rest[statusIndex + 1]
-      const response = await post('todo/list')
-      const todos = await response.json()
-      const filtered = wantedStatus
-        ? todos.filter((todo) => statusOf(todo) === wantedStatus.replace(/-/g, '_'))
-        : todos
-      writeOut(wantsJson ? `${JSON.stringify(filtered)}\n` : formatTodoTable(filtered))
-      return
-    }
-
-    if (rest[0] === 'edit') {
-      await post('todo/edit', parseTodoEdit(rest.slice(1)))
-      return
-    }
-
-    if (rest[0] === 'status') {
-      const [, ref, status] = rest
-      if (!ref || !status) throw new Error('arco todo status: informe a tarefa e o status')
-      await post('todo/edit', { ref, status })
-      return
-    }
-
-    const { title, tags, project, status, priority, notes, adoRefInput, watch } = parseTodo(rest)
-    if (!title) throw new Error('arco todo: informe um titulo')
-    await post('todo', {
-      title,
-      tags,
-      ...(project ? { project } : {}),
-      ...(status ? { status } : {}),
-      ...(priority ? { priority } : {}),
-      ...(notes !== null ? { notes } : {}),
-      ...(adoRefInput ? { adoRefInput } : {}),
-      ...(watch === undefined ? {} : { watch }),
-    })
+    await runTodo(rest)
     return
   }
 
   if (command === 'session') {
-    await post('session', parseSession(rest))
+    const result = await post('session', parseSession(rest))
+    writeOut(`${result.message || 'sessao criada'}\n`)
     return
   }
 
@@ -274,6 +486,19 @@ async function run(argv) {
 
 const HANDLED = new Set(['todo', 'session'])
 const HELP = new Set(['--help', '-h', 'help'])
+const VERSION = new Set(['--version', '-v', 'version'])
+
+/** The packaged version, read from Electron when it is up and from the manifest otherwise. */
+function appVersion() {
+  try {
+    return require('electron').app.getVersion()
+  } catch {}
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version
+  } catch {
+    return 'desconhecida'
+  }
+}
 
 /**
  * Finds where the user's arguments start.
@@ -284,7 +509,9 @@ const HELP = new Set(['--help', '-h', 'help'])
  * started. The subcommand is the first word that names one.
  */
 function userArgs(argv) {
-  const start = argv.findIndex((arg) => HANDLED.has(arg) || HELP.has(arg))
+  const start = argv.findIndex(
+    (arg) => HANDLED.has(arg) || HELP.has(arg) || VERSION.has(arg),
+  )
   return start === -1 ? [] : argv.slice(start)
 }
 
@@ -303,6 +530,13 @@ function handleCli(rawArgv, exit = process.exit) {
     exit(0)
     return true
   }
+  // Without this, `arco --version` matched nothing here and fell through to
+  // opening a window: the command hung until it was killed.
+  if (VERSION.has(command)) {
+    writeOut(`arco ${appVersion()}\n`)
+    exit(0)
+    return true
+  }
   if (!HANDLED.has(command)) return false
   run(argv).then(
     () => exit(0),
@@ -314,4 +548,14 @@ function handleCli(rawArgv, exit = process.exit) {
   return true
 }
 
-module.exports = { handleCli, USAGE, parseTodo, parseTodoEdit, formatTodoTable, statusOf }
+module.exports = {
+  handleCli,
+  USAGE,
+  parseTodo,
+  parseTodoImplicit,
+  parseTodoEdit,
+  formatTodoTable,
+  formatTodoReceipt,
+  formatTodoDetail,
+  statusOf,
+}

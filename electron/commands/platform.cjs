@@ -167,11 +167,15 @@ ${SHIM_MARKER}
 #     --no-worktree           forca a mesma arvore
 #                             sem nenhum dos dois, segue o padrao do projeto
 #
-# arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
-#                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
 # arco todo list [--json]     -> lista as tarefas
+# arco todo show <ref>        -> mostra uma tarefa inteira
+# arco todo add <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
+#                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
 # arco todo edit <ref> [--title|--tag|--add-tag|--remove-tag|--status|--ado|...]
 # arco todo status <ref> <status>
+# arco todo delete <ref> [--yes]
+#
+# arco --version              -> versao do app
 #
 # "arco help" lista todas as opcoes.
 #
@@ -182,7 +186,7 @@ set -e
 # Os subcomandos vivem no binario do app: uma implementacao so, que responde
 # igual com ou sem este atalho. Aqui eles sao apenas repassados.
 case "\${1:-}" in
-  session|todo|help|--help|-h)
+  session|todo|help|--help|-h|version|--version|-v)
     exec "${appBinary()}" "$@"
     ;;
 esac
