@@ -69,11 +69,15 @@ jobs:
             label: Windows x64
             targets: --win nsis
             artifacts: windows-x64
-          - os: macos-14
+          - os: macos-15
             label: macOS arm64
             targets: --mac --arm64
             artifacts: macos-arm64
-          - os: macos-13
+          # `macos-13` was retired by GitHub: the label resolves to no runner, so
+          # the job sat queued forever and held the whole run — six releases
+          # piled up behind it before anyone looked. `macos-15-intel` is the
+          # current x64 image.
+          - os: macos-15-intel
             label: macOS x64
             targets: --mac --x64
             artifacts: macos-x64
