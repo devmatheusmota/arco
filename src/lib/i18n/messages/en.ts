@@ -788,6 +788,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v242.note1':
+    'The session list names each conversation instead of showing Session 2289fbbc. Every entry used to fall back to its id and claim 20 messages, whichever conversation it was; you now see the title Claude gave it, or the first thing you typed when it has no title yet, plus the real message count. A transcript with no message in it is left out \u2014 resuming one opens an empty conversation.',
+  'whatsNew.v242.note2':
+    'A pane whose session was deleted from disk comes back to your newest real conversation instead of opening an empty one. Deleting transcripts \u2014 or removing a worktree \u2014 used to leave the pane pointing at nothing, and it then started a fresh session and saved that id over the pointer, putting the conversation it was in out of reach.',
   'whatsNew.v241.note1':
     'A pane no longer comes back showing a /security-review instead of your conversation. Those runs are written to the same folder as the pane\u2019s own session, and the watcher that decides which conversation a pane started could adopt one of them \u2014 so the work you were doing looked lost after a restart. Only a conversation someone typed is adopted now, and a pane already pointing at one of those runs returns to its newest real conversation on its own.',
   'whatsNew.v240.note1':

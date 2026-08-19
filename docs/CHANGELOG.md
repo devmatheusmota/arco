@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.4.2] — 2026-08-19
+
 ### Fixed
 
 - A pane whose session was deleted from disk comes back to its newest real conversation instead of

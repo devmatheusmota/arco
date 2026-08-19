@@ -799,6 +799,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v242.note1':
+    'A lista de sess\u00f5es mostra o nome de cada conversa no lugar de Session 2289fbbc. Antes toda entrada caía para o id e dizia 20 mensagens, fosse qual fosse a conversa; agora aparece o t\u00edtulo que o Claude deu a ela, ou a primeira coisa que voc\u00ea digitou quando ainda n\u00e3o h\u00e1 t\u00edtulo, mais a contagem real de mensagens. Transcript sem nenhuma mensagem fica de fora \u2014 retomar um desses abre uma conversa vazia.',
+  'whatsNew.v242.note2':
+    'Uma pane cuja sess\u00e3o foi apagada do disco volta para a sua conversa real mais recente em vez de abrir uma vazia. Apagar transcripts \u2014 ou remover uma worktree \u2014 deixava a pane apontando para nada, e a\u00ed ela come\u00e7ava uma sess\u00e3o nova e gravava esse id por cima do ponteiro, deixando a conversa em que ela estava fora de alcance.',
   'whatsNew.v241.note1':
     'Uma pane deixa de voltar mostrando um /security-review no lugar da sua conversa. Essas execu\u00e7\u00f5es s\u00e3o gravadas na mesma pasta da sess\u00e3o da pane, e o vigia que decide qual conversa a pane come\u00e7ou podia adotar uma delas \u2014 e a\u00ed o trabalho que voc\u00ea estava fazendo parecia perdido depois de reabrir. Agora s\u00f3 conversa digitada por algu\u00e9m \u00e9 adotada, e uma pane que j\u00e1 apontava para uma dessas execu\u00e7\u00f5es volta sozinha para a conversa real mais recente.',
   'whatsNew.v240.note1':
