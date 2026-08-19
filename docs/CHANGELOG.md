@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.3.0] — 2026-08-19
+
 ### Added
 
 - The watcher can be turned on from the command line: `--watch` on `arco todo` and on

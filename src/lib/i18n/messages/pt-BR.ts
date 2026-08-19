@@ -799,6 +799,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v230.note1':
+    'Um pane podia voltar mostrando uma conversa que você nunca teve. Quando a sessão apontada não tinha transcript, ele caía para a mais recente daquela pasta — e execuções automáticas como /security-review são gravadas na mesma pasta e costumam ser o arquivo mais novo. Agora só conversas que alguém digitou entram nessa conta.',
+  'whatsNew.v230.note2':
+    'Um pane cuja pasta sumiu reabre na pasta acima dela, não na sua home. Worktree de agente removida com o pane aberto mandava ele para um projeto sem relação, onde o agente não achava nenhuma sessão dele.',
+  'whatsNew.v230.note3':
+    '`arco todo --watch` e `arco todo edit <ref> --watch` ligam o watcher do Azure DevOps pela linha de comando — o mesmo ícone de olho do cartão, sem o clique. `--no-watch` desliga. Reinstale o comando de terminal em Preferências > Integrações para a flag nova existir.',
   'whatsNew.v221.note1':
     'Este diálogo estava parado na 2.1.1 enquanto o app já rodava a 2.2.0 — as duas versões no meio nunca ganharam entrada, então a atualização parecia não ter chegado. As duas estão listadas agora, e não dá mais para cortar uma versão sem entrada aqui.',
   'whatsNew.v220.note1':

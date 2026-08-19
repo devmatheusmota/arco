@@ -788,6 +788,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v230.note1':
+    'A pane could come back showing a conversation you never had. When the session it pointed at had no transcript, it fell back to the newest one in that folder — and automated runs like /security-review are written to the same folder and are usually the newest file there. Only conversations someone typed are eligible now.',
+  'whatsNew.v230.note2':
+    'A pane whose folder is gone reopens in the folder above it instead of your home directory. An agent worktree removed while the pane was open used to send it to an unrelated project, where its agent found none of its own sessions.',
+  'whatsNew.v230.note3':
+    '`arco todo --watch` and `arco todo edit <ref> --watch` turn the Azure DevOps watcher on from the command line — the same eye icon on the card, without the click. `--no-watch` turns it off. Reinstall the terminal command under Preferences > Integrations for the new flag to exist.',
   'whatsNew.v221.note1':
     'This dialog was stuck on 2.1.1 while the app was already running 2.2.0 — the two releases in between never got an entry, so the update looked like it had never arrived. Both are listed now, and a release can no longer be cut without one.',
   'whatsNew.v220.note1':
