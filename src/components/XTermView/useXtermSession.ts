@@ -4,12 +4,13 @@ import { SearchAddon } from '@xterm/addon-search'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { Terminal } from '@xterm/xterm'
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import { recordAgentActivityInput } from '../../lib/activityTracker'
 import { cliPathMatchesAgent } from '../../lib/agentCliPath'
 import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
 import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { buildCliContextArgs } from '../../lib/cliContext'
 import { getLocale, translate } from '../../lib/i18n'
 import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
 import { measure } from '../../lib/mainThreadBudget'
@@ -23,7 +24,6 @@ import {
   planResume,
   registerSessionClaim,
 } from '../../lib/sessionDiscovery'
-import { buildCliContextArgs } from '../../lib/cliContext'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import {
   peekSession,
@@ -269,6 +269,39 @@ export function useXtermSession(params: {
   /** Writes what the pane missed while hidden; false when only a full resync can recover it. */
   const flushHiddenBacklogRef = useRef<(() => boolean) | null>(null)
   const rendererRef = useRef<TerminalRenderer | null>(null)
+  /** Set while an attach is still waiting for the pane to have a size. */
+  const cancelRendererAttachRef = useRef<(() => void) | null>(null)
+
+  /**
+   * The only way a pane gets its renderer.
+   *
+   * Two call sites race on mount — the open path and the visibility effect, which
+   * run on the same commit — and the attach settles a frame later, so a plain
+   * `rendererRef.current` check lets both through. A second `WebglAddon` on the
+   * same terminal disposes the first, and that disposal drops the terminal from
+   * the texture atlas the whole workspace shares, leaving a live renderer
+   * drawing from an atlas that no longer counts it.
+   */
+  const attachRenderer = useCallback((terminal: Terminal, host: HTMLElement) => {
+    if (rendererRef.current || cancelRendererAttachRef.current) return
+    cancelRendererAttachRef.current = attachTerminalRendererWhenSized(
+      terminal,
+      host,
+      (renderer) => {
+        cancelRendererAttachRef.current = null
+        rendererRef.current = renderer
+      },
+      // A lost context disposes the addon behind our back; forgetting it here is
+      // what lets the next visibility change attach a working one.
+      { onContextLoss: () => void (rendererRef.current = null) },
+    )
+  }, [])
+
+  const releaseRenderer = useCallback(() => {
+    cancelRendererAttachRef.current?.()
+    cancelRendererAttachRef.current = null
+    rendererRef.current = detachTerminalRenderer(rendererRef.current)
+  }, [])
 
   useEffect(() => {
     const container = containerRef.current
@@ -307,6 +340,14 @@ export function useXtermSession(params: {
     let lastCols = 0
     let lastRows = 0
     let forceNextResize = false
+    /** Resolves once the backend has been told about the latest geometry. */
+    let pendingPtyResize: Promise<unknown> | null = null
+    /**
+     * Set while raw scrollback is being parsed. Fitting mid-replay reflows a
+     * buffer the parser is still filling, which is what interleaves characters
+     * from different moments on one line.
+     */
+    let replayInFlight = false
     let completionMonitor: AgentCompletionMonitor | null = null
     let linkProviderDisposable: { dispose: () => void } | null = null
     let linkScrollDisposable: { dispose: () => void } | null = null
@@ -348,7 +389,6 @@ export function useXtermSession(params: {
     // wait forever: a hidden window gets no animation frames, and a pane that
     // never opens shows "Preparing terminal…" for good. Hence a size observer
     // plus a deadline, and the open happens on whichever comes first.
-    let cancelRendererAttach: (() => void) | null = null
     let openObserver: ResizeObserver | null = null
     let openDeadline: number | null = null
     let opened = false
@@ -362,11 +402,7 @@ export function useXtermSession(params: {
         openDeadline = null
       }
       terminal.open(container)
-      if (isPanelVisibleRef.current) {
-        cancelRendererAttach = attachTerminalRendererWhenSized(terminal, container, (renderer) => {
-          rendererRef.current = renderer
-        })
-      }
+      if (isPanelVisibleRef.current) attachRenderer(terminal, container)
       terminal.focus()
       void start()
     }
@@ -815,8 +851,10 @@ export function useXtermSession(params: {
 
     const runResize = () => {
       resizeTimer = null
-      const id = ptyIdRef.current
-      if (!id) return
+      if (replayInFlight) {
+        scheduleResize(forceNextResize)
+        return
+      }
 
       const rect = container.getBoundingClientRect()
       if (rect.width < 50 || rect.height < 30) return
@@ -857,18 +895,46 @@ export function useXtermSession(params: {
       if (!force && terminal.cols === lastCols && terminal.rows === lastRows) return
       lastCols = terminal.cols
       lastRows = terminal.rows
+      // Before the spawn there is nothing to tell: the process is created with
+      // the geometry this fit just settled.
+      const id = ptyIdRef.current
+      if (!id) return
       if (import.meta.env.DEV) {
         console.debug(`[pty-debug] ${id}: fit() -> resizePty ${terminal.cols}x${terminal.rows}`)
       }
-      void resizePty(id, terminal.cols, terminal.rows)
+      pendingPtyResize = resizePty(id, terminal.cols, terminal.rows).catch(() => {})
     }
     const scheduleResize = (force = false) => {
-      // Guard de unmount: neutraliza os setTimeout(120/320ms) de onResizeRequest
-
+      // Unmount guard: neutralises the 120/320ms timers onResizeRequest arms.
       if (disposed) return
       forceNextResize ||= force
       if (resizeTimer !== null) window.clearTimeout(resizeTimer)
       resizeTimer = window.setTimeout(runResize, 80)
+    }
+
+    /**
+     * Fits now and waits for the backend to have the new geometry.
+     *
+     * Anything that replays recorded bytes has to go through this first. The
+     * scrollback holds relative repaints — cursor-up, erase-line — emitted under
+     * whatever size the pane had when they were recorded; running them against a
+     * terminal of a different width, or against a PTY that still believes in the
+     * old one, is what leaves the agent and the screen disagreeing.
+     */
+    const flushResizeToPty = async () => {
+      if (disposed) return
+      if (resizeTimer !== null) {
+        window.clearTimeout(resizeTimer)
+        resizeTimer = null
+      }
+      // Forced: the fit that ran before the PTY existed already left lastCols and
+      // lastRows at the current size, so the plain path would decide there was
+      // nothing to send — and an attached process would keep the geometry it had.
+      forceNextResize = true
+      runResize()
+      try {
+        await pendingPtyResize
+      } catch {}
     }
     const scheduleObservedResize = () => scheduleResize()
     const onResizeRequest = (event: Event) => {
@@ -927,22 +993,32 @@ export function useXtermSession(params: {
       const id = ptyIdRef.current
       if (!id || disposed) return
       try {
+        // Settle the geometry before asking for the bytes, so the replay lands
+        // in a terminal the backend already agrees with.
+        await flushResizeToPty()
+        if (disposed) return
         const arrivedDuringFetch: string[] = []
         resyncCaptureRef = arrivedDuringFetch
         const replay = await attachPty(id)
         resyncCaptureRef = null
         if (disposed) return
-        terminal.reset()
-        pendingWrites = []
-        pendingWriteLength = 0
-        cancelWriteFlush()
-        if (replay) void writeReplayAtOnce(replay)
-        // The host appends to its scrollback before it emits, so part of what
-        // arrived during the fetch is already inside the replay.
-        const pending = dropReplayOverlap(replay, arrivedDuringFetch.join(''))
-        if (pending) queueTerminalWrite(pending)
+        replayInFlight = true
+        try {
+          terminal.reset()
+          pendingWrites = []
+          pendingWriteLength = 0
+          cancelWriteFlush()
+          if (replay) await writeReplayAtOnce(replay)
+          // The host appends to its scrollback before it emits, so part of what
+          // arrived during the fetch is already inside the replay.
+          const pending = dropReplayOverlap(replay, arrivedDuringFetch.join(''))
+          if (pending) queueTerminalWrite(pending)
+        } finally {
+          replayInFlight = false
+        }
       } catch {
         resyncCaptureRef = null
+        replayInFlight = false
       }
     }
     resyncTerminalRef.current = doResync
@@ -1008,12 +1084,21 @@ export function useXtermSession(params: {
         })
       }
 
-      // gastar o burst de write mais pesado (TUIs como o OpenCode) enquanto
-
       if (isPanelVisibleRef.current) {
+        // The backend has to agree with the pane before the recorded bytes are
+        // written, or the repaints in them land against the wrong geometry.
+        await flushResizeToPty()
+        if (disposed) return
         const replay = await attachPty(existingId)
         if (disposed) return
-        if (replay) await writeReplayAtOnce(replay)
+        if (replay) {
+          replayInFlight = true
+          try {
+            await writeReplayAtOnce(replay)
+          } finally {
+            replayInFlight = false
+          }
+        }
         if (disposed) return
       }
 
@@ -1089,11 +1174,11 @@ export function useXtermSession(params: {
 
     async function start() {
       try {
-        // Skip zero-sized panes; the observer retries after layout settles.
-        try {
-          const rect = container?.getBoundingClientRect()
-          if (rect && rect.width >= 50 && rect.height >= 30) fitAddon.fit()
-        } catch {}
+        // Settle the geometry first: a spawn is created with terminal.cols/rows,
+        // and an attach replays bytes recorded under some other width. Zero-sized
+        // panes are skipped inside runResize; the observer retries after layout.
+        await flushResizeToPty()
+        if (disposed) return
         setCommandNotFound(null)
         setBootPhase('preparing')
 
@@ -1711,8 +1796,7 @@ export function useXtermSession(params: {
       setLinkActions(null)
       openObserver?.disconnect()
       if (openDeadline !== null) window.clearTimeout(openDeadline)
-      cancelRendererAttach?.()
-      rendererRef.current = detachTerminalRenderer(rendererRef.current)
+      releaseRenderer()
       if (terminalRef.current === terminal) terminalRef.current = null
       ptyIdRef.current = null
       if (resyncTerminalRef.current === doResync) resyncTerminalRef.current = null
@@ -1727,26 +1811,22 @@ export function useXtermSession(params: {
     const wasVisible = wasPanelVisibleRef.current
     wasPanelVisibleRef.current = isPanelVisible
 
+    // The first run is the mount, where the open path already attaches the
+    // renderer as soon as the container has a size. Touching it here too is what
+    // used to load a second addon onto the same terminal.
+    if (isFirstVisibilityRunRef.current) {
+      isFirstVisibilityRunRef.current = false
+      return
+    }
+
     // The GPU context follows visibility, so a workspace only ever holds as many
     // as it shows. A hidden pane renders nothing; keeping its context alive just
     // pushes a visible pane past the WebView's limit.
     const terminal = terminalRef.current
     if (terminal) {
-      if (isPanelVisible && !rendererRef.current) {
-        const host = containerRef.current
-        if (host) {
-          attachTerminalRendererWhenSized(terminal, host, (renderer) => {
-            rendererRef.current = renderer
-          })
-        }
-      } else if (!isPanelVisible && rendererRef.current) {
-        rendererRef.current = detachTerminalRenderer(rendererRef.current)
-      }
-    }
-
-    if (isFirstVisibilityRunRef.current) {
-      isFirstVisibilityRunRef.current = false
-      return
+      const host = containerRef.current
+      if (isPanelVisible && host) attachRenderer(terminal, host)
+      else if (!isPanelVisible) releaseRenderer()
     }
 
     let cancelled = false
@@ -1777,5 +1857,5 @@ export function useXtermSession(params: {
       cancelled = true
       if (resyncTimer !== null) window.clearTimeout(resyncTimer)
     }
-  }, [ptyId, isPanelVisible])
+  }, [ptyId, isPanelVisible, attachRenderer, releaseRenderer])
 }

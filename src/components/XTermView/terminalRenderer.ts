@@ -50,8 +50,17 @@ function rendererOverride(): TerminalRendererKind | null {
   return value === 'canvas' || value === 'dom' || value === 'webgl' ? value : null
 }
 
-/** Attaches the fastest renderer this WebView can provide. */
-export function attachTerminalRenderer(terminal: Terminal): TerminalRenderer {
+/**
+ * Attaches the fastest renderer this WebView can provide.
+ *
+ * `onContextLoss` runs after the addon is dropped, so the caller can forget the
+ * renderer it is holding: the addon is dead, and only a fresh attach brings
+ * acceleration back.
+ */
+export function attachTerminalRenderer(
+  terminal: Terminal,
+  onContextLoss?: () => void,
+): TerminalRenderer {
   const override = rendererOverride()
   if (override === 'dom') {
     reportRenderer('dom', 'forced by ARCO_TERMINAL_RENDERER')
@@ -75,6 +84,7 @@ export function attachTerminalRenderer(terminal: Terminal): TerminalRenderer {
       try {
         addon.dispose()
       } catch {}
+      onContextLoss?.()
     })
     terminal.loadAddon(addon)
     reportRenderer('webgl')
@@ -110,26 +120,36 @@ export function detachTerminalRenderer(renderer: TerminalRenderer | null): null 
  * pane mounted into a container that has not been laid out yet has none —
  * Chromium throws on it where WebKit happened to tolerate it. Retrying on the
  * next frames costs nothing and removes the race.
+ *
+ * `onSettled` always runs exactly once unless the attach is cancelled: with the
+ * renderer, or with `null` when the pane never got a size. Attaching anyway
+ * would bind a GPU context to a 0x0 terminal, which draws nothing and still
+ * counts against the WebView's context limit.
  */
 export function attachTerminalRendererWhenSized(
   terminal: Terminal,
   container: HTMLElement,
-  onAttached: (renderer: TerminalRenderer) => void,
-  attemptsLeft = 30,
+  onSettled: (renderer: TerminalRenderer | null) => void,
+  options?: { attempts?: number; onContextLoss?: () => void },
 ): () => void {
   let cancelled = false
   let frame = 0
+  let attemptsLeft = options?.attempts ?? 30
 
   const tryAttach = () => {
     if (cancelled) return
     const rect = container.getBoundingClientRect()
     const ready = rect.width > 0 && rect.height > 0 && terminal.element
-    if (!ready && attemptsLeft > 0) {
-      attemptsLeft -= 1
-      frame = requestAnimationFrame(tryAttach)
+    if (!ready) {
+      if (attemptsLeft > 0) {
+        attemptsLeft -= 1
+        frame = requestAnimationFrame(tryAttach)
+        return
+      }
+      onSettled(null)
       return
     }
-    onAttached(attachTerminalRenderer(terminal))
+    onSettled(attachTerminalRenderer(terminal, options?.onContextLoss))
   }
 
   frame = requestAnimationFrame(tryAttach)

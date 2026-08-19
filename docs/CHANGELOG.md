@@ -10,6 +10,22 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A terminal no longer comes back with its text scrambled — characters from different moments landed
+  interleaved on one line, and columns drifted out of alignment. A pane that reopens replays the
+  output recorded on disk, but that output is relative repaints an agent emitted under whatever width
+  the pane had at the time. The replay ran before the pane had been fitted and before the process on
+  the other end had been told the new size, so it was re-run against a geometry nobody agreed on;
+  with three or more panes open the widths differ enough for it to show every time. Geometry is now
+  settled — and acknowledged by the process — before a single recorded byte is written, and a resize
+  can no longer land in the middle of a replay that is still being parsed.
+- A pane no longer loads a second GPU renderer over the first. Two paths attached one on mount, and
+  the second disposed the first, which dropped that terminal from the texture atlas every pane in the
+  workspace shares while its renderer was still drawing from it. A pane that loses its GPU context
+  also gets a working renderer back on the next switch instead of staying on the slow fallback for
+  good, and a pane that never gets a size no longer takes a GPU context it cannot draw with.
+
 ## [2.5.0] — 2026-08-19
 
 ### Fixed
