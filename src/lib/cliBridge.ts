@@ -33,6 +33,7 @@ type TodoRequest = {
   status?: string
   /** Raw string handed by the CLI; parsed here against the ADO defaults. */
   adoRefInput?: string
+  watch?: boolean
 }
 
 /** `arco todo edit` — every field is optional, and only what is present changes. */
@@ -49,6 +50,7 @@ type TodoEditRequest = {
   project?: string
   adoRefInput?: string
   clearAdoRef?: boolean
+  watch?: boolean
 }
 
 /** Reads the ADO defaults saved in Preferences, used to resolve short ids like `#22447`. */
@@ -150,12 +152,31 @@ function handleTodo(request: TodoRequest) {
     reportProblem(`Referência ADO não reconhecida: ${request.adoRefInput}`)
   }
   const store = useProjectsStore.getState()
-  store.createTodo(title, request.tags ?? [], resolveProjectId(request) ?? undefined, {
+  const todo = store.createTodo(title, request.tags ?? [], resolveProjectId(request) ?? undefined, {
     notes: request.notes,
     priority: request.priority,
     ...(status ? { status } : {}),
     ...(adoRef ? { adoRef } : {}),
   })
+  if (todo && request.watch !== undefined) {
+    store.setTodoWatch(todo.id, request.watch)
+    if (request.watch) warnIdleWatcher(Boolean(adoRef))
+  }
+}
+
+/**
+ * A task can be marked as watched before anything can act on it — the watcher
+ * needs both a linked card and a PAT. Saying so at the call site is what keeps
+ * `--watch` from looking like it worked while nothing polls.
+ */
+function warnIdleWatcher(hasAdoRef: boolean): void {
+  if (!hasAdoRef) {
+    reportProblem('Acompanhamento ligado, mas a tarefa não tem card do ADO: nada será consultado.')
+    return
+  }
+  if (!useProjectsStore.getState().preferences.adoPat.trim()) {
+    reportProblem('Acompanhamento ligado, mas falta o PAT do Azure DevOps em Preferências.')
+  }
 }
 
 /**
@@ -198,12 +219,21 @@ function handleTodoEdit(request: TodoEditRequest) {
   if (request.project !== undefined) {
     store.setTodoProject(todo.id, request.project ? resolveProjectId(request) : null)
   }
+  let linked = Boolean(todo.adoRef)
   if (request.clearAdoRef) {
     store.setTodoAdoRef(todo.id, null)
+    linked = false
   } else if (request.adoRefInput) {
     const ref = resolveAdoRef(request.adoRefInput)
     if (!ref) reportProblem(`Referência ADO não reconhecida: ${request.adoRefInput}`)
-    else store.setTodoAdoRef(todo.id, ref, 'merge')
+    else {
+      store.setTodoAdoRef(todo.id, ref, 'merge')
+      linked = true
+    }
+  }
+  if (request.watch !== undefined) {
+    store.setTodoWatch(todo.id, request.watch)
+    if (request.watch) warnIdleWatcher(linked)
   }
 
   const tags = nextTags(todo.tags, request)

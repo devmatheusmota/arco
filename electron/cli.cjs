@@ -46,6 +46,7 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
 
   arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
                     [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
+                    [--watch]
   arco todo list [--json] [--status <status>]
       lista as tarefas; sem --json sai em tabela com id curto
 
@@ -61,6 +62,8 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --project <nome>        move a tarefa de projeto
       --ado <url|id>          liga a um work item ou PR do Azure DevOps
       --clear-ado             remove a ligacao com o Azure DevOps
+      --watch                 acompanha o card no Azure DevOps (exige --ado e PAT)
+      --no-watch              para de acompanhar o card
 
   arco todo status <ref> <status>   atalho para --status
 
@@ -108,6 +111,7 @@ function parseTodo(args) {
   let priority = null
   let notes = null
   let adoRefInput = null
+  let watch = null
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--project') project = args[++index]
     else if (args[index] === '--tag') tags.push(args[++index])
@@ -115,6 +119,8 @@ function parseTodo(args) {
     else if (args[index] === '--priority') priority = args[++index]
     else if (args[index] === '--notes') notes = args[++index]
     else if (args[index] === '--ado') adoRefInput = args[++index]
+    else if (args[index] === '--watch') watch = true
+    else if (args[index] === '--no-watch') watch = false
     else words.push(args[index])
   }
   return {
@@ -125,6 +131,7 @@ function parseTodo(args) {
     priority,
     notes,
     adoRefInput,
+    ...(watch === null ? {} : { watch }),
   }
 }
 
@@ -154,6 +161,8 @@ function parseTodoEdit(args) {
     else if (flag === '--project') payload.project = rest[++index]
     else if (flag === '--ado') payload.adoRefInput = rest[++index]
     else if (flag === '--clear-ado') payload.clearAdoRef = true
+    else if (flag === '--watch') payload.watch = true
+    else if (flag === '--no-watch') payload.watch = false
     else throw new Error(`arco todo edit: opcao desconhecida: ${flag}`)
   }
   if (!payload.ref) throw new Error('arco todo edit: informe a tarefa (id ou trecho do titulo)')
@@ -240,7 +249,7 @@ async function run(argv) {
       return
     }
 
-    const { title, tags, project, status, priority, notes, adoRefInput } = parseTodo(rest)
+    const { title, tags, project, status, priority, notes, adoRefInput, watch } = parseTodo(rest)
     if (!title) throw new Error('arco todo: informe um titulo')
     await post('todo', {
       title,
@@ -250,6 +259,7 @@ async function run(argv) {
       ...(priority ? { priority } : {}),
       ...(notes !== null ? { notes } : {}),
       ...(adoRefInput ? { adoRefInput } : {}),
+      ...(watch === undefined ? {} : { watch }),
     })
     return
   }

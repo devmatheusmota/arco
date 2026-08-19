@@ -40,6 +40,17 @@ describe('parseTodo', () => {
     })
   })
 
+  it('reads --watch as a flag and keeps the word out of the title', () => {
+    expect(parseTodo(['revisar', 'PR', '10893', '--watch'])).toMatchObject({
+      title: 'revisar PR 10893',
+      watch: true,
+    })
+  })
+
+  it('omits watch entirely when neither flag appears', () => {
+    expect(parseTodo(['revisar', 'PR'])).not.toHaveProperty('watch')
+  })
+
   it('captures --ado as a raw string, leaving parsing to the app side', () => {
     const parsed = parseTodo([
       '22447',
@@ -73,6 +84,11 @@ describe('parseTodoEdit with the ADO flags', () => {
       ref: 'abc',
       appendNotes: 'PM respondeu.',
     })
+  })
+
+  it('turns the watcher on and off as a boolean, never as a title word', () => {
+    expect(parseTodoEdit(['abc', '--watch'])).toEqual({ ref: 'abc', watch: true })
+    expect(parseTodoEdit(['abc', '--no-watch'])).toEqual({ ref: 'abc', watch: false })
   })
 })
 
