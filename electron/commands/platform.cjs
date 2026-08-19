@@ -168,6 +168,7 @@ ${SHIM_MARKER}
 #                             sem nenhum dos dois, segue o padrao do projeto
 #
 # arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
+#                    [--priority <nivel>] [--notes <texto>]
 # arco todo list [--json]     -> lista as tarefas
 # arco todo edit <ref> [--title|--tag|--add-tag|--remove-tag|--status|...]
 # arco todo status <ref> <status>

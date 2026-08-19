@@ -10,6 +10,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- `arco todo "<title>" --notes "..."` (and `--priority`) actually attaches the notes and priority
+  instead of pasting the flag names into the task title. The shim parser did not know about the two
+  flags, so every word after them was folded into the title and the fields never reached the store —
+  and a task started from the row opened its session without the context the notes carry.
+
 ### Changed
 
 - A release publishes as soon as the Linux build finishes, instead of waiting for every platform,

@@ -45,6 +45,7 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --no-worktree           forca a mesma arvore
 
   arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
+                    [--priority <nivel>] [--notes <texto>]
   arco todo list [--json] [--status <status>]
       lista as tarefas; sem --json sai em tabela com id curto
 
@@ -101,13 +102,17 @@ function parseTodo(args) {
   const words = []
   let project = null
   let status = null
+  let priority = null
+  let notes = null
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--project') project = args[++index]
     else if (args[index] === '--tag') tags.push(args[++index])
     else if (args[index] === '--status') status = args[++index]
+    else if (args[index] === '--priority') priority = args[++index]
+    else if (args[index] === '--notes') notes = args[++index]
     else words.push(args[index])
   }
-  return { title: words.join(' '), tags: tags.filter(Boolean), project, status }
+  return { title: words.join(' '), tags: tags.filter(Boolean), project, status, priority, notes }
 }
 
 /**
@@ -219,13 +224,15 @@ async function run(argv) {
       return
     }
 
-    const { title, tags, project, status } = parseTodo(rest)
+    const { title, tags, project, status, priority, notes } = parseTodo(rest)
     if (!title) throw new Error('arco todo: informe um titulo')
     await post('todo', {
       title,
       tags,
       ...(project ? { project } : {}),
       ...(status ? { status } : {}),
+      ...(priority ? { priority } : {}),
+      ...(notes !== null ? { notes } : {}),
     })
     return
   }
@@ -280,4 +287,4 @@ function handleCli(rawArgv, exit = process.exit) {
   return true
 }
 
-module.exports = { handleCli, USAGE, parseTodoEdit, formatTodoTable, statusOf }
+module.exports = { handleCli, USAGE, parseTodo, parseTodoEdit, formatTodoTable, statusOf }

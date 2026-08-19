@@ -3,11 +3,43 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { parseTodoEdit, formatTodoTable, statusOf } = require('../../electron/cli.cjs') as {
+const { parseTodo, parseTodoEdit, formatTodoTable, statusOf } = require('../../electron/cli.cjs') as {
+  parseTodo: (args: string[]) => Record<string, unknown>
   parseTodoEdit: (args: string[]) => Record<string, unknown>
   formatTodoTable: (todos: unknown[]) => string
   statusOf: (todo: unknown) => string
 }
+
+describe('parseTodo', () => {
+  it('joins loose words into the title', () => {
+    expect(parseTodo(['fix', 'the', 'parser'])).toMatchObject({
+      title: 'fix the parser',
+      tags: [],
+    })
+  })
+
+  it('reads --notes and --priority instead of dragging them into the title', () => {
+    const parsed = parseTodo([
+      'ship',
+      '2.1.2',
+      '--tag',
+      'release',
+      '--status',
+      'todo',
+      '--priority',
+      'high',
+      '--notes',
+      'context for the session',
+    ])
+    expect(parsed).toMatchObject({
+      title: 'ship 2.1.2',
+      tags: ['release'],
+      status: 'todo',
+      priority: 'high',
+      notes: 'context for the session',
+    })
+  })
+})
 
 describe('parseTodoEdit', () => {
   it('sends only the fields the command line mentioned', () => {
