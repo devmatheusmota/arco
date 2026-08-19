@@ -10,6 +10,24 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A pane whose session was deleted from disk comes back to its newest real conversation instead of
+  opening an empty one. Repairing a pointer that named an automated run already worked, but only
+  while that run's transcript still existed — deleting the transcripts left the panes with a pointer
+  to nothing, and a pane in that state started a new session and saved its id over the pointer, so
+  the conversation it was in became unreachable from the pane. Every unusable pointer now takes the
+  same route: gone from disk, never written, or written by an automated run.
+
+### Changed
+
+- The session list shows the name of each conversation instead of `Session 2289fbbc`. The Electron
+  build never filled in the title, so every entry fell back to its id and the message count stopped
+  at 20 for everything; the list now reads the title Claude gave the conversation, falls back to the
+  first prompt someone typed, and counts every message. A transcript that holds a header and no
+  message — the CLI recreating a file that was deleted — is left out, since resuming it opens an
+  empty conversation.
+
 ## [2.4.1] — 2026-08-19
 
 ### Fixed
