@@ -123,9 +123,7 @@ export function mergeAdoRef(base: AdoRef | undefined, next: AdoRef): AdoRef {
     ...(next.repository || base.repository
       ? { repository: next.repository ?? base.repository }
       : {}),
-    ...(next.prProject || base.prProject
-      ? { prProject: next.prProject ?? base.prProject }
-      : {}),
+    ...(next.prProject || base.prProject ? { prProject: next.prProject ?? base.prProject } : {}),
   }
 }
 

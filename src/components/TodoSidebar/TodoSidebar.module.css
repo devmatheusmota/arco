@@ -862,7 +862,9 @@
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  transition: color 120ms ease, border-color 120ms ease;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
 }
 
 .adoChip:hover,

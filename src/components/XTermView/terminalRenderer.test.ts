@@ -20,9 +20,8 @@ vi.mock('@xterm/addon-webgl', () => ({ WebglAddon: FakeWebglAddon }))
 vi.mock('@xterm/addon-canvas', () => ({ CanvasAddon: class {} }))
 vi.mock('../../lib/tauri', () => ({ recordAppEvent: vi.fn(() => Promise.resolve()) }))
 
-const { attachTerminalRenderer, attachTerminalRendererWhenSized } = await import(
-  './terminalRenderer'
-)
+const { attachTerminalRenderer, attachTerminalRendererWhenSized } =
+  await import('./terminalRenderer')
 
 function fakeTerminal(): Terminal {
   return { loadAddon: vi.fn(), element: document.createElement('div') } as unknown as Terminal

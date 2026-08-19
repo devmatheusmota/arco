@@ -24,7 +24,6 @@ import {
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
 
-
 type WorkspaceSliceCtx = SliceCtx & {
   navigationUpdate: (mutator: (state: ProjectsState) => Partial<ProjectsState> | void) => void
   makeSnapshot: (
@@ -186,9 +185,7 @@ export function createWorkspaceSlice({
         const existing = state.workspace.tabs.find(
           (tab) => tab.kind === 'project' && tab.projectId === projectId,
         )
-        const tab =
-          existing ??
-          projectTab(state, project, state.workspace.tabs, Date.now())
+        const tab = existing ?? projectTab(state, project, state.workspace.tabs, Date.now())
         const navigation = applyTabNavigation(state, tab, { addTab: !existing })
         return {
           ...navigation,
@@ -424,6 +421,5 @@ export function createWorkspaceSlice({
       }),
 
     toggleProjectCollapsed: (id) => updateProject(id, (p) => ({ ...p, collapsed: !p.collapsed })),
-
   }
 }

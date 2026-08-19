@@ -72,8 +72,7 @@ describe('parseTodo', () => {
     ])
     expect(parsed).toMatchObject({
       title: '22447 habilitar simulado',
-      adoRefInput:
-        'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447',
+      adoRefInput: 'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447',
     })
   })
 })
@@ -109,7 +108,9 @@ describe('parseTodoEdit', () => {
   })
 
   it('collects repeated tag flags', () => {
-    expect(parseTodoEdit(['abc', '--add-tag', 'api', '--add-tag', 'ui', '--remove-tag', 'old'])).toEqual({
+    expect(
+      parseTodoEdit(['abc', '--add-tag', 'api', '--add-tag', 'ui', '--remove-tag', 'old']),
+    ).toEqual({
       ref: 'abc',
       addTags: ['api', 'ui'],
       removeTags: ['old'],

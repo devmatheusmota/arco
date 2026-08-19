@@ -22,7 +22,9 @@ vi.mock('./tauri/cli', () => ({
 
 const toasts: string[] = []
 vi.mock('../stores/uiStore', () => ({
-  useUiStore: { getState: () => ({ pushToast: ({ body }: { body: string }) => toasts.push(body) }) },
+  useUiStore: {
+    getState: () => ({ pushToast: ({ body }: { body: string }) => toasts.push(body) }),
+  },
 }))
 
 const state = {

@@ -5,9 +5,7 @@ import { parsePullRequestArtifactLink } from './adoApi'
 describe('parsePullRequestArtifactLink', () => {
   it('decodes the ADO PullRequestId artifact link', () => {
     expect(
-      parsePullRequestArtifactLink(
-        'vstfs:///Git/PullRequestId/project-guid%2Frepo-guid%2F10681',
-      ),
+      parsePullRequestArtifactLink('vstfs:///Git/PullRequestId/project-guid%2Frepo-guid%2F10681'),
     ).toEqual({
       projectId: 'project-guid',
       repositoryId: 'repo-guid',

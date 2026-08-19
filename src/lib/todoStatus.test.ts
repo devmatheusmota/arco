@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { applyTodoStatus, findTodoByRef, normalizeTodoStatus, parseTodoStatus, placeTodoInList } from './todos'
+import {
+  applyTodoStatus,
+  findTodoByRef,
+  normalizeTodoStatus,
+  parseTodoStatus,
+  placeTodoInList,
+} from './todos'
 import type { TodoItem } from './types'
 
 const task = (overrides: Partial<TodoItem> & { id: string }): TodoItem => ({

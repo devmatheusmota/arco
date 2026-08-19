@@ -18,7 +18,7 @@ import {
   type AgentType,
   type BrowserPaneOptions,
   EMPTY_PROJECTS_FILE,
-    type Locale,
+  type Locale,
   type OrphanWorktree,
   type Preferences,
   type Project,

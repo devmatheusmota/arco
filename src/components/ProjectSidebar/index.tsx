@@ -102,23 +102,17 @@ export function ProjectSidebar() {
 function CleanProjectSidebar() {
   const t = useT()
   // --- data selectors (reactive) ---
-  const {
-    projects,
-    projectOrder,
-    containers,
-    activeProjectId,
-    showGitControl,
-    preferences,
-  } = useProjectsStore(
-    useShallow((s) => ({
-      projects: s.projects,
-      projectOrder: s.projectOrder,
-      containers: s.workspace.containers,
-      activeProjectId: s.activeProjectId,
-      showGitControl: s.preferences.enabledFeatures.git,
-      preferences: s.preferences,
-    })),
-  )
+  const { projects, projectOrder, containers, activeProjectId, showGitControl, preferences } =
+    useProjectsStore(
+      useShallow((s) => ({
+        projects: s.projects,
+        projectOrder: s.projectOrder,
+        containers: s.workspace.containers,
+        activeProjectId: s.activeProjectId,
+        showGitControl: s.preferences.enabledFeatures.git,
+        preferences: s.preferences,
+      })),
+    )
 
   // --- action selectors (stable refs, grouped for readability) ---
   const actions = useProjectsStore(
@@ -585,4 +579,3 @@ function CleanProjectSidebar() {
     </aside>
   )
 }
-

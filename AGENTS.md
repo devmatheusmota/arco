@@ -85,6 +85,22 @@ relative to the repository.
    cutting from a branch leaves the next version number below what is already installed. Both
    mistakes have shipped; `npm run release` now refuses to run when either is present.
 
+7. **Speed is the product.** Arco is judged by how fast it feels — typing, switching a session,
+   opening a project. A change that costs a frame on any of those paths is a regression even when
+   every test is green, and "correct but heavier" is not a trade this app makes. Before touching the
+   terminal path, ask what the change costs per keystroke, per repaint and per switch, and prefer the
+   version that does less work over the one that is easier to write. Deferring work is not removing
+   it: output held back and flushed later is still paid for, and it gets paid at the worst possible
+   moment — the instant the user asks to see it. Measure on the real app, with several sessions open;
+   a change that only feels fine with one pane has not been tested.
+
+8. **The CI runs on every commit, locally.** `husky` fires `npm run ci`, which mirrors
+   `.github/workflows/ci.yml` step by step: lint, formatting, unit tests, typecheck, build and the
+   Electron boot smoke — about 45s. A commit that lands red is a commit that skipped the hook.
+   `git commit --no-verify` exists for when the gate is wrong and you can say why; it is not for when
+   the gate is inconvenient. Change a step in the workflow and change `scripts/ci-local.mjs` with it,
+   or the two drift and the local green stops meaning anything.
+
 ## 6. Architecture at a glance
 
 **Frontend (`src/`)**

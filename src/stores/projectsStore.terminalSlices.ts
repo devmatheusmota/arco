@@ -150,10 +150,7 @@ export function createTerminalsSlice({
       if (project && wantsIsolation) {
         // worktree_provision resolve a raiz de verdade via `--git-common-dir`
 
-        const repo =
-          getProjectRepoRoot(project) ||
-          getProjectDefaultCwd(project) ||
-          args.cwd.trim()
+        const repo = getProjectRepoRoot(project) || getProjectDefaultCwd(project) || args.cwd.trim()
         if (repo) {
           const agentId = `${args.firstTab.type.slice(0, 2)}-${nanoid(6)}`.replace(
             /[^A-Za-z0-9_-]/g,
@@ -685,7 +682,11 @@ export function createContainersSlice({
       updateContainer(projectId, (c) => {
         if (!c.paneIds.includes(paneId) || c.activePaneId === paneId) return c
         // A session cannot be the one on screen and the terminal beside it.
-        return { ...c, activePaneId: paneId, sidePaneId: c.sidePaneId === paneId ? null : c.sidePaneId }
+        return {
+          ...c,
+          activePaneId: paneId,
+          sidePaneId: c.sidePaneId === paneId ? null : c.sidePaneId,
+        }
       }),
 
     setSidePane: (projectId, paneId) =>
@@ -722,6 +723,5 @@ export function createContainersSlice({
       update((state) => ({
         preferences: { ...state.preferences, fullscreenContainerId: projectId },
       })),
-
   }
 }

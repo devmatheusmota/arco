@@ -157,8 +157,7 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
           }
           const ref = normalizeAdoRef(rawRef)
           if (!ref) return item
-          const merged: TodoAdoRef | null =
-            mode === 'merge' ? mergeAdoRef(item.adoRef, ref) : ref
+          const merged: TodoAdoRef | null = mode === 'merge' ? mergeAdoRef(item.adoRef, ref) : ref
           if (merged) next.adoRef = merged
           else delete next.adoRef
           return next
@@ -243,7 +242,12 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
       update((state) => {
         const current = state.todos.find((item) => item.id === id)
         if (!current) return
-        return { todos: placeTodoInList(state.todos, applyTodoStatus(current, current.completed ? 'todo' : 'done')) }
+        return {
+          todos: placeTodoInList(
+            state.todos,
+            applyTodoStatus(current, current.completed ? 'todo' : 'done'),
+          ),
+        }
       }),
 
     deleteTodo: (id) =>

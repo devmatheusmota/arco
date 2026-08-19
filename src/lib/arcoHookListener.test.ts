@@ -37,10 +37,13 @@ let server: { address: () => { port: number }; close: () => void }
 let base = ''
 
 beforeAll(async () => {
-  server = startHookListener((event, payload) => {
-    sent.push({ event, payload })
-    answer?.(payload)
-  }, () => [{ id: 'do-disco', title: 'lida do arquivo' }])
+  server = startHookListener(
+    (event, payload) => {
+      sent.push({ event, payload })
+      answer?.(payload)
+    },
+    () => [{ id: 'do-disco', title: 'lida do arquivo' }],
+  )
   await new Promise((resolve) => setTimeout(resolve, 50))
   base = `http://127.0.0.1:${server.address().port}`
 })

@@ -69,7 +69,7 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
     t,
     graphifyEnabled,
     browserEnabled,
-      openPaneSets,
+    openPaneSets,
     actions,
     openModal,
     setActiveView,

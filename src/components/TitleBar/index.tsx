@@ -384,44 +384,44 @@ export function TitleBar() {
             </button>
           </div>
           {workspaceTabs.map((tab) => (
-              <WorkspaceTabItem
-                key={tab.id}
-                tab={tab}
-                active={activeWorkspaceTabId === tab.id}
-                onActivate={() => {
-                  activateWorkspaceTab(tab.id)
-                  setActiveView('workspace')
-                }}
-                onClose={() => closeSavedWorkspaceTab(tab.id)}
-                onContextMenu={(position) =>
-                  setTabMenu({
-                    ...position,
-                    items: [
-                      {
-                        kind: 'item',
-                        label: t('ui.workspace.openInTab'),
-                        onClick: () => {
-                          activateWorkspaceTab(tab.id)
-                          setActiveView('workspace')
-                        },
+            <WorkspaceTabItem
+              key={tab.id}
+              tab={tab}
+              active={activeWorkspaceTabId === tab.id}
+              onActivate={() => {
+                activateWorkspaceTab(tab.id)
+                setActiveView('workspace')
+              }}
+              onClose={() => closeSavedWorkspaceTab(tab.id)}
+              onContextMenu={(position) =>
+                setTabMenu({
+                  ...position,
+                  items: [
+                    {
+                      kind: 'item',
+                      label: t('ui.workspace.openInTab'),
+                      onClick: () => {
+                        activateWorkspaceTab(tab.id)
+                        setActiveView('workspace')
                       },
-                      { kind: 'separator' },
-                      {
-                        kind: 'item',
-                        label: tab.pinned ? t('ui.titlebar.unpinTab') : t('ui.titlebar.pinTab'),
-                        onClick: () => toggleWorkspaceTabPinned(tab.id),
-                      },
-                      { kind: 'separator' },
-                      {
-                        kind: 'item',
-                        label: t('ui.titlebar.removeFromTopbar'),
-                        danger: true,
-                        onClick: () => closeSavedWorkspaceTab(tab.id),
-                      },
-                    ],
-                  })
-                }
-              />
+                    },
+                    { kind: 'separator' },
+                    {
+                      kind: 'item',
+                      label: tab.pinned ? t('ui.titlebar.unpinTab') : t('ui.titlebar.pinTab'),
+                      onClick: () => toggleWorkspaceTabPinned(tab.id),
+                    },
+                    { kind: 'separator' },
+                    {
+                      kind: 'item',
+                      label: t('ui.titlebar.removeFromTopbar'),
+                      danger: true,
+                      onClick: () => closeSavedWorkspaceTab(tab.id),
+                    },
+                  ],
+                })
+              }
+            />
           ))}
           {agentCanvasSession ? (
             <div

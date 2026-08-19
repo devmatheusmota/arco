@@ -555,4 +555,3 @@ export function NormalProjectSidebar() {
     </aside>
   )
 }
-

@@ -10,7 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- The CI now runs on every commit, on your machine. A pre-commit hook runs the same sequence the
+  workflow does — lint, formatting, tests, typecheck, build and the Electron boot smoke — in about
+  45 seconds, so a commit cannot land red. `git commit --no-verify` skips it when the gate is wrong.
+
 ### Fixed
+
+- The boot smoke checks what the `arco` command actually receives. It still asserted the shape the
+  route answered before the CLI was rewritten — a bare list instead of the current envelope — and it
+  asked the binary for a listing without `--json`, then failed on the human-readable table it got
+  back. The job had been red since, which is how it stopped being read.
 
 - A session tab is named after the conversation again, not after the agent. Two Claude sessions in
   the same project both read `claude`, with nothing to tell them apart — the tab bar was reading the

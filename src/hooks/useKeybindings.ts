@@ -141,10 +141,7 @@ export function useKeybindings() {
         const container = selectActiveContainer(projects)
         if (!container || container.paneIds.length === 0) return
         // Close what is on screen, not whatever happens to be first in the list.
-        projects.closePane(
-          container.projectId,
-          container.activePaneId ?? container.paneIds[0],
-        )
+        projects.closePane(container.projectId, container.activePaneId ?? container.paneIds[0])
         return
       }
 

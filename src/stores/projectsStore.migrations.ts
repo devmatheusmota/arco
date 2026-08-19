@@ -474,9 +474,7 @@ function migrateToV9(parsed: any): ProjectsFile {
         const { groupId, ...tabRest } = tab
         return { ...tabRest, snapshot: normalizeStoredSnapshot(tab.snapshot) }
       }),
-      recentTabs: (v8.workspace.recentTabs ?? []).filter(
-        (entry: any) => entry?.kind === 'project',
-      ),
+      recentTabs: (v8.workspace.recentTabs ?? []).filter((entry: any) => entry?.kind === 'project'),
     },
   })
 }
@@ -594,4 +592,3 @@ function migrateToV5(parsed: any): any {
     projects,
   }
 }
-

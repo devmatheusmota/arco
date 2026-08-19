@@ -52,12 +52,13 @@ Escreva para quem não leu o código: o que mudou e o que ele precisa fazer
 
 ## 4. Verificação
 
-```bash
-npm run build   # tsc + i18n + vite
-npm test        # inclui o guard do What's new
-```
+Lint, formatação, testes, typecheck, build e boot smoke já rodaram: o hook de
+pre-commit (`husky` → `npm run ci`) roda a mesma sequência do
+`.github/workflows/ci.yml` em cada commit, então nada chega aqui vermelho. Se
+algum commit passou com `--no-verify`, rode `npm run ci` agora.
 
-Mudança visível: rode o app e olhe. Screenshot vale mais que dedução.
+O que o hook não cobre continua com você: mudança visível se olha no app rodando.
+Screenshot vale mais que dedução.
 
 ## 5. Cortar
 

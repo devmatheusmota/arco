@@ -175,7 +175,8 @@ export function findTodoByRef(items: TodoItem[], rawRef: string): TodoMatch {
   const exact = items.find((item) => item.id.toLowerCase() === ref)
   if (exact) return { todo: exact, ambiguous: [] }
 
-  const byPrefix = ref.length >= 3 ? items.filter((item) => item.id.toLowerCase().startsWith(ref)) : []
+  const byPrefix =
+    ref.length >= 3 ? items.filter((item) => item.id.toLowerCase().startsWith(ref)) : []
   if (byPrefix.length === 1) return { todo: byPrefix[0], ambiguous: [] }
   if (byPrefix.length > 1) return { todo: null, ambiguous: byPrefix }
 

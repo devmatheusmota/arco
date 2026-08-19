@@ -20,7 +20,9 @@ describe('statusFromWorkItem', () => {
   })
 
   it('returns null for an unknown state, so the current status stays intact', () => {
-    expect(statusFromWorkItem({ id: 1, state: 'Some Custom Column' } as AdoWorkItemSnapshot)).toBeNull()
+    expect(
+      statusFromWorkItem({ id: 1, state: 'Some Custom Column' } as AdoWorkItemSnapshot),
+    ).toBeNull()
   })
 })
 
@@ -76,9 +78,9 @@ describe('planTaskTransition', () => {
       reviewers: [{ uniqueName: 'other@arco.io', vote: -5, isRequired: true }],
       hasActiveThreads: false,
     }
-    expect(planTaskTransition(item, { pullRequest: pr }, { uniqueName: 'me@arco.io' })?.status).toBe(
-      'in_progress',
-    )
+    expect(
+      planTaskTransition(item, { pullRequest: pr }, { uniqueName: 'me@arco.io' })?.status,
+    ).toBe('in_progress')
   })
 
   it('does not escalate when the owner is not the PR author', () => {

@@ -116,7 +116,8 @@ async function post(route, payload) {
   try {
     body = await response.json()
   } catch {}
-  if (body && body.ok === false) throw new Error(body.message || `o app respondeu ${response.status}`)
+  if (body && body.ok === false)
+    throw new Error(body.message || `o app respondeu ${response.status}`)
   if (!response.ok) throw new Error(body?.message || `o app respondeu ${response.status}`)
   return body ?? {}
 }
@@ -405,7 +406,12 @@ async function runTodo(rest) {
     return
   }
 
-  if (subcommand === 'show' || subcommand === 'get' || subcommand === 'view' || subcommand === 'info') {
+  if (
+    subcommand === 'show' ||
+    subcommand === 'get' ||
+    subcommand === 'view' ||
+    subcommand === 'info'
+  ) {
     const ref = args.find((arg) => !arg.startsWith('--'))
     if (!ref) throw new Error('arco todo show: informe a tarefa (id ou trecho do titulo)')
     const result = await post('todo/show', { ref })
@@ -434,7 +440,12 @@ async function runTodo(rest) {
     return
   }
 
-  if (subcommand === 'delete' || subcommand === 'del' || subcommand === 'rm' || subcommand === 'remove') {
+  if (
+    subcommand === 'delete' ||
+    subcommand === 'del' ||
+    subcommand === 'rm' ||
+    subcommand === 'remove'
+  ) {
     const ref = args.find((arg) => !arg.startsWith('--'))
     if (!ref) throw new Error('arco todo delete: informe a tarefa (id ou trecho do titulo)')
     const found = await post('todo/show', { ref })
@@ -509,9 +520,7 @@ function appVersion() {
  * started. The subcommand is the first word that names one.
  */
 function userArgs(argv) {
-  const start = argv.findIndex(
-    (arg) => HANDLED.has(arg) || HELP.has(arg) || VERSION.has(arg),
-  )
+  const start = argv.findIndex((arg) => HANDLED.has(arg) || HELP.has(arg) || VERSION.has(arg))
   return start === -1 ? [] : argv.slice(start)
 }
 

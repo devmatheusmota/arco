@@ -283,7 +283,10 @@ function handleTodoList(): CliResult {
 }
 
 /** Resolves a `<ref>` or explains, in one place, why it did not point at a task. */
-function resolveTodo(rawRef: string | undefined, verb: string): { todo: TodoItem } | { error: CliResult } {
+function resolveTodo(
+  rawRef: string | undefined,
+  verb: string,
+): { todo: TodoItem } | { error: CliResult } {
   const ref = rawRef?.trim()
   if (!ref) return { error: failure(`Informe qual tarefa ${verb}.`) }
   const { todo, ambiguous } = findTodoByRef(useProjectsStore.getState().todos, ref)
@@ -339,7 +342,10 @@ export async function startCliBridge(): Promise<UnlistenFn> {
       'cli://session-new',
       answer<SessionRequest & CliRequest>(handleSession),
     ),
-    listen<TodoRequest & CliRequest>('cli://todo-add', answer<TodoRequest & CliRequest>(handleTodo)),
+    listen<TodoRequest & CliRequest>(
+      'cli://todo-add',
+      answer<TodoRequest & CliRequest>(handleTodo),
+    ),
     listen<CliRequest>('cli://todo-list', answer<CliRequest>(handleTodoList)),
     listen<TodoRefRequest & CliRequest>(
       'cli://todo-show',

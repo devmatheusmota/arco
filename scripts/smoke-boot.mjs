@@ -130,7 +130,14 @@ async function cliAnswers() {
     body: '{}',
   })
   if (!response.ok) throw new Error(`/cli/todo/list answered ${response.status}`)
-  if (!Array.isArray(await response.json())) throw new Error('/cli/todo/list did not return a list')
+  // The route answers the envelope the CLI reads: { ok, data: { todos } }. It
+  // used to hand back a bare array, and this check kept asserting that long
+  // after the CLI had stopped accepting one.
+  const body = await response.json()
+  if (body?.ok === false) throw new Error(`/cli/todo/list refused: ${body.message ?? 'no reason'}`)
+  if (!Array.isArray(body?.data?.todos)) {
+    throw new Error('/cli/todo/list did not answer with data.todos')
+  }
 }
 
 /**
@@ -140,7 +147,9 @@ async function cliAnswers() {
  */
 function binaryAnswers() {
   return new Promise((resolve, reject) => {
-    const proc = spawn(ELECTRON, ['electron/main.cjs', '--no-sandbox', 'todo', 'list'], {
+    // `--json` or the binary prints the human table, which is not parseable and
+    // reads as a failure the moment the list is empty.
+    const proc = spawn(ELECTRON, ['electron/main.cjs', '--no-sandbox', 'todo', 'list', '--json'], {
       env: { ...process.env, TMPDIR: dirs.tmp },
       stdio: ['ignore', 'pipe', 'ignore'],
     })

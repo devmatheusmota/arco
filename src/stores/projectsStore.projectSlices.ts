@@ -5,10 +5,7 @@ import { nanoid } from 'nanoid'
 import { preparePtyRuntimeLaunch } from '../lib/agentRuntimeAdapter'
 import { getLocale, translate } from '../lib/i18n'
 import { buildAgentLaunch } from '../lib/sessionLaunch'
-import {
-  collectTerminalPtyIds,
-  getProjectRepoRoot,
-} from '../lib/terminalFactory'
+import { collectTerminalPtyIds, getProjectRepoRoot } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import { pruneTodoSessions } from '../lib/todos'
 import type { Project } from '../lib/types'

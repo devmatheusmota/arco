@@ -1,19 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  mergeAdoRef,
-  normalizeAdoRef,
-  parseAdoRef,
-  pullRequestUrl,
-  workItemUrl,
-} from './adoRef'
+import { mergeAdoRef, normalizeAdoRef, parseAdoRef, pullRequestUrl, workItemUrl } from './adoRef'
 
 describe('parseAdoRef', () => {
   it('reads a work-item URL and decodes the project name', () => {
     expect(
-      parseAdoRef(
-        'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447',
-      ),
+      parseAdoRef('https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447'),
     ).toEqual({
       org: 'EuMedicoResidente',
       project: 'Plataforma EMR',
@@ -23,7 +15,9 @@ describe('parseAdoRef', () => {
 
   it('reads a pull-request URL and keeps the repository slug', () => {
     expect(
-      parseAdoRef('https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_git/SOA/pullrequest/10681'),
+      parseAdoRef(
+        'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_git/SOA/pullrequest/10681',
+      ),
     ).toEqual({
       org: 'EuMedicoResidente',
       project: 'Plataforma EMR',
@@ -47,9 +41,7 @@ describe('parseAdoRef', () => {
   })
 
   it('resolves a short id against the caller defaults', () => {
-    expect(
-      parseAdoRef('#22447', { org: 'EuMedicoResidente', project: 'Plataforma EMR' }),
-    ).toEqual({
+    expect(parseAdoRef('#22447', { org: 'EuMedicoResidente', project: 'Plataforma EMR' })).toEqual({
       org: 'EuMedicoResidente',
       project: 'Plataforma EMR',
       workItemId: 22447,
@@ -91,7 +83,9 @@ describe('normalizeAdoRef', () => {
 describe('mergeAdoRef', () => {
   it('adds a PR to an existing work-item reference', () => {
     const base = { org: 'o', project: 'p', workItemId: 22447 }
-    expect(mergeAdoRef(base, { org: 'o', project: 'p', workItemId: 0, prId: 10681, repository: 'SOA' })).toMatchObject({
+    expect(
+      mergeAdoRef(base, { org: 'o', project: 'p', workItemId: 0, prId: 10681, repository: 'SOA' }),
+    ).toMatchObject({
       workItemId: 22447,
       prId: 10681,
       repository: 'SOA',
@@ -101,15 +95,13 @@ describe('mergeAdoRef', () => {
 
 describe('urls', () => {
   it('encodes the project name so a space survives the round trip', () => {
-    expect(workItemUrl({ org: 'EuMedicoResidente', project: 'Plataforma EMR', workItemId: 22447 })).toBe(
-      'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447',
-    )
+    expect(
+      workItemUrl({ org: 'EuMedicoResidente', project: 'Plataforma EMR', workItemId: 22447 }),
+    ).toBe('https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447')
   })
 
   it('returns null for a PR url when the repository is unknown', () => {
-    expect(
-      pullRequestUrl({ org: 'o', project: 'p', workItemId: 0, prId: 10681 }),
-    ).toBeNull()
+    expect(pullRequestUrl({ org: 'o', project: 'p', workItemId: 0, prId: 10681 })).toBeNull()
     expect(
       pullRequestUrl({ org: 'o', project: 'p', workItemId: 0, prId: 10681, repository: 'SOA' }),
     ).toContain('/_git/SOA/pullrequest/10681')

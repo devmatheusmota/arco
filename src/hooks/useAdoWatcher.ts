@@ -91,10 +91,9 @@ export function useAdoWatcher(): void {
       if (!rawTodo.adoRef) return
       const todo = await autoAttachPullRequest(rawTodo, pat)
       if (cancelled || !todo.adoRef) return
-      let workItem: AdoWorkItemSnapshot | null = null
-      let pullRequest: AdoPullRequestSnapshot | null = null
+      let snapshot: [AdoWorkItemSnapshot | null, AdoPullRequestSnapshot | null]
       try {
-        ;[workItem, pullRequest] = await Promise.all([
+        snapshot = await Promise.all([
           fetchWorkItem(todo.adoRef, pat),
           fetchPullRequest(todo.adoRef, pat),
         ])
@@ -104,12 +103,9 @@ export function useAdoWatcher(): void {
         }
         return
       }
+      const [workItem, pullRequest] = snapshot
       if (cancelled) return
-      const event = planTaskTransition(
-        todo,
-        { workItem, pullRequest },
-        identityRef.current,
-      )
+      const event = planTaskTransition(todo, { workItem, pullRequest }, identityRef.current)
       if (!event?.status) return
       const store = useProjectsStore.getState()
       store.setTodoStatus(todo.id, event.status)
@@ -145,10 +141,16 @@ export function useAdoWatcher(): void {
     // First run right after subscribe so a task marked as watch reacts within
     // seconds, not after a full interval.
     void tick()
-    const interval = window.setInterval(() => {
-      const secs = useProjectsStore.getState().preferences.adoPollSecs
-      if (Number.isFinite(secs) && secs > 0) void tick()
-    }, Math.max(60_000, Math.round((useProjectsStore.getState().preferences.adoPollSecs ?? 300) * 1000)))
+    const interval = window.setInterval(
+      () => {
+        const secs = useProjectsStore.getState().preferences.adoPollSecs
+        if (Number.isFinite(secs) && secs > 0) void tick()
+      },
+      Math.max(
+        60_000,
+        Math.round((useProjectsStore.getState().preferences.adoPollSecs ?? 300) * 1000),
+      ),
+    )
 
     return () => {
       cancelled = true

@@ -110,11 +110,12 @@ export function TaskSessionModal() {
         agent,
         useProjectsStore.getState().preferences.cliContextInjection !== false,
       )
-      const finalPrompt = agent === 'shell'
-        ? undefined
-        : cliContextPreamble
-          ? `${cliContextPreamble}\n\n${prompt.trim()}`.trim() || undefined
-          : prompt.trim() || undefined
+      const finalPrompt =
+        agent === 'shell'
+          ? undefined
+          : cliContextPreamble
+            ? `${cliContextPreamble}\n\n${prompt.trim()}`.trim() || undefined
+            : prompt.trim() || undefined
 
       const terminal = await store.createAgentTerminal(project.id, {
         name: sessionName(todo.title),
