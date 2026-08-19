@@ -789,6 +789,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v261.note1':
+    'Cada aba de sess\u00e3o volta a ter o nome da conversa. Duas sess\u00f5es do Claude no mesmo projeto liam \u201cclaude\u201d as duas, sem nada pra diferenciar \u2014 a barra de abas usava o nome de reserva da sess\u00e3o enquanto a barra lateral j\u00e1 mostrava o t\u00edtulo da conversa. Agora as duas leem do mesmo lugar.',
+  'whatsNew.v261.note2':
+    'Trocar de sess\u00e3o voltou a ser instant\u00e2neo. S\u00f3 a sess\u00e3o na tela seguia recebendo sa\u00edda, ent\u00e3o as de tr\u00e1s acumulavam e entregavam tudo de uma vez no instante em que voc\u00ea clicava \u2014 bem quando o mesmo pane tamb\u00e9m refazia o contexto de GPU. Agora toda sess\u00e3o do projeto aberto recebe sa\u00edda continuamente; o contexto de GPU continua seguindo s\u00f3 o que est\u00e1 sendo pintado.',
   'whatsNew.v260.note1':
     'O terminal parou de voltar com o texto embaralhado. Reabrir um pane repetia a sa\u00edda gravada em disco, e essa sa\u00edda \u00e9 o que o agente desenhou na largura que o pane tinha na hora \u2014 repetida num pane de outro tamanho, caracteres de momentos diferentes ca\u00edam na mesma linha e as colunas desalinhavam. Com três panes ou mais acontecia sempre, porque as larguras diferem o bastante pra aparecer. Agora o pane e o processo combinam o tamanho antes de escrever o primeiro byte gravado.',
   'whatsNew.v260.note2':

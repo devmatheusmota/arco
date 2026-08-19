@@ -777,6 +777,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v261.note1':
+    'Each session tab is named after its conversation again. Two Claude sessions in the same project both read \u201cclaude\u201d, with nothing to tell them apart — the tab bar was using the session\u2019s fallback name while the sidebar already showed the conversation title. Both read the same name now.',
+  'whatsNew.v261.note2':
+    'Switching sessions is instant again. Only the session on screen kept streaming, so the ones behind it collected their output and handed it over in one burst the moment you picked them — right as that pane was also rebuilding its GPU context. Every session of the open project streams continuously now; the GPU context still follows only what is being painted.',
   'whatsNew.v260.note1':
     'The terminal no longer comes back with its text scrambled. Reopening a pane replayed the output saved on disk, and that output is the repaints an agent drew at whatever width the pane had at the time \u2014 replayed into a pane of a different size, characters from different moments landed on the same line and the columns drifted. Three or more panes made it happen every time, because the widths differ enough to show. The pane and the process now agree on the size before a single saved byte is written.',
   'whatsNew.v260.note2':

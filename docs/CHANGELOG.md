@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.6.1] — 2026-08-19
+
 ### Added
 
 - The CI now runs before every push, on your machine. A pre-push hook runs the same sequence the
