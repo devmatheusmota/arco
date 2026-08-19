@@ -789,6 +789,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v260.note1':
+    'O terminal parou de voltar com o texto embaralhado. Reabrir um pane repetia a sa\u00edda gravada em disco, e essa sa\u00edda \u00e9 o que o agente desenhou na largura que o pane tinha na hora \u2014 repetida num pane de outro tamanho, caracteres de momentos diferentes ca\u00edam na mesma linha e as colunas desalinhavam. Com três panes ou mais acontecia sempre, porque as larguras diferem o bastante pra aparecer. Agora o pane e o processo combinam o tamanho antes de escrever o primeiro byte gravado.',
+  'whatsNew.v260.note2':
+    'Um projeto mostra uma sess\u00e3o por vez, em tela cheia. A grade, os modos de layout e o desenhador de layout sa\u00edram: toda outra sess\u00e3o vira aba na barra acima da \u00e1rea de trabalho, e as abas de dentro do pane entraram nessa mesma linha \u2014 uma lista s\u00f3, com o nome da sess\u00e3o, em vez de aba dentro de aba. As sess\u00f5es que voc\u00ea n\u00e3o est\u00e1 olhando seguem carregadas e do mesmo tamanho da que est\u00e1 na tela, ent\u00e3o trocar de aba n\u00e3o inicia nem redimensiona nada. Ctrl+W agora fecha a sess\u00e3o que voc\u00ea est\u00e1 lendo, n\u00e3o o primeiro pane da lista.',
+  'whatsNew.v260.note3':
+    'Um terminal pode ficar ao lado da sess\u00e3o ativa, pra rodar um comando sem sair do que voc\u00ea est\u00e1 lendo \u2014 abra pelo bot\u00e3o \u00e0 direita da barra de abas. S\u00f3 terminal vai ali, e s\u00f3 um. Grupos de projetos sa\u00edram junto com a grade: a barra lateral \u00e9 uma lista plana que voc\u00ea reordena, e projeto que morava em grupo mant\u00e9m o lugar que tinha na tela. Suspender continua existindo, um projeto por vez, no menu de contexto do projeto.',
   'whatsNew.v250.note1':
     'Subcomando errado em `arco todo` \u00e9 recusado em vez de virar tarefa. `arco todo show <id>` n\u00e3o existia, ent\u00e3o as palavras digitadas viravam t\u00edtulo \u2014 quatro tentativas de ler tarefas deixaram quatro tarefas com o nome delas, sem imprimir nada e relatando sucesso. Agora qualquer primeira palavra que soe como subcomando \u00e9 recusada, e id de tarefa sozinho tamb\u00e9m; criar continua funcionando com `arco todo add "<t\u00edtulo>"` ou um t\u00edtulo com mais de uma palavra.',
   'whatsNew.v250.note2':

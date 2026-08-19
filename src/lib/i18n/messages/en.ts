@@ -777,6 +777,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v260.note1':
+    'The terminal no longer comes back with its text scrambled. Reopening a pane replayed the output saved on disk, and that output is the repaints an agent drew at whatever width the pane had at the time \u2014 replayed into a pane of a different size, characters from different moments landed on the same line and the columns drifted. Three or more panes made it happen every time, because the widths differ enough to show. The pane and the process now agree on the size before a single saved byte is written.',
+  'whatsNew.v260.note2':
+    'A project shows one session at a time, full size. The grid, the layout modes and the layout designer are gone: every other session is a tab in the bar above the workspace, and the tabs inside a pane joined that same row \u2014 one list, named after the session, instead of tabs inside tabs. The sessions you are not looking at stay loaded and keep the same size as the one on screen, so switching tabs starts nothing and resizes nothing. Ctrl+W now closes the session you are reading, not whichever pane came first.',
+  'whatsNew.v260.note3':
+    'One terminal can sit beside the active session, for running a command without leaving what you are reading \u2014 open it from the button at the right of the tab bar. Only a terminal goes there, and only one. Groups of projects are gone with the grid: the sidebar is a flat list you can reorder, and a project that lived inside a group keeps the place it had on screen. Suspending is still there, one project at a time, in the project\u2019s context menu.',
   'whatsNew.v250.note1':
     'A mistyped `arco todo` subcommand is refused instead of becoming a task. `arco todo show <id>` did not exist, so the words you typed were taken as a title \u2014 four attempts to read tasks left four tasks named after them, printed nothing and reported success. Any first word that reads as a subcommand is now refused, and so is a lone task id; creating still works with `arco todo add "<title>"` or a plain title of more than one word.',
   'whatsNew.v250.note2':

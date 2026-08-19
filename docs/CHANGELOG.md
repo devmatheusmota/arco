@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.6.0] — 2026-08-19
+
 ### Removed
 
 - Groups of projects are gone, along with subgroups, group tabs, the archived-groups list and
