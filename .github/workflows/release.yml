@@ -142,7 +142,12 @@ jobs:
     needs: build-linux
     runs-on: ubuntu-22.04
     permissions:
+      # `contents: write` creates the release, `actions: write` is what lets the
+      # last step dispatch the apt-repo workflow — the default GITHUB_TOKEN only
+      # gets one when it is asked for. Without it, `gh workflow run` returns
+      # HTTP 403 "Resource not accessible by integration".
       contents: write
+      actions: write
 
     steps:
       - uses: actions/checkout@v4
