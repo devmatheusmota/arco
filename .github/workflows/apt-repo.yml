@@ -36,7 +36,16 @@ jobs:
 
     steps:
       - name: Install packaging tools
+        # The runner image already ships both. `apt-get update` on it goes
+        # through the Azure mirror, which stalls for minutes whenever that
+        # mirror is having a bad day — and it took longer than the rest of this
+        # job put together. Only pay for it when something is really missing.
+        timeout-minutes: 5
         run: |
+          if command -v dpkg-scanpackages >/dev/null && command -v gpg >/dev/null; then
+            echo "dpkg-dev and gnupg already on the image"
+            exit 0
+          fi
           sudo apt-get update
           sudo apt-get install -y dpkg-dev gnupg
 
