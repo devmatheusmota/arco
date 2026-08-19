@@ -349,7 +349,10 @@ function TodoRow({
           >
             <span className={styles.todoTitleText}>{todo.title}</span>
             <span className={styles.metaRow}>
-              {status !== 'todo' && status !== 'done' ? (
+              {/* Every open task states where it stands. Without the chip on `todo`,
+                  a task with no chip reads as a task with no status at all. `done`
+                  keeps none: the completed section already says it. */}
+              {status !== 'done' ? (
                 <span className={styles.statusChip} data-status={status}>
                   {t(`todo.statusValue.${status}`)}
                 </span>

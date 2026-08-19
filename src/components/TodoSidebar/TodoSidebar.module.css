@@ -825,6 +825,12 @@
   white-space: nowrap;
 }
 
+/* The resting state: readable, but never competing with the two that mean work. */
+.statusChip[data-status='todo'] {
+  color: var(--fg-muted);
+  border-color: var(--border);
+}
+
 .statusChip[data-status='in_progress'] {
   color: var(--fg);
   border-color: var(--border-strong);

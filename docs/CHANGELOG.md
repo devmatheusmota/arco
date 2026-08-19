@@ -10,6 +10,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A task waiting to be started shows its status like every other one. The chip was hidden on `to do`,
+  so a task with no chip could mean either "not started" or "the status feature is not there" — the
+  reader had to know the rule to tell them apart. Only a completed task keeps no chip, since the
+  completed section already says so.
+
 ## [2.1.0] — 2026-08-18
 
 ### Added

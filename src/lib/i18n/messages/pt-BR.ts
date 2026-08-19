@@ -779,6 +779,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v211.note1':
+    'Tarefa que ainda não começou também mostra o status. O chip ficava escondido no "a fazer", então tarefa sem chip era indistinguível de tarefa sem status nenhum.',
   'whatsNew.v210.note1':
     'O pane que você deixou rodando não volta mais embaralhado. Ao reabrir um pane escondido, o terminal era zerado e todo o histórico bruto reescrito, o que repintava quadros antigos por cima da tela atual — aquele estado em que rolar mostra texto misturado em vez da conversa. Agora ele escreve só o que perdeu.',
   'whatsNew.v210.note2':

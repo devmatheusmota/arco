@@ -768,6 +768,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v211.note1':
+    'A task waiting to be started now shows its status too. The chip was hidden on "to do", so a task with no chip was indistinguishable from a task with no status at all.',
   'whatsNew.v210.note1':
     'A pane you left running no longer comes back garbled. Returning to a hidden pane used to reset the terminal and replay its raw history, which repainted old frames over the current screen — the state where scrolling shows scrambled text instead of the conversation. It now writes only what it missed.',
   'whatsNew.v210.note2':
