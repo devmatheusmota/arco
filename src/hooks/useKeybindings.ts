@@ -140,7 +140,11 @@ export function useKeybindings() {
         const projects = useProjectsStore.getState()
         const container = selectActiveContainer(projects)
         if (!container || container.paneIds.length === 0) return
-        projects.closePane(container.projectId, container.paneIds[0])
+        // Close what is on screen, not whatever happens to be first in the list.
+        projects.closePane(
+          container.projectId,
+          container.activePaneId ?? container.paneIds[0],
+        )
         return
       }
 
@@ -154,12 +158,6 @@ export function useKeybindings() {
       if (ctrl && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
         e.preventDefault()
         useUiStore.getState().openModal_('newProject')
-        return
-      }
-
-      if (ctrl && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
-        e.preventDefault()
-        useUiStore.getState().openModal_('newGroup')
         return
       }
 
@@ -224,6 +222,7 @@ export function useKeybindings() {
             ? 0
             : (currentIndex + cycleTerminalDirection + terminals.length) % terminals.length
         const next = terminals[nextIndex]
+        projects.setActivePane(next.projectId, next.terminalId)
         projects.focusWorkspaceTerminal(next.projectId, next.terminalId)
         ui.setActiveTerminal(next.projectId, next.terminalId)
         ui.requestPaneFocus(next.terminalId)

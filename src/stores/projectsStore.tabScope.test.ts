@@ -94,19 +94,17 @@ describe('a workspace tab holds a single project', () => {
     ).toBe(projectA.id)
   })
 
-  it('opening a group opens one tab per project of the group', () => {
-    const store = useProjectsStore.getState()
-    const group = store.createGroup('Group')
-    const projectA = useProjectsStore.getState().createProject({ name: 'A', groupId: group.id })
-    const projectB = useProjectsStore.getState().createProject({ name: 'B', groupId: group.id })
+  it('opening a second project gives it its own tab', () => {
+    const projectA = useProjectsStore.getState().createProject({ name: 'A' })
+    const projectB = useProjectsStore.getState().createProject({ name: 'B' })
     useProjectsStore.getState().createTerminal(projectA.id, newTerminalArgs('A1', '/a'))
     useProjectsStore.getState().createTerminal(projectB.id, newTerminalArgs('B1', '/b'))
 
-    useProjectsStore.getState().openGroupWorkspace(group.id)
+    useProjectsStore.getState().openProjectWorkspace(projectA.id)
+    useProjectsStore.getState().openProjectWorkspace(projectB.id)
     const state = useProjectsStore.getState()
 
-    const groupTabs = state.workspace.tabs.filter((tab) => tab.groupId === group.id)
-    expect(groupTabs.map((tab) => tab.projectId)).toEqual([projectA.id, projectB.id])
-    expect(state.workspace.containers.map((c) => c.projectId)).toEqual([projectA.id])
+    expect(state.workspace.tabs.map((tab) => tab.projectId)).toEqual([projectA.id, projectB.id])
+    expect(state.workspace.containers.map((c) => c.projectId)).toEqual([projectB.id])
   })
 })

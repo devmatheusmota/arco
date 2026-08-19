@@ -1,8 +1,8 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import {
+  ClipboardCopy,
   FileCode,
   FileText,
-  ClipboardCopy,
   FolderOpen,
   GripVertical,
   Maximize2,
@@ -15,22 +15,22 @@ import {
 } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
-import { pathSegments } from '../../lib/paths'
 import { useT } from '../../lib/i18n'
+import { pathSegments } from '../../lib/paths'
 import {
   listenFileChanged,
   openInFileExplorer,
   readTextFile,
-  writeTextFile,
-  writeClipboardText,
   unwatchFile,
   watchFile,
+  writeClipboardText,
+  writeTextFile,
 } from '../../lib/tauri'
+import type { Terminal as TerminalEntry } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
-import type { Terminal as TerminalEntry } from '../../lib/types'
-import { MarkdownRenderer } from './MarkdownRenderer'
 import styles from './MarkdownPane.module.css'
+import { MarkdownRenderer } from './MarkdownRenderer'
 
 const LIGHT_THEMES = new Set(['light', 'min-light'])
 const markdownPaneScrollPositions = new Map<string, number>()
@@ -65,9 +65,6 @@ export const MarkdownPane = memo(function MarkdownPane({
   const deleteTerminal = useProjectsStore((s) => s.deleteTerminal)
   const setFocusedTerminal = useUiStore((s) => s.setFocusedTerminal)
   const setActiveTerminal = useUiStore((s) => s.setActiveTerminal)
-  const selectPane = useUiStore((s) => s.selectPane)
-  const clearPaneSelection = useUiStore((s) => s.clearPaneSelection)
-  const groupPanes = useProjectsStore((s) => s.groupPanes)
   const pushToast = useUiStore((s) => s.pushToast)
 
   const draggable = useDraggable({ id: `pane:${terminal.id}`, disabled: isFocusMode || preview })
@@ -181,21 +178,8 @@ export const MarkdownPane = memo(function MarkdownPane({
     <div
       ref={setRefs}
       data-pane-box="1"
-      onPointerDown={(event) => {
+      onPointerDown={() => {
         setActiveTerminal(projectId, terminal.id)
-        const existing = useUiStore.getState().selectedPanes
-        const extend = event.shiftKey && existing.every((pane) => pane.projectId === projectId)
-        selectPane(projectId, terminal.id, extend)
-        if (extend) {
-          const selected = useUiStore.getState().selectedPanes
-          if (selected.length >= 2) {
-            groupPanes(
-              projectId,
-              selected.map((pane) => pane.terminalId),
-            )
-            clearPaneSelection()
-          }
-        }
       }}
       className={`${styles.pane} ${isFocusMode ? styles.paneFocus : ''} ${dragging ? styles.dragging : ''} ${dropTarget ? styles.dropTarget : ''}`}
     >

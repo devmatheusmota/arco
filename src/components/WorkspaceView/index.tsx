@@ -5,9 +5,8 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { pickDirectory } from '../../lib/dialog'
 import { hasFileDragPayload, readFileDragPayload } from '../../lib/fileDrag'
-import { moveCellTo } from '../../lib/gridLayout'
 import { useT } from '../../lib/i18n'
-import type { AgentType, Group, Project, WorkspaceContainer } from '../../lib/types'
+import type { AgentType, Project, WorkspaceContainer } from '../../lib/types'
 import { MAX_WORKSPACE_TABS } from '../../lib/workspaceNavigation'
 import { selectActiveProject, useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -16,10 +15,6 @@ import { AgentIcon } from '../icons/AgentIcons'
 import { ProjectContainer } from './ProjectContainer'
 import { WorkspaceSurfaceProvider } from './workspaceSurface'
 import styles from './WorkspaceView.module.css'
-
-function resolveGroup(project: Project, groupsById: Map<string, Group>): Group | null {
-  return project.groupId ? (groupsById.get(project.groupId) ?? null) : null
-}
 
 /*
  * Two tiers, because the two costs are different.
@@ -47,11 +42,9 @@ export function WorkspaceView() {
   const {
     allContainers,
     projects,
-    groups,
     fullscreenId,
     setFullscreenContainer,
     reorderPane,
-    setProjectGridLayout,
     activeProject,
     recentProjectIds,
     openProjectWorkspace,
@@ -64,11 +57,9 @@ export function WorkspaceView() {
     useShallow((s) => ({
       allContainers: s.workspace.containers,
       projects: s.projects,
-      groups: s.groups,
       fullscreenId: s.preferences.fullscreenContainerId,
       setFullscreenContainer: s.setFullscreenContainer,
       reorderPane: s.reorderPaneInContainer,
-      setProjectGridLayout: s.setProjectGridLayout,
       activeProject: selectActiveProject(s) ?? s.projects[0] ?? null,
       recentProjectIds: s.workspace.recentProjectIds,
       openProjectWorkspace: s.openProjectWorkspace,
@@ -94,7 +85,6 @@ export function WorkspaceView() {
   const t = useT()
 
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
-  const groupsById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups])
 
   const [liveTabIds, setLiveTabIds] = useState<string[]>([])
 
@@ -148,13 +138,19 @@ export function WorkspaceView() {
     [surfaces],
   )
 
+  // A background tab keeps streaming only what it would be showing: the session
+  // in front and the terminal beside it. Its other sessions are tabs, and a tab
+  // nobody is looking at has no repaint worth paying for.
   const keptAlivePaneIds = useMemo(
     () =>
       surfaces
         .filter((surface) => !surface.active)
         .slice(0, MAX_STREAMING_BACKGROUND_TABS)
         .flatMap((surface) =>
-          surface.containers.filter((c) => !c.collapsed).flatMap((c) => c.paneIds),
+          surface.containers
+            .filter((c) => !c.collapsed)
+            .flatMap((c) => [c.activePaneId, c.sidePaneId ?? null])
+            .filter((id): id is string => Boolean(id)),
         ),
     [surfaces],
   )
@@ -220,46 +216,12 @@ export function WorkspaceView() {
     const to = e.over ? String(e.over.id) : ''
     if (!from || !to || from === to) return
 
-    // cell:*: an empty slot of a custom grid — the dragged child just moves there.
-    if (to.startsWith('cell:')) {
-      const [, kind, ...rest] = to.split(':')
-      const row = Number(rest.pop())
-      const col = Number(rest.pop())
-      if (!Number.isFinite(col) || !Number.isFinite(row)) return
-      const state = useProjectsStore.getState()
-
-      if (kind === 'pane' && from.startsWith('pane:')) {
-        const projectId = rest.join(':')
-        const paneId = from.slice('pane:'.length)
-        const project = state.projects.find((p) => p.id === projectId)
-        if (!project?.gridLayout) return
-        const cont = allContainers.find((c) => c.projectId === projectId)
-        if (!cont?.paneIds.includes(paneId)) return
-        setProjectGridLayout(
-          projectId,
-          moveCellTo(project.gridLayout, cont.paneIds, paneId, col, row),
-        )
-      }
-      return
-    }
-
+    // Panes are tabs now: dragging one only reorders the tab bar.
     if (from.startsWith('pane:') && to.startsWith('pane:')) {
       const fromId = from.slice('pane:'.length)
       const toId = to.slice('pane:'.length)
       const cont = allContainers.find((c) => c.paneIds.includes(fromId) && c.paneIds.includes(toId))
       if (!cont) return
-      const project = projectsById.get(cont.projectId)
-      if (project?.layoutMode === 'grid' && project.gridLayout) {
-        const cells = { ...project.gridLayout.cells }
-        const a = cells[fromId]
-        const b = cells[toId]
-        if (a && b) {
-          cells[fromId] = b
-          cells[toId] = a
-          setProjectGridLayout(project.id, { ...project.gridLayout, cells })
-          return
-        }
-      }
       const fromIdx = cont.paneIds.indexOf(fromId)
       const toIdx = cont.paneIds.indexOf(toId)
       if (fromIdx !== -1 && toIdx !== -1) reorderPane(cont.projectId, fromIdx, toIdx)
@@ -341,7 +303,6 @@ export function WorkspaceView() {
                 containers={surface.containers}
                 fullscreenId={surface.active ? fullscreenId : null}
                 projectsById={projectsById}
-                groupsById={groupsById}
               />
             )}
           </div>
@@ -352,20 +313,15 @@ export function WorkspaceView() {
   )
 }
 
-/**
- * A tab shows a single project, so a surface renders exactly one container. Fullscreen has its own
- * path via `isolatedPaneId` — see ProjectContainer.tsx.
- */
+/** A tab shows a single project, so a surface renders exactly one container. */
 function SurfaceLayout({
   containers,
   fullscreenId,
   projectsById,
-  groupsById,
 }: {
   containers: WorkspaceContainer[]
   fullscreenId: string | null
   projectsById: Map<string, Project>
-  groupsById: Map<string, Group>
 }) {
   const container = containers[0]
   const project = container ? projectsById.get(container.projectId) : null
@@ -374,7 +330,6 @@ function SurfaceLayout({
     <ProjectContainer
       container={container}
       project={project}
-      group={resolveGroup(project, groupsById)}
       isFullscreen={fullscreenId === container.projectId}
       showHeader={false}
     />

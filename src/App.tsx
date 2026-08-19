@@ -16,13 +16,11 @@ import { MainMenu } from './components/MainMenu'
 import { AddBrowserModal } from './components/modals/AddBrowserModal'
 import { AddContentModal } from './components/modals/AddContentModal'
 import { AiUsageModal } from './components/modals/AiUsageModal'
-import { EditGroupModal } from './components/modals/EditGroupModal'
 import { EditProjectModal } from './components/modals/EditProjectModal'
 import { FindJumpModal } from './components/modals/FindJumpModal'
 import { HandoffModal } from './components/modals/HandoffModal'
 import { McpIntroModal } from './components/modals/McpIntroModal'
 import { McpManagerModal } from './components/modals/McpManagerModal'
-import { NewGroupModal } from './components/modals/NewGroupModal'
 import { NewProjectModal } from './components/modals/NewProjectModal'
 import { NewSubTabModal } from './components/modals/NewSubTabModal'
 import { NewTerminalModal } from './components/modals/NewTerminalModal'
@@ -31,7 +29,6 @@ import { PreferencesModal } from './components/modals/PreferencesModal'
 import { ProfilesModal } from './components/modals/ProfilesModal'
 import { RecentChatsModal } from './components/modals/RecentChatsModal'
 import { RemoteControlModal } from './components/modals/RemoteControlModal'
-import { SuspendGroupModal } from './components/modals/SuspendGroupModal'
 import { SyncModal } from './components/modals/SyncModal'
 import { TaskSessionModal } from './components/modals/TaskSessionModal'
 import { ThemePickerModal } from './components/modals/ThemePickerModal'
@@ -73,11 +70,6 @@ const AgentCanvasPOC = lazy(() =>
 )
 const HomeView = lazy(() =>
   import('./components/HomeView').then((module) => ({ default: module.HomeView })),
-)
-const LayoutDesignerModal = lazy(() =>
-  import('./components/modals/LayoutDesignerModal').then((module) => ({
-    default: module.LayoutDesignerModal,
-  })),
 )
 const MemoryAnalyticsModal = lazy(() =>
   import('./components/modals/MemoryAnalyticsModal').then((module) => ({
@@ -608,8 +600,6 @@ export default function App() {
       <MainMenu />
       <ErrorBoundary label="modals">
         <NewProjectModal />
-        <NewGroupModal />
-        <EditGroupModal />
         <EditProjectModal />
         <NewTerminalModal />
         <AddContentModal />
@@ -621,12 +611,6 @@ export default function App() {
         <FindJumpModal />
         <OnboardingModal />
         <WelcomeModal />
-        {openModal === 'layoutDesigner' ? (
-          <Suspense fallback={null}>
-            <LayoutDesignerModal />
-          </Suspense>
-        ) : null}
-        <SuspendGroupModal />
         {openModal === 'memoryAnalytics' ? (
           <Suspense fallback={null}>
             <MemoryAnalyticsModal />

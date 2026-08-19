@@ -12,17 +12,17 @@ import {
 import { memo, useMemo } from 'react'
 
 import { useT } from '../../lib/i18n'
-import type { Group, Project, Terminal, WorkspaceContainer } from '../../lib/types'
+import type { Project, Terminal, WorkspaceContainer } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { EmptyState } from '../EmptyState'
+import { PaneTabsLane } from '../PaneTabsLane'
 import { PaneArea } from './PaneArea'
 import styles from './ProjectContainer.module.css'
 
 export type ProjectContainerProps = {
   container: WorkspaceContainer
   project: Project
-  group: Group | null
 
   isFullscreen?: boolean
 
@@ -32,14 +32,12 @@ export type ProjectContainerProps = {
 export const ProjectContainer = memo(function ProjectContainer({
   container,
   project,
-  group,
   isFullscreen = false,
   showHeader = true,
 }: ProjectContainerProps) {
   const t = useT()
   const setCollapsed = useProjectsStore((s) => s.setContainerCollapsed)
   const setFullscreen = useProjectsStore((s) => s.setFullscreenContainer)
-  const isolatedPaneId = useProjectsStore((s) => s.preferences.isolatedPaneId)
   const closeContainer = useProjectsStore((s) => s.closeContainer)
   const openContainerWithAllPanes = useProjectsStore((s) => s.openContainerWithAllPanes)
   const createGraphifyPane = useProjectsStore((s) => s.createGraphifyPane)
@@ -55,23 +53,25 @@ export const ProjectContainer = memo(function ProjectContainer({
   }
   const isDropTarget = droppable.isOver && !draggable.isDragging
 
-  // renderizados. O terminal isolado busca direto em `project.terminals`,
-
+  // The container lists ids; the panes themselves live on the project.
   const terminals = useMemo<Terminal[]>(() => {
-    if (isFullscreen && isolatedPaneId) {
-      const isolated = project.terminals.find((term) => term.id === isolatedPaneId)
-      if (isolated) return [isolated]
-    }
     const map = new Map(project.terminals.map((t) => [t.id, t]))
     return container.paneIds.map((id) => map.get(id)).filter((t): t is Terminal => Boolean(t))
-  }, [project.terminals, container.paneIds, isFullscreen, isolatedPaneId])
+  }, [project.terminals, container.paneIds])
+
+  const activePane =
+    terminals.find((terminal) => terminal.id === container.activePaneId) ?? terminals[0] ?? null
+  const sidePane =
+    container.sidePaneId && container.sidePaneId !== activePane?.id
+      ? (terminals.find((terminal) => terminal.id === container.sidePaneId) ?? null)
+      : null
   const graphifyPaneOpen = terminals.some((terminal) => terminal.kind === 'graphify')
   const graphifyEnabled = useProjectsStore((s) => s.preferences.enabledFeatures.graphify)
   const graphifyCwd = terminals.find(
     (terminal) => terminal.kind !== 'graphify' && terminal.cwd,
   )?.cwd
 
-  const storedAccent = project.color || group?.color
+  const storedAccent = project.color
   const accent = storedAccent && CSS.supports('color', storedAccent) ? storedAccent : '#6ea8ff'
 
   if (container.collapsed) {
@@ -80,7 +80,7 @@ export const ProjectContainer = memo(function ProjectContainer({
         className={styles.collapsed}
         style={{ ['--container-accent' as string]: accent }}
         onClick={() => setCollapsed(project.id, false)}
-        title={`${group ? group.name + ' · ' : ''}${t('ws.containerExpandHint', { name: project.name })}`}
+        title={t('ws.containerExpandHint', { name: project.name })}
       >
         {project.iconUrl ? (
           <img src={project.iconUrl} alt="" className={styles.projectIcon} />
@@ -210,14 +210,18 @@ export const ProjectContainer = memo(function ProjectContainer({
               }}
             />
           </div>
-        ) : (
-          <PaneArea
-            projectId={project.id}
-            idPrefix={`c-${project.id}`}
-            terminals={terminals}
-            layoutMode={container.internalLayout}
-          />
-        )}
+        ) : activePane ? (
+          <>
+            <PaneTabsLane project={project} container={container} panes={terminals} />
+            <PaneArea
+              projectId={project.id}
+              idPrefix={`c-${project.id}`}
+              panes={terminals}
+              activeId={activePane.id}
+              side={sidePane}
+            />
+          </>
+        ) : null}
       </div>
     </div>
   )

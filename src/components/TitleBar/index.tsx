@@ -17,7 +17,7 @@ import {
   Workflow,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { requestAppClose } from '../../hooks/useCloseConfirmation'
 import { getCachedAntigravityUsage } from '../../lib/antigravityUsageCache'
@@ -27,7 +27,6 @@ import { useT } from '../../lib/i18n'
 import { observeClaudeReset, observeCodexReset } from '../../lib/limitResetWatch'
 import { formatShortcut } from '../../lib/platform'
 import { killPty, remoteControlConnectedDevices } from '../../lib/tauri'
-import type { Group, WorkspaceTab } from '../../lib/types'
 import { formatResetIso as formatResetTime } from '../../lib/usageFormat'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -96,7 +95,6 @@ export function TitleBar() {
   const setAntigravityUsage = useUiStore((s) => s.setAntigravityUsage)
   const openModal = useUiStore((s) => s.openModal_)
   const workspaceTabs = useProjectsStore((s) => s.workspace.tabs)
-  const groups = useProjectsStore((s) => s.groups)
   const activeWorkspaceTabId = useProjectsStore((s) => s.workspace.activeTabId)
   const historyIndex = useProjectsStore((s) => s.workspace.historyIndex)
   const historyLength = useProjectsStore((s) => s.workspace.history.length)
@@ -113,17 +111,6 @@ export function TitleBar() {
   const activateWorkspaceTab = useProjectsStore((s) => s.activateWorkspaceTab)
   const navigateWorkspaceHistory = useProjectsStore((s) => s.navigateWorkspaceHistory)
   const [tabMenu, setTabMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
-  // Tabs of the same group sit together under one chip, since a group is no longer a tab itself.
-  const tabRuns = useMemo(() => {
-    const runs: { key: string; group: Group | null; tabs: WorkspaceTab[] }[] = []
-    for (const tab of workspaceTabs) {
-      const group = tab.groupId ? (groups.find((item) => item.id === tab.groupId) ?? null) : null
-      const last = runs[runs.length - 1]
-      if (last && last.group?.id === group?.id) last.tabs.push(tab)
-      else runs.push({ key: `${group?.id ?? 'loose'}-${tab.id}`, group, tabs: [tab] })
-    }
-    return runs
-  }, [groups, workspaceTabs])
   const [remoteConnectedDevices, setRemoteConnectedDevices] = useState(0)
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? null
   const threeAreas = preferences.topbarStyle === 'three-areas'
@@ -396,8 +383,7 @@ export function TitleBar() {
               <ArrowRight size={13} />
             </button>
           </div>
-          {tabRuns.map((run) => {
-            const tabItems = run.tabs.map((tab) => (
+          {workspaceTabs.map((tab) => (
               <WorkspaceTabItem
                 key={tab.id}
                 tab={tab}
@@ -436,33 +422,7 @@ export function TitleBar() {
                   })
                 }
               />
-            ))
-            if (!run.group || run.tabs.length < 2) return tabItems
-            return (
-              <div
-                key={run.key}
-                className={styles.tabGroupRun}
-                style={{ ['--tab-group-color' as string]: run.group.color }}
-              >
-                {/* The name reads as identity, not as a control, and clicking
-                    it closed every tab in the group — a destructive action with
-                    no affordance and no way back. It labels; the × closes. */}
-                <span className={styles.tabGroupLabel}>{run.group.name}</span>
-                <button
-                  type="button"
-                  className={styles.tabGroupClose}
-                  title={t('ui.titlebar.closeGroupTabs', { name: run.group.name })}
-                  aria-label={t('ui.titlebar.closeGroupTabs', { name: run.group.name })}
-                  onClick={() => {
-                    for (const tab of run.tabs) closeSavedWorkspaceTab(tab.id)
-                  }}
-                >
-                  <X size={10} />
-                </button>
-                {tabItems}
-              </div>
-            )
-          })}
+          ))}
           {agentCanvasSession ? (
             <div
               className={`${styles.groupTab} ${activeView === 'agentCanvas' ? styles.groupTabActive : ''}`}

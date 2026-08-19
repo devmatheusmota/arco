@@ -1,10 +1,9 @@
 export type SidebarDropEdge = 'before' | 'after' | 'inside'
-export type SidebarDragKind = 'project' | 'group' | 'terminal'
+export type SidebarDragKind = 'project' | 'terminal'
 export type SidebarDropIndicator = { id: string; edge: SidebarDropEdge }
 
 export function sidebarDragKind(id: string | null): SidebarDragKind | null {
   if (id?.startsWith('proj:')) return 'project'
-  if (id?.startsWith('grp:')) return 'group'
   if (id?.startsWith('term:')) return 'terminal'
   return null
 }

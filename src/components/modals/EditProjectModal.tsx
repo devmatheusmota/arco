@@ -9,7 +9,7 @@ import {
   worktreeProvision,
   worktreeRemove,
 } from '../../lib/tauri'
-import { type AgentType, GROUP_COLORS } from '../../lib/types'
+import { type AgentType, PROJECT_COLORS } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { ColorPalettePopover } from './ColorPalettePopover'
@@ -44,7 +44,7 @@ export function EditProjectModal() {
   )
 
   const [name, setName] = useState('')
-  const [color, setColor] = useState<string>(GROUP_COLORS[0])
+  const [color, setColor] = useState<string>(PROJECT_COLORS[0])
   const [isColorPopoverOpen, setIsColorPopoverOpen] = useState(false)
   const [iconUrl, setIconUrl] = useState('')
   const [worktreeMode, setWorktreeModeState] = useState<'gitWorktree' | 'localCopy'>('gitWorktree')
@@ -86,7 +86,7 @@ export function EditProjectModal() {
     seededForRef.current = project.id
 
     setName(project.name)
-    setColor(project.color || GROUP_COLORS[0])
+    setColor(project.color || PROJECT_COLORS[0])
     setIconUrl(project.iconUrl ?? '')
     setWorktreeModeState(project.worktreeMode ?? 'gitWorktree')
     setValidationCommandsStr((project.validationCommands ?? []).join('\n'))
@@ -271,7 +271,7 @@ export function EditProjectModal() {
           <div className={controls.field}>
             <label className={controls.label}>{t('crud.projectColorLabel')}</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              {GROUP_COLORS.map((c) => (
+              {PROJECT_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
@@ -288,7 +288,7 @@ export function EditProjectModal() {
                 />
               ))}
 
-              {color && !GROUP_COLORS.some((preset) => preset === color) && (
+              {color && !PROJECT_COLORS.some((preset) => preset === color) && (
                 <button
                   type="button"
                   onClick={() => setIsColorPopoverOpen(true)}

@@ -35,7 +35,6 @@ const projects: Project[] = [
         tabs: [],
         activeTabId: '',
         disabled: false,
-        laneVisible: null,
       },
     ],
     layoutMode: 'auto',

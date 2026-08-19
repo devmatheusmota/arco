@@ -6,7 +6,6 @@ import {
   DragOverlay,
   PointerSensor,
   pointerWithin,
-  useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
@@ -34,7 +33,7 @@ import {
   type SidebarDropIndicator,
   sidebarInsertionIndex,
 } from '../../lib/sidebarDrag'
-import { type Group, type Project } from '../../lib/types'
+import { type Project } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { EmptyState } from '../EmptyState'
@@ -43,9 +42,7 @@ import { UserProfile } from '../UserProfile'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { FileExplorer } from './FileExplorer'
 import { GitControl } from './GitControl'
-import { GroupNode } from './GroupNode'
 import { NormalProjectSidebar } from './NormalProjectSidebar'
-import { LayoutFooter, WorkspaceLayoutFooter } from './LayoutFooter'
 import { ProjectNode } from './ProjectNode'
 import styles from './ProjectSidebar.module.css'
 import { createSidebarMenus } from './sidebarMenus'
@@ -59,19 +56,12 @@ const sidebarCollisionDetection: CollisionDetection = (args) => {
     const target = String(id)
     if (target === String(args.active.id)) return false
     if (kind === 'terminal') return target.startsWith('proj:')
-    if (kind === 'project') return target.startsWith('proj:') || target.startsWith('group:')
-    if (kind === 'group') {
-      const sourceId = String(args.active.id).slice('grp:'.length)
-      return (
-        target !== `group:${sourceId}` && (target.startsWith('grp:') || target.startsWith('group:'))
-      )
-    }
+    if (kind === 'project') return target.startsWith('proj:')
     return false
   })
 
   const rank = (id: string) => {
     if (kind === 'project') return id.startsWith('proj:') ? 0 : 1
-    if (kind === 'group') return id.startsWith('grp:') ? 0 : 1
     return 0
   }
 
@@ -89,7 +79,7 @@ const sidebarCollisionDetection: CollisionDetection = (args) => {
 function dropIndicatorForEvent(event: DragMoveEvent | DragEndEvent): SidebarDropIndicator | null {
   if (!event.over) return null
   const id = String(event.over.id)
-  if (id.startsWith('group:') || sidebarDragKind(String(event.active.id)) === 'terminal') {
+  if (sidebarDragKind(String(event.active.id)) === 'terminal') {
     return { id, edge: 'inside' }
   }
 
@@ -114,8 +104,7 @@ function CleanProjectSidebar() {
   // --- data selectors (reactive) ---
   const {
     projects,
-    groups,
-    ungroupedOrder,
+    projectOrder,
     containers,
     activeProjectId,
     showGitControl,
@@ -123,8 +112,7 @@ function CleanProjectSidebar() {
   } = useProjectsStore(
     useShallow((s) => ({
       projects: s.projects,
-      groups: s.groups,
-      ungroupedOrder: s.ungroupedOrder,
+      projectOrder: s.projectOrder,
       containers: s.workspace.containers,
       activeProjectId: s.activeProjectId,
       showGitControl: s.preferences.enabledFeatures.git,
@@ -137,18 +125,12 @@ function CleanProjectSidebar() {
     useShallow((s) => ({
       setActiveProject: s.setActiveProject,
       openProjectWorkspace: s.openProjectWorkspace,
-      openGroupWorkspace: s.openGroupWorkspace,
       openTerminalWorkspace: s.openTerminalWorkspace,
       focusWorkspaceTerminal: s.focusWorkspaceTerminal,
       toggleProjectCollapsed: s.toggleProjectCollapsed,
-      toggleGroupCollapsed: s.toggleGroupCollapsed,
-      archiveGroup: s.archiveGroup,
       renameProject: s.renameProject,
       archiveProject: s.archiveProject,
       deleteProject: s.deleteProject,
-      renameGroup: s.renameGroup,
-      deleteGroup: s.deleteGroup,
-      resumeGroup: s.resumeGroup,
       setProjectDisabled: s.setProjectDisabled,
       renameTerminal: s.renameTerminal,
       killTerminal: s.killTerminal,
@@ -156,18 +138,13 @@ function CleanProjectSidebar() {
       deleteTerminalWithWorktreeCleanup: s.deleteTerminalWithWorktreeCleanup,
       setTerminalDisabled: s.setTerminalDisabled,
       moveTerminal: s.moveTerminal,
-      moveProjectToGroup: s.moveProjectToGroup,
-      moveGroupToParent: s.moveGroupToParent,
-      reorderProjectInGroup: s.reorderProjectInGroup,
-      reorderUngrouped: s.reorderUngrouped,
-      reorderGroups: s.reorderGroups,
+      reorderProject: s.reorderProject,
       togglePane: s.togglePane,
-      setLaneVisible: s.setLaneVisible,
+      openPane: s.openPane,
       setTerminalRemoteExcluded: s.setTerminalRemoteExcluded,
       setSubTabCompletionUnread: s.setSubTabCompletionUnread,
       createFilePane: s.createFilePane,
       createGraphifyPane: s.createGraphifyPane,
-      setFullscreenPane: s.setFullscreenPane,
     })),
   )
 
@@ -276,74 +253,14 @@ function CleanProjectSidebar() {
     if (dragged.startsWith('proj:') && target.startsWith('proj:')) {
       const fromId = dragged.slice('proj:'.length)
       const toId = target.slice('proj:'.length)
-      const from = projectsById.get(fromId)
-      const to = projectsById.get(toId)
-      if (!from || !to) return
-
-      if (from.groupId === to.groupId) {
-        const edge = indicator.edge === 'inside' ? 'before' : indicator.edge
-        if (from.groupId === null) {
-          const ord = useProjectsStore.getState().ungroupedOrder
-          const fi = ord.indexOf(fromId)
-          const ti = ord.indexOf(toId)
-          if (fi !== -1 && ti !== -1) {
-            actions.reorderUngrouped(fromId, fi, sidebarInsertionIndex(fi, ti, edge, true))
-          }
-        } else {
-          const grp = useProjectsStore.getState().groups.find((g) => g.id === from.groupId)
-          if (!grp) return
-          const fi = grp.projectIds.indexOf(fromId)
-          const ti = grp.projectIds.indexOf(toId)
-          if (fi !== -1 && ti !== -1) {
-            actions.reorderProjectInGroup(fromId, fi, sidebarInsertionIndex(fi, ti, edge, true))
-          }
-        }
-      } else {
-        const targetParent = to.groupId
-        const targetIndex =
-          targetParent === null
-            ? useProjectsStore.getState().ungroupedOrder.indexOf(toId)
-            : (useProjectsStore
-                .getState()
-                .groups.find((group) => group.id === targetParent)
-                ?.projectIds.indexOf(toId) ?? -1)
-        const edge = indicator.edge === 'inside' ? 'before' : indicator.edge
-        const atIndex =
-          targetIndex === -1 ? undefined : sidebarInsertionIndex(0, targetIndex, edge, false)
-        actions.moveProjectToGroup(fromId, targetParent, atIndex)
-      }
-      return
-    }
-
-    if (dragged.startsWith('proj:') && target.startsWith('group:')) {
-      const [, projectId] = dragged.split(':')
-      const [, groupId] = target.split(':')
-      actions.moveProjectToGroup(projectId, groupId === 'ungrouped' ? null : groupId)
-      return
-    }
-
-    // grp:<id> → grp:<id> reorders groups among the target's siblings.
-    if (dragged.startsWith('grp:') && target.startsWith('grp:')) {
-      const fromId = dragged.slice('grp:'.length)
-      const toId = target.slice('grp:'.length)
-      const all = useProjectsStore.getState().groups
-      const from = all.find((group) => group.id === fromId)
-      const to = all.find((group) => group.id === toId)
-      if (!from || !to) return
-      const siblings = all.filter((group) => group.parentGroupId === to.parentGroupId)
-      const targetIndex = siblings.findIndex((group) => group.id === toId)
-      const sourceIndex = siblings.findIndex((group) => group.id === fromId)
-      const sameParent = from.parentGroupId === to.parentGroupId
+      if (!projectsById.has(fromId) || !projectsById.has(toId)) return
       const edge = indicator.edge === 'inside' ? 'before' : indicator.edge
-      const atIndex = sidebarInsertionIndex(sourceIndex, targetIndex, edge, sameParent)
-      actions.moveGroupToParent(fromId, to.parentGroupId, atIndex)
-      return
-    }
-
-    if (dragged.startsWith('grp:') && target.startsWith('group:')) {
-      const [, srcGroupId] = dragged.split(':')
-      const [, parentId] = target.split(':')
-      actions.moveGroupToParent(srcGroupId, parentId === 'ungrouped' ? null : parentId)
+      const order = useProjectsStore.getState().projectOrder
+      const fi = order.indexOf(fromId)
+      const ti = order.indexOf(toId)
+      if (fi !== -1 && ti !== -1) {
+        actions.reorderProject(fromId, fi, sidebarInsertionIndex(fi, ti, edge, true))
+      }
       return
     }
   }
@@ -351,19 +268,15 @@ function CleanProjectSidebar() {
   const draggingLabel = draggingId
     ? draggingId.startsWith('proj:')
       ? projectsById.get(draggingId.slice('proj:'.length))?.name
-      : draggingId.startsWith('grp:')
-        ? groups.find((group) => `grp:${group.id}` === draggingId)?.name
-        : draggingId.startsWith('term:')
-          ? 'Terminal'
-          : null
+      : draggingId.startsWith('term:')
+        ? 'Terminal'
+        : null
     : null
-  const draggingKind = sidebarDragKind(draggingId)
 
-  const { projectMenu, groupMenu, terminalMenu } = createSidebarMenus({
+  const { projectMenu, terminalMenu } = createSidebarMenus({
     t,
     graphifyEnabled: preferences.enabledFeatures.graphify,
     browserEnabled: preferences.enabledFeatures.browser,
-    groups: groups.filter((group) => !group.archived),
     openPaneSets,
     actions: { ...actions, setPreferences },
     openModal,
@@ -391,7 +304,7 @@ function CleanProjectSidebar() {
       }}
       onTerminalClick={(t) => {
         if (t.gsdSyncViewer) {
-          actions.setFullscreenPane(t.id)
+          actions.openPane(p.id, t.id)
           setActiveView('workspace')
           return
         }
@@ -406,7 +319,7 @@ function CleanProjectSidebar() {
       }}
       onTerminalDoubleClick={(t) => {
         if (t.gsdSyncViewer) {
-          actions.setFullscreenPane(t.id)
+          actions.openPane(p.id, t.id)
           setActiveView('workspace')
           return
         }
@@ -424,51 +337,9 @@ function CleanProjectSidebar() {
     />
   )
 
-  const ungroupedProjects = ungroupedOrder
+  const visibleProjects = projectOrder
     .map((id) => projectsById.get(id))
-    .filter((p): p is Project => p !== undefined && !p.archived)
-
-  const groupsByParent = useMemo(() => {
-    const map = new Map<string | null, Group[]>()
-    const visibleGroups = groups.filter((group) => !group.archived)
-    const visibleIds = new Set(visibleGroups.map((group) => group.id))
-    for (const g of visibleGroups) {
-      // Orphans from an archived/deleted parent remain visible with the root groups.
-      const key = g.parentGroupId && visibleIds.has(g.parentGroupId) ? g.parentGroupId : null
-      const arr = map.get(key) ?? []
-      arr.push(g)
-      map.set(key, arr)
-    }
-    return map
-  }, [groups])
-
-  const renderGroup = (g: Group): React.ReactNode => {
-    const projectsInGroup = g.projectIds
-      .map((id) => projectsById.get(id))
-      .filter((p): p is Project => p !== undefined && !p.archived)
-    const childGroups = groupsByParent.get(g.id) ?? []
-    return (
-      <GroupNode
-        key={g.id}
-        group={g}
-        projects={projectsInGroup}
-        childGroups={childGroups}
-        renderProject={renderProject}
-        renderChildGroup={renderGroup}
-        onMenu={(e) => setMenu({ x: e.clientX, y: e.clientY, items: groupMenu(g) })}
-        onAddProject={() =>
-          openModal('newProject', {
-            groupId: g.id,
-            createTerminalAfterCreate: projectsInGroup.length === 0 && childGroups.length === 0,
-          })
-        }
-        onToggle={() => actions.toggleGroupCollapsed(g.id)}
-        dragKind={draggingKind}
-        reorderEdge={dropIndicator?.id === `grp:${g.id}` ? dropIndicator.edge : null}
-        dropInside={dropIndicator?.id === `group:${g.id}`}
-      />
-    )
-  }
+    .filter((project): project is Project => project !== undefined && !project.archived)
 
   return (
     <aside className={styles.sidebar}>
@@ -644,7 +515,7 @@ function CleanProjectSidebar() {
           onDragEnd={onDragEnd}
         >
           <div className={styles.list}>
-            {projects.length === 0 && groups.length === 0 ? (
+            {projects.length === 0 ? (
               <div className={styles.emptyWrap}>
                 <EmptyState
                   compact
@@ -658,16 +529,9 @@ function CleanProjectSidebar() {
                 />
               </div>
             ) : (
-              <>
-                {(groupsByParent.get(null) ?? []).map(renderGroup)}
-
-                <UngroupedSection
-                  projects={ungroupedProjects}
-                  renderProject={renderProject}
-                  showDropZone={draggingKind === 'project' || draggingKind === 'group'}
-                  isDropTarget={dropIndicator?.id === 'group:ungrouped'}
-                />
-              </>
+              <div className={styles.projectList}>
+                {visibleProjects.map((project) => renderProject(project))}
+              </div>
             )}
           </div>
           <DragOverlay dropAnimation={null}>
@@ -684,8 +548,6 @@ function CleanProjectSidebar() {
       {menu ? (
         <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
       ) : null}
-      <WorkspaceLayoutFooter />
-      <LayoutFooter />
       {preferences.topbarStyle === 'three-areas' ? (
         <div className={styles.systemFooter}>
           <span className={styles.systemFooterLabel}>{t('ui.sidebar.system')}</span>
@@ -724,29 +586,3 @@ function CleanProjectSidebar() {
   )
 }
 
-function UngroupedSection({
-  projects,
-  renderProject,
-  showDropZone = false,
-  isDropTarget = false,
-}: {
-  projects: Project[]
-  renderProject: (p: Project) => React.ReactNode
-  showDropZone?: boolean
-  isDropTarget?: boolean
-}) {
-  const t = useT()
-  const { setNodeRef } = useDroppable({ id: 'group:ungrouped', disabled: !showDropZone })
-  if (projects.length === 0 && !showDropZone) return null
-  return (
-    <div
-      ref={setNodeRef}
-      className={`${styles.ungroupedSection} ${isDropTarget ? styles.dropInside : ''}`}
-    >
-      {projects.length === 0 ? (
-        <div className={styles.ungroupedEmptyDrop}>{t('ui.sidebar.ungroupedDropArea')}</div>
-      ) : null}
-      <div className={styles.ungroupedBody}>{projects.map((p) => renderProject(p))}</div>
-    </div>
-  )
-}

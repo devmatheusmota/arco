@@ -8,12 +8,11 @@ The app is local-first. Projects, preferences, layouts, scrollback, sessions, an
 
 - A project-based workspace for Shell, Claude Code, Codex, and OpenCode.
 - Real PTYs managed by a Rust/Tauri backend.
-- Split-pane project containers with automatic and custom grid layouts.
-- Groups and subgroups for larger workspaces.
+- One session on screen per project, the rest in tabs, plus an optional terminal beside it.
 - Multiple sub-tabs inside each terminal.
 - Persisted local state across restarts.
 - Session resume for supported agent CLIs.
-- Memory controls for disabling terminals and suspending groups.
+- Memory controls for disabling terminals and suspending a project.
 - Backup export/import for local data.
 
 ## Stack
@@ -26,25 +25,23 @@ The app is local-first. Projects, preferences, layouts, scrollback, sessions, an
 | State | Zustand |
 | Terminal | `xterm.js` |
 | PTY | `portable-pty` |
-| Layout | `react-resizable-panels`, CSS grid |
+| Layout | `react-resizable-panels` |
 | Drag and drop | `@dnd-kit/core` |
 | Persistence | Local JSON files and scrollback files |
 
 ## Core Model
 
 ```text
-Group
-└── Project
-    └── Terminal
-        ├── Shell tab
-        ├── Claude Code tab
-        └── Codex tab
+Project
+└── Terminal
+    ├── Shell tab
+    ├── Claude Code tab
+    └── Codex tab
 ```
 
-- **Group**: a logical collection of projects.
-- **Project**: a work unit with terminals, layout, color, and workspace state.
+- **Project**: a work unit with terminals, color, and workspace state.
 - **Container**: the visual representation of an opened project.
-- **Pane**: a terminal rendered inside a container.
+- **Pane**: a session of the project; one fills the screen and the rest are tabs.
 - **Terminal**: a persistent unit with cwd, sub-tabs, PTY state, and scrollback.
 - **Sub-tab**: an internal tab inside a terminal, usually mapped to one agent or shell.
 
@@ -55,7 +52,7 @@ Arco stores app data under the platform app-data directory. Each local profile/a
 Typical files include:
 
 - `profiles.json`: local account/profile registry.
-- `profiles/<profileId>/projects.json`: projects, groups, workspace state, preferences, and CLI paths.
+- `profiles/<profileId>/projects.json`: projects, workspace state, preferences, and CLI paths.
 - `profiles/<profileId>/scrollback/`: terminal scrollback snapshots.
 - `profiles/<profileId>/spotify_tokens.json`: local Spotify token cache, when configured.
 - `profiles/<profileId>/spawn.log`: local spawn and diagnostic log.

@@ -6,8 +6,6 @@ import {
   History,
   Maximize2,
   Minimize2,
-  PanelLeftClose,
-  PanelLeftOpen,
   Power,
   RefreshCw,
   TerminalSquare,
@@ -68,7 +66,6 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
     (state) => state.preferences.terminalTheme ?? state.preferences.uiTheme,
   )
   const setActiveTab = useProjectsStore((state) => state.setActiveTab)
-  const setLaneVisible = useProjectsStore((state) => state.setLaneVisible)
   const setTerminalDisabled = useProjectsStore((state) => state.setTerminalDisabled)
   const killTerminal = useProjectsStore((state) => state.killTerminal)
   const deleteTerminal = useProjectsStore((state) => state.deleteTerminal)
@@ -86,7 +83,6 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
     ? 'disabled'
     : (runtimeStatus ?? (activeTab ? 'waiting' : 'stopped'))
   const isFocusMode = focusedTerminalId === terminal.id
-  const effectiveLaneVisible = terminal.tabs.length > 1 ? true : terminal.laneVisible === true
   const cwd = activeTab?.cwd?.trim() || terminal.cwd?.trim() || ''
   const detailsPath = terminal.url || terminal.filePath || cwd
   const isTerminalPane = !terminal.kind || terminal.kind === 'terminal'
@@ -224,18 +220,6 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
               icon={terminal.disabled ? <Eye size={14} /> : <EyeOff size={14} />}
               label={terminal.disabled ? t('ui.sidebar.reactivate') : t('ui.terminal.disable')}
               onClick={() => setTerminalDisabled(projectId, terminal.id, !terminal.disabled)}
-            />
-            <InspectorAction
-              icon={
-                effectiveLaneVisible ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />
-              }
-              label={
-                effectiveLaneVisible ? t('ui.terminal.hideTabsLane') : t('ui.terminal.showTabsLane')
-              }
-              onClick={() =>
-                setLaneVisible(projectId, terminal.id, effectiveLaneVisible ? false : true)
-              }
-              disabled={terminal.tabs.length > 1}
             />
             {isAgentWithHistory ? (
               <InspectorAction

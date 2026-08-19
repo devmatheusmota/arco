@@ -45,7 +45,6 @@ type TerminalsSlice = Pick<
   | 'moveTerminal'
   | 'setTerminalDisabled'
   | 'setProjectDisabled'
-  | 'setLaneVisible'
   | 'setTerminalRemoteExcluded'
   | 'markTerminalUsed'
 >
@@ -153,7 +152,7 @@ export function createTerminalsSlice({
 
         const repo =
           getProjectRepoRoot(project) ||
-          getProjectDefaultCwd(project, state.projects) ||
+          getProjectDefaultCwd(project) ||
           args.cwd.trim()
         if (repo) {
           const agentId = `${args.firstTab.type.slice(0, 2)}-${nanoid(6)}`.replace(
@@ -234,7 +233,6 @@ export function createTerminalsSlice({
         tabs: [],
         activeTabId: '',
         disabled: false,
-        laneVisible: true,
         kind: 'graphify',
       }
       update((state) => {
@@ -269,20 +267,11 @@ export function createTerminalsSlice({
         }
         const terminalsToClean = (project?.terminals ?? []).filter((t) => idsToRemove.has(t.id))
         if (terminalsToClean.length > 0) cleanupPtys(collectTerminalPtyIds(terminalsToClean))
-        const projects = state.projects.map((p) => {
-          if (p.id !== projectId) return p
-          const paneGroups = (p.paneGroups ?? [])
-            .map((group) => ({
-              ...group,
-              paneIds: group.paneIds.filter((id) => !idsToRemove.has(id)),
-            }))
-            .filter((group) => group.paneIds.length > 1)
-          return {
-            ...p,
-            terminals: p.terminals.filter((t) => !idsToRemove.has(t.id)),
-            paneGroups: paneGroups.length > 0 ? paneGroups : undefined,
-          }
-        })
+        const projects = state.projects.map((p) =>
+          p.id === projectId
+            ? { ...p, terminals: p.terminals.filter((t) => !idsToRemove.has(t.id)) }
+            : p,
+        )
         // remove pane do container; se container ficou vazio, remove container
         const containers = state.workspace.containers
           .map((c) => {
@@ -479,9 +468,6 @@ export function createTerminalsSlice({
         return { projects }
       }),
 
-    setLaneVisible: (projectId, terminalId, visible) =>
-      updateTerminal(projectId, terminalId, (t) => ({ ...t, laneVisible: visible })),
-
     setTerminalRemoteExcluded: (projectId, terminalId, excluded) =>
       updateTerminal(projectId, terminalId, (t) => ({ ...t, remoteExcluded: excluded })),
 
@@ -501,12 +487,10 @@ type ContainersSlice = Pick<
   | 'closeContainer'
   | 'closeOtherContainers'
   | 'reorderPaneInContainer'
-  | 'groupPanes'
-  | 'ungroupPanes'
+  | 'setActivePane'
+  | 'setSidePane'
   | 'setContainerCollapsed'
-  | 'setContainerInternalLayout'
   | 'setFullscreenContainer'
-  | 'setFullscreenPane'
 >
 
 export function createContainersSlice({
@@ -535,7 +519,6 @@ export function createContainersSlice({
           { ...state, projects } as ProjectsState,
           projectId,
           [terminalId],
-          { layout: project.layoutMode },
         )
         return {
           projects,
@@ -571,11 +554,20 @@ export function createContainersSlice({
             : p,
         )
         const containers = state.workspace.containers
-          .map((c) =>
-            c.projectId === projectId
-              ? { ...c, paneIds: c.paneIds.filter((id) => id !== terminalId) }
-              : c,
-          )
+          .map((c) => {
+            if (c.projectId !== projectId) return c
+            const paneIds = c.paneIds.filter((id) => id !== terminalId)
+            // Closing what is on screen hands it to the neighbour the tab bar
+            // shows next, so the project never ends up showing nothing.
+            const closedIndex = c.paneIds.indexOf(terminalId)
+            const fallback = paneIds[Math.min(closedIndex, paneIds.length - 1)] ?? null
+            return {
+              ...c,
+              paneIds,
+              activePaneId: c.activePaneId === terminalId ? fallback : c.activePaneId,
+              sidePaneId: c.sidePaneId === terminalId ? null : c.sidePaneId,
+            }
+          })
           .filter((c) => c.paneIds.length > 0)
         return { projects, workspace: { ...state.workspace, containers } }
       }),
@@ -605,7 +597,6 @@ export function createContainersSlice({
           { ...state, preferences } as ProjectsState,
           projectId,
           allPanes,
-          { layout: project.layoutMode },
         )
         return {
           preferences,
@@ -690,72 +681,47 @@ export function createContainersSlice({
         return { ...c, paneIds: next }
       }),
 
-    groupPanes: (projectId, paneIds) =>
-      update((state) => {
-        const project = state.projects.find((p) => p.id === projectId)
-        const validIds = [...new Set(paneIds)].filter((id) =>
-          project?.terminals.some((t) => t.id === id),
-        )
-        if (!project || validIds.length < 2) return
-        const selected = new Set(validIds)
-        const groups = project.paneGroups ?? []
-        const absorbed = groups.filter((group) => group.paneIds.some((id) => selected.has(id)))
-        const expandedIds = [
-          ...new Set(absorbed.flatMap((group) => group.paneIds).concat(validIds)),
-        ]
-        const remaining = groups.filter((group) => !absorbed.includes(group))
-        remaining.push({ id: `pane-group-${Date.now()}`, paneIds: expandedIds })
-        return {
-          projects: state.projects.map((p) =>
-            p.id === projectId ? { ...p, paneGroups: remaining } : p,
-          ),
-        }
+    setActivePane: (projectId, paneId) =>
+      updateContainer(projectId, (c) => {
+        if (!c.paneIds.includes(paneId) || c.activePaneId === paneId) return c
+        // A session cannot be the one on screen and the terminal beside it.
+        return { ...c, activePaneId: paneId, sidePaneId: c.sidePaneId === paneId ? null : c.sidePaneId }
       }),
 
-    ungroupPanes: (projectId, groupId) =>
-      update((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === projectId
-            ? { ...p, paneGroups: (p.paneGroups ?? []).filter((group) => group.id !== groupId) }
-            : p,
-        ),
-      })),
+    setSidePane: (projectId, paneId) =>
+      update((state) => {
+        const project = state.projects.find((p) => p.id === projectId)
+        if (!project) return
+        if (paneId) {
+          const pane = project.terminals.find((t) => t.id === paneId)
+          // Only a terminal earns the space beside a session: the point is running
+          // a command without leaving the one you are reading.
+          if (!pane || (pane.kind && pane.kind !== 'terminal')) return
+        }
+        return {
+          workspace: {
+            ...state.workspace,
+            containers: state.workspace.containers.map((c) => {
+              if (c.projectId !== projectId) return c
+              if (!paneId) return { ...c, sidePaneId: null }
+              if (!c.paneIds.includes(paneId)) return c
+              const activePaneId =
+                c.activePaneId === paneId
+                  ? (c.paneIds.find((id) => id !== paneId) ?? c.activePaneId)
+                  : c.activePaneId
+              return { ...c, sidePaneId: paneId, activePaneId }
+            }),
+          },
+        }
+      }),
 
     setContainerCollapsed: (projectId, collapsed) =>
       updateContainer(projectId, (c) => ({ ...c, collapsed })),
 
-    setContainerInternalLayout: (projectId, layout) =>
-      updateContainer(projectId, (c) => ({ ...c, internalLayout: layout })),
-
     setFullscreenContainer: (projectId) =>
       update((state) => ({
-        preferences: {
-          ...state.preferences,
-          fullscreenContainerId: projectId,
-          isolatedPaneId: null,
-        },
+        preferences: { ...state.preferences, fullscreenContainerId: projectId },
       })),
 
-    setFullscreenPane: (terminalId) =>
-      update((state) => {
-        if (!terminalId) {
-          return {
-            preferences: {
-              ...state.preferences,
-              fullscreenContainerId: null,
-              isolatedPaneId: null,
-            },
-          }
-        }
-        const owner = state.projects.find((p) => p.terminals.some((term) => term.id === terminalId))
-        if (!owner) return
-        return {
-          preferences: {
-            ...state.preferences,
-            fullscreenContainerId: owner.id,
-            isolatedPaneId: terminalId,
-          },
-        }
-      }),
   }
 }

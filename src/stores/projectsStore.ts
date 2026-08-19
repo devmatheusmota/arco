@@ -18,10 +18,7 @@ import {
   type AgentType,
   type BrowserPaneOptions,
   EMPTY_PROJECTS_FILE,
-  type GridLayout,
-  type Group,
-  type LayoutMode,
-  type Locale,
+    type Locale,
   type OrphanWorktree,
   type Preferences,
   type Project,
@@ -32,8 +29,8 @@ import {
   type TodoAdoRef,
   type TodoItem,
   type TodoPriority,
-  type TodoStatus,
   type TodoSessionLink,
+  type TodoStatus,
   type WorkspaceContainer,
   type WorkspaceRecentTab,
   type WorkspaceTab,
@@ -50,7 +47,7 @@ import {
   scopedTabSnapshot,
 } from '../lib/workspaceNavigation'
 import { migrate } from './projectsStore.migrations'
-import { createGroupsSlice, createProjectsSlice } from './projectsStore.projectSlices'
+import { createProjectsSlice } from './projectsStore.projectSlices'
 import {
   createPreferencesSlice,
   createSubTabsSlice,
@@ -77,33 +74,13 @@ export type ProjectsState = ProjectsFile & {
   /** True while handleCleanupWorktrees is running, preventing duplicate clicks. */
   isCleaningOrphans: boolean
 
-  // groups
-  createGroup: (name: string, color?: string, parentGroupId?: string | null) => Group
-  moveGroupToParent: (groupId: string, parentGroupId: string | null, atIndex?: number) => void
-  renameGroup: (id: string, name: string) => void
-  setGroupColor: (id: string, color: string) => void
-  setGroupIconUrl: (id: string, iconUrl: string | undefined) => void
-  toggleGroupCollapsed: (id: string) => void
-  archiveGroup: (id: string) => void
-  unarchiveGroup: (id: string) => void
-
-  suspendGroup: (groupId: string) => void
-
-  resumeGroup: (groupId: string) => void
-
-  deleteGroup: (id: string, mode: 'unassign' | 'cascade') => void
-  reorderGroups: (fromIndex: number, toIndex: number) => void
-  moveProjectToGroup: (projectId: string, groupId: string | null, atIndex?: number) => void
-  reorderProjectInGroup: (projectId: string, fromIndex: number, toIndex: number) => void
-  reorderUngrouped: (projectId: string, fromIndex: number, toIndex: number) => void
-
   // projects
+  reorderProject: (projectId: string, fromIndex: number, toIndex: number) => void
   createProject: (args: {
     name: string
     mode?: Project['mode']
     color?: string
     iconUrl?: string
-    groupId?: string | null
     defaultCwd?: string
     githubUrl?: string
     firstBootPending?: boolean
@@ -147,11 +124,9 @@ export type ProjectsState = ProjectsFile & {
   deleteProject: (id: string) => void
   setActiveProject: (id: string | null) => void
   setActiveProjectOnly: (id: string | null) => void
-  rememberWorkspaceGroupTab: (groupId: string) => void
   closeWorkspaceTab: (tab: WorkspaceRecentTab) => void
   openProjectWorkspace: (projectId: string) => void
   /** Opens one tab per project of the group — a tab still shows a single project. */
-  openGroupWorkspace: (groupId: string) => void
   openTerminalWorkspace: (projectId: string, terminalId: string) => void
   focusWorkspaceTerminal: (projectId: string, terminalId: string) => void
   activateWorkspaceTab: (tabId: string) => void
@@ -160,8 +135,6 @@ export type ProjectsState = ProjectsFile & {
   reopenClosedWorkspaceTab: () => void
   navigateWorkspaceHistory: (direction: -1 | 1) => void
   toggleProjectCollapsed: (id: string) => void
-  setLayoutMode: (projectId: string, layout: LayoutMode) => void
-  setProjectGridLayout: (projectId: string, layout: GridLayout, recordHistory?: boolean) => void
 
   createTodo: (
     title: string,
@@ -259,7 +232,6 @@ export type ProjectsState = ProjectsFile & {
   setTerminalDisabled: (projectId: string, terminalId: string, disabled: boolean) => void
 
   setProjectDisabled: (projectId: string, disabled: boolean) => void
-  setLaneVisible: (projectId: string, terminalId: string, visible: boolean | null) => void
   /** Hides a terminal from every paired remote device. */
   setTerminalRemoteExcluded: (projectId: string, terminalId: string, excluded: boolean) => void
 
@@ -279,12 +251,15 @@ export type ProjectsState = ProjectsFile & {
 
   closeOtherContainers: (keepProjectId: string) => void
   reorderPaneInContainer: (projectId: string, fromIndex: number, toIndex: number) => void
-  groupPanes: (projectId: string, paneIds: string[]) => void
-  ungroupPanes: (projectId: string, groupId: string) => void
+  /** Brings a session to the screen; every other one stays a tab. */
+  setActivePane: (projectId: string, paneId: string) => void
+  /**
+   * Puts a terminal beside the active session, or takes it away with `null`.
+   * Only a pane of kind `terminal` is accepted, and only one at a time.
+   */
+  setSidePane: (projectId: string, paneId: string | null) => void
   setContainerCollapsed: (projectId: string, collapsed: boolean) => void
-  setContainerInternalLayout: (projectId: string, layout: LayoutMode) => void
   setFullscreenContainer: (projectId: string | null) => void
-  setFullscreenPane: (terminalId: string | null) => void
 
   // sub-tabs
   createSubTab: (
@@ -357,9 +332,8 @@ function nextWriteSequence(): number {
 
 function projectsPayload(state: ProjectsState): ProjectsFile {
   return {
-    version: 8,
-    groups: state.groups,
-    ungroupedOrder: state.ungroupedOrder,
+    version: 9,
+    projectOrder: state.projectOrder,
     projects: state.projects,
     todos: state.todos,
     activeProjectId: state.activeProjectId,
@@ -576,7 +550,6 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
       id: nanoid(),
       kind: 'project',
       projectId: project.id,
-      groupId: project.groupId ?? undefined,
       label: project.name,
       color: project.color,
       iconUrl: project.iconUrl,
@@ -594,7 +567,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     state: ProjectsState,
     projectId: string,
     paneIds: string[],
-    options?: { focusPaneId?: string | null; layout?: LayoutMode },
+    options?: { focusPaneId?: string | null },
   ): Partial<ProjectsState> | undefined => {
     const tab = tabForProject(state, projectId)
     if (!tab) return
@@ -602,19 +575,20 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     const isActive = state.workspace.activeTabId === tab.id
     const base = isActive ? state.workspace.containers : tab.snapshot.containers
     const existing = base.find((container) => container.projectId === projectId)
-    const layout =
-      options?.layout ?? state.projects.find((item) => item.id === projectId)?.layoutMode ?? 'auto'
+    // Opening a pane makes it the one on screen: that is what the click asked for.
+    const nextActive = options?.focusPaneId ?? paneIds[paneIds.length - 1] ?? null
     const containers = existing
       ? base.map((container) =>
           container.projectId === projectId
             ? {
                 ...container,
                 paneIds: [...new Set([...container.paneIds, ...paneIds])],
+                activePaneId: nextActive ?? container.activePaneId,
                 lastUsedAt: Date.now(),
               }
             : container,
         )
-      : [...base, newContainer(projectId, paneIds, layout)]
+      : [...base, newContainer(projectId, paneIds, nextActive)]
     const snapshot = enforceTabScope(
       makeSnapshot(
         state,
@@ -695,7 +669,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
         })
         void recordAppEvent(
           'projects.hydrate',
-          `source=disk projects=${migrated.projects.length} groups=${migrated.groups.length} tabs=${migrated.workspace.tabs.length} active_tab=${Boolean(migrated.workspace.activeTabId)} left_sidebar=${migrated.preferences.leftSidebarVisible} right_sidebar=${migrated.preferences.rightSidebarVisible}`,
+          `source=disk projects=${migrated.projects.length} tabs=${migrated.workspace.tabs.length} active_tab=${Boolean(migrated.workspace.activeTabId)} left_sidebar=${migrated.preferences.leftSidebarVisible} right_sidebar=${migrated.preferences.rightSidebarVisible}`,
         )
       } catch (err) {
         console.error('Falha ao carregar projects.json — usando estado vazio', err)
@@ -708,7 +682,6 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
       }
     },
 
-    ...createGroupsSlice(sliceCtx),
     ...createProjectsSlice(sliceCtx),
     ...createWorkspaceSlice(sliceCtx),
     ...createTerminalsSlice(sliceCtx),
@@ -735,11 +708,6 @@ export async function flushProjectsState(): Promise<void> {
 
 export function selectProjectsById(state: ProjectsState): Map<string, Project> {
   return new Map(state.projects.map((p) => [p.id, p]))
-}
-
-/** Map de group.id → Group. */
-export function selectGroupsById(state: ProjectsState): Map<string, Group> {
-  return new Map(state.groups.map((g) => [g.id, g]))
 }
 
 export function selectActiveProject(state: ProjectsState): Project | null {

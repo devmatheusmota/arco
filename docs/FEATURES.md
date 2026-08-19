@@ -9,20 +9,16 @@ This document summarizes the main product capabilities in the public desktop app
 - Close containers without killing their PTYs.
 - Collapse containers into compact headers.
 - Put one container in fullscreen.
-- Use flat mode to combine panes from multiple projects.
-- Reorder containers and panes with drag and drop.
+- Reorder the sessions of a project with drag and drop.
 - Restore opened containers and recent tabs across restarts.
 
-## Layouts
+## Sessions on screen
 
-Arco supports layouts at project, group, and workspace level.
+A project shows one session at a time, full size. Every other session of the project is a tab in the
+bar above it, and switching tabs never resizes anything: the sessions share one box.
 
-- **Auto**: one pane full size, two panes side by side, three or more in a grid.
-- **Spotlight**: one primary pane with secondary panes stacked beside it.
-- **Sidebar**: a narrow pane list with one larger active pane.
-- **Custom grid**: visual editor for columns, rows, spans, and proportions.
-
-Custom grids support `colSpan`, `rowSpan`, drag-and-drop swapping, and resizable row/column fractions.
+A single terminal can be opened beside the active session, for running a command without leaving what
+you are reading. Only a terminal is accepted there, and only one at a time.
 
 ## Terminals and PTYs
 
@@ -70,19 +66,18 @@ Custom grids support `colSpan`, `rowSpan`, drag-and-drop swapping, and resizable
 
 ## Project Sidebar
 
-- Home, groups, subgroups, projects, and terminals in one navigation tree.
+- Home, projects, and terminals in one navigation tree.
 - Group colors, optional icons, collapse state, and suspend state.
 - Project colors and terminal counts.
 - Terminal agent icons and sub-tab counts.
-- Context menus for groups, projects, and terminals.
-- Drag and drop for moving projects, groups, and terminals.
+- Context menus for projects and terminals.
+- Drag and drop for reordering projects and moving terminals between them.
 
 ## Memory Controls
 
 - Disable one terminal to free resources.
 - Disable a whole project.
-- Suspend a group by disabling its terminals and closing its containers.
-- Reactivate suspended groups.
+- Suspend a project by disabling its terminals and closing its container.
 - RAM indicator in the title bar.
 - Backend memory stats for the app, WebView, and child PTY processes.
 
@@ -90,7 +85,7 @@ Custom grids support `colSpan`, `rowSpan`, drag-and-drop swapping, and resizable
 
 - Personalized greeting and date.
 - Recent projects and terminals.
-- Quick actions for project, group, and terminal creation.
+- Quick actions for project and terminal creation.
 - Claude usage/activity widgets when available.
 - Spotify Now Playing when configured.
 
@@ -113,14 +108,13 @@ Custom grids support `colSpan`, `rowSpan`, drag-and-drop swapping, and resizable
   | `Ctrl+T` | Open the new-terminal modal |
   | `Ctrl+Shift+T` | Reopen the last closed tab |
   | `Ctrl+Shift+A` | Add a Markdown or browser pane |
-  | `Ctrl+W` | Close/hide the first pane in the active container |
+  | `Ctrl+W` | Close the session on screen |
   | `Ctrl+P` | Find/jump |
   | `Ctrl+Shift+P` | New project |
-  | `Ctrl+Shift+G` | New group |
   | `Ctrl+Shift+H` | Toggle between Home and the workspace |
   | `Ctrl+1` … `Ctrl+9` | Jump to the Nth project in sidebar order |
   | `Alt+Left` / `Alt+Right` | Navigate persistent workspace history |
-  | `Shift+Tab` | Focus the next terminal in the current group/project |
+  | `Shift+Tab` | Focus the next session of the current project |
   | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Cycle project tabs without reordering them |
   | `Ctrl++` / `Ctrl+-` / `Ctrl+0` | UI zoom in, out, reset (numpad variants included) |
   | `R` | Restart the selected terminal when focus is on the UI, not inside the terminal |

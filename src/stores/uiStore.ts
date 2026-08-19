@@ -20,8 +20,6 @@ import type { UpdateInfo } from '../lib/updater'
 
 type ModalKind =
   | 'newProject'
-  | 'newGroup'
-  | 'editGroup'
   | 'editProject'
   | 'newTerminal'
   | 'addContent'
@@ -31,8 +29,6 @@ type ModalKind =
   | 'findJump'
   | 'onboarding'
   | 'welcome'
-  | 'layoutDesigner'
-  | 'suspendGroup'
   | 'memoryAnalytics'
   | 'aiUsage'
   | 'themePicker'
@@ -104,7 +100,6 @@ type UiState = {
   /** Pulse that requests focus for a specific pane. */
   focusRequest: { terminalId: string; ts: number } | null
   activeTerminal: { projectId: string; terminalId: string } | null
-  selectedPanes: { projectId: string; terminalId: string }[]
   /** View principal sendo exibida no main. */
   activeView: ActiveView
 
@@ -140,8 +135,6 @@ type UiState = {
   setFocusedTerminal: (id: string | null) => void
   requestPaneFocus: (terminalId: string) => void
   setActiveTerminal: (projectId: string, terminalId: string) => void
-  selectPane: (projectId: string, terminalId: string, extend: boolean) => void
-  clearPaneSelection: () => void
   setActiveView: (v: ActiveView) => void
   toggleHome: () => void
   openMarkdownSidebar: (path: string, title?: string) => void
@@ -184,7 +177,6 @@ export const useUiStore = create<UiState>((set) => ({
   mountedPaneIds: [],
   focusRequest: null,
   activeTerminal: null,
-  selectedPanes: [],
   activeView: 'workspace',
   rightSidebarMode: 'todo',
   rightSidebarMarkdown: null,
@@ -230,21 +222,6 @@ export const useUiStore = create<UiState>((set) => ({
   setFocusedTerminal: (id) => set({ focusedTerminalId: id }),
   requestPaneFocus: (terminalId) => set({ focusRequest: { terminalId, ts: Date.now() } }),
   setActiveTerminal: (projectId, terminalId) => set({ activeTerminal: { projectId, terminalId } }),
-  selectPane: (projectId, terminalId, extend) =>
-    set((state) => {
-      if (!extend) return { selectedPanes: [{ projectId, terminalId }] }
-      const exists = state.selectedPanes.some(
-        (pane) => pane.projectId === projectId && pane.terminalId === terminalId,
-      )
-      return {
-        selectedPanes: exists
-          ? state.selectedPanes.filter(
-              (pane) => !(pane.projectId === projectId && pane.terminalId === terminalId),
-            )
-          : [...state.selectedPanes, { projectId, terminalId }],
-      }
-    }),
-  clearPaneSelection: () => set({ selectedPanes: [] }),
   setActiveView: (v) => set((s) => (s.activeView === v ? s : { activeView: v })),
   toggleHome: () => set((s) => ({ activeView: s.activeView === 'home' ? 'workspace' : 'home' })),
   openMarkdownSidebar: (path, title) =>

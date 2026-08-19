@@ -1,13 +1,13 @@
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { FolderOpen, GripVertical, Maximize2, Minimize2, Trash2 } from 'lucide-react'
 import { memo, useRef } from 'react'
-import { useDraggable, useDroppable } from '@dnd-kit/core'
 
 import { useT } from '../../lib/i18n'
-import { openInFileExplorer } from '../../lib/tauri'
 import { pathSegments } from '../../lib/paths'
+import { openInFileExplorer } from '../../lib/tauri'
+import type { Terminal as TerminalEntry } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
-import type { Terminal as TerminalEntry } from '../../lib/types'
 import { VideoPreview } from '../VideoPreview'
 import styles from './VideoPane.module.css'
 
@@ -28,9 +28,6 @@ export const VideoPane = memo(function VideoPane({
   const isFocusMode = inFocusOverlay || focusedTerminalId === terminal.id
   const setFocusedTerminal = useUiStore((state) => state.setFocusedTerminal)
   const setActiveTerminal = useUiStore((state) => state.setActiveTerminal)
-  const selectPane = useUiStore((state) => state.selectPane)
-  const clearPaneSelection = useUiStore((state) => state.clearPaneSelection)
-  const groupPanes = useProjectsStore((state) => state.groupPanes)
   const deleteTerminal = useProjectsStore((state) => state.deleteTerminal)
   const paneRef = useRef<HTMLDivElement | null>(null)
   const draggable = useDraggable({ id: `pane:${terminal.id}`, disabled: isFocusMode || preview })
@@ -51,21 +48,8 @@ export const VideoPane = memo(function VideoPane({
     <div
       ref={setRefs}
       data-pane-box="1"
-      onPointerDown={(event) => {
+      onPointerDown={() => {
         setActiveTerminal(projectId, terminal.id)
-        const existing = useUiStore.getState().selectedPanes
-        const extend = event.shiftKey && existing.every((pane) => pane.projectId === projectId)
-        selectPane(projectId, terminal.id, extend)
-        if (extend) {
-          const selected = useUiStore.getState().selectedPanes
-          if (selected.length >= 2) {
-            groupPanes(
-              projectId,
-              selected.map((pane) => pane.terminalId),
-            )
-            clearPaneSelection()
-          }
-        }
       }}
       className={`${styles.pane} ${isFocusMode ? styles.paneFocus : ''} ${draggable.isDragging ? styles.dragging : ''} ${droppable.isOver && !isFocusMode ? styles.dropTarget : ''}`}
     >

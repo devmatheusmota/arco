@@ -1,9 +1,9 @@
 import { CircleCheck, Folder, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { buildCliContextInitialInput } from '../../lib/cliContext'
 import { pickDirectory } from '../../lib/dialog'
 import { useT } from '../../lib/i18n'
-import { buildCliContextInitialInput } from '../../lib/cliContext'
 import { buildTaskSessionPrompt } from '../../lib/todos'
 import {
   AGENT_TYPE_LABELS,
@@ -70,7 +70,7 @@ export function TaskSessionModal() {
     [enabledAgents],
   )
   const project = projects.find((item) => item.id === projectId) ?? null
-  const inheritedCwd = useMemo(() => getProjectDefaultCwd(project, projects), [project, projects])
+  const inheritedCwd = useMemo(() => getProjectDefaultCwd(project), [project])
 
   useEffect(() => {
     if (!open || !todo) return

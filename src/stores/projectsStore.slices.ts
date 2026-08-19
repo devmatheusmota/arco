@@ -19,7 +19,6 @@ import {
   TODO_SESSIONS_MAX,
 } from '../lib/todos'
 import type {
-  LayoutMode,
   Project,
   SubTab,
   Terminal,
@@ -52,7 +51,7 @@ export type SliceCtx = {
     state: ProjectsState,
     projectId: string,
     paneIds: string[],
-    options?: { focusPaneId?: string | null; layout?: LayoutMode },
+    options?: { focusPaneId?: string | null },
   ) => Partial<ProjectsState> | undefined
 }
 

@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react'
 import { pickDirectory } from '../../lib/dialog'
 import { AGENT_SANDBOX_ENABLED } from '../../lib/featureFlags'
 import { useT } from '../../lib/i18n'
-import { GROUP_COLORS } from '../../lib/types'
+import { PROJECT_COLORS } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
-import { Dropdown } from '../ui/Dropdown'
 import { ColorPalettePopover } from './ColorPalettePopover'
 import controls from './controls.module.css'
 import { ImageInput } from './ImageInput'
@@ -17,7 +16,6 @@ export function NewProjectModal() {
   const t = useT()
   const open = useUiStore((s) => s.openModal === 'newProject')
   const context = useUiStore((s) => s.modalContext) as {
-    groupId?: string | null
     defaultCwd?: string
   } | null
   const closeModal = useUiStore((s) => s.closeModal)
@@ -25,14 +23,12 @@ export function NewProjectModal() {
   const setActiveProject = useProjectsStore((s) => s.setActiveProject)
   const openModal = useUiStore((s) => s.openModal_)
   const setActiveView = useUiStore((s) => s.setActiveView)
-  const groups = useProjectsStore((s) => s.groups)
 
   const [name, setName] = useState('')
-  const [color, setColor] = useState<string>(GROUP_COLORS[0])
+  const [color, setColor] = useState<string>(PROJECT_COLORS[0])
   const [iconUrl, setIconUrl] = useState('')
   const [defaultCwd, setDefaultCwd] = useState('')
   const [mode, setMode] = useState<'standard' | 'agentSandbox'>('standard')
-  const [groupId, setGroupId] = useState<string | null>(context?.groupId ?? null)
   const [isColorPopoverOpen, setIsColorPopoverOpen] = useState(false)
 
   useEffect(() => {
@@ -41,11 +37,10 @@ export function NewProjectModal() {
 
   const reset = () => {
     setName('')
-    setColor(GROUP_COLORS[0])
+    setColor(PROJECT_COLORS[0])
     setIconUrl('')
     setDefaultCwd('')
     setMode('standard')
-    setGroupId(context?.groupId ?? null)
     setIsColorPopoverOpen(false)
   }
 
@@ -63,7 +58,6 @@ export function NewProjectModal() {
       mode,
       color,
       iconUrl: iconUrl.trim() || undefined,
-      groupId,
       defaultCwd: defaultCwd.trim() || undefined,
     })
     reset()
@@ -165,22 +159,6 @@ export function NewProjectModal() {
         </div>
       ) : null}
 
-      {groups.length > 0 ? (
-        <div className={controls.field}>
-          <label className={controls.label}>{t('crud.groupLabel')}</label>
-          <Dropdown
-            className={controls.input}
-            value={groupId ?? ''}
-            onChange={(value) => setGroupId(value || null)}
-            ariaLabel={t('crud.groupLabel')}
-            options={[
-              { value: '', label: t('crud.noGroup') },
-              ...groups.map((g) => ({ value: g.id, label: g.name })),
-            ]}
-          />
-        </div>
-      ) : null}
-
       <div className={controls.field}>
         <label className={controls.label} htmlFor="new-project-path">
           {t('crud.projectPathLabel')}
@@ -207,7 +185,7 @@ export function NewProjectModal() {
       <div className={controls.field}>
         <label className={controls.label}>{t('crud.colorLabel')}</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          {GROUP_COLORS.map((c) => (
+          {PROJECT_COLORS.map((c) => (
             <button
               key={c}
               type="button"
@@ -224,7 +202,7 @@ export function NewProjectModal() {
             />
           ))}
 
-          {color && !GROUP_COLORS.some((preset) => preset === color) && (
+          {color && !PROJECT_COLORS.some((preset) => preset === color) && (
             <button
               type="button"
               onClick={() => setIsColorPopoverOpen(true)}

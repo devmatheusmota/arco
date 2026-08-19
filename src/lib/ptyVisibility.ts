@@ -20,9 +20,6 @@ export function computeVisibleFocusedPtyIds(): PtyVisibilitySets {
     ),
   )
 
-  // de verdade.
-  const isolatedPaneId = projectsState.preferences.isolatedPaneId
-
   // Panes of hidden-but-mounted workspace tabs count as visible: they keep streaming so
   // switching back to their tab costs nothing.
   const keptAlivePaneIds = new Set(ui.keptAlivePaneIds)
@@ -33,14 +30,17 @@ export function computeVisibleFocusedPtyIds(): PtyVisibilitySets {
     )
     for (const terminal of project.terminals) {
       const activeTab = terminal.tabs.find((tab) => tab.id === terminal.activeTabId)
-      const inNormalGrid =
-        container && !container.collapsed && container.paneIds.includes(terminal.id)
-      const isIsolatedPane = terminal.id === isolatedPaneId
+      // Only what is on screen streams: the session in front and the terminal
+      // beside it. Every other session of the project is a tab.
+      const onScreen =
+        container &&
+        !container.collapsed &&
+        (container.activePaneId === terminal.id || container.sidePaneId === terminal.id)
       const isKeptAlive = keptAlivePaneIds.has(terminal.id)
-      if (activeTab?.ptyId && workspaceVisible && (inNormalGrid || isIsolatedPane || isKeptAlive)) {
+      if (activeTab?.ptyId && workspaceVisible && (onScreen || isKeptAlive)) {
         visible.add(activeTab.ptyId)
       }
-      if (activeTab?.ptyId && (focusedTerminalIds.has(terminal.id) || isIsolatedPane)) {
+      if (activeTab?.ptyId && focusedTerminalIds.has(terminal.id)) {
         focused.add(activeTab.ptyId)
       }
     }

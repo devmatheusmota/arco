@@ -1,4 +1,4 @@
-/** Group and project actions extracted from the main store. */
+/** Project actions extracted from the main store. */
 
 import { nanoid } from 'nanoid'
 
@@ -6,17 +6,15 @@ import { preparePtyRuntimeLaunch } from '../lib/agentRuntimeAdapter'
 import { getLocale, translate } from '../lib/i18n'
 import { buildAgentLaunch } from '../lib/sessionLaunch'
 import {
-  clearTerminalPtyIds,
   collectTerminalPtyIds,
   getProjectRepoRoot,
 } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import { pruneTodoSessions } from '../lib/todos'
-import type { Group, Project } from '../lib/types'
-import { agentCliCommand, GROUP_COLORS } from '../lib/types'
+import type { Project } from '../lib/types'
+import { agentCliCommand } from '../lib/types'
 import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
 import type { ProjectsState } from './projectsStore'
-import { collectGroupProjectIds } from './projectsStore.migrations'
 import type { SliceCtx } from './projectsStore.slices'
 import { useTerminalsStore } from './terminalsStore'
 import { useUiStore } from './uiStore'
@@ -26,345 +24,6 @@ function t(key: Parameters<typeof translate>[1], params?: Record<string, string 
 }
 
 const migratingWorktreeProjectIds = new Set<string>()
-
-type GroupsSlice = Pick<
-  ProjectsState,
-  | 'createGroup'
-  | 'moveGroupToParent'
-  | 'renameGroup'
-  | 'setGroupColor'
-  | 'setGroupIconUrl'
-  | 'toggleGroupCollapsed'
-  | 'archiveGroup'
-  | 'unarchiveGroup'
-  | 'suspendGroup'
-  | 'resumeGroup'
-  | 'deleteGroup'
-  | 'reorderGroups'
-  | 'moveProjectToGroup'
-  | 'reorderProjectInGroup'
-  | 'reorderUngrouped'
->
-
-export function createGroupsSlice({ update }: SliceCtx): GroupsSlice {
-  return {
-    createGroup: (name, color, parentGroupId = null) => {
-      const group: Group = {
-        id: nanoid(),
-        name,
-        color: color ?? GROUP_COLORS[0],
-        collapsed: false,
-        projectIds: [],
-        parentGroupId,
-        createdAt: Date.now(),
-      }
-      update((state) => ({ groups: [...state.groups, group] }))
-      return group
-    },
-
-    moveGroupToParent: (groupId, parentGroupId, atIndex) =>
-      update((state) => {
-        if (groupId === parentGroupId) return
-        const source = state.groups.find((group) => group.id === groupId)
-        if (!source) return
-        if (source.parentGroupId === parentGroupId && atIndex === undefined) return
-
-        // Prevent cycles: a group cannot become its descendant's child.
-        if (parentGroupId !== null) {
-          let cur: string | null = parentGroupId
-          while (cur !== null) {
-            if (cur === groupId) return
-            const next: Group | undefined = state.groups.find((g) => g.id === cur)
-            cur = next?.parentGroupId ?? null
-          }
-        }
-
-        const remaining = state.groups.filter((group) => group.id !== groupId)
-        const siblings = remaining.filter((group) => group.parentGroupId === parentGroupId)
-        const siblingIndex = Math.max(0, Math.min(atIndex ?? siblings.length, siblings.length))
-        const nextSibling = siblings[siblingIndex]
-        const previousSibling = siblings[siblingIndex - 1]
-        const globalIndex = nextSibling
-          ? remaining.findIndex((group) => group.id === nextSibling.id)
-          : previousSibling
-            ? remaining.findIndex((group) => group.id === previousSibling.id) + 1
-            : remaining.length
-
-        const nextGroups = [...remaining]
-        nextGroups.splice(globalIndex, 0, { ...source, parentGroupId })
-        return {
-          groups: nextGroups,
-        }
-      }),
-
-    renameGroup: (id, name) =>
-      update((state) => ({
-        groups: state.groups.map((g) => (g.id === id ? { ...g, name } : g)),
-      })),
-
-    setGroupColor: (id, color) =>
-      update((state) => ({
-        groups: state.groups.map((g) => (g.id === id ? { ...g, color } : g)),
-      })),
-
-    setGroupIconUrl: (id, iconUrl) =>
-      update((state) => ({
-        groups: state.groups.map((g) => (g.id === id ? { ...g, iconUrl } : g)),
-      })),
-
-    toggleGroupCollapsed: (id) =>
-      update((state) => ({
-        groups: state.groups.map((g) => (g.id === id ? { ...g, collapsed: !g.collapsed } : g)),
-      })),
-
-    archiveGroup: (id) =>
-      update((state) => ({
-        groups: state.groups.map((g) => (g.id === id ? { ...g, archived: true } : g)),
-      })),
-
-    unarchiveGroup: (id) =>
-      update((state) => ({
-        groups: state.groups.map((g) => (g.id === id ? { ...g, archived: false } : g)),
-      })),
-
-    suspendGroup: (groupId) =>
-      update((state) => {
-        const group = state.groups.find((g) => g.id === groupId)
-        if (!group || group.suspended) return
-
-        const allProjectIds = collectGroupProjectIds(groupId, state.groups)
-        cleanupPtys(
-          collectTerminalPtyIds(
-            state.projects.filter((p) => allProjectIds.has(p.id)).flatMap((p) => p.terminals),
-          ),
-        )
-
-        // Disable all terminals in the group's projects.
-        const projects = state.projects.map((p) => {
-          if (!allProjectIds.has(p.id)) return p
-          return {
-            ...p,
-            terminals: p.terminals.map((t) => ({ ...clearTerminalPtyIds(t), disabled: true })),
-          }
-        })
-
-        // Close those project containers.
-        const containers = state.workspace.containers.filter((c) => !allProjectIds.has(c.projectId))
-
-        // Mark the group and descendants as suspended.
-        const groups = state.groups.map((g) => {
-          if (g.id === groupId) return { ...g, suspended: true }
-          return g
-        })
-
-        return { groups, projects, workspace: { ...state.workspace, containers } }
-      }),
-
-    resumeGroup: (groupId) =>
-      update((state) => {
-        const group = state.groups.find((g) => g.id === groupId)
-        if (!group || !group.suspended) return
-
-        const allProjectIds = collectGroupProjectIds(groupId, state.groups)
-
-        // Re-enable all terminals.
-        const projects = state.projects.map((p) => {
-          if (!allProjectIds.has(p.id)) return p
-          return {
-            ...p,
-            terminals: p.terminals.map((t) => ({ ...t, disabled: false })),
-          }
-        })
-
-        const groups = state.groups.map((g) => {
-          if (g.id === groupId) return { ...g, suspended: false }
-          return g
-        })
-
-        return { groups, projects }
-      }),
-
-    deleteGroup: (id, mode) =>
-      update((state) => {
-        const group = state.groups.find((g) => g.id === id)
-        if (!group) return
-        if (mode === 'cascade') {
-          // Collect all descendants with a breadth-first traversal.
-          const groupQueue = [id]
-          const groupsToRemove = new Set<string>()
-          while (groupQueue.length > 0) {
-            const cur = groupQueue.shift()!
-            if (groupsToRemove.has(cur)) continue
-            groupsToRemove.add(cur)
-            for (const g of state.groups) {
-              if (g.parentGroupId === cur) groupQueue.push(g.id)
-            }
-          }
-          const projectsToRemove = new Set<string>()
-          for (const p of state.projects) {
-            if (p.groupId && groupsToRemove.has(p.groupId)) projectsToRemove.add(p.id)
-          }
-          cleanupPtys(
-            collectTerminalPtyIds(
-              state.projects.filter((p) => projectsToRemove.has(p.id)).flatMap((p) => p.terminals),
-            ),
-          )
-          const remainingProjects = state.projects.filter((p) => !projectsToRemove.has(p.id))
-          const tabs = state.workspace.tabs
-            .filter(
-              (tab) =>
-                !projectsToRemove.has(tab.projectId) &&
-                !(tab.groupId && groupsToRemove.has(tab.groupId)),
-            )
-            .map((tab) => ({
-              ...tab,
-              snapshot: sanitizeWorkspaceSnapshot(tab.snapshot, remainingProjects),
-            }))
-          const tabIds = new Set(tabs.map((tab) => tab.id))
-          const activeTabId = tabIds.has(state.workspace.activeTabId ?? '')
-            ? state.workspace.activeTabId
-            : (tabs[0]?.id ?? null)
-          const history = state.workspace.history
-            .filter((entry) => tabIds.has(entry.tabId))
-            .map((entry) => {
-              const tab = tabs.find((tab) => tab.id === entry.tabId)
-              return {
-                ...entry,
-                snapshot: tab
-                  ? sanitizeWorkspaceSnapshot(entry.snapshot, remainingProjects)
-                  : entry.snapshot,
-              }
-            })
-          return {
-            groups: state.groups.filter((g) => !groupsToRemove.has(g.id)),
-            projects: remainingProjects,
-            // Tasks outlive the projects they were filed under: unlink the dead
-            // sessions and let the task fall back to the unassigned section.
-            todos: pruneTodoSessions(
-              state.todos,
-              (link) => !projectsToRemove.has(link.projectId),
-            ).map((item) => {
-              if (!item.projectId || !projectsToRemove.has(item.projectId)) return item
-              const next = { ...item }
-              delete next.projectId
-              return next
-            }),
-            workspace: {
-              ...state.workspace,
-              containers: state.workspace.containers.filter(
-                (c) => !projectsToRemove.has(c.projectId),
-              ),
-              recentProjectIds: (state.workspace.recentProjectIds ?? []).filter(
-                (pid) => !projectsToRemove.has(pid),
-              ),
-              recentTabs: (state.workspace.recentTabs ?? []).filter((tab) =>
-                tab.kind === 'group' ? !groupsToRemove.has(tab.id) : !projectsToRemove.has(tab.id),
-              ),
-              tabs,
-              activeTabId,
-              history,
-              historyIndex: Math.min(state.workspace.historyIndex, history.length - 1),
-            },
-            activeProjectId: projectsToRemove.has(state.activeProjectId ?? '')
-              ? (remainingProjects[0]?.id ?? null)
-              : state.activeProjectId,
-          }
-        }
-        // Unassign projects and move direct subgroups to the root.
-        return {
-          groups: state.groups
-            .filter((g) => g.id !== id)
-            .map((g) => (g.parentGroupId === id ? { ...g, parentGroupId: null } : g)),
-          projects: state.projects.map((p) => (p.groupId === id ? { ...p, groupId: null } : p)),
-          ungroupedOrder: [
-            ...state.ungroupedOrder,
-            ...group.projectIds.filter((pid) => !state.ungroupedOrder.includes(pid)),
-          ],
-          workspace: {
-            ...state.workspace,
-            recentTabs: (state.workspace.recentTabs ?? []).filter(
-              (tab) => !(tab.kind === 'group' && tab.id === id),
-            ),
-          },
-        }
-      }),
-
-    reorderGroups: (fromIndex, toIndex) =>
-      update((state) => {
-        const next = [...state.groups]
-        const [moved] = next.splice(fromIndex, 1)
-        next.splice(toIndex, 0, moved)
-        return { groups: next }
-      }),
-
-    moveProjectToGroup: (projectId, groupId, atIndex) =>
-      update((state) => {
-        const project = state.projects.find((p) => p.id === projectId)
-        if (!project || project.groupId === groupId) return
-        const oldGroupId = project.groupId
-        // Remove from the old group or ungrouped list.
-        let groups = state.groups.map((g) => {
-          if (g.id === oldGroupId) {
-            return { ...g, projectIds: g.projectIds.filter((id) => id !== projectId) }
-          }
-          return g
-        })
-        let ungroupedOrder = state.ungroupedOrder
-        if (oldGroupId === null) {
-          ungroupedOrder = ungroupedOrder.filter((id) => id !== projectId)
-        }
-        // Add to the destination.
-        if (groupId === null) {
-          const next = [...ungroupedOrder]
-          if (atIndex === undefined || atIndex < 0 || atIndex > next.length) {
-            next.push(projectId)
-          } else {
-            next.splice(atIndex, 0, projectId)
-          }
-          ungroupedOrder = next
-        } else {
-          groups = groups.map((g) => {
-            if (g.id !== groupId) return g
-            const next = [...g.projectIds]
-            if (atIndex === undefined || atIndex < 0 || atIndex > next.length) {
-              next.push(projectId)
-            } else {
-              next.splice(atIndex, 0, projectId)
-            }
-            return { ...g, projectIds: next }
-          })
-        }
-        return {
-          groups,
-          ungroupedOrder,
-          projects: state.projects.map((p) => (p.id === projectId ? { ...p, groupId } : p)),
-        }
-      }),
-
-    reorderProjectInGroup: (projectId, fromIndex, toIndex) =>
-      update((state) => {
-        const project = state.projects.find((p) => p.id === projectId)
-        if (!project || project.groupId === null) return
-        return {
-          groups: state.groups.map((g) => {
-            if (g.id !== project.groupId) return g
-            const next = [...g.projectIds]
-            const [moved] = next.splice(fromIndex, 1)
-            next.splice(toIndex, 0, moved)
-            return { ...g, projectIds: next }
-          }),
-        }
-      }),
-
-    reorderUngrouped: (_projectId, fromIndex, toIndex) =>
-      update((state) => {
-        const next = [...state.ungroupedOrder]
-        const [moved] = next.splice(fromIndex, 1)
-        next.splice(toIndex, 0, moved)
-        return { ungroupedOrder: next }
-      }),
-  }
-}
 
 type ProjectsSlice = Pick<
   ProjectsState,
@@ -391,6 +50,7 @@ type ProjectsSlice = Pick<
   | 'setCleaningOrphans'
   | 'cleanupOrphanWorktrees'
   | 'deleteProject'
+  | 'reorderProject'
 >
 
 export function createProjectsSlice({ set, get, update, updateProject }: SliceCtx): ProjectsSlice {
@@ -400,7 +60,6 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
       mode = 'standard',
       color,
       iconUrl,
-      groupId = null,
       defaultCwd,
       githubUrl,
       firstBootPending,
@@ -411,31 +70,18 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
         mode,
         color,
         iconUrl,
-        groupId,
         ...(defaultCwd?.trim() ? { defaultCwd: defaultCwd.trim() } : {}),
         githubUrl,
         firstBootPending,
         terminals: [],
-        layoutMode: 'auto',
         collapsed: false,
         createdAt: Date.now(),
       }
-      update((state) => {
-        const groups =
-          groupId === null
-            ? state.groups
-            : state.groups.map((g) =>
-                g.id === groupId ? { ...g, projectIds: [...g.projectIds, project.id] } : g,
-              )
-        const ungroupedOrder =
-          groupId === null ? [...state.ungroupedOrder, project.id] : state.ungroupedOrder
-        return {
-          projects: [...state.projects, project],
-          groups,
-          ungroupedOrder,
-          activeProjectId: state.activeProjectId ?? project.id,
-        }
-      })
+      update((state) => ({
+        projects: [...state.projects, project],
+        projectOrder: [...state.projectOrder, project.id],
+        activeProjectId: state.activeProjectId ?? project.id,
+      }))
       return project
     },
 
@@ -748,12 +394,7 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
             return next
           },
         )
-        const groups = state.groups.map((g) =>
-          g.id === project.groupId
-            ? { ...g, projectIds: g.projectIds.filter((pid) => pid !== id) }
-            : g,
-        )
-        const ungroupedOrder = state.ungroupedOrder.filter((pid) => pid !== id)
+        const projectOrder = state.projectOrder.filter((pid) => pid !== id)
         const containers = state.workspace.containers.filter((c) => c.projectId !== id)
         const recentProjectIds = (state.workspace.recentProjectIds ?? []).filter(
           (pid) => pid !== id,
@@ -782,8 +423,7 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
         return {
           projects,
           todos,
-          groups,
-          ungroupedOrder,
+          projectOrder,
           workspace: {
             ...state.workspace,
             containers,
@@ -796,6 +436,14 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
           },
           activeProjectId,
         }
+      }),
+
+    reorderProject: (_projectId, fromIndex, toIndex) =>
+      update((state) => {
+        const next = [...state.projectOrder]
+        const [moved] = next.splice(fromIndex, 1)
+        next.splice(toIndex, 0, moved)
+        return { projectOrder: next }
       }),
   }
 }

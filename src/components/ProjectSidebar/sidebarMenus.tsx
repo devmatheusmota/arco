@@ -4,7 +4,6 @@ import {
   FolderOpen,
   Globe2,
   Layout,
-  MoveRight,
   PanelTopOpen,
   Pencil,
   Plus,
@@ -18,12 +17,11 @@ import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { useT } from '../../lib/i18n'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import { getPtyCwd, openInFileExplorer, openInVscode, restartPty } from '../../lib/tauri'
-import { agentCliCommand, type Group, type Project, type Terminal } from '../../lib/types'
+import { agentCliCommand, type Project, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { type MenuItem } from './ContextMenu'
-import { collectDescendants } from './GroupNode'
 
 type ProjectsState = ReturnType<typeof useProjectsStore.getState>
 type UiState = ReturnType<typeof useUiStore.getState>
@@ -33,24 +31,15 @@ type MenuActions = Pick<
   | 'openProjectWorkspace'
   | 'renameProject'
   | 'archiveProject'
-  | 'moveProjectToGroup'
   | 'setProjectDisabled'
   | 'deleteProject'
   | 'createGraphifyPane'
-  | 'openGroupWorkspace'
-  | 'renameGroup'
-  | 'moveGroupToParent'
-  | 'toggleGroupCollapsed'
-  | 'archiveGroup'
-  | 'resumeGroup'
-  | 'deleteGroup'
   | 'focusWorkspaceTerminal'
   | 'openTerminalWorkspace'
   | 'renameTerminal'
   | 'togglePane'
   | 'setTerminalDisabled'
   | 'killTerminal'
-  | 'setLaneVisible'
   | 'setTerminalRemoteExcluded'
   | 'deleteTerminal'
   | 'deleteTerminalWithWorktreeCleanup'
@@ -61,7 +50,6 @@ export type SidebarMenuDeps = {
   t: ReturnType<typeof useT>
   graphifyEnabled: boolean
   browserEnabled: boolean
-  groups: Group[]
   openPaneSets: Record<string, Set<string>>
   actions: MenuActions
   openModal: UiState['openModal_']
@@ -81,8 +69,7 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
     t,
     graphifyEnabled,
     browserEnabled,
-    groups,
-    openPaneSets,
+      openPaneSets,
     actions,
     openModal,
     setActiveView,
@@ -134,12 +121,6 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
           },
         ]
       : []),
-    {
-      kind: 'item',
-      label: t('ui.sidebar.designLayout'),
-      icon: <Layout size={14} />,
-      onClick: () => openModal('layoutDesigner', { kind: 'project', id: project.id }),
-    },
     ...(graphifyEnabled
       ? [
           {
@@ -157,28 +138,6 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
           },
         ]
       : []),
-    {
-      kind: 'item',
-      label: project.groupId ? t('ui.sidebar.removeFromGroup') : t('ui.sidebar.moveToGroup'),
-      icon: <MoveRight size={14} />,
-      onClick: () => {
-        if (project.groupId) {
-          actions.moveProjectToGroup(project.id, null)
-        } else if (groups.length === 0) {
-          window.alert(t('ui.sidebar.createGroupFirst'))
-        } else {
-          const list = groups.map((g, i) => `${i + 1}. ${g.name}`).join('\n')
-          const pick = window.prompt(
-            t('ui.sidebar.moveProjectToWhichGroup', { name: project.name, list }),
-            '1',
-          )
-          const idx = pick ? Number(pick) - 1 : -1
-          if (idx >= 0 && idx < groups.length) {
-            actions.moveProjectToGroup(project.id, groups[idx].id)
-          }
-        }
-      },
-    },
     {
       kind: 'item',
       label: t('ui.sidebar.archiveProject'),
@@ -215,108 +174,6 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
           )
         ) {
           actions.deleteProject(project.id)
-        }
-      },
-    },
-  ]
-
-  const groupMenu = (group: Group): MenuItem[] => [
-    {
-      kind: 'item',
-      label: t('ui.workspace.openGroupTabs'),
-      onClick: () => {
-        actions.openGroupWorkspace(group.id)
-        setActiveView('workspace')
-      },
-    },
-    { kind: 'separator' },
-    {
-      kind: 'item',
-      label: t('ui.sidebar.editNameColor'),
-      onClick: () => openModal('editGroup', { groupId: group.id }),
-    },
-    {
-      kind: 'item',
-      label: t('ui.sidebar.quickRename'),
-      onClick: () => {
-        const name = window.prompt(t('ui.sidebar.newNamePrompt'), group.name)?.trim()
-        if (name) actions.renameGroup(group.id, name)
-      },
-    },
-    {
-      kind: 'item',
-      label: t('ui.sidebar.createSubgroupHere'),
-      onClick: () => openModal('newGroup', { parentGroupId: group.id }),
-    },
-    {
-      kind: 'item',
-      label: group.parentGroupId ? t('ui.sidebar.makeRootGroup') : t('ui.sidebar.moveToOtherGroup'),
-      onClick: () => {
-        if (group.parentGroupId) {
-          actions.moveGroupToParent(group.id, null)
-        } else {
-          // pick parent — exclude self and descendants
-          const allGroups = useProjectsStore.getState().groups
-          const descendants = collectDescendants(group.id, allGroups)
-          const candidates = allGroups.filter((g) => g.id !== group.id && !descendants.has(g.id))
-          if (candidates.length === 0) {
-            window.alert(t('ui.sidebar.noEligibleParentGroups'))
-            return
-          }
-          const list = candidates.map((g, i) => `${i + 1}. ${g.name}`).join('\n')
-          const pick = window.prompt(
-            t('ui.sidebar.moveGroupAsSubgroupOf', { name: group.name, list }),
-            '1',
-          )
-          const idx = pick ? Number(pick) - 1 : -1
-          if (idx >= 0 && idx < candidates.length) {
-            actions.moveGroupToParent(group.id, candidates[idx].id)
-          }
-        }
-      },
-    },
-    {
-      kind: 'item',
-      label: group.collapsed ? t('ui.sidebar.expand') : t('ui.sidebar.collapse'),
-      onClick: () => actions.toggleGroupCollapsed(group.id),
-    },
-    {
-      kind: 'item',
-      label: t('ui.sidebar.archiveGroup'),
-      icon: <Archive size={14} />,
-      onClick: () => actions.archiveGroup(group.id),
-    },
-    {
-      kind: 'item',
-      label: group.suspended ? t('ui.sidebar.reactivateGroup') : t('ui.sidebar.suspendGroup'),
-      onClick: () => {
-        if (group.suspended) {
-          actions.resumeGroup(group.id)
-        } else {
-          openModal('suspendGroup', { groupId: group.id })
-        }
-      },
-    },
-    { kind: 'separator' },
-    {
-      kind: 'item',
-      label: t('ui.sidebar.deleteGroupKeepProjects'),
-      onClick: () => actions.deleteGroup(group.id, 'unassign'),
-    },
-    {
-      kind: 'item',
-      label: t('ui.sidebar.deleteGroupAndProjects'),
-      danger: true,
-      onClick: () => {
-        if (
-          window.confirm(
-            t('ui.sidebar.confirmDeleteGroupCascade', {
-              name: group.name,
-              count: group.projectIds.length,
-            }),
-          )
-        ) {
-          actions.deleteGroup(group.id, 'cascade')
         }
       },
     },
@@ -390,7 +247,6 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
     const inSplit = openPaneSets[projectId]?.has(term.id) ?? false
     const activeTab = activeTerminalTab(term)
     const isTerminalPane = !term.kind || term.kind === 'terminal'
-    const effectiveLaneVisible = term.tabs.length > 1 ? true : term.laneVisible === true
     return [
       {
         kind: 'item',
@@ -437,18 +293,6 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
                 setFocusedTerminal(term.id)
                 setActiveView('workspace')
               },
-            },
-          ]
-        : []),
-      ...(isTerminalPane && activeTab && term.tabs.length <= 1
-        ? [
-            {
-              kind: 'item' as const,
-              label: effectiveLaneVisible
-                ? t('ui.terminal.hideTabsLane')
-                : t('ui.terminal.showTabsLane'),
-              onClick: () =>
-                actions.setLaneVisible(projectId, term.id, effectiveLaneVisible ? false : true),
             },
           ]
         : []),
@@ -526,5 +370,5 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
     ]
   }
 
-  return { projectMenu, groupMenu, terminalMenu }
+  return { projectMenu, terminalMenu }
 }

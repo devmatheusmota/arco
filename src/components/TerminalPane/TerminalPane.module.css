@@ -114,11 +114,6 @@
   cursor: grabbing;
 }
 
-.laneGripBtn {
-  width: 24px;
-  height: 24px;
-}
-
 .header {
   position: absolute;
   top: 4px;
@@ -146,10 +141,6 @@
 .pane:hover .header,
 .header:focus-within {
   opacity: 1;
-}
-
-.headerWithLane {
-  justify-content: flex-end;
 }
 
 .headLeft {

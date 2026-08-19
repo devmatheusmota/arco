@@ -7,7 +7,6 @@ import type {
   AgentRuntimeProfile,
   AgentType,
   BrowserPaneOptions,
-  LayoutMode,
   Project,
   SubTab,
   Terminal,
@@ -18,14 +17,15 @@ import type {
 export function newContainer(
   projectId: string,
   paneIds: string[],
-  layout: LayoutMode,
+  activePaneId?: string | null,
 ): WorkspaceContainer {
   return {
     projectId,
     paneIds,
+    activePaneId: activePaneId ?? paneIds[0] ?? null,
+    sidePaneId: null,
     lastUsedAt: Date.now(),
     size: 0,
-    internalLayout: layout,
     collapsed: false,
   }
 }
@@ -72,7 +72,6 @@ export function makeDefaultTerminal(args: {
     cwd: args.cwd,
     activeTabId: tabId,
     disabled: false,
-    laneVisible: null,
     lastUsedAt: now,
     worktreeAgentId: args.worktreeAgentId,
     gsdSyncViewer: args.gsdSyncViewer,
@@ -109,7 +108,6 @@ export function makeFilePane(args: { filePath: string; name?: string }): Termina
     cwd: '',
     activeTabId: '',
     disabled: false,
-    laneVisible: null,
     lastUsedAt: Date.now(),
     tabs: [],
     kind: classifyPaneKind(filePath),
@@ -130,7 +128,6 @@ export function makeDiffPane(args: {
     cwd: args.repoRoot,
     activeTabId: '',
     disabled: false,
-    laneVisible: null,
     lastUsedAt: Date.now(),
     tabs: [],
     kind: 'diff',
@@ -153,7 +150,6 @@ export function makeWebPane(args: BrowserPaneOptions): Terminal {
     cwd: '',
     activeTabId: '',
     disabled: false,
-    laneVisible: null,
     lastUsedAt: Date.now(),
     tabs: [],
     kind: 'web',
@@ -218,16 +214,10 @@ export function resetTerminalRuntime(terminal: Terminal): Terminal {
   }
 }
 
-export function getProjectDefaultCwd(
-  project: Project | null | undefined,
-  projects: Project[] = [],
-): string {
+export function getProjectDefaultCwd(project: Project | null | undefined): string {
   if (!project) return ''
   if (project.defaultCwd?.trim()) return project.defaultCwd.trim()
   const candidates = [project]
-  if (project.groupId) {
-    candidates.push(...projects.filter((p) => p.id !== project.id && p.groupId === project.groupId))
-  }
 
   for (const candidate of candidates) {
     const terminals = [...candidate.terminals].sort(

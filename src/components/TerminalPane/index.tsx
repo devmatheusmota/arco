@@ -1,16 +1,4 @@
-import { useDraggable, useDroppable } from '@dnd-kit/core'
-import {
-  ArrowRightLeft,
-  Clock,
-  GripVertical,
-  Maximize2,
-  Minimize2,
-  PanelLeftClose,
-  PanelLeftOpen,
-  RefreshCw,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { ArrowRightLeft, Clock, Maximize2, Minimize2, RefreshCw, Trash2, X } from 'lucide-react'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 
 import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
@@ -38,15 +26,12 @@ import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { GhosttySurface } from '../GhosttySurface'
 import { AgentIcon, VSCodeIcon } from '../icons/AgentIcons'
-import { SubTabsLane } from '../SubTabsLane'
 import { XTermView } from '../XTermView'
 import styles from './TerminalPane.module.css'
 
 export type TerminalPaneProps = {
   projectId: string
   terminal: TerminalEntry
-  /** Hide the pane drag affordance when the parent group has nothing to reorder. */
-  paneDragEnabled?: boolean
 
   inFocusOverlay?: boolean
 
@@ -56,7 +41,6 @@ export type TerminalPaneProps = {
 export const TerminalPane = memo(function TerminalPane({
   projectId,
   terminal,
-  paneDragEnabled = true,
   inFocusOverlay = false,
   preview = false,
 }: TerminalPaneProps) {
@@ -65,22 +49,11 @@ export const TerminalPane = memo(function TerminalPane({
   const [resumePending, setResumePending] = useState(false)
   const focusedTerminalId = useUiStore((s) => s.focusedTerminalId)
   const isFocusMode = inFocusOverlay || focusedTerminalId === terminal.id
-  const canDragPane = paneDragEnabled && !isFocusMode && !preview
-
-  // Skip the focus overlay; a single pane cannot be reordered.
-  const draggable = useDraggable({
-    id: `pane:${terminal.id}`,
-    disabled: !canDragPane,
-  })
-  const droppable = useDroppable({
-    id: `pane:${terminal.id}`,
-    disabled: !canDragPane,
-  })
+  // The tab bar is what gets dragged now; the pane body only ever showed one
+  // session, so there was nothing here to drop onto.
   const paneRef = useRef<HTMLDivElement | null>(null)
   const setRefs = (node: HTMLDivElement | null) => {
     paneRef.current = node
-    draggable.setNodeRef(node)
-    droppable.setNodeRef(node)
   }
 
   // Foco vindo da sidebar — scroll into view + foca o textarea do xterm.
@@ -105,9 +78,6 @@ export const TerminalPane = memo(function TerminalPane({
     }
   }, [focusReq, terminal.id])
 
-  const setActiveTab = useProjectsStore((s) => s.setActiveTab)
-  const closeSubTab = useProjectsStore((s) => s.closeSubTab)
-  const setLaneVisible = useProjectsStore((s) => s.setLaneVisible)
   const setTerminalDisabled = useProjectsStore((s) => s.setTerminalDisabled)
   const markTerminalUsed = useProjectsStore((s) => s.markTerminalUsed)
   const setSubTabPtyId = useProjectsStore((s) => s.setSubTabPtyId)
@@ -121,9 +91,6 @@ export const TerminalPane = memo(function TerminalPane({
   const openModal = useUiStore((s) => s.openModal_)
   const setFocusedTerminal = useUiStore((s) => s.setFocusedTerminal)
   const setActiveTerminal = useUiStore((s) => s.setActiveTerminal)
-  const selectPane = useUiStore((s) => s.selectPane)
-  const clearPaneSelection = useUiStore((s) => s.clearPaneSelection)
-  const groupPanes = useProjectsStore((s) => s.groupPanes)
   const requestPaneFocus = useUiStore((s) => s.requestPaneFocus)
   const pushToast = useUiStore((s) => s.pushToast)
   const claudeUsage = useUiStore((s) => s.claudeUsage)
@@ -158,10 +125,9 @@ export const TerminalPane = memo(function TerminalPane({
     return args
   }, [activeTab?.extraArgs, activeTab?.handoff])
 
-  const effectiveLaneVisible = terminal.tabs.length > 1 ? true : terminal.laneVisible === true
   const isShell = activeTab?.type === 'shell'
   const showFloatingIdentity = Boolean(activeTab && !isShell)
-  const showLeftFloating = showFloatingIdentity || (canDragPane && !isShell)
+  const showLeftFloating = showFloatingIdentity
 
   // Selecting the runtime object would rerender the whole pane every time its
   // I/O timestamp moves — four times a second while an agent streams.
@@ -273,51 +239,19 @@ export const TerminalPane = memo(function TerminalPane({
     if (isFocusMode) setFocusedTerminal(null)
   }
 
-  const onCloseSubTab = (tabId: string) => {
-    const handoffId = terminal.tabs.find((tab) => tab.id === tabId)?.handoff?.id
-    if (!handoffId) {
-      closeSubTab(projectId, terminal.id, tabId)
-      return
-    }
-    void completeAgentHandoff(handoffId)
-      .catch((cause) => console.warn('[handoff] could not clean the closed packet:', cause))
-      .finally(() => closeSubTab(projectId, terminal.id, tabId))
-  }
-
-  const onToggleLane = () => {
-    if (terminal.tabs.length > 1) return
-    setLaneVisible(projectId, terminal.id, !effectiveLaneVisible)
-  }
-
   const cwd = activeTab?.cwd?.trim() || terminal.cwd?.trim() || ''
-
-  const dropTarget = canDragPane && droppable.isOver
-  const dragging = canDragPane && draggable.isDragging
 
   return (
     <div
       ref={setRefs}
       data-pane-box="1"
-      onPointerDown={(event) => {
+      onPointerDown={() => {
         markTerminalUsed(projectId, terminal.id)
         setActiveTerminal(projectId, terminal.id)
-        const existing = useUiStore.getState().selectedPanes
-        const extend = event.shiftKey && existing.every((pane) => pane.projectId === projectId)
-        selectPane(projectId, terminal.id, extend)
-        if (extend) {
-          const selected = useUiStore.getState().selectedPanes
-          if (selected.length >= 2) {
-            groupPanes(
-              projectId,
-              selected.map((pane) => pane.terminalId),
-            )
-            clearPaneSelection()
-          }
-        }
       }}
-      className={`${styles.pane} ${isFocusMode ? styles.paneFocus : ''} ${terminal.disabled ? styles.disabled : ''} ${dragging ? styles.dragging : ''} ${dropTarget ? styles.dropTarget : ''}`}
+      className={`${styles.pane} ${isFocusMode ? styles.paneFocus : ''} ${terminal.disabled ? styles.disabled : ''}`}
     >
-      <header className={`${styles.header} ${effectiveLaneVisible ? styles.headerWithLane : ''}`}>
+      <header className={styles.header}>
         {showLeftFloating ? (
           <div
             className={`${styles.headLeft} ${showFloatingIdentity ? '' : styles.headLeftControlsOnly}`}
@@ -326,18 +260,6 @@ export const TerminalPane = memo(function TerminalPane({
               isFocusMode ? t('ui.terminal.exitFocusModeEsc') : t('ui.terminal.focusModeFullscreen')
             }
           >
-            {canDragPane && !isShell && !effectiveLaneVisible ? (
-              <button
-                type="button"
-                className={`${styles.action} ${styles.gripBtn}`}
-                {...draggable.attributes}
-                {...draggable.listeners}
-                title={t('ui.terminal.dragToReorder')}
-                aria-label={t('ui.terminal.dragToReorder')}
-              >
-                <GripVertical size={12} />
-              </button>
-            ) : null}
             {showFloatingIdentity && activeTab ? (
               <>
                 <span className={styles.iconWrap}>
@@ -356,33 +278,6 @@ export const TerminalPane = memo(function TerminalPane({
         {!preview ? (
           <div className={styles.headRight}>
             <div className={styles.actions}>
-              {canDragPane && isShell && !effectiveLaneVisible ? (
-                <button
-                  type="button"
-                  className={`${styles.action} ${styles.gripBtn}`}
-                  {...draggable.attributes}
-                  {...draggable.listeners}
-                  title={t('ui.terminal.dragToReorder')}
-                  aria-label={t('ui.terminal.dragToReorder')}
-                >
-                  <GripVertical size={12} />
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className={styles.action}
-                onClick={onToggleLane}
-                title={
-                  effectiveLaneVisible
-                    ? t('ui.terminal.hideTabsLane')
-                    : t('ui.terminal.showTabsLane')
-                }
-                aria-label={t('ui.terminal.toggleLane')}
-                aria-pressed={effectiveLaneVisible}
-                disabled={terminal.tabs.length > 1}
-              >
-                {effectiveLaneVisible ? <PanelLeftClose size={12} /> : <PanelLeftOpen size={12} />}
-              </button>
               {activeTab && activeTab.type !== 'shell' ? (
                 <button
                   type="button"
@@ -472,30 +367,6 @@ export const TerminalPane = memo(function TerminalPane({
       </header>
 
       <div className={styles.body}>
-        {effectiveLaneVisible && !preview ? (
-          <SubTabsLane
-            tabs={terminal.tabs}
-            activeTabId={terminal.activeTabId}
-            onActivate={(id) => setActiveTab(projectId, terminal.id, id)}
-            onClose={onCloseSubTab}
-            onAdd={() => openModal('newSubTab', { projectId, terminalId: terminal.id })}
-            leadingControl={
-              canDragPane ? (
-                <button
-                  type="button"
-                  className={`${styles.action} ${styles.gripBtn} ${styles.laneGripBtn}`}
-                  {...draggable.attributes}
-                  {...draggable.listeners}
-                  title={t('ui.terminal.dragToReorder')}
-                  aria-label={t('ui.terminal.dragToReorder')}
-                >
-                  <GripVertical size={12} />
-                </button>
-              ) : null
-            }
-          />
-        ) : null}
-
         <div className={styles.terminalArea}>
           {terminal.disabled ? (
             <DisabledOverlay

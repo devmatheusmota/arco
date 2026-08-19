@@ -149,7 +149,7 @@ src/                  React 18 + TypeScript frontend
   hooks/              Shared React hooks
   lib/                Pure logic, no React. Best place to start reading.
     tauri.ts          Every backend `invoke` call goes through here
-    types.ts          Domain types (Project, Group, Terminal, GridLayout…)
+    types.ts          Domain types (Project, Terminal, WorkspaceContainer…)
     i18n/             messages/en.ts (source of truth) + messages/pt-BR.ts
   styles/theme.css    Design tokens for all 12 themes
 
@@ -168,10 +168,9 @@ docs/                 Feature docs, changelog, brand
 
 **Vocabulary** (worth internalizing before touching workspace/layout code):
 
-- **Project** — a saved working context: terminals, layout, color, local state.
-- **Group** — a set of projects opened, collapsed, or suspended together.
+- **Project** — a saved working context: terminals, color, local state.
 - **Container** — the visible frame of an opened project.
-- **Pane** — a terminal view inside a container.
+- **Pane** — a session of the project; one is on screen, the rest are tabs.
 - **Sub-tab** — a separate shell or agent session inside the same pane.
 - **PTY** — the real backend process, which keeps running even when the UI changes.
 

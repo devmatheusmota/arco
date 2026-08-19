@@ -5,14 +5,14 @@ import {
   Blocks,
   ChevronRight,
   Info,
+  type LucideIcon,
   Palette,
-  ShieldCheck,
   Plug,
   Search,
+  ShieldCheck,
   TerminalSquare,
   UserRound,
   X,
-  type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -28,9 +28,9 @@ import { FeaturesPage } from './preferences/FeaturesPage'
 import { IntegrationsPage } from './preferences/IntegrationsPage'
 import { MultiagentPage } from './preferences/MultiagentPage'
 import { OrganizationPage } from './preferences/OrganizationPage'
-import { TerminalPage } from './preferences/TerminalPage'
-import { RemoteControlPage } from './preferences/RemoteControlPage'
 import { Avatar } from './preferences/primitives'
+import { RemoteControlPage } from './preferences/RemoteControlPage'
+import { TerminalPage } from './preferences/TerminalPage'
 import styles from './PreferencesModal.module.css'
 
 type CategoryId =
@@ -172,10 +172,10 @@ export function PreferencesModal() {
       },
       {
         category: 'organization',
-        target: 'archived-groups',
+        target: 'archived-projects',
         label: t('prefs.categoryOrganization'),
         description: t('prefs.categoryOrganizationDesc'),
-        keywords: 'archive archived groups grupo arquivado restaurar restore',
+        keywords: 'archive archived projects projeto arquivado restaurar restore',
       },
       {
         category: 'appearance',

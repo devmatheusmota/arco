@@ -318,142 +318,8 @@
   min-width: 0;
 }
 
-.groupTag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  height: 30px;
-  padding: 0 5px 0 3px;
-  background: transparent;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-muted);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  max-width: 100%;
-}
-.groupTag:hover {
-  color: var(--fg);
-  background: var(--panel-hover);
-}
-
-.groupChevronBtn {
-  width: 14px;
-  height: 14px;
-  display: grid;
-  place-items: center;
-  color: var(--fg-muted);
-  border-radius: 3px;
-  cursor: pointer;
-}
-.groupChevronBtn:hover {
-  background: var(--panel-hover);
-  color: var(--fg);
-}
-
-/* Groups use a folder marker; project identities remain monograms. */
-.groupBadge {
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--group-badge-color, var(--fg-muted)) 42%, var(--border));
-  border-radius: 5px;
-  color: var(--group-badge-color, var(--fg-muted));
-  background: color-mix(in srgb, var(--group-badge-color, var(--fg-muted)) 13%, var(--bg-elevated));
-}
-
-.groupIcon {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  flex-shrink: 0;
-  object-fit: cover;
-}
-
-.groupTagName {
-  flex: 1;
-  white-space: nowrap;
-  font-weight: 700;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.groupBody {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  margin-left: 11px;
-  padding: 2px 0 2px 7px;
-  border-left: 1px solid color-mix(in srgb, var(--group-color, var(--border)) 45%, var(--border));
-  min-width: 0;
-}
-
 .groupBody .groupBox {
   margin-right: 0;
-}
-
-.groupEmpty {
-  padding: 7px 8px;
-  font-size: 11px;
-  color: var(--fg-faint);
-}
-
-.groupCollapsed {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 5px 1px 4px;
-  min-height: 32px;
-  padding: 4px 7px 4px 5px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-sunken);
-  cursor: pointer;
-  user-select: none;
-  min-width: 0;
-}
-.groupCollapsed:hover {
-  background: var(--panel-hover);
-}
-.groupChevron {
-  color: var(--fg-muted);
-  flex-shrink: 0;
-}
-.groupName {
-  flex: 1;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.groupCount {
-  font-size: 10px;
-  color: var(--fg-faint);
-  flex-shrink: 0;
-}
-
-.groupKind {
-  padding: 1px 4px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  color: var(--text-quaternary);
-  background: var(--bg-elevated);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  line-height: 13px;
-  text-transform: uppercase;
-  flex-shrink: 0;
 }
 
 .projectDisabled .projectName {
@@ -465,15 +331,6 @@
   opacity: 0.6;
 }
 .projectPauseIcon {
-  color: var(--fg-faint);
-  flex-shrink: 0;
-}
-
-.groupSuspended .groupTagName {
-  color: var(--text-quaternary);
-}
-
-.groupSuspendedIcon {
   color: var(--fg-faint);
   flex-shrink: 0;
 }
@@ -498,22 +355,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.ungroupedSection {
-  margin-top: 2px;
-  padding: 0;
-}
-.ungroupedEmptyDrop {
-  min-height: 24px;
-  display: grid;
-  place-items: center;
-  color: var(--fg-faint);
-  font-size: 10px;
-}
-.ungroupedBody {
-  display: flex;
-  flex-direction: column;
 }
 
 .projectName {
@@ -1211,100 +1052,8 @@
   border-radius: 0;
 }
 
-.groupTag,
-.ungroupedHeader {
-  width: 100%;
-  height: 24px;
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 22px 0 2px;
-  padding: 0 6px 0 10px;
-  color: var(--fg-faint);
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  text-transform: none;
-}
-
-.groupTag:hover,
-.ungroupedHeader:hover {
-  color: var(--fg-muted);
-  background: var(--panel-hover);
-}
-
 .groupBox:first-child > .groupTag {
   margin-top: 12px;
-}
-
-.groupRule {
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.groupChevronBtn {
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  color: var(--fg-faint);
-}
-
-.groupChevronBtn:hover {
-  color: var(--fg);
-  background: transparent;
-}
-
-.groupTagName,
-.ungroupedHeader > span {
-  min-width: 0;
-  flex: 0 1 auto;
-  overflow: hidden;
-  color: inherit;
-  font-size: inherit;
-  font-weight: inherit;
-  letter-spacing: inherit;
-  text-overflow: ellipsis;
-  text-transform: inherit;
-  white-space: nowrap;
-}
-
-.groupAddButton {
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  color: var(--fg-muted);
-  border-radius: var(--radius-sm);
-  opacity: 0;
-}
-
-.groupTag:hover .groupAddButton,
-.ungroupedHeader:hover .groupAddButton,
-.groupAddButton:focus-visible {
-  opacity: 1;
-}
-
-.groupAddButton:hover {
-  color: var(--fg);
-  background: transparent;
-}
-
-.groupBody {
-  margin: 0 0 0 3px;
-  padding: 0 0 0 7px;
-  border: 0;
-  border-left: 1px solid transparent;
-  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--border) 55%, transparent);
-  gap: 0;
-  transition: box-shadow 160ms ease;
 }
 
 .groupBox:hover .groupBody {
@@ -1313,20 +1062,6 @@
 
 .groupBody .groupBox {
   margin-left: 0;
-}
-
-.groupEmpty {
-  padding: 4px 10px;
-  font-size: 11px;
-}
-
-.ungroupedSection {
-  margin: 0;
-  padding: 0;
-}
-
-.ungroupedEmptyDrop {
-  min-height: 22px;
 }
 
 .projectNode {
@@ -1661,33 +1396,6 @@
   border-radius: var(--radius-md);
 }
 
-:global([data-visual-style='normal']) .groupTag,
-:global([data-visual-style='normal']) .groupCollapsed,
-:global([data-visual-style='normal']) .ungroupedHeader {
-  height: 30px;
-  min-height: 30px;
-  margin: 0;
-  padding: 0 6px;
-  color: var(--fg-muted);
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-:global([data-visual-style='normal']) .ungroupedHeader {
-  margin: 6px 1px 2px;
-  background: var(--bg-sunken);
-  border: 1px solid var(--border);
-}
-
-:global([data-visual-style='normal']) .groupBody {
-  margin-left: 9px;
-  padding: 1px 0 2px 8px;
-  border-left: 1px solid color-mix(in srgb, var(--group-color) 45%, var(--border));
-}
-
 :global([data-visual-style='normal']) .projectNode {
   margin-bottom: 2px;
 }
@@ -1723,22 +1431,6 @@
   border-radius: var(--radius-sm);
 }
 
-.groupFolderIcon,
-.groupLogo {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-}
-
-.groupFolderIcon {
-  color: var(--fg-faint);
-}
-
-.groupLogo {
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-}
-
 /* Keep Organization aligned with the 40 px profile and playback footer rows. */
 .layoutFooter {
   min-height: 40px;
@@ -1757,4 +1449,11 @@
   width: 24px;
   height: 24px;
   border-radius: 4px;
+}
+
+/* The sidebar is a flat list of projects. */
+.projectList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }

@@ -1,0 +1,194 @@
+.lane {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 3px 6px;
+  background: var(--shape-tabs-lane-bg);
+  border-bottom: 1px solid var(--shape-tabs-lane-border);
+  flex-shrink: 0;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.itemWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 190px;
+  min-width: 0;
+  padding: 4px 22px 4px 8px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font: 500 12px var(--font-sans);
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+.item:hover {
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+
+.dragging {
+  opacity: 0.5;
+}
+
+.dropTarget {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active .item {
+  background: var(--surface-card-selected);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--fg);
+}
+
+/* Accent bar on the active session, along the bottom edge of the row. */
+.active::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-ring);
+}
+
+.doneBadge {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-working);
+  flex: 0 0 auto;
+}
+
+.close {
+  position: absolute;
+  right: 4px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  color: var(--fg-faint);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 100ms;
+}
+.itemWrap:hover .close,
+.itemWrap:focus-within .close,
+.close:focus-visible {
+  opacity: 1;
+}
+.close:hover {
+  color: var(--status-offline);
+}
+.close:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 1px;
+}
+
+.add {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--fg-faint);
+  border: 1px dashed var(--border-strong);
+  cursor: pointer;
+  transition:
+    background 100ms,
+    color 100ms,
+    border-color 100ms;
+}
+.add:hover {
+  background: var(--accent-soft);
+  color: var(--fg);
+  border-color: var(--accent-border);
+}
+
+.side,
+.sideAction {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-sunken);
+  color: var(--fg-muted);
+  font: 500 12px var(--font-sans);
+  cursor: pointer;
+}
+.side {
+  position: relative;
+  padding-right: 22px;
+  cursor: default;
+}
+.sideAction:hover {
+  background: var(--accent-soft);
+  color: var(--fg);
+  border-color: var(--accent-border);
+}
+
+.sideName {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global([data-visual-style='clean']) .item,
+:global([data-visual-style='clean']) .add,
+:global([data-visual-style='clean']) .side,
+:global([data-visual-style='clean']) .sideAction {
+  border-radius: var(--clean-control-radius);
+}
+
+:global([data-visual-style='clean']) .active::after {
+  display: none;
+}
+
+:global([data-visual-style='clean']) .item:hover {
+  background: var(--clean-hover-bg);
+}
+
+:global([data-visual-style='clean']) .active .item {
+  background: var(--clean-active-bg);
+  box-shadow: none;
+}

@@ -13,8 +13,6 @@ import {
 import {
   DEFAULT_PREFERENCES,
   EMPTY_PROJECTS_FILE,
-  type Group,
-  GROUP_COLORS,
   type Preferences,
   type Project,
   type ProjectsFile,
@@ -52,10 +50,6 @@ function normalizeStoredAccents(file: ProjectsFile): ProjectsFile {
 
   return {
     ...file,
-    groups: file.groups.map((group) => ({
-      ...group,
-      color: normalizeStoredAccent(group.color, GROUP_COLORS[0])!,
-    })),
     projects: file.projects.map((project) => ({
       ...project,
       color: normalizeStoredAccent(project.color),
@@ -198,8 +192,22 @@ function normalizeStoredContainers(raw: unknown): WorkspaceContainer[] {
       paneIds: item.paneIds.filter((id: unknown) => typeof id === 'string'),
       lastUsedAt: typeof item.lastUsedAt === 'number' ? item.lastUsedAt : undefined,
       size: typeof item.size === 'number' ? item.size : 0,
-      internalLayout: item.internalLayout ?? 'auto',
+      activePaneId: typeof item.activePaneId === 'string' ? item.activePaneId : null,
+      sidePaneId: typeof item.sidePaneId === 'string' ? item.sidePaneId : null,
       collapsed: Boolean(item.collapsed),
+    }))
+    .map((container) => ({
+      ...container,
+      // A container written before v9 listed every pane of a grid and named none
+      // of them: the first one takes the screen.
+      activePaneId:
+        container.activePaneId && container.paneIds.includes(container.activePaneId)
+          ? container.activePaneId
+          : (container.paneIds[0] ?? null),
+      sidePaneId:
+        container.sidePaneId && container.paneIds.includes(container.sidePaneId)
+          ? container.sidePaneId
+          : null,
     }))
 }
 
@@ -265,7 +273,6 @@ function explodeStoredTabs(rawTabs: unknown, projects: Project[]): WorkspaceTab[
         kind: terminalId ? 'terminal' : 'project',
         projectId: container.projectId,
         ...(terminalId ? { terminalId } : {}),
-        ...(project.groupId ? { groupId: project.groupId } : {}),
         label: terminalId
           ? (project.terminals.find((terminal) => terminal.id === terminalId)?.name ?? project.name)
           : project.name,
@@ -294,7 +301,6 @@ function tabsFromContainers(containers: WorkspaceContainer[], projects: Project[
           id: nanoid(),
           kind: 'project' as const,
           projectId: project.id,
-          ...(project.groupId ? { groupId: project.groupId } : {}),
           label: project.name,
           color: project.color,
           iconUrl: project.iconUrl,
@@ -318,7 +324,6 @@ function tabsFromContainers(containers: WorkspaceContainer[], projects: Project[
 export function migrateWorkspaceNavigation(base: {
   workspace?: any
   projects: Project[]
-  groups: Group[]
   activeProjectId: string | null
   preferences: Preferences
 }) {
@@ -397,40 +402,91 @@ export function migrateWorkspaceNavigation(base: {
  * per project, and the layout state that only existed to arrange several projects on one screen
  * (workspace grid, group grid, flat mode) is dropped.
  */
-function migrateToV8(parsed: any): ProjectsFile {
+function migrateToV8(parsed: any): any {
   const preferences = normalizePreferences(parsed.preferences)
   const projects = (parsed.projects ?? []).map((project: any) => ({
     ...project,
     gridLayoutHistory: project.gridLayoutHistory ?? [],
   }))
-  const groups = (parsed.groups ?? []).map((group: any) => {
-    const { layoutMode, gridLayout, gridLayoutHistory, ...rest } = group
-    return rest
-  })
-  return normalizeStoredAccents({
+  return {
     ...parsed,
     version: 8,
     // Tasks gained priority, notes and session links; normalizing here backfills
     // files written before those fields existed.
     todos: normalizeTodos(parsed.todos),
     projects,
-    groups,
     preferences,
     workspace: migrateWorkspaceNavigation({
       workspace: parsed.workspace,
       projects,
-      groups,
       activeProjectId: parsed.activeProjectId ?? null,
       preferences,
     }),
+  }
+}
+
+/**
+ * v9 — a project shows one session at a time, and projects are a flat list.
+ *
+ * The grid, the layout modes and the pane blocks are gone, so everything that
+ * only described how several panes shared one screen is dropped. The panes
+ * themselves are kept: they are the tabs now, and the first one takes the screen.
+ *
+ * Groups go with them. A project that lived inside one has to land somewhere the
+ * sidebar actually renders, so the groups are walked in their own order and their
+ * projects pushed into the flat list — the order on screen survives even though
+ * the grouping does not.
+ */
+function migrateToV9(parsed: any): ProjectsFile {
+  const v8 = migrateToV8(parsed)
+  const projects: Project[] = v8.projects.map((project: any) => {
+    const { layoutMode, gridLayout, gridLayoutHistory, paneGroups, groupId, ...rest } = project
+    return rest as Project
+  })
+
+  const known = new Set(projects.map((project) => project.id))
+  const order: string[] = []
+  const push = (id: unknown) => {
+    if (typeof id !== 'string' || !known.has(id) || order.includes(id)) return
+    order.push(id)
+  }
+  for (const id of v8.ungroupedOrder ?? v8.projectOrder ?? []) push(id)
+  for (const group of v8.groups ?? []) for (const id of group?.projectIds ?? []) push(id)
+  for (const project of projects) push(project.id)
+
+  const { isolatedPaneId, ...preferences } = v8.preferences as Preferences & {
+    isolatedPaneId?: string | null
+  }
+  const { groups, ungroupedOrder, ...rest } = v8
+
+  return normalizeStoredAccents({
+    ...rest,
+    version: 9,
+    projects,
+    projectOrder: order,
+    preferences,
+    workspace: {
+      ...v8.workspace,
+      containers: normalizeStoredContainers(v8.workspace.containers),
+      // A tab's group tint and the `group` entries of the recent list point at
+      // something that no longer exists.
+      tabs: v8.workspace.tabs.map((tab: any) => {
+        const { groupId, ...tabRest } = tab
+        return { ...tabRest, snapshot: normalizeStoredSnapshot(tab.snapshot) }
+      }),
+      recentTabs: (v8.workspace.recentTabs ?? []).filter(
+        (entry: any) => entry?.kind === 'project',
+      ),
+    },
   })
 }
 
 /** Migrates older files and normalizes restorable snapshots. */
 export function migrate(parsed: any): ProjectsFile {
-  if (parsed.version === 8) return migrateToV8(parsed)
-  if (parsed.version === 7) return migrateToV8(parsed)
-  if (parsed.version === 6) return migrateToV8(parsed)
+  if (parsed.version === 9) return migrateToV9(parsed)
+  if (parsed.version === 8) return migrateToV9(parsed)
+  if (parsed.version === 7) return migrateToV9(parsed)
+  if (parsed.version === 6) return migrateToV9(parsed)
 
   const v5Result = parsed.version === 5 ? parsed : migrateToV5(parsed)
 
@@ -440,7 +496,7 @@ export function migrate(parsed: any): ProjectsFile {
     orphanWorktrees: p.orphanWorktrees ?? [],
   }))
 
-  return migrateToV8({
+  return migrateToV9({
     ...v5Result,
     version: 6,
     projects: v6Projects,
@@ -471,7 +527,6 @@ function migrateToV5(parsed: any): any {
       workspace: migrateWorkspaceNavigation({
         workspace: parsed.workspace,
         projects: base.projects,
-        groups,
         activeProjectId: base.activeProjectId,
         preferences,
       }),
@@ -485,7 +540,6 @@ function migrateToV5(parsed: any): any {
       color: p.color,
       groupId: null,
       terminals: p.terminals ?? [],
-      layoutMode: p.layoutMode ?? 'auto',
       collapsed: p.collapsed ?? false,
       createdAt: p.createdAt ?? Date.now(),
     }))
@@ -495,8 +549,9 @@ function migrateToV5(parsed: any): any {
       .map((p) => ({
         projectId: p.id,
         paneIds: p.activeTerminalIds,
+        activePaneId: p.activeTerminalIds[0] ?? null,
+        sidePaneId: null,
         size: 0,
-        internalLayout: p.layoutMode ?? 'auto',
         collapsed: false,
       }))
 
@@ -516,7 +571,6 @@ function migrateToV5(parsed: any): any {
             .slice(0, MAX_RECENT_PROJECT_TABS),
         },
         projects,
-        groups: [],
         activeProjectId: parsed.activeProjectId ?? projects[0]?.id ?? null,
         preferences: normalizePreferences(parsed.preferences),
       }),
@@ -541,17 +595,3 @@ function migrateToV5(parsed: any): any {
   }
 }
 
-export function collectGroupProjectIds(groupId: string, groups: Group[]): Set<string> {
-  const result = new Set<string>()
-  const queue = [groupId]
-  while (queue.length > 0) {
-    const cur = queue.shift()!
-    const g = groups.find((gr) => gr.id === cur)
-    if (!g) continue
-    for (const pid of g.projectIds) result.add(pid)
-    for (const sg of groups) {
-      if (sg.parentGroupId === cur) queue.push(sg.id)
-    }
-  }
-  return result
-}

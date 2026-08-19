@@ -89,7 +89,7 @@ function useSessionFocus() {
 function GsdSyncSection() {
   const t = useT()
   const activeProject = useProjectsStore(selectActiveProject)
-  const setFullscreenPane = useProjectsStore((state) => state.setFullscreenPane)
+  const openPane = useProjectsStore((state) => state.openPane)
   const sessions = useGsdSyncSessions()
   const projectSessions = activeProject
     ? sessions.filter((session) => session.projectId === activeProject.id)
@@ -112,7 +112,7 @@ function GsdSyncSection() {
               key={session.id}
               terminal={terminal}
               session={session}
-              onOpen={() => setFullscreenPane(session.terminalId)}
+              onOpen={() => openPane(activeProject.id, session.terminalId)}
             />
           )
         })}

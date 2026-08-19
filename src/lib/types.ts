@@ -30,32 +30,6 @@ export function agentCliCommand(agent: AgentType): string | undefined {
 
 export type Locale = 'en' | 'pt-BR'
 
-export type LayoutMode = 'auto' | 'spotlight' | 'sidebar' | 'grid'
-
-export type GridCell = {
-  col: number
-  row: number
-  colSpan: number
-  rowSpan: number
-}
-
-export type GridLayout = {
-  cols: number
-  rows: number
-
-  cells: Record<string, GridCell>
-
-  colSizes?: number[]
-
-  rowSizes?: number[]
-}
-
-export type GridLayoutHistoryEntry = {
-  id: string
-  savedAt: number
-  layout: GridLayout
-}
-
 export type Theme =
   | 'dark'
   | 'light'
@@ -218,7 +192,6 @@ export type Terminal = {
   tabs: SubTab[]
   activeTabId: string
   disabled: boolean
-  laneVisible: boolean | null
 
   lastUsedAt?: number
 
@@ -237,11 +210,6 @@ export type Terminal = {
   gsdSyncViewer?: boolean
   /** Hides this terminal and its output from every paired remote device. */
   remoteExcluded?: boolean
-}
-
-export type PaneGroup = {
-  id: string
-  paneIds: string[]
 }
 
 export type OrphanWorktree = {
@@ -266,19 +234,10 @@ export type Project = {
 
   iconUrl?: string
 
-  groupId: string | null
-
   defaultCwd?: string
   terminals: Terminal[]
-  /** Blocos visuais criados selecionando panes com Shift. */
-  paneGroups?: PaneGroup[]
 
   markdownComments?: MarkdownComment[]
-  layoutMode: LayoutMode
-
-  gridLayout?: GridLayout
-  /** Most recently saved custom layouts for this project. */
-  gridLayoutHistory?: GridLayoutHistoryEntry[]
   collapsed: boolean
   /** Hidden from the sidebar until restored from Preferences. */
   archived?: boolean
@@ -322,38 +281,29 @@ export type MarkdownComment = {
   createdAt: number
 }
 
-export type Group = {
-  id: string
-  name: string
-  color: string
-
-  iconUrl?: string
-  collapsed: boolean
-
-  projectIds: string[]
-
-  parentGroupId: string | null
-
-  suspended?: boolean
-
-  archived?: boolean
-  createdAt: number
-}
-
 export type WorkspaceContainer = {
   projectId: string
 
+  /** Every session open in this project, in the order the tab bar shows them. */
   paneIds: string[]
+
+  /** The session filling the screen. Null only while the project has no panes. */
+  activePaneId: string | null
+
+  /**
+   * A second terminal next to the active session, for running a command without
+   * leaving it. At most one, and only ever a pane of kind `terminal`.
+   */
+  sidePaneId?: string | null
 
   lastUsedAt?: number
 
   size: number
-  internalLayout: LayoutMode
   collapsed: boolean
 }
 
 export type WorkspaceRecentTab = {
-  kind: 'project' | 'group'
+  kind: 'project'
   id: string
 }
 
@@ -374,8 +324,6 @@ export type WorkspaceTab = {
   projectId: string
   /** Terminal the tab was opened for. Only set when `kind` is 'terminal'. */
   terminalId?: string
-  /** Group of the owning project when the tab opened. Visual grouping in the tab bar only. */
-  groupId?: string
   label: string
   color?: string
   iconUrl?: string
@@ -425,8 +373,6 @@ export type Preferences = {
   onboardingDone: boolean
   /** Project id of the container rendered fullscreen, or null. */
   fullscreenContainerId: string | null
-
-  isolatedPaneId: string | null
 
   firstLaunchAt: number | null
   /** Nome exibido no welcome modal. */
@@ -542,10 +488,9 @@ export type ResourcePolicyPreferences = {
 }
 
 export type ProjectsFile = {
-  version: 8
-  groups: Group[]
-
-  ungroupedOrder: string[]
+  version: 9
+  /** Project order in the sidebar. */
+  projectOrder: string[]
   projects: Project[]
 
   todos: TodoItem[]
@@ -590,7 +535,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   },
   onboardingDone: false,
   fullscreenContainerId: null,
-  isolatedPaneId: null,
   firstLaunchAt: null,
   displayName: '',
   profileImageUrl: '',
@@ -654,9 +598,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 export const EMPTY_PROJECTS_FILE: ProjectsFile = {
-  version: 8,
-  groups: [],
-  ungroupedOrder: [],
+  version: 9,
+  projectOrder: [],
   projects: [],
   todos: [],
   activeProjectId: null,
@@ -677,7 +620,7 @@ export const EMPTY_PROJECTS_FILE: ProjectsFile = {
 
 export type PtyStatus = 'working' | 'waiting' | 'stopped' | 'disabled' | 'offline'
 
-export const GROUP_COLORS = [
+export const PROJECT_COLORS = [
   '#6ea8ff',
   '#22d3ee',
   '#a78bfa',

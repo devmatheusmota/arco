@@ -10,6 +10,26 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Removed
+
+- Groups of projects are gone, along with subgroups, group tabs, the archived-groups list and
+  `Ctrl+Shift+G`. The sidebar is a flat, reorderable list of projects, and a project that lived
+  inside a group keeps the position it had on screen. Suspending is still there, one project at a
+  time, from the project's own context menu — what is gone is doing it to several at once.
+
+### Changed
+
+- A project shows one session at a time. The grid is gone, and so are the layout modes, the layout
+  designer and the pane blocks built by shift-clicking: every session of a project is now a tab in a
+  bar above the workspace, and the one you pick fills the screen. A pane and its sub-tabs used to be
+  two layers of tabs; they are one row now, named after the session. Sessions that are not on screen
+  stay loaded and keep the same size as the one that is, so switching tabs starts nothing and resizes
+  nothing.
+- A single terminal can sit beside the active session, for running a command without leaving what you
+  are reading. Only a terminal is accepted there, and only one at a time.
+- `Ctrl+W` closes the session on screen. It used to close whichever pane happened to be first in the
+  container, which was rarely the one being read.
+
 ### Fixed
 
 - A terminal no longer comes back with its text scrambled — characters from different moments landed

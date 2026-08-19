@@ -349,92 +349,12 @@
   padding: 0;
   min-width: 0;
 }
-
-.groupTag {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 24px;
-  margin: 22px 0 2px;
-  padding: 0 6px 0 10px;
-  background: transparent;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  color: var(--fg-faint);
-  border-radius: 6px;
-  cursor: pointer;
-  max-width: 100%;
-}
 .list > .groupBox:first-child .groupTag {
   margin-top: 12px;
-}
-.groupTag:hover {
-  color: var(--fg-muted);
-  background: var(--panel-hover);
-}
-
-.groupRule {
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.groupAddBtn {
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  color: var(--fg-muted);
-  opacity: 0;
-  cursor: pointer;
-}
-.groupTag:hover .groupAddBtn,
-.groupTag:focus-within .groupAddBtn {
-  opacity: 1;
-}
-
-.groupChevronBtn {
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  color: var(--fg-faint);
-  cursor: pointer;
-}
-.groupChevronBtn:hover {
-  color: var(--fg);
-}
-
-.groupTagName {
-  flex: 0 1 auto;
-  white-space: nowrap;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.groupBody {
-  display: flex;
-  flex-direction: column;
-  margin-left: 3px;
-  padding-left: 7px;
-  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--border) 55%, transparent);
-  min-width: 0;
-  transition: box-shadow 160ms ease;
 }
 
 .groupBox:hover .groupBody {
   box-shadow: inset 1px 0 0 color-mix(in srgb, var(--group-color, var(--border)) 45%, var(--border));
-}
-
-.groupEmpty {
-  padding: 7px 10px;
-  font-size: 11px;
-  color: var(--fg-faint);
 }
 
 .projectDisabled .projectName {
@@ -446,15 +366,6 @@
   opacity: 0.6;
 }
 .projectPauseIcon {
-  color: var(--fg-faint);
-  flex-shrink: 0;
-}
-
-.groupSuspended .groupTagName {
-  color: var(--text-quaternary);
-}
-
-.groupSuspendedIcon {
   color: var(--fg-faint);
   flex-shrink: 0;
 }
@@ -479,22 +390,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.ungroupedSection {
-  margin-top: 2px;
-  padding: 0;
-}
-.ungroupedEmptyDrop {
-  min-height: 24px;
-  display: grid;
-  place-items: center;
-  color: var(--fg-faint);
-  font-size: 10px;
-}
-.ungroupedBody {
-  display: flex;
-  flex-direction: column;
 }
 
 .projectName {
@@ -758,4 +653,11 @@
 
 .rosterLoading {
   color: var(--status-working);
+}
+
+/* The sidebar is a flat list of projects. */
+.projectList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }

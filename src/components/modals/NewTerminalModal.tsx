@@ -64,7 +64,7 @@ export function NewTerminalModal() {
     visibleAgents[0]?.type ??
     'shell'
   const selectedAgent = AGENTS.find((agent) => agent.type === type) ?? AGENTS[0]
-  const inheritedCwd = useMemo(() => getProjectDefaultCwd(project, projects), [project, projects])
+  const inheritedCwd = useMemo(() => getProjectDefaultCwd(project), [project])
   const recentFolders = useMemo(() => {
     const folders = new Map<string, { path: string; lastUsedAt: number }>()
     for (const candidate of projects) {

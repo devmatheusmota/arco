@@ -89,10 +89,10 @@ relative to the repository.
 
 **Frontend (`src/`)**
 - `components/` — UI by feature (`HomeView/`, `WorkspaceView/`, `XTermView/`, `ProjectSidebar/`, `TitleBar/`, `modals/`…). One `.module.css` per component.
-- `stores/` — Zustand: `projectsStore` (projects/groups/terminals/preferences, **persisted** to `projects.json`) and `uiStore` (modals/toasts/ephemeral state).
+- `stores/` — Zustand: `projectsStore` (projects/terminals/preferences, **persisted** to `projects.json`) and `uiStore` (modals/toasts/ephemeral state).
 - `lib/tauri/` — `invoke` wrapper, split by domain (`git`, `pty`, `agents`, `usage`…), with `index.ts` re-exporting everything — call sites keep importing from `lib/tauri` unchanged.
 - `lib/i18n/` — the i18n system (`index.ts` + `messages/en.ts` + `messages/pt-BR.ts`).
-- `lib/types.ts` — domain types (`AgentType`, `Terminal`, `Project`, `Group`, `GridLayout`…).
+- `lib/types.ts` — domain types (`AgentType`, `Terminal`, `Project`, `WorkspaceContainer`…).
 - `styles/theme.css` + `styles/reset.css` — tokens and reset.
 
 **Shell (`electron/`)**
@@ -141,13 +141,13 @@ Versioned in this repo:
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — setup per OS, layout, house rules, commit/PR convention.
 - [`docs/FEATURES.md`](docs/FEATURES.md) — features in detail.
 - [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — user-facing history.
-- [`docs/OVERVIEW.md`](docs/OVERVIEW.md) — domain model (Group, Project, Container, Pane, Terminal,
+- [`docs/OVERVIEW.md`](docs/OVERVIEW.md) — domain model (Project, Container, Pane, Terminal,
   Sub-tab, PTY), stack, and persistence.
 - [`docs/BRAND.md`](docs/BRAND.md).
 - [`docs/DIAGNOSTICO_MATURIDADE_TECNICA.md`](docs/DIAGNOSTICO_MATURIDADE_TECNICA.md) — diagnostic of
   code organization, duplication, and performance, with prioritized recommendations.
 
-The domain glossary (Group, Project, Container, Pane, Sub-tab, PTY) is summarized in `CONTRIBUTING.md`.
+The domain glossary (Project, Container, Pane, Sub-tab, PTY) is summarized in `CONTRIBUTING.md`.
 
 ## graphify
 

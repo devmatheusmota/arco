@@ -9,9 +9,6 @@ import {
   touchTerminalUsage,
 } from '../lib/terminalFactory'
 import type {
-  GridLayout,
-  GridLayoutHistoryEntry,
-  LayoutMode,
   Preferences,
   Project,
   WorkspaceContainer,
@@ -25,41 +22,8 @@ import {
   scopedTabSnapshot,
 } from '../lib/workspaceNavigation'
 import type { ProjectsState } from './projectsStore'
-import { collectGroupProjectIds } from './projectsStore.migrations'
 import type { SliceCtx } from './projectsStore.slices'
 
-const MAX_GRID_LAYOUT_HISTORY = 8
-
-function layoutsMatch(left: GridLayout, right: GridLayout): boolean {
-  return JSON.stringify(left) === JSON.stringify(right)
-}
-
-function rememberGridLayout(
-  history: GridLayoutHistoryEntry[] | undefined,
-  layout: GridLayout,
-): GridLayoutHistoryEntry[] {
-  const current = history ?? []
-  if (current[0] && layoutsMatch(current[0].layout, layout)) return current
-  return [{ id: nanoid(), savedAt: Date.now(), layout: structuredClone(layout) }, ...current].slice(
-    0,
-    MAX_GRID_LAYOUT_HISTORY,
-  )
-}
-
-/** Drops the oldest unpinned tabs outside `keepIds` until the list fits the cap. */
-function capTabs(tabs: WorkspaceTab[], keepIds: Set<string>): WorkspaceTab[] {
-  if (tabs.length <= MAX_WORKSPACE_TABS) return tabs
-  const result = [...tabs]
-  for (const tab of tabs) {
-    if (result.length <= MAX_WORKSPACE_TABS) break
-    if (tab.pinned || keepIds.has(tab.id)) continue
-    result.splice(
-      result.findIndex((item) => item.id === tab.id),
-      1,
-    )
-  }
-  return result.slice(-MAX_WORKSPACE_TABS)
-}
 
 type WorkspaceSliceCtx = SliceCtx & {
   navigationUpdate: (mutator: (state: ProjectsState) => Partial<ProjectsState> | void) => void
@@ -80,7 +44,7 @@ type WorkspaceSliceCtx = SliceCtx & {
     state: ProjectsState,
     projectId: string,
     paneIds: string[],
-    options?: { focusPaneId?: string | null; layout?: LayoutMode },
+    options?: { focusPaneId?: string | null },
   ) => Partial<ProjectsState> | undefined
 }
 
@@ -88,10 +52,8 @@ type WorkspaceSlice = Pick<
   ProjectsState,
   | 'setActiveProject'
   | 'setActiveProjectOnly'
-  | 'rememberWorkspaceGroupTab'
   | 'closeWorkspaceTab'
   | 'openProjectWorkspace'
-  | 'openGroupWorkspace'
   | 'openTerminalWorkspace'
   | 'focusWorkspaceTerminal'
   | 'activateWorkspaceTab'
@@ -100,15 +62,12 @@ type WorkspaceSlice = Pick<
   | 'reopenClosedWorkspaceTab'
   | 'navigateWorkspaceHistory'
   | 'toggleProjectCollapsed'
-  | 'setLayoutMode'
-  | 'setProjectGridLayout'
 >
 
 export function createWorkspaceSlice({
   get,
   update,
   updateProject,
-  updateContainer,
   navigationUpdate,
   makeSnapshot,
   applyTabNavigation,
@@ -119,7 +78,6 @@ export function createWorkspaceSlice({
     state: ProjectsState,
     project: Project,
     tabs: WorkspaceTab[],
-    groupId: string | undefined,
     stamp: number,
   ): WorkspaceTab => {
     const snapshot = makeSnapshot(
@@ -129,7 +87,6 @@ export function createWorkspaceSlice({
             newContainer(
               project.id,
               project.terminals.map((terminal) => terminal.id),
-              project.layoutMode,
             ),
           ]
         : [],
@@ -144,7 +101,6 @@ export function createWorkspaceSlice({
         label: project.name,
         color: project.color,
         iconUrl: project.iconUrl,
-        groupId: groupId ?? existing.groupId,
         snapshot,
         updatedAt: stamp,
       }
@@ -153,7 +109,6 @@ export function createWorkspaceSlice({
       id: nanoid(),
       kind: 'project',
       projectId: project.id,
-      groupId,
       label: project.name,
       color: project.color,
       iconUrl: project.iconUrl,
@@ -210,17 +165,6 @@ export function createWorkspaceSlice({
         }
       }),
 
-    rememberWorkspaceGroupTab: (groupId) =>
-      update((state) => ({
-        workspace: {
-          ...state.workspace,
-          recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-            kind: 'group',
-            id: groupId,
-          }),
-        },
-      })),
-
     closeWorkspaceTab: (tab) =>
       update((state) => ({
         workspace: {
@@ -244,7 +188,7 @@ export function createWorkspaceSlice({
         )
         const tab =
           existing ??
-          projectTab(state, project, state.workspace.tabs, project.groupId ?? undefined, Date.now())
+          projectTab(state, project, state.workspace.tabs, Date.now())
         const navigation = applyTabNavigation(state, tab, { addTab: !existing })
         return {
           ...navigation,
@@ -257,40 +201,6 @@ export function createWorkspaceSlice({
             }),
           },
         }
-      }),
-
-    /* A group is no longer a tab: it opens one tab per project and activates the first. */
-    openGroupWorkspace: (groupId) =>
-      navigationUpdate((state) => {
-        if (!state.groups.some((group) => group.id === groupId)) return
-        const projectIds = collectGroupProjectIds(groupId, state.groups)
-        const scopedProjects = state.projects.filter(
-          (project) => projectIds.has(project.id) && project.terminals.length > 0,
-        )
-        if (scopedProjects.length === 0) return
-        const stamp = Date.now()
-        let tabs = [...state.workspace.tabs]
-        const opened: WorkspaceTab[] = []
-        scopedProjects.forEach((project, index) => {
-          const tab = projectTab(state, project, tabs, groupId, stamp + index)
-          tabs = tabs.some((item) => item.id === tab.id)
-            ? tabs.map((item) => (item.id === tab.id ? tab : item))
-            : [...tabs, tab]
-          opened.push(tab)
-        })
-        tabs = capTabs(tabs, new Set(opened.map((tab) => tab.id)))
-        const base = {
-          ...state,
-          workspace: {
-            ...state.workspace,
-            tabs,
-            recentTabs: rememberWorkspaceTab(state.workspace.recentTabs, {
-              kind: 'group',
-              id: groupId,
-            }),
-          },
-        } as ProjectsState
-        return applyTabNavigation(base, opened[0])
       }),
 
     openTerminalWorkspace: (projectId, terminalId) =>
@@ -322,13 +232,12 @@ export function createWorkspaceSlice({
           kind: 'terminal',
           projectId: project.id,
           terminalId: terminal.id,
-          groupId: project.groupId ?? undefined,
           label: terminal.name,
           color: project.color,
           iconUrl: project.iconUrl,
           snapshot: makeSnapshot(
             nextState,
-            [newContainer(project.id, [terminal.id], project.layoutMode)],
+            [newContainer(project.id, [terminal.id])],
             project.id,
             terminal.id,
             { fullscreenContainerId: null },
@@ -356,6 +265,18 @@ export function createWorkspaceSlice({
           (container) =>
             container.projectId === projectId && container.paneIds.includes(terminalId),
         )
+        // Focusing a session is asking to read it, so it takes the screen —
+        // unless it is already the terminal sitting beside the active one.
+        if (inScope) {
+          nextState.workspace = {
+            ...nextState.workspace,
+            containers: nextState.workspace.containers.map((container) =>
+              container.projectId === projectId && container.sidePaneId !== terminalId
+                ? { ...container, activePaneId: terminalId }
+                : container,
+            ),
+          }
+        }
         // A pane of another project cannot be focused in this tab; it opens in its own tab.
         if (!inScope) {
           const navigation = openPanesInProjectTab(nextState, projectId, [terminalId], {
@@ -504,32 +425,5 @@ export function createWorkspaceSlice({
 
     toggleProjectCollapsed: (id) => updateProject(id, (p) => ({ ...p, collapsed: !p.collapsed })),
 
-    setLayoutMode: (projectId, layout) => {
-      updateProject(projectId, (p) => ({ ...p, layoutMode: layout }))
-      updateContainer(projectId, (c) => ({ ...c, internalLayout: layout }))
-    },
-
-    setProjectGridLayout: (projectId, layout, recordHistory = false) =>
-      update((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === projectId
-            ? {
-                ...p,
-                gridLayout: layout,
-                layoutMode: 'grid',
-                gridLayoutHistory: recordHistory
-                  ? rememberGridLayout(p.gridLayoutHistory, layout)
-                  : p.gridLayoutHistory,
-              }
-            : p,
-        ),
-        // Keep the open workspace container in sync so the new grid applies immediately.
-        workspace: {
-          ...state.workspace,
-          containers: state.workspace.containers.map((c) =>
-            c.projectId === projectId ? { ...c, internalLayout: 'grid' } : c,
-          ),
-        },
-      })),
   }
 }
