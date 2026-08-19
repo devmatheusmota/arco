@@ -45,7 +45,7 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --no-worktree           forca a mesma arvore
 
   arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
-                    [--priority <nivel>] [--notes <texto>]
+                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
   arco todo list [--json] [--status <status>]
       lista as tarefas; sem --json sai em tabela com id curto
 
@@ -57,7 +57,10 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --status <status>       todo | in-progress | review | done
       --priority <nivel>      high | normal | low
       --notes <texto>         substitui as notas
+      --append-notes <texto>  adiciona ao final das notas, separadas por linha em branco
       --project <nome>        move a tarefa de projeto
+      --ado <url|id>          liga a um work item ou PR do Azure DevOps
+      --clear-ado             remove a ligacao com o Azure DevOps
 
   arco todo status <ref> <status>   atalho para --status
 
@@ -104,15 +107,25 @@ function parseTodo(args) {
   let status = null
   let priority = null
   let notes = null
+  let adoRefInput = null
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--project') project = args[++index]
     else if (args[index] === '--tag') tags.push(args[++index])
     else if (args[index] === '--status') status = args[++index]
     else if (args[index] === '--priority') priority = args[++index]
     else if (args[index] === '--notes') notes = args[++index]
+    else if (args[index] === '--ado') adoRefInput = args[++index]
     else words.push(args[index])
   }
-  return { title: words.join(' '), tags: tags.filter(Boolean), project, status, priority, notes }
+  return {
+    title: words.join(' '),
+    tags: tags.filter(Boolean),
+    project,
+    status,
+    priority,
+    notes,
+    adoRefInput,
+  }
 }
 
 /**
@@ -137,7 +150,10 @@ function parseTodoEdit(args) {
     else if (flag === '--status') payload.status = rest[++index]
     else if (flag === '--priority') payload.priority = rest[++index]
     else if (flag === '--notes') payload.notes = rest[++index]
+    else if (flag === '--append-notes') payload.appendNotes = rest[++index]
     else if (flag === '--project') payload.project = rest[++index]
+    else if (flag === '--ado') payload.adoRefInput = rest[++index]
+    else if (flag === '--clear-ado') payload.clearAdoRef = true
     else throw new Error(`arco todo edit: opcao desconhecida: ${flag}`)
   }
   if (!payload.ref) throw new Error('arco todo edit: informe a tarefa (id ou trecho do titulo)')
@@ -224,7 +240,7 @@ async function run(argv) {
       return
     }
 
-    const { title, tags, project, status, priority, notes } = parseTodo(rest)
+    const { title, tags, project, status, priority, notes, adoRefInput } = parseTodo(rest)
     if (!title) throw new Error('arco todo: informe um titulo')
     await post('todo', {
       title,
@@ -233,6 +249,7 @@ async function run(argv) {
       ...(status ? { status } : {}),
       ...(priority ? { priority } : {}),
       ...(notes !== null ? { notes } : {}),
+      ...(adoRefInput ? { adoRefInput } : {}),
     })
     return
   }

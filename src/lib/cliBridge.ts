@@ -2,8 +2,9 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 import { useProjectsStore } from '../stores/projectsStore'
 import { useUiStore } from '../stores/uiStore'
+import { parseAdoRef } from './adoRef'
 import { findTodoByRef, parseTodoStatus } from './todos'
-import type { AgentType, TodoPriority, WorktreeChoice } from './types'
+import type { AgentType, TodoAdoRef, TodoPriority, WorktreeChoice } from './types'
 
 /**
  * Bridge for the `arco` command line.
@@ -30,6 +31,8 @@ type TodoRequest = {
   notes?: string
   priority?: TodoPriority
   status?: string
+  /** Raw string handed by the CLI; parsed here against the ADO defaults. */
+  adoRefInput?: string
 }
 
 /** `arco todo edit` — every field is optional, and only what is present changes. */
@@ -40,9 +43,28 @@ type TodoEditRequest = {
   addTags?: string[]
   removeTags?: string[]
   notes?: string
+  appendNotes?: string
   priority?: TodoPriority
   status?: string
   project?: string
+  adoRefInput?: string
+  clearAdoRef?: boolean
+}
+
+/** Reads the ADO defaults saved in Preferences, used to resolve short ids like `#22447`. */
+function adoDefaults(): { org?: string; project?: string } {
+  const preferences = useProjectsStore.getState().preferences
+  const org = preferences.adoOrg?.trim()
+  const project = preferences.adoProject?.trim()
+  return {
+    ...(org ? { org } : {}),
+    ...(project ? { project } : {}),
+  }
+}
+
+function resolveAdoRef(input: string | undefined): TodoAdoRef | null {
+  if (!input) return null
+  return parseAdoRef(input, adoDefaults())
 }
 
 const AGENTS: readonly AgentType[] = ['shell', 'claude', 'codex', 'opencode']
@@ -123,11 +145,16 @@ function handleTodo(request: TodoRequest) {
     reportProblem(`Status desconhecido: ${request.status}`)
     return
   }
+  const adoRef = resolveAdoRef(request.adoRefInput)
+  if (request.adoRefInput && !adoRef) {
+    reportProblem(`Referência ADO não reconhecida: ${request.adoRefInput}`)
+  }
   const store = useProjectsStore.getState()
   store.createTodo(title, request.tags ?? [], resolveProjectId(request) ?? undefined, {
     notes: request.notes,
     priority: request.priority,
     ...(status ? { status } : {}),
+    ...(adoRef ? { adoRef } : {}),
   })
 }
 
@@ -166,9 +193,17 @@ function handleTodoEdit(request: TodoEditRequest) {
   }
   if (request.title?.trim()) store.renameTodo(todo.id, request.title)
   if (request.notes !== undefined) store.updateTodoNotes(todo.id, request.notes)
+  if (request.appendNotes !== undefined) store.appendTodoNotes(todo.id, request.appendNotes)
   if (request.priority) store.setTodoPriority(todo.id, request.priority)
   if (request.project !== undefined) {
     store.setTodoProject(todo.id, request.project ? resolveProjectId(request) : null)
+  }
+  if (request.clearAdoRef) {
+    store.setTodoAdoRef(todo.id, null)
+  } else if (request.adoRefInput) {
+    const ref = resolveAdoRef(request.adoRefInput)
+    if (!ref) reportProblem(`Referência ADO não reconhecida: ${request.adoRefInput}`)
+    else store.setTodoAdoRef(todo.id, ref, 'merge')
   }
 
   const tags = nextTags(todo.tags, request)

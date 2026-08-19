@@ -168,9 +168,9 @@ ${SHIM_MARKER}
 #                             sem nenhum dos dois, segue o padrao do projeto
 #
 # arco todo <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
-#                    [--priority <nivel>] [--notes <texto>]
+#                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
 # arco todo list [--json]     -> lista as tarefas
-# arco todo edit <ref> [--title|--tag|--add-tag|--remove-tag|--status|...]
+# arco todo edit <ref> [--title|--tag|--add-tag|--remove-tag|--status|--ado|...]
 # arco todo status <ref> <status>
 #
 # "arco help" lista todas as opcoes.

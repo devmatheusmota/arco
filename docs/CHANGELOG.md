@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- Tasks can link to an Azure DevOps work item and pull request. The sidebar row shows a `#22447`
+  (work item) and `!10681` (PR) chip when the reference is set: plain click opens the page in the
+  system browser, Alt/Meta+click opens it in the app viewer. The `arco` command line takes the
+  reference as `--ado <url|id>` on `arco todo` and on `arco todo edit`; `--clear-ado` removes it.
+  Short forms like `#22447` and `!10681` resolve against the new "Azure DevOps" section under
+  Preferences → Integrations, where the organization and default project are stored.
+- `arco todo edit <ref> --append-notes "<text>"` adds to the existing notes with a blank line as a
+  separator, instead of replacing them. Useful when the morning briefing collects a new answer from
+  the PM and wants the older context to survive.
+
 ### Fixed
 
 - `arco todo "<title>" --notes "..."` (and `--priority`) actually attaches the notes and priority

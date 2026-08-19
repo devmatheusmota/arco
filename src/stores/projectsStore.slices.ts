@@ -3,6 +3,7 @@
 import { nanoid } from 'nanoid'
 import type { StoreApi } from 'zustand'
 
+import { mergeAdoRef, normalizeAdoRef } from '../lib/adoRef'
 import { resolveTerminalCwd, touchTerminalUsage } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import {
@@ -22,6 +23,7 @@ import type {
   Project,
   SubTab,
   Terminal,
+  TodoAdoRef,
   TodoItem,
   WorkspaceContainer,
 } from '../lib/types'
@@ -60,9 +62,11 @@ type TodosSlice = Pick<
   | 'renameTodo'
   | 'updateTodoTags'
   | 'updateTodoNotes'
+  | 'appendTodoNotes'
   | 'setTodoPriority'
   | 'setTodoStatus'
   | 'setTodoProject'
+  | 'setTodoAdoRef'
   | 'linkTodoSession'
   | 'unlinkTodoSession'
   | 'resetTodosToDefault'
@@ -77,6 +81,7 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
       const title = normalizeTodoTitle(rawTitle)
       if (!title) return null
       const notes = normalizeTodoNotes(extra?.notes)
+      const adoRef = normalizeAdoRef(extra?.adoRef)
       const todo: TodoItem = {
         id: nanoid(),
         title,
@@ -87,6 +92,7 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
         createdAt: Date.now(),
         ...(projectId ? { projectId } : {}),
         ...(notes ? { notes } : {}),
+        ...(adoRef ? { adoRef } : {}),
       }
       update((state) => {
         const completedIndex = state.todos.findIndex((item) => item.completed)
@@ -121,6 +127,40 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
           const next = { ...item }
           if (notes) next.notes = notes
           else delete next.notes
+          return next
+        }),
+      })),
+
+    appendTodoNotes: (id, rawNotes) =>
+      update((state) => ({
+        todos: state.todos.map((item) => {
+          if (item.id !== id) return item
+          const addition = normalizeTodoNotes(rawNotes)
+          if (!addition) return item
+          const combined = item.notes ? `${item.notes}\n\n${addition}` : addition
+          const notes = normalizeTodoNotes(combined)
+          const next = { ...item }
+          if (notes) next.notes = notes
+          else delete next.notes
+          return next
+        }),
+      })),
+
+    setTodoAdoRef: (id, rawRef, mode = 'replace') =>
+      update((state) => ({
+        todos: state.todos.map((item) => {
+          if (item.id !== id) return item
+          const next = { ...item }
+          if (rawRef === null) {
+            delete next.adoRef
+            return next
+          }
+          const ref = normalizeAdoRef(rawRef)
+          if (!ref) return item
+          const merged: TodoAdoRef | null =
+            mode === 'merge' ? mergeAdoRef(item.adoRef, ref) : ref
+          if (merged) next.adoRef = merged
+          else delete next.adoRef
           return next
         }),
       })),

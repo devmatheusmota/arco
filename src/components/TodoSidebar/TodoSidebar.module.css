@@ -841,6 +841,42 @@
   border-color: var(--status-waiting);
 }
 
+/*
+ * Clickable link to an Azure DevOps work item or pull request. Reuses the chip
+ * silhouette so a card with a status, a `#22447` and a `!10681` reads as one
+ * strip of tokens, not three different UI elements. Kept lower-contrast than the
+ * status chip, since it names a target rather than a state.
+ */
+.adoChip {
+  padding: 0 6px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-muted);
+  font: 500 9px/1 var(--font-sans);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.adoChip:hover,
+.adoChip:focus-visible {
+  color: var(--fg);
+  border-color: var(--border-strong);
+  outline: none;
+}
+
+.adoChip[data-kind='pr'] {
+  color: var(--accent, var(--fg));
+  border-color: var(--accent, var(--border-strong));
+}
+
 .notesInput {
   width: 100%;
   min-height: 58px;

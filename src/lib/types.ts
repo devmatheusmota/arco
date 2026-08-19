@@ -102,6 +102,15 @@ export type TodoSessionLink = {
   startedAt: number
 }
 
+/** Structured link to an Azure DevOps work item and, optionally, its pull request. */
+export type TodoAdoRef = {
+  org: string
+  project: string
+  workItemId: number
+  prId?: number
+  repository?: string
+}
+
 export type TodoItem = {
   id: string
   title: string
@@ -118,6 +127,8 @@ export type TodoItem = {
   completedAt?: number
   /** Sessions launched from this task, newest first. */
   sessions?: TodoSessionLink[]
+  /** Azure DevOps work item and PR the task refers to. Used by the sidebar chip and the watcher. */
+  adoRef?: TodoAdoRef
 }
 
 export type SubTab = {
@@ -460,6 +471,13 @@ export type Preferences = {
    * session exactly as the agent would start it outside Arco.
    */
   cliContextInjection: boolean
+  /**
+   * Azure DevOps defaults used when a task reference is a bare id (`#22447`).
+   * The morning briefing already knows the full URL and can leave these empty;
+   * the CLI shorthand needs somewhere to resolve the org and project from.
+   */
+  adoOrg: string
+  adoProject: string
   /** Ditado por voz (speech-to-text) escreve no terminal ativo. Default false. */
   dictationEnabled: boolean
   /** Hold dita enquanto o atalho fica pressionado; toggle liga e desliga a cada toque. */
@@ -587,6 +605,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   rightSidebarWidth: 300,
   notifyOnLimitReset: true,
   cliContextInjection: true,
+  adoOrg: '',
+  adoProject: '',
   dictationEnabled: false,
   dictationMode: 'hold',
   dictationShortcut: 'ctrl+e',

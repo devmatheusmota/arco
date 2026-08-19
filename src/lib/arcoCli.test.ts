@@ -39,6 +39,41 @@ describe('parseTodo', () => {
       notes: 'context for the session',
     })
   })
+
+  it('captures --ado as a raw string, leaving parsing to the app side', () => {
+    const parsed = parseTodo([
+      '22447',
+      'habilitar',
+      'simulado',
+      '--ado',
+      'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447',
+    ])
+    expect(parsed).toMatchObject({
+      title: '22447 habilitar simulado',
+      adoRefInput:
+        'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447',
+    })
+  })
+})
+
+describe('parseTodoEdit with the ADO flags', () => {
+  it('carries --ado through as adoRefInput', () => {
+    expect(parseTodoEdit(['abc', '--ado', '#22447'])).toMatchObject({
+      ref: 'abc',
+      adoRefInput: '#22447',
+    })
+  })
+
+  it('carries --clear-ado through as a boolean', () => {
+    expect(parseTodoEdit(['abc', '--clear-ado'])).toEqual({ ref: 'abc', clearAdoRef: true })
+  })
+
+  it('accepts --append-notes as a separate field from --notes', () => {
+    expect(parseTodoEdit(['abc', '--append-notes', 'PM respondeu.'])).toEqual({
+      ref: 'abc',
+      appendNotes: 'PM respondeu.',
+    })
+  })
 })
 
 describe('parseTodoEdit', () => {

@@ -515,6 +515,8 @@ export const en = {
   'todo.runningCount': '{count} running',
   'todo.metaCreated': 'Created {date}',
   'todo.metaCompleted': 'Completed {date}',
+  'todo.adoWorkItem': 'Open work item #{id} on Azure DevOps',
+  'todo.adoPullRequest': 'Open pull request !{id} on Azure DevOps',
 
   /* ---- start an agent session from a task ---- */
   'taskSession.title': 'Start a session from this task',
@@ -686,6 +688,13 @@ export const en = {
   'prefs.cliContextOn': 'On',
   'prefs.cliContextOff': 'Off',
   'prefs.cliUnsupported': 'The terminal command is not available on this platform.',
+  'prefs.ado': 'Azure DevOps',
+  'prefs.adoDesc':
+    'Defaults used when a task reference is a bare id like `#22447` or `!10681`. Not needed when the full URL is passed to `arco todo`.',
+  'prefs.adoOrg': 'Organization',
+  'prefs.adoProject': 'Default project',
+  'prefs.adoHint':
+    'The organization slug is the segment right after `dev.azure.com/` in a work-item URL. Leave blank to require full URLs on every `--ado`.',
   'prefs.spotify': 'Spotify',
   'prefs.spotifyDesc': 'Configure the Spotify application used by the Now Playing widget.',
   'prefs.discordPresence': 'Discord Rich Presence',

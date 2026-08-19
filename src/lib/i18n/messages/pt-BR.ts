@@ -518,6 +518,8 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.runningCount': '{count} rodando',
   'todo.metaCreated': 'Criada em {date}',
   'todo.metaCompleted': 'Concluída em {date}',
+  'todo.adoWorkItem': 'Abrir work item #{id} no Azure DevOps',
+  'todo.adoPullRequest': 'Abrir pull request !{id} no Azure DevOps',
 
   /* ---- iniciar sessão de agente a partir de uma tarefa ---- */
   'taskSession.title': 'Iniciar uma sessão a partir desta tarefa',
@@ -694,6 +696,13 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.cliContextOn': 'Ligado',
   'prefs.cliContextOff': 'Desligado',
   'prefs.cliUnsupported': 'O comando de terminal não está disponível nesta plataforma.',
+  'prefs.ado': 'Azure DevOps',
+  'prefs.adoDesc':
+    'Padrões usados quando a referência da tarefa é só um id como `#22447` ou `!10681`. Não é preciso quando a URL completa é passada em `arco todo`.',
+  'prefs.adoOrg': 'Organização',
+  'prefs.adoProject': 'Projeto padrão',
+  'prefs.adoHint':
+    'A organização é o trecho logo depois de `dev.azure.com/` na URL de um work item. Deixe em branco para exigir URL completa em todo `--ado`.',
   'prefs.spotify': 'Spotify',
   'prefs.spotifyDesc': 'Configure o aplicativo do Spotify usado no widget Now Playing.',
   'prefs.discordPresence': 'Rich Presence do Discord',
