@@ -37,6 +37,53 @@ export function hasTranscript(session: object): boolean {
   return typeof size !== 'number' || size > 0
 }
 
+/** Why a saved pointer cannot be resumed as it stands. */
+export type PointerProblem = 'not-listed' | 'pointed-session-automated' | 'pointed-session-empty'
+
+export type ResumePlan = {
+  problem: PointerProblem
+  /** The conversation to come back to instead, if the directory still has one. */
+  replacement?: SessionSnapshot
+}
+
+/**
+ * What a pane should resume when its saved pointer names a session it must not
+ * come back to, or `null` when the pointer is fine.
+ *
+ * Three ways a pointer goes bad, and all of them bury the conversation the pane
+ * was in: the session is gone from disk — a transcript deleted by hand, a
+ * worktree removed, a cleaned-up `~/.claude` — or it never got a transcript
+ * because the agent created the directory and nothing else, or it names an
+ * automated run such as `/security-review`, which shares the per-project
+ * directory. Falling straight to a new session in any of those cases loses the
+ * pointer to the real conversation, since the new id is what gets saved over it.
+ */
+export function planResume(
+  pointerId: string,
+  sessions: readonly SessionSnapshot[],
+  isUsable: (session: SessionSnapshot) => boolean = () => true,
+): ResumePlan | null {
+  const match = sessions.find((session) => session.id === pointerId)
+  const problem: PointerProblem | null = !match
+    ? 'not-listed'
+    : !isInteractiveSession(match)
+      ? 'pointed-session-automated'
+      : !hasTranscript(match)
+        ? 'pointed-session-empty'
+        : null
+  if (!problem) return null
+  const replacement = sessions
+    .filter(
+      (session) =>
+        session.id !== pointerId &&
+        hasTranscript(session) &&
+        isInteractiveSession(session) &&
+        isUsable(session),
+    )
+    .sort((a, b) => b.modified_at_ms - a.modified_at_ms)[0]
+  return replacement ? { problem, replacement } : { problem }
+}
+
 const claimedIds = new Map<string, Set<string>>()
 
 const claimOwners = new Map<string, Array<{ key: string; sessionId: string }>>()

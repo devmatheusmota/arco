@@ -19,8 +19,8 @@ import {
   claimDiscoveredSession,
   claimMostRecentSession,
   hasTranscript,
-  isInteractiveSession,
   isSessionClaimed,
+  planResume,
   registerSessionClaim,
 } from '../../lib/sessionDiscovery'
 import { buildCliContextArgs } from '../../lib/cliContext'
@@ -1209,48 +1209,32 @@ export function useXtermSession(params: {
                     : snapshotOpenCodeSessions(cwd),
               [],
             )
-            const match = existing.find((session) => session.id === resumeId)
-            const notListed = !match
+            const plan =
+              command === 'opencode'
+                ? null
+                : planResume(
+                    resumeId,
+                    existing,
+                    (session) => !isSessionClaimed(command, cwd, session.id, sessionPersistenceKey),
+                  )
 
-            if (notListed && command !== 'opencode') {
-              console.warn(`[pty-launch] ${command} ignorando sessão órfã ${resumeId}`)
-              dropped(`not-listed-in=${cwd}`)
-              resumeId = undefined
-              removeSession(sessionPersistenceKey)
-              onSessionIdRef.current?.(undefined)
-            } else if (
-              match &&
-              (!hasTranscript(match) || !isInteractiveSession(match)) &&
-              command !== 'opencode'
-            ) {
-              // The pointer survived a restart but names a session the pane must
-              // not come back to: either one that never got a transcript — the
-              // agent created the directory and nothing else — or one written by
-              // an automated run such as `/security-review`, which shares the
-              // per-project directory and can end up saved as the pane's session.
-              // Both bury the real conversation, so fall back to the newest one
-              // someone typed that has content.
-              const automated = !isInteractiveSession(match)
-              const withContent = existing
-                .filter((session) => hasTranscript(session) && isInteractiveSession(session))
-                .sort((a, b) => b.modified_at_ms - a.modified_at_ms)[0]
-              if (withContent) {
+            if (plan) {
+              const noOther = plan.replacement ? '' : '-and-no-other'
+              const reason =
+                plan.problem === 'not-listed'
+                  ? `not-listed${noOther}-in=${cwd}`
+                  : `${plan.problem}${noOther}`
+              if (plan.replacement) {
                 console.warn(
-                  `[pty-launch] ${command} sessão ${resumeId} não serve para retomar; retomando ${withContent.id}`,
+                  `[pty-launch] ${command} sessão ${resumeId} não serve para retomar; retomando ${plan.replacement.id}`,
                 )
-                dropped(
-                  automated ? 'pointed-session-automated' : 'pointed-session-empty',
-                  withContent.id,
-                )
-                resumeId = withContent.id
-                onSessionIdRef.current?.(withContent.id)
+                dropped(reason, plan.replacement.id)
+                resumeId = plan.replacement.id
+                registerSessionClaim(command, cwd, resumeId, sessionPersistenceKey)
+                onSessionIdRef.current?.(resumeId)
               } else {
                 console.warn(`[pty-launch] ${command} sessão ${resumeId} não serve; sessão nova`)
-                dropped(
-                  automated
-                    ? 'pointed-session-automated-and-no-other'
-                    : 'pointed-session-empty-and-no-other',
-                )
+                dropped(reason)
                 resumeId = undefined
                 removeSession(sessionPersistenceKey)
                 onSessionIdRef.current?.(undefined)

@@ -4,6 +4,7 @@ import {
   claimDiscoveredSession,
   claimMostRecentSession,
   isInteractiveSession,
+  planResume,
   registerSessionClaim,
   resetSessionClaimsForTests,
 } from './sessionDiscovery'
@@ -120,5 +121,56 @@ describe('claimMostRecentSession', () => {
     ])
 
     expect(claimed?.id).toBe('minha-conversa')
+  })
+})
+
+describe('planResume', () => {
+  const real = { id: 'minha-conversa', modified_at_ms: 200, size_bytes: 4200, interactive: true }
+  const older = { id: 'conversa-antiga', modified_at_ms: 100, size_bytes: 900, interactive: true }
+
+  it('keeps a pointer that still names a real conversation', () => {
+    expect(planResume('minha-conversa', [real, older])).toBeNull()
+  })
+
+  it('falls back to the newest conversation when the transcript is gone from disk', () => {
+    const plan = planResume('apagada', [older, real])
+
+    expect(plan?.problem).toBe('not-listed')
+    expect(plan?.replacement?.id).toBe('minha-conversa')
+  })
+
+  it('falls back when the pointer names an automated run', () => {
+    const plan = planResume('security-review', [
+      { id: 'security-review', modified_at_ms: 300, size_bytes: 500, interactive: false },
+      real,
+    ])
+
+    expect(plan?.problem).toBe('pointed-session-automated')
+    expect(plan?.replacement?.id).toBe('minha-conversa')
+  })
+
+  it('falls back when the pointer names a session that never got a transcript', () => {
+    const plan = planResume('vazia', [
+      { id: 'vazia', modified_at_ms: 300, size_bytes: 0, interactive: true },
+      real,
+    ])
+
+    expect(plan?.problem).toBe('pointed-session-empty')
+    expect(plan?.replacement?.id).toBe('minha-conversa')
+  })
+
+  it('reports no replacement when the directory holds nothing worth resuming', () => {
+    const plan = planResume('apagada', [
+      { id: 'security-review', modified_at_ms: 300, size_bytes: 500, interactive: false },
+      { id: 'vazia', modified_at_ms: 200, size_bytes: 0, interactive: true },
+    ])
+
+    expect(plan).toEqual({ problem: 'not-listed' })
+  })
+
+  it('leaves a conversation another pane is already writing to alone', () => {
+    const plan = planResume('apagada', [real, older], (session) => session.id !== 'minha-conversa')
+
+    expect(plan?.replacement?.id).toBe('conversa-antiga')
   })
 })
