@@ -1,7 +1,6 @@
 ---
 name: release
 description: Corta e publica uma versão do Arco seguindo docs/RELEASE.md — leva o trabalho para main, fecha o changelog, atualiza o What's new, verifica, bumpa, publica os instaladores e confirma que o apt recebeu. Use quando o dono autorizar uma release, disser "sobe uma versão", "publica", "release nova", ou pedir para atualizar via apt.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 argument-hint: "[patch|minor|major|X.Y.Z]"
 ---
