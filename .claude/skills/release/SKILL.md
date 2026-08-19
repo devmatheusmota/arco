@@ -71,9 +71,14 @@ contorne.
 
 ## 6. Publicar
 
+O push da tag no passo anterior já disparou o workflow. Acompanhe:
+
 ```bash
-npm run release:publish
+gh run watch
 ```
+
+`npm run release:publish` existe para re-disparar uma publicação que falhou no
+meio — não é parte do caminho normal.
 
 Linux publica primeiro e libera o apt; Windows e macOS se anexam depois, cada um
 quando termina. Não espere a matriz inteira para dar a release por feita.

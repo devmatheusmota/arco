@@ -12,8 +12,8 @@
  *   npm run release 1.5.0      # versão explícita
  *   npm run release -- --dry-run   # mostra o que faria, sem escrever nem dar push
  *
- * O push da tag NÃO dispara build (o release.yml só roda via workflow_dispatch).
- * Para publicar os instaladores depois: npm run release:publish
+ * O push da tag dispara o release.yml, que constrói e publica os instaladores.
+ * Para re-disparar (publicação que falhou no meio): npm run release:publish
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
@@ -121,7 +121,7 @@ if (existsSync(LOCK)) {
   toAdd.push(LOCK)
 }
 
-// 5) Commit + tag anotada + push (commit e tag), sem disparar release.
+// 5) Commit + tag anotada + push (commit e tag). O push da tag dispara o release.
 const branch = sh('git rev-parse --abbrev-ref HEAD')
 run(`git add ${toAdd.join(' ')}`)
 run(`git commit -m "chore(release): ${tag}"`)
@@ -130,7 +130,7 @@ run(`git push origin ${branch}`)
 run(`git push origin ${tag}`)
 
 console.log(`\n✓ ${tag} commitado, tagueado e enviado (branch ${branch}).`)
-console.log('  Isso NÃO publicou instaladores — só marcou a versão no git.')
-console.log('  Para publicar a release: npm run release:publish')
+console.log('  O push da tag disparou o workflow Release — acompanhe com: gh run watch')
+console.log('  Se ele falhar no meio, re-dispare com: npm run release:publish')
 if (dryRun) console.log('\n(dry-run: nada foi escrito nem enviado)')
 console.log('')

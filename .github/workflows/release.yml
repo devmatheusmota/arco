@@ -1,9 +1,15 @@
 name: Release
 
 on:
-  # A tag does NOT trigger a release. `npm run release` only marks the version
-  # in git; publishing the installers is a deliberate action, through
-  # `npm run release:publish` (gh workflow run) or Actions -> Release -> Run workflow.
+  # The version tag is the deliberate action: `npm run release` refuses to tag
+  # until the changelog and the What's new entry are in place, so a `v*` tag
+  # only exists for a version meant to ship. Building from the tag also builds
+  # exactly what was marked, instead of whatever `main` holds by the time
+  # someone remembers to dispatch it.
+  push:
+    tags: ['v*']
+  # Kept for re-running a publish that failed halfway, and for building a ref
+  # that has no tag of its own.
   workflow_dispatch:
 
 jobs:

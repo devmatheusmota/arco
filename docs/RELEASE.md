@@ -85,12 +85,14 @@ The script keeps `package.json`, `src-tauri/tauri.conf.json`, `Cargo.toml` and
 changelog or the What's new entry for the new version is missing, and when
 `[Unreleased]` still holds content that did not make it into the version.
 
-It does **not** publish installers. A tag triggers nothing.
+Pushing the tag is what publishes: the Release workflow runs on every `v*` tag,
+and builds the tag itself rather than whatever `main` holds later.
 
-## 6. Publish the installers
+## 6. Watch the publish
 
 ```bash
-npm run release:publish    # dispatches the Release workflow on the current branch
+gh run watch               # the tag already started the Release workflow
+npm run release:publish    # only to re-dispatch one that failed halfway
 ```
 
 The workflow builds Linux first and publishes the release as soon as that
