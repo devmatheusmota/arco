@@ -266,9 +266,21 @@ process.stdin.on('data', (chunk) => {
   }
 })
 
-setInterval(() => {
+// Unref'd so the timer alone never keeps the process alive: stdin is what holds
+// the loop open, and once it closes the host must be free to exit.
+const flushTimer = setInterval(() => {
   for (const session of sessions.values()) persist(session)
 }, FLUSH_INTERVAL_MS)
+flushTimer.unref()
+
+// Killing the main process does not kill this one — POSIX only reparents it, so
+// without this the host outlives the window and holds every terminal it owns
+// alive forever. Closed stdin means the parent is gone; a signal means someone
+// asked it to stop. Both end in `exit`, which flushes and kills the sessions.
+const shutdown = () => process.exit(0)
+process.stdin.on('end', shutdown)
+process.stdin.on('close', shutdown)
+for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(signal, shutdown)
 
 process.on('exit', () => {
   for (const session of sessions.values()) {

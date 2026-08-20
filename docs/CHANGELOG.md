@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.6.4] — 2026-08-20
+
+### Fixed
+
+- Closing Arco now shuts its terminals down. The process that hosts every PTY outlived the window:
+  it was handed over to the system instead of being stopped, and it kept the sessions it owned — and
+  the agents inside them — running for the rest of the login session. Here that meant 7 GB still
+  held by two Claude sessions from a window closed twenty minutes earlier, and every open-and-close
+  cycle added another host on top. The host is stopped with the app, and it also exits on its own
+  when the app that started it goes away, so a crash does not leak it either.
+
 ## [2.6.3] — 2026-08-20
 
 ### Changed

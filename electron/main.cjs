@@ -290,6 +290,26 @@ app.whenReady().then(() => {
   const ptyHost = startPtyHost(send)
   const commands = buildCommands({ ptyHost, mainWindow: () => mainWindow, send })
 
+  // Quitting the window leaves the host running otherwise: it is reparented to
+  // init and keeps every terminal — and the agents inside them — alive for the
+  // rest of the session. Closing stdin lets it flush scrollback on its own; the
+  // signals are there for a host that is wedged and cannot read stdin any more.
+  app.on('before-quit', () => {
+    const child = ptyHost.child
+    if (!child || child.killed || child.exitCode !== null) return
+    try {
+      child.stdin.end()
+    } catch {}
+    try {
+      child.kill('SIGTERM')
+    } catch {}
+    setTimeout(() => {
+      try {
+        child.kill('SIGKILL')
+      } catch {}
+    }, 2_000).unref()
+  })
+
   ipcMain.handle('tauri:invoke', async (_event, { cmd, args }) => {
     if (process.env.ARCO_TRACE_INVOKE === '1') console.log(`[invoke] ${cmd}`)
     const handler = commands[cmd]

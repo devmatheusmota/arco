@@ -789,6 +789,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v264.note1':
+    'Fechar o Arco agora derruba os terminais junto. O processo que roda todos os terminais sobrevivia \u00e0 janela \u2014 ele era entregue ao sistema em vez de ser encerrado, e mantinha as sess\u00f5es dele, agentes inclusive, rodando pelo resto do dia. Aqui isso deu 7 GB ainda presos em duas sess\u00f5es do Claude de uma janela fechada vinte minutos antes, e cada ciclo de abrir e fechar empilhava mais um por cima. Agora ele encerra junto com o app, e tamb\u00e9m sai sozinho se o app sumir sem encerrar ele, ent\u00e3o um crash tamb\u00e9m n\u00e3o deixa sobra.',
   'whatsNew.v263.note1':
     'A sess\u00e3o come\u00e7a quando voc\u00ea abre ela, n\u00e3o quando o app abre. Abrir um projeto iniciava todas as sess\u00f5es de uma vez \u2014 e um agente de c\u00f3digo n\u00e3o \u00e9 um processo s\u00f3: cada um sobe os servidores MCP dele, o que deu cerca de 3 GB por sess\u00e3o, ent\u00e3o dez sess\u00f5es tomavam 32 GB e a m\u00e1quina j\u00e1 estava em swap enquanto a janela desenhava. Agora s\u00f3 a sess\u00e3o na tela, e o terminal ao lado dela, sobem junto com o app; as outras esperam na barra de abas e s\u00f3 sobem quando voc\u00ea escolhe, o que leva uns segundos. Sess\u00e3o que recebeu algo pra rodar continua subindo sozinha, e sess\u00e3o j\u00e1 rodando nunca \u00e9 mexida.',
   'whatsNew.v262.note1':

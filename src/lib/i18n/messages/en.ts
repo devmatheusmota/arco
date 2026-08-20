@@ -777,6 +777,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v264.note1':
+    'Closing Arco now shuts its terminals down. The process that runs every terminal outlived the window \u2014 it was handed over to the system instead of being stopped, and it kept the sessions it owned, agents and all, running for the rest of the day. Here that meant 7 GB still held by two Claude sessions from a window closed twenty minutes earlier, and every open-and-close cycle stacked another one on top. It now stops with the app, and it also exits on its own if the app goes away without stopping it, so a crash does not leave it behind either.',
   'whatsNew.v263.note1':
     'A session starts when you open it, not when the app does. Opening a project started every session it held at once \u2014 and a coding agent is not one process: each one brings up its MCP servers, which measured around 3 GB per session, so ten sessions took 32 GB and the machine was already swapping while the window drew. Now only the session on screen, and the terminal beside it, starts with the app; the rest wait in the tab bar and start when you pick them, which takes a couple of seconds. A session you gave something to run still starts on its own, and a session already running is never touched.',
   'whatsNew.v262.note1':
