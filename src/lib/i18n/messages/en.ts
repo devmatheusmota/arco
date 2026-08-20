@@ -777,6 +777,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v270.note1':
+    'The interface got a pass end to end. Text sits on one scale with nothing readable under 12px — the app used to have labels at 8 and 9px — rows and controls share the same heights instead of each screen inventing its own, and the font ships with the app, so it looks the same on Windows and on Linux.',
+  'whatsNew.v270.note2':
+    'Less colour, and it means more. Status and work-item chips in the Todo list are text with a dot instead of filled capsules with coloured borders, and an agent\u2019s colour marks its icon rather than the whole row. Selection says one thing once: the tab you are on used to carry a fill, a border, an underline, a glow and a one-pixel lift all at once.',
+  'whatsNew.v270.note3':
+    '\u201cVisual style\u201d is now just density. It used to pick between two separate versions of the sidebar, so a fix made to one look rarely reached the other; there is one interface now, and the preference only makes it tighter or roomier. Along the way several panels that were losing their colour and border entirely got them back, keyboard focus is visible everywhere, and the light themes stopped casting black shadows.',
   'whatsNew.v266.note1':
     'A session opened from the tab bar could stay black forever, with nothing on screen to click and nothing in the log to explain it. Whether a pane starts its session depends on it being in front of you, and that answer was read a moment too late \u2014 a pane that arrived while its own start was still being decided sat down to wait for something that had already happened. It now asks at the moment it decides. A session that has not started also shows a button to start it, instead of an empty pane.',
   'whatsNew.v266.note2':

@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.7.0] — 2026-08-20
+
 ### Changed
 
 - The interface ships with its own font. The app has named Inter for a long time while nothing

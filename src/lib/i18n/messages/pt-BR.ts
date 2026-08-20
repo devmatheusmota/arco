@@ -789,6 +789,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v270.note1':
+    'A interface levou uma passada de ponta a ponta. O texto est\u00e1 numa escala s\u00f3, sem nada leg\u00edvel abaixo de 12px \u2014 o app tinha r\u00f3tulo em 8 e 9px \u2014 linhas e controles compartilham as mesmas alturas em vez de cada tela inventar a sua, e a fonte vai junto com o app, ent\u00e3o ele fica igual no Windows e no Linux.',
+  'whatsNew.v270.note2':
+    'Menos cor, e ela diz mais. Os chips de status e de card no Todo viraram texto com um ponto, em vez de c\u00e1psula preenchida com contorno colorido, e a cor do agente marca o \u00edcone dele, n\u00e3o a linha inteira. Sele\u00e7\u00e3o diz uma coisa uma vez: a aba em que voc\u00ea est\u00e1 carregava fundo, borda, sublinhado, brilho e um pulo de um pixel ao mesmo tempo.',
+  'whatsNew.v270.note3':
+    'O \u201cestilo visual\u201d agora \u00e9 s\u00f3 densidade. Ele escolhia entre duas vers\u00f5es separadas da barra lateral, ent\u00e3o corre\u00e7\u00e3o feita num visual quase nunca chegava no outro; agora existe uma interface s\u00f3, e a prefer\u00eancia apenas aperta ou folga. No caminho, v\u00e1rios pain\u00e9is que perdiam cor e borda por completo voltaram a ter, o foco do teclado aparece em todo lugar, e os temas claros pararam de projetar sombra preta.',
   'whatsNew.v266.note1':
     'A sess\u00e3o aberta pela barra de abas podia ficar preta pra sempre, sem nada na tela pra clicar e sem nada no log pra explicar. Se um pane sobe a sess\u00e3o dele depende de estar na sua frente, e essa resposta era lida um instante tarde demais \u2014 um pane que chegava enquanto o pr\u00f3prio start ainda decidia sentava pra esperar algo que j\u00e1 tinha acontecido. Agora ele pergunta na hora em que decide. Sess\u00e3o que ainda n\u00e3o subiu tamb\u00e9m mostra um bot\u00e3o pra iniciar, em vez de um pane vazio.',
   'whatsNew.v266.note2':
