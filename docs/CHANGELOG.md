@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.6.5] — 2026-08-20
+
 ### Fixed
 
 - Closing a session, or the app, now takes the agent's own processes down with it. The previous fix
