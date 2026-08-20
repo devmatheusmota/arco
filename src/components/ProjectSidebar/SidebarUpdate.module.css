@@ -1,15 +1,15 @@
 .chip {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   width: calc(100% - 16px);
   margin: 0 8px 6px;
-  padding: 6px 9px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
   color: var(--fg-muted);
-  font-size: 11.5px;
+  font-size: var(--font-size-1);
   cursor: pointer;
   transition:
     background 0.15s ease,

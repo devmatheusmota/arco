@@ -189,7 +189,7 @@ export function RemoteControlPage() {
           </label>
         </div>
         <div className={styles.securityNote}>
-          <ShieldCheck size={15} />
+          <ShieldCheck size={16} />
           <span>{t('remote.settingsSecurityNote')}</span>
         </div>
       </SettingsSection>

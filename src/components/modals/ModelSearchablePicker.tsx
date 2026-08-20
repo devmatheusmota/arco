@@ -115,7 +115,7 @@ export function ModelSearchablePicker({
         <div className={styles.dropdown}>
           {/* Caixa de Busca */}
           <div className={styles.searchBox}>
-            <Search size={13} color="var(--fg-muted)" />
+            <Search size={14} color="var(--fg-muted)" />
             <input
               type="text"
               placeholder={`Pesquisar entre ${options.length} modelos de ${providerName}...`}

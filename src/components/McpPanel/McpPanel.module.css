@@ -8,8 +8,8 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 10px 8px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -20,8 +20,8 @@
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 3px;
-  gap: 2px;
+  padding: var(--space-1);
+  gap: var(--space-1);
 }
 
 .segmented button {
@@ -30,8 +30,8 @@
   border: 0;
   color: var(--fg-muted);
   font: inherit;
-  font-size: 12px;
-  padding: 4px 8px;
+  font-size: var(--font-size-1);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
@@ -65,14 +65,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0 10px 10px;
-  padding: 7px 10px;
+  padding: var(--space-3) var(--space-4);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-md);
   background: none;
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .addMore:hover {
@@ -99,10 +99,10 @@
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 6px 10px 6px 29px;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-8);
   color: var(--fg);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--font-size-2);
 }
 
 .search input::placeholder {
@@ -117,9 +117,9 @@
 .stats {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px 6px;
-  font-size: 11.5px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5) var(--space-3);
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
 }
 
@@ -140,8 +140,8 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 8px;
+  gap: var(--space-2);
+  padding: var(--space-4);
   background: none;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
@@ -159,14 +159,14 @@
 .rowTop {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
 .name {
   flex: 1;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -175,7 +175,7 @@
 
 .summary {
   font-family: var(--font-mono, monospace);
-  font-size: 10.5px;
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -184,9 +184,9 @@
 
 .badge {
   flex: none;
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1;
-  padding: 3px 6px;
+  padding: var(--space-1) var(--space-3);
   border-radius: 20px;
   border: 1px solid var(--border);
   color: var(--fg-faint);
@@ -199,14 +199,14 @@
 
 .diagnostics {
   border-top: 1px solid var(--border-subtle);
-  padding: 8px 12px 10px;
+  padding: var(--space-4) var(--space-5) var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .diagnosticsTitle {
-  font-size: 10.5px;
+  font-size: var(--font-size-1);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--fg-faint);
@@ -215,8 +215,8 @@
 .diagnostic {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 11.5px;
+  gap: var(--space-3);
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   min-width: 0;
 }
@@ -239,23 +239,23 @@
   min-height: 0;
   display: grid;
   place-items: center;
-  padding: 12px;
+  padding: var(--space-5);
 }
 
 .error {
   margin: 10px;
-  padding: 10px;
+  padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--status-waiting);
 }
 
 .filters {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   padding: 8px 10px 0;
   min-width: 0;
 }
@@ -263,7 +263,7 @@
 .agentFilter {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--space-1);
   flex: 1;
   min-width: 0;
 }
@@ -296,9 +296,9 @@
 .scopeToggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   flex: none;
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .scopeToggle button {
@@ -306,7 +306,7 @@
   background: none;
   border: 0;
   color: var(--fg-faint);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   white-space: nowrap;
 }
 
@@ -333,7 +333,7 @@
 .agentIcons {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--space-1);
   flex: none;
 }
 

@@ -68,7 +68,7 @@ export function AppearancePage() {
                     )}
                   </small>
                 </span>
-                {active ? <Check size={15} /> : null}
+                {active ? <Check size={16} /> : null}
               </button>
             )
           })}
@@ -97,7 +97,7 @@ export function AppearancePage() {
                 </span>
                 <span className={styles.themeName}>
                   <strong>{themeLabel(t, theme.id)}</strong>
-                  {active ? <Check size={15} /> : null}
+                  {active ? <Check size={16} /> : null}
                 </span>
                 <span>{themeDescription(t, theme.id)}</span>
               </button>
@@ -154,7 +154,7 @@ export function AppearancePage() {
             disabled={preferences.uiZoom <= UI_ZOOM_LIMITS.min}
             aria-label={t('prefs.zoomDecrease')}
           >
-            <Minus size={15} />
+            <Minus size={16} />
           </button>
           <strong>{Math.round(preferences.uiZoom * 100)}%</strong>
           <button
@@ -163,7 +163,7 @@ export function AppearancePage() {
             disabled={preferences.uiZoom >= UI_ZOOM_LIMITS.max}
             aria-label={t('prefs.zoomIncrease')}
           >
-            <Plus size={15} />
+            <Plus size={16} />
           </button>
           <button
             type="button"
@@ -171,7 +171,7 @@ export function AppearancePage() {
             disabled={preferences.uiZoom === 1}
             aria-label={t('prefs.zoomReset')}
           >
-            <RotateCcw size={15} />
+            <RotateCcw size={16} />
           </button>
         </div>
       </SettingsSection>
@@ -232,7 +232,7 @@ export function AppearancePage() {
             disabled={preferences.windowOpacity === 1}
             aria-label={t('prefs.opacityReset')}
           >
-            <RotateCcw size={15} />
+            <RotateCcw size={16} />
           </button>
         </div>
         <p className={styles.experimentalHint}>{t('prefs.windowOpacityHint')}</p>

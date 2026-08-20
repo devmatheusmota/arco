@@ -164,7 +164,7 @@ export function AboutPage() {
               disabled={checking}
               style={{ alignSelf: 'flex-start' }}
             >
-              <RotateCcw size={15} />
+              <RotateCcw size={16} />
               {checking ? t('prefs.aboutChecking') : t('prefs.aboutCheckUpdates')}
             </button>
             {checkedUpToDate ? (

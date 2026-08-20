@@ -1,20 +1,20 @@
 .explorer {
   min-height: 0;
   overflow: auto;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .context {
   height: 38px;
   padding: 0 8px 0 12px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   border-bottom: 1px solid var(--border);
   min-width: 0;
 }
 .contextName {
   color: var(--fg);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -25,7 +25,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 .iconButton {
   width: 24px;
@@ -45,8 +45,8 @@
   height: 24px;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding-right: 5px;
+  gap: var(--space-2);
+  padding-right: var(--space-2);
   color: var(--fg-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -71,7 +71,7 @@ div.row:active {
 .rootRow {
   height: 28px;
   color: var(--fg);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -98,15 +98,15 @@ div.row:active {
   background: var(--bg-elevated);
 }
 .message {
-  padding: 8px 12px 8px 36px;
+  padding: var(--space-4) var(--space-5) var(--space-4) var(--space-8);
   color: var(--fg-faint);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 .contextMenu {
   position: fixed;
   z-index: 120;
   min-width: 178px;
-  padding: 4px;
+  padding: var(--space-2);
   color: var(--fg);
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
@@ -118,11 +118,11 @@ div.row:active {
   min-height: 28px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   padding: 0 8px;
   color: var(--fg-muted);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   text-align: left;
 }
 .contextMenu button:hover {
@@ -137,7 +137,7 @@ div.row:active {
   max-height: calc(100vh - 190px);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4);
   overflow: hidden;
 }
 .previewPath {
@@ -146,7 +146,7 @@ div.row:active {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--fg-faint);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
 }
 .previewBody img,
 .previewBody video {
@@ -165,13 +165,13 @@ div.row:active {
   flex: 1;
   min-height: 220px;
   margin: 0;
-  padding: 12px;
+  padding: var(--space-5);
   overflow: auto;
   color: var(--fg);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font: 11px/1.5 var(--font-mono);
+  font: var(--font-size-1)/1.5 var(--font-mono);
   white-space: pre;
   tab-size: 2;
 }
@@ -186,11 +186,11 @@ div.row:active {
   min-height: 32px;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   padding: 0 12px;
   color: var(--accent-on);
   background: var(--accent);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 650;
 }

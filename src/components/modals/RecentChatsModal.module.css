@@ -2,21 +2,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-4);
   margin-bottom: 10px;
 }
 
 .agentTabs {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .agentTab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  padding: 4px 10px;
+  gap: var(--space-3);
+  font-size: var(--font-size-1);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg);
@@ -35,15 +35,15 @@
 .unrestricted {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: var(--space-3);
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .cwd {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   margin-bottom: 10px;
   word-break: break-all;
@@ -51,8 +51,8 @@
 
 .search {
   width: 100%;
-  padding: 8px 10px;
-  font-size: 13px;
+  padding: var(--space-4) var(--space-4);
+  font-size: var(--font-size-2);
   background: var(--bg);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -66,14 +66,14 @@
 
 .error {
   color: var(--danger);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   margin-bottom: 8px;
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   max-height: 360px;
   overflow-y: auto;
 }
@@ -81,7 +81,7 @@
 .empty {
   text-align: center;
   color: var(--fg-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   padding: 24px 0;
 }
 
@@ -89,8 +89,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
@@ -105,7 +105,7 @@
 }
 
 .itemTitle {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -113,7 +113,7 @@
 }
 
 .itemPrompt {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -123,8 +123,8 @@
 
 .itemMeta {
   display: flex;
-  gap: 6px;
-  font-size: 11px;
+  gap: var(--space-3);
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   margin-top: 4px;
 }
@@ -132,13 +132,13 @@
 .itemActions {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
 .actionBtn {
-  font-size: 11px;
-  padding: 3px 8px;
+  font-size: var(--font-size-1);
+  padding: var(--space-1) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--panel-hover);
   color: var(--fg);

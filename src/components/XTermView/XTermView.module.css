@@ -8,7 +8,7 @@
   position: relative;
 
   background: var(--bg-sunken);
-  padding: 4px 6px 2px 8px;
+  padding: var(--space-2) var(--space-3) var(--space-1) var(--space-4);
   overflow: hidden;
   contain: size layout paint;
 }
@@ -67,10 +67,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-5);
   background: color-mix(in srgb, var(--bg-sunken) 88%, transparent);
   color: var(--fg);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   text-align: center;
 }
 
@@ -81,11 +81,11 @@
 }
 
 .overlayBtn {
-  padding: 7px 16px;
+  padding: var(--space-3) var(--space-6);
   background: var(--accent);
   color: var(--accent-on);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   cursor: pointer;
 }
@@ -100,10 +100,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--space-4);
   background: color-mix(in srgb, var(--bg-sunken) 94%, transparent);
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   pointer-events: none;
 }
 
@@ -143,8 +143,8 @@
   display: flex;
   min-height: 39px;
   align-items: center;
-  gap: 8px;
-  padding: 6px 6px 6px 10px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-sunken);
 }
@@ -155,7 +155,7 @@
   overflow: hidden;
   color: var(--fg-muted);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -182,9 +182,9 @@
 .linkMenuItems {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   overflow-y: auto;
-  padding: 5px;
+  padding: var(--space-2);
 }
 
 .linkMenuItem {
@@ -192,13 +192,13 @@
   width: 100%;
   min-height: 34px;
   align-items: center;
-  gap: 9px;
-  padding: 6px 9px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
   background: transparent;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   text-align: left;
   transition:
     background 100ms ease,

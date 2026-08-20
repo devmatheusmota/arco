@@ -295,7 +295,7 @@ export function HomeView() {
               }
             >
               <span className={styles.streakFlame} aria-hidden="true">
-                <Flame size={11} />
+                <Flame size={12} />
               </span>
               <strong>{activityStreak ?? '–'}</strong>
             </div>
@@ -339,10 +339,10 @@ export function HomeView() {
               }}
             >
               <summary title={t('home.quickAgent')} aria-label={t('home.quickAgent')}>
-                <AgentIcon type={quickAgent} size={15} theme={preferences.uiTheme} />
+                <AgentIcon type={quickAgent} size={16} theme={preferences.uiTheme} />
                 <span className={styles.quickControlLabel}>{t('home.quickAgentShort')}:</span>
                 <span>{quickAgentLabel}</span>
-                <ChevronDown size={10} />
+                <ChevronDown size={12} />
               </summary>
               <div className={styles.quickAgentOptions}>
                 {quickAgents.map((agent) => (
@@ -357,9 +357,9 @@ export function HomeView() {
                       quickAgentMenuRef.current?.removeAttribute('open')
                     }}
                   >
-                    <AgentIcon type={agent.type} size={19} theme={preferences.uiTheme} />
+                    <AgentIcon type={agent.type} size={20} theme={preferences.uiTheme} />
                     <span>{agent.label}</span>
-                    {quickAgent === agent.type ? <CheckCircle2 size={13} /> : null}
+                    {quickAgent === agent.type ? <CheckCircle2 size={14} /> : null}
                   </button>
                 ))}
               </div>
@@ -371,12 +371,12 @@ export function HomeView() {
               title={quickCwd || t('term.chooseFolder')}
               aria-label={t('term.chooseFolder')}
             >
-              <FolderOpen size={13} />
+              <FolderOpen size={14} />
               <span className={styles.quickControlLabel}>{t('home.quickPath')}:</span>
               <span className={styles.quickPathValue}>
                 {compactWorkspacePath(quickCwd || t('home.quickFolderPlaceholder'))}
               </span>
-              <ChevronDown size={10} />
+              <ChevronDown size={12} />
             </button>
             <details
               ref={quickModeMenuRef}
@@ -392,7 +392,7 @@ export function HomeView() {
                 <span>
                   {quickUnrestricted ? t('home.quickUnrestricted') : t('home.quickRestricted')}
                 </span>
-                <ChevronDown size={10} />
+                <ChevronDown size={12} />
               </summary>
               <div className={`${styles.quickSelectOptions} ${styles.quickModeOptions}`}>
                 {(['restricted', 'unrestricted'] as const).map((mode) => (
@@ -495,7 +495,7 @@ export function HomeView() {
             </div>
           ) : (
             <EmptyState
-              icon={<FolderPlus size={22} />}
+              icon={<FolderPlus size={20} />}
               title={t('home.projectsEmptyTitle')}
               description={t('home.projectsEmptyDesc')}
               primaryAction={{
@@ -570,7 +570,7 @@ export function HomeView() {
                     {n.agent ? (
                       <AgentIcon type={n.agent} size={14} theme={preferences.uiTheme} />
                     ) : (
-                      <Bell size={13} />
+                      <Bell size={14} />
                     )}
                   </span>
                   <span className={styles.notifBody}>
@@ -598,17 +598,17 @@ export function HomeView() {
       <footer className={styles.footer}>
         <div className={styles.footerLinks}>
           <FooterLink
-            icon={<Github size={13} />}
+            icon={<Github size={14} />}
             label={t('home.repository')}
             onClick={() => void openInBrowser(REPOSITORY_URL)}
           />
           <FooterLink
-            icon={<CircleDot size={13} />}
+            icon={<CircleDot size={14} />}
             label={t('home.issues')}
             onClick={() => void openInBrowser(ISSUES_URL)}
           />
           <FooterLink
-            icon={<PackageOpen size={13} />}
+            icon={<PackageOpen size={14} />}
             label={t('home.releases')}
             onClick={() => void openInBrowser(RELEASES_URL)}
           />
@@ -655,7 +655,7 @@ function RecentProjectCard({
           {lastUsedAt ? ` · ${formatRelativeTimestamp(lastUsedAt, now)}` : ''}
         </span>
       </span>
-      <ArrowRight size={15} className={styles.projectArrow} />
+      <ArrowRight size={16} className={styles.projectArrow} />
     </button>
   )
 }

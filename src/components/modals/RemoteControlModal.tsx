@@ -91,7 +91,7 @@ export function RemoteControlModal() {
     >
       <div className={styles.hero}>
         <span className={`${styles.heroIcon} ${enabled ? styles.heroIconActive : ''}`}>
-          <Smartphone size={21} />
+          <Smartphone size={20} />
         </span>
         <div>
           <h3>{enabled ? t('remote.enabled') : t('remote.disabled')}</h3>

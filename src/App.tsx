@@ -276,7 +276,19 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    document.documentElement.dataset.theme = uiTheme
+    const root = document.documentElement
+    const first = !root.dataset.theme
+    root.dataset.theme = uiTheme
+    // The fade between themes used to come from a transition on every element in
+    // the tree. It is worth having, but only while the theme is actually
+    // changing — and never on the first paint, which would fade the app in.
+    if (first) return
+    root.classList.add('themeSwitching')
+    const timer = window.setTimeout(() => root.classList.remove('themeSwitching'), 220)
+    return () => {
+      window.clearTimeout(timer)
+      root.classList.remove('themeSwitching')
+    }
   }, [uiTheme])
 
   useEffect(() => {

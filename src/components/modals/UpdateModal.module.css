@@ -1,6 +1,6 @@
 .summary {
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 1.5;
   color: var(--fg);
 }
@@ -8,11 +8,11 @@
 .notes {
   max-height: 220px;
   overflow: auto;
-  padding: 10px;
+  padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-elevated);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
   color: var(--fg-muted);
   white-space: pre-wrap;
@@ -38,7 +38,7 @@
 
 .error {
   margin: 10px 0 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.4;
   color: var(--status-offline);
 }

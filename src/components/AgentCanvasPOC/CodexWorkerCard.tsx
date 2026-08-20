@@ -32,7 +32,7 @@ export function CodexWorkerCard({ worker: w, onOpen, cardRefs }: CodexWorkerCard
     >
       <div className={styles.cardHeader}>
         <span className={styles.codexType}>
-          <CodexIcon size={15} /> codex
+          <CodexIcon size={16} /> codex
         </span>
         <span className={w.exitedCode !== null ? styles.statusDone : styles.statusRunning}>
           {w.exitedCode !== null ? `exit ${w.exitedCode}` : 'running'}
@@ -43,7 +43,7 @@ export function CodexWorkerCard({ worker: w, onOpen, cardRefs }: CodexWorkerCard
       <div className={styles.codexCardFooter}>
         <span className={styles.cardId}>{w.ptyId}</span>
         <span className={styles.codexExpandHint}>
-          <Maximize2 size={11} /> {t('ws.openTerminal')}
+          <Maximize2 size={12} /> {t('ws.openTerminal')}
         </span>
       </div>
     </div>

@@ -157,14 +157,14 @@ export function GraphifyView({ repo, projectId, terminalId }: GraphifyViewProps)
         )}
         <span className={styles.spacer} />
         <button className={styles.button} onClick={() => void refreshGraph()} disabled={loading}>
-          <RefreshCw size={13} /> {t('graphify.reload')}
+          <RefreshCw size={14} /> {t('graphify.reload')}
         </button>
         <button
           className={styles.button}
           onClick={() => void snapshot(projectId)}
           disabled={!hasGraph}
         >
-          <Camera size={13} /> {t('graphify.snapshot')}
+          <Camera size={14} /> {t('graphify.snapshot')}
         </button>
         <button
           className={styles.button}
@@ -172,7 +172,7 @@ export function GraphifyView({ repo, projectId, terminalId }: GraphifyViewProps)
           disabled={snapshots.length === 0}
           title={t('graphify.pruneHint', { keep: KEEP_LAST })}
         >
-          <Scissors size={13} /> {t('graphify.prune')}
+          <Scissors size={14} /> {t('graphify.prune')}
         </button>
         <button
           type="button"
@@ -181,7 +181,7 @@ export function GraphifyView({ repo, projectId, terminalId }: GraphifyViewProps)
           title={t('graphify.close')}
           aria-label={t('graphify.close')}
         >
-          <X size={15} />
+          <X size={16} />
         </button>
       </div>
 
@@ -208,7 +208,7 @@ export function GraphifyView({ repo, projectId, terminalId }: GraphifyViewProps)
               onClick={() => void generateGraph()}
               disabled={loading}
             >
-              {loading ? <Loader2 size={13} className={styles.spin} /> : <Network size={13} />}
+              {loading ? <Loader2 size={14} className={styles.spin} /> : <Network size={14} />}
               {loading ? t('graphify.generating') : t('graphify.generate')}
             </button>
           </div>

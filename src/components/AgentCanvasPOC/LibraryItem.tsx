@@ -41,7 +41,7 @@ export function LibraryItem({
               title={t('ws.installAgent')}
               aria-label={t('ws.installAgentName', { name: template.name })}
             >
-              <UserPlus size={13} />
+              <UserPlus size={14} />
             </button>
           )
         }

@@ -370,7 +370,7 @@ export function AgentSandbox() {
                 }}
               >
                 <div className={styles.nodeHeader}>
-                  <Terminal size={13} className={styles.terminalIcon} />
+                  <Terminal size={14} className={styles.terminalIcon} />
                   <span className={styles.statusDot} style={{ background: node.color }} />
                   <strong>{node.label}</strong>
                   <span className={styles.nodeRole}>{node.role}</span>
@@ -430,7 +430,7 @@ export function AgentSandbox() {
                     })
                   }}
                 >
-                  <Maximize2 size={11} />
+                  <Maximize2 size={12} />
                 </button>
               </article>
             ))}
@@ -442,7 +442,7 @@ export function AgentSandbox() {
       </div>
 
       <footer className={styles.composer}>
-        <MessageCircle size={15} />
+        <MessageCircle size={16} />
         <Dropdown
           value={from}
           onChange={setFrom}
@@ -492,7 +492,7 @@ export function AgentSandbox() {
           disabled={!active}
           title={t('sandbox.stop')}
         >
-          <Square size={13} />
+          <Square size={14} />
         </button>
       </footer>
     </section>

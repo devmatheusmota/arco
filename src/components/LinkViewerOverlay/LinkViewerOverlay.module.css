@@ -2,18 +2,14 @@
   position: fixed;
   inset: 0;
   z-index: 95;
-  background: rgba(10, 12, 16, 0.55);
+  background: var(--scrim);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 32px;
+  padding: var(--space-7) var(--space-8);
   animation: linkBackdropIn 200ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-[data-theme='light'] .backdrop {
-  background: rgba(245, 245, 250, 0.55);
 }
 
 .panel {
@@ -25,14 +21,14 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--bg) 55%, transparent);
 }
 
 .head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4);
   border-bottom: 1px solid var(--border);
   background: var(--bg-sunken, var(--bg));
 }
@@ -43,7 +39,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted, var(--fg));
   font-family: var(--font-mono, monospace);
 }
@@ -88,14 +84,14 @@
   width: 100%;
   height: 100%;
   overflow: auto;
-  padding: 24px 32px;
+  padding: var(--space-7) var(--space-8);
   background: var(--bg);
   color: var(--fg);
 }
 
 .hint {
-  padding: 5px 10px;
-  font-size: 11px;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-1);
   color: var(--fg-muted, var(--fg));
   border-top: 1px solid var(--border);
   background: var(--bg-sunken, var(--bg));

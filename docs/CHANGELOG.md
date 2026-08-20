@@ -10,6 +10,46 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- The interface ships with its own font. The app has named Inter for a long time while nothing
+  loaded it, so every machine picked a different substitute and the same build looked different on
+  Windows and on Linux. The monospace used in counters and chips had the same problem — none of the
+  three fonts it asked for exist on Linux, so it fell back to Courier.
+- Shadows and dialog backdrops follow the theme instead of being painted with black. On the light
+  themes a black shadow read as dirt; each theme now casts a shadow made of its own dark end, and
+  the four different backdrops the dialogs used became one.
+- The light and ember themes have their own agent colours and focus ring. Both were silently
+  borrowing the dark theme's, which is why an agent looked the same shade on a white page.
+
+- The interface is drawn once. `Visual style` used to pick between two whole implementations of the
+  sidebar and a hundred-odd override blocks scattered through the app, so a fix applied to one look
+  rarely reached the other. The preference stays, but it now only sets density.
+- Type, spacing and row heights come from one scale. Nothing readable is smaller than 12px — the
+  app used to have text at 8, 9 and 10px, and sizes like 12.5px that belonged to no scale — and
+  rows, controls and toolbars share the same heights instead of each screen inventing its own.
+- Selection says one thing once. A selected tab used to stack a fill, a border, an underline, a glow
+  and a one-pixel lift, while a selected project in the sidebar was told only by a slightly bolder
+  name — and a selected row in the tree was darker than the row under the pointer. Everything
+  selectable now gets the same wash and the same left rail.
+- Status and work-item chips in the Todo list are text with a dot instead of filled capsules with
+  coloured borders. Colour is left to what it means: an agent working, waiting or in error.
+- Icons come in three sizes, all even. There were sixteen, half of them odd, which is why a
+  1px-stroke icon looked blurred.
+- The home screen no longer uses frosted glass. Every translucent, blurred panel became a solid
+  surface, and the ASCII backdrop dropped to a texture instead of near full strength.
+
+### Fixed
+
+- Keyboard focus is visible everywhere. Ten of seventy-one stylesheets styled `:focus-visible`
+  against twenty-five that removed the outline and put nothing in its place.
+- Several panels lost their colour, background or border entirely because they asked for colour
+  names the app never defined — the private-window notice in the browser dialog was one of them.
+- Typing, switching sessions and repainting no longer carry a transition applied to every element
+  in the window, terminal contents included. The fade when you change theme is still there; it now
+  runs only while the theme is changing.
+- The interface respects the system setting for reduced motion.
+
 ## [2.6.6] — 2026-08-20
 
 ### Added

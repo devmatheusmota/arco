@@ -311,7 +311,7 @@ export function SyncModal() {
           className={styles.sponsor}
           onClick={() => void openInBrowser(SPONSOR_URL)}
         >
-          <Heart size={15} />
+          <Heart size={16} />
           {t('sync.sponsor')}
         </button>
       </div>

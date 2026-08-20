@@ -21,12 +21,12 @@
 }
 .hero h3 {
   margin: 0 0 0.2rem;
-  font-size: 0.95rem;
+  font-size: var(--font-size-3);
 }
 .hero p {
   margin: 0;
   color: var(--fg-muted);
-  font-size: 0.78rem;
+  font-size: var(--font-size-2);
   line-height: 1.45;
 }
 .status {
@@ -36,7 +36,7 @@
   margin-left: auto;
   padding: 0.35rem 0.55rem;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: var(--font-size-1);
   white-space: nowrap;
 }
 .statusOn {
@@ -56,7 +56,7 @@
 .contentGrid {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
-  gap: 16px;
+  gap: var(--space-6);
   margin-top: 16px;
 }
 .qrCard {
@@ -79,14 +79,14 @@
 }
 .scanHint {
   color: var(--fg-muted);
-  font-size: 0.7rem;
+  font-size: var(--font-size-1);
   text-align: center;
   line-height: 1.35;
 }
 .details {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4);
   min-width: 0;
 }
 .metric {
@@ -100,17 +100,17 @@
   background: var(--surface-raised);
 }
 .metric strong {
-  font-size: 1.35rem;
+  font-size: var(--font-size-6);
   text-align: right;
 }
 .metricHint {
   grid-column: 1 / -1;
   color: var(--fg-muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-1);
 }
 .metricLabel {
   color: var(--fg-muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -127,7 +127,7 @@
   border-radius: 9px;
   color: var(--accent);
   background: var(--surface-raised);
-  font-size: 0.7rem;
+  font-size: var(--font-size-1);
   line-height: 1.4;
 }
 .disabledCard {
@@ -141,14 +141,14 @@
   color: var(--fg-muted);
 }
 .disabledCard p {
-  font-size: 0.8rem;
+  font-size: var(--font-size-2);
   line-height: 1.45;
 }
 .hint,
 .securityNote {
   margin: 1rem 0 0;
   color: var(--fg-muted);
-  font-size: 0.76rem;
+  font-size: var(--font-size-2);
   line-height: 1.5;
 }
 .securityNote {
@@ -158,7 +158,7 @@
 .error {
   margin-top: 0.75rem;
   color: var(--status-offline);
-  font-size: 0.8rem;
+  font-size: var(--font-size-2);
 }
 @media (max-width: 560px) {
   .contentGrid {

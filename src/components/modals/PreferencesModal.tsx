@@ -396,7 +396,7 @@ export function PreferencesModal() {
             </button>
 
             <div className={styles.searchWrap}>
-              <Search size={15} aria-hidden />
+              <Search size={16} aria-hidden />
               <input
                 data-settings-search
                 value={query}
@@ -412,7 +412,7 @@ export function PreferencesModal() {
                   onClick={() => setQuery('')}
                   aria-label={t('prefs.clearSearch')}
                 >
-                  <X size={13} />
+                  <X size={14} />
                 </button>
               ) : null}
             </div>

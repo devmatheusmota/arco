@@ -412,7 +412,7 @@ function NoWorkspace({
         <div className={styles.emptyProjectCard}>
           <div className={styles.emptyProjectIntro}>
             <div className={styles.emptyProjectIcon}>
-              <FolderPlus size={22} />
+              <FolderPlus size={20} />
             </div>
             <strong>{t('ws.emptyProjectTitle')}</strong>
             <span>{t('ws.emptyProjectDesc')}</span>
@@ -426,7 +426,7 @@ function NoWorkspace({
                 className={`${styles.emptyAgentButton} ${quickAgent === agent ? styles.emptyAgentButtonActive : ''}`}
                 onClick={() => setQuickAgent(agent)}
               >
-                <AgentIcon type={agent} size={15} theme={terminalTheme} />
+                <AgentIcon type={agent} size={16} theme={terminalTheme} />
                 <span>{agent[0].toUpperCase() + agent.slice(1)}</span>
               </button>
             ))}
@@ -473,7 +473,7 @@ function NoWorkspace({
     return (
       <div className={styles.emptyShell}>
         <EmptyState
-          icon={<TerminalSquare size={22} />}
+          icon={<TerminalSquare size={20} />}
           title={t('ws.emptyTerminalTitle')}
           description={t('ws.emptyTerminalDesc')}
           primaryAction={{
@@ -487,7 +487,7 @@ function NoWorkspace({
   return (
     <div className={styles.emptyShell}>
       <EmptyState
-        icon={<TerminalSquare size={22} />}
+        icon={<TerminalSquare size={20} />}
         title={t('ws.emptyContainerTitle')}
         description={t('ws.emptyContainerDesc', { count: project.terminals.length })}
         primaryAction={{

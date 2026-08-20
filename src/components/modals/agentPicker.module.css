@@ -1,11 +1,11 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 4px;
+  padding: var(--space-2);
 }
 
 /* The row is a container, not a control: it holds the agent's own button plus
@@ -14,20 +14,20 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
   padding: 0 12px 0 0;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--fg);
   width: 100%;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   transition: background 0.1s ease;
 }
 
 .rowSelect {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
   flex: 1;
   min-width: 0;
   padding: 8px 0 8px 12px;
@@ -71,7 +71,7 @@
 .rowEnd {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   color: var(--fg-faint);
   flex-shrink: 0;
 }

@@ -1,9 +1,9 @@
 .lane {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 3px 6px;
+  gap: var(--space-4);
+  min-height: var(--size-row);
+  padding: var(--space-1) var(--space-3);
   background: var(--shape-tabs-lane-bg);
   border-bottom: 1px solid var(--shape-tabs-lane-border);
   flex-shrink: 0;
@@ -12,7 +12,7 @@
 .tabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
@@ -26,7 +26,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   flex: 0 1 auto;
   min-width: 0;
 }
@@ -34,21 +34,21 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   max-width: 190px;
   min-width: 0;
-  padding: 4px 22px 4px 8px;
-  border-radius: 6px;
+  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--fg-muted);
   cursor: pointer;
-  font: 500 12px var(--font-sans);
+  font: 500 var(--font-size-1) var(--font-sans);
   transition:
-    background 140ms ease,
-    color 140ms ease;
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
 }
 .item:hover {
-  background: var(--accent-soft);
+  background: var(--state-hover);
   color: var(--fg);
 }
 
@@ -66,23 +66,18 @@
   white-space: nowrap;
 }
 
+/*
+ * One signal for the active tab.
+ *
+ * It used to carry four at once — a filled background, an inset border, an
+ * accent bar underneath and a glow around that bar — while the title bar said
+ * the same thing a fifth way. A wash and a rail is enough, and it is the same
+ * pair every selectable row in the app now uses.
+ */
 .active .item {
-  background: var(--surface-card-selected);
-  box-shadow: inset 0 0 0 1px var(--border);
+  background: var(--state-selected);
+  box-shadow: inset 2px 0 0 var(--state-selected-rail);
   color: var(--fg);
-}
-
-/* Accent bar on the active session, along the bottom edge of the row. */
-.active::after {
-  content: '';
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: -4px;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-ring);
 }
 
 .doneBadge {
@@ -144,7 +139,7 @@
 .sideAction {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   flex: 0 0 auto;
   height: 22px;
   padding: 0 8px;
@@ -152,12 +147,12 @@
   border: 1px solid var(--border);
   background: var(--bg-sunken);
   color: var(--fg-muted);
-  font: 500 12px var(--font-sans);
+  font: 500 var(--font-size-1) var(--font-sans);
   cursor: pointer;
 }
 .side {
   position: relative;
-  padding-right: 22px;
+  padding-right: var(--space-7);
   cursor: default;
 }
 .sideAction:hover {

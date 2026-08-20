@@ -95,7 +95,7 @@ export function SpeechModelPicker({ value, onChange }: Props) {
                     disabled={active || model.streaming}
                     onClick={() => onChange(model.id)}
                   >
-                    {active ? <Check size={13} /> : null}
+                    {active ? <Check size={14} /> : null}
                     {active ? t('prefs.modelActive') : t('prefs.modelUse')}
                   </button>
                   <button
@@ -107,7 +107,7 @@ export function SpeechModelPicker({ value, onChange }: Props) {
                       void dictationDelete(model.id).then(load)
                     }}
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={14} />
                   </button>
                 </>
               ) : (
@@ -120,7 +120,7 @@ export function SpeechModelPicker({ value, onChange }: Props) {
                     void dictationDownload(model.id).catch(() => setBusy(null))
                   }}
                 >
-                  <Download size={13} />
+                  <Download size={14} />
                   {downloading ? `${percent}%` : t('prefs.modelDownload')}
                 </button>
               )}

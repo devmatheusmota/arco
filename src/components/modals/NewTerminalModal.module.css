@@ -1,7 +1,7 @@
 .description {
   margin: -2px 0 18px;
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
 }
 
@@ -12,14 +12,14 @@
 .stepTitle {
   margin: 0 0 9px;
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 
 .agentGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .agentCard {
@@ -27,8 +27,8 @@
   min-height: 58px;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 13px;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
@@ -64,7 +64,7 @@
   flex: 1;
   overflow: hidden;
   color: var(--fg);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -80,9 +80,9 @@
   min-height: 58px;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: var(--space-5);
   margin-top: 9px;
-  padding: 10px 13px;
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
@@ -125,27 +125,27 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
 .permissionToggleTitle {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 
 .permissionToggleDescription {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.35;
 }
 
 .permissionToggleState {
   flex: 0 0 auto;
-  padding: 3px 7px;
+  padding: var(--space-1) var(--space-3);
   border-radius: 999px;
   background: var(--panel);
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -158,10 +158,10 @@
 .alwaysUnrestricted {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   margin-top: 8px;
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 
@@ -173,8 +173,8 @@
   min-height: 40px;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 4px 5px 4px 11px;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
@@ -196,17 +196,17 @@
   outline: 0;
   background: transparent;
   color: var(--fg);
-  font: 11px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
 }
 
 .browseButton {
   flex: 0 0 auto;
-  padding: 6px 11px;
+  padding: var(--space-3) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--panel);
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 
@@ -224,24 +224,24 @@
   display: block;
   margin-bottom: 7px;
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 
 .recentFolders {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .folderChip {
   max-width: 150px;
   overflow: hidden;
-  padding: 5px 10px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-sunken);
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
@@ -255,16 +255,16 @@
 .autoNameHint {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   margin-top: 18px;
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 
 .advanced {
   margin-top: 14px;
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .advanced summary {
@@ -274,7 +274,7 @@
 
 .advancedBody {
   margin-top: 12px;
-  padding: 12px;
+  padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
@@ -290,8 +290,8 @@
 .worktreeToggle {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 10px 12px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-elevated);
@@ -307,17 +307,17 @@
 .worktreeToggle span {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .worktreeToggle strong {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--fg);
 }
 
 .worktreeToggle em {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-style: normal;
   color: var(--fg-faint);
 }

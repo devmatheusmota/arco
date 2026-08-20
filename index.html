@@ -8,9 +8,9 @@
       if (import.meta.env.DEV) {
         document.title = '(DEV) Arco'
       }
-      // Marca a plataforma o quanto antes (antes do React montar) para o CSS
-      // dos cantos arredondados no macOS não causar flash de fundo opaco no
-      // primeiro paint. O App.tsx reconfirma isto depois. Ver reset.css.
+      // Stamp the platform before React mounts, so the rounded-corner CSS on
+      // macOS does not flash an opaque background on the first paint. App.tsx
+      // confirms it afterwards. See reset.css.
       document.documentElement.dataset.platform = /Macintosh|Mac OS X/i.test(navigator.userAgent)
         ? 'macos'
         : 'other'

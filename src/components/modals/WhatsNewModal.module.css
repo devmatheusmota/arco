@@ -1,7 +1,7 @@
 .hero {
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-5);
+  padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -18,27 +18,27 @@
 }
 .hero strong {
   color: var(--fg);
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .hero p {
   margin: 4px 0 0;
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
 }
 .list,
 .notes {
   margin: 14px 0 0;
-  padding: 12px 14px 12px 28px;
+  padding: var(--space-5) var(--space-5) var(--space-5) var(--space-7);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.55;
 }
 .notes {
-  padding-left: 14px;
+  padding-left: var(--space-5);
   white-space: pre-wrap;
   max-height: 240px;
   overflow: auto;
@@ -60,7 +60,7 @@
 .releaseHeading {
   margin: 0;
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   letter-spacing: 0.02em;
 }

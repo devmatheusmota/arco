@@ -220,10 +220,10 @@ export function NewTerminalModal() {
                 aria-pressed={active}
               >
                 <span className={styles.agentIcon}>
-                  <AgentIcon type={a.type} size={22} theme={terminalTheme} />
+                  <AgentIcon type={a.type} size={20} theme={terminalTheme} />
                 </span>
                 <span className={styles.agentLabel}>{a.label}</span>
-                {active ? <CircleCheck size={17} className={styles.selectedIcon} /> : null}
+                {active ? <CircleCheck size={16} className={styles.selectedIcon} /> : null}
               </button>
             )
           })}
@@ -236,7 +236,7 @@ export function NewTerminalModal() {
             aria-pressed={unrestricted[type]}
           >
             <span className={styles.permissionToggleIcon}>
-              <Zap size={17} />
+              <Zap size={16} />
             </span>
             <span className={styles.permissionToggleCopy}>
               <span className={styles.permissionToggleTitle}>{t('term.unrestrictedShort')}</span>
@@ -316,7 +316,7 @@ export function NewTerminalModal() {
       ) : null}
 
       <div className={styles.autoNameHint}>
-        <Info size={13} />
+        <Info size={14} />
         <span>{t('term.autoNameHint')}</span>
       </div>
 

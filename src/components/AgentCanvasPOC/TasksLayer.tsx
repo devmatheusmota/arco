@@ -18,7 +18,7 @@ export function TasksLayer({ tasks, teamName, taskRefs }: TasksLayerProps) {
   return (
     <div className={styles.tasksLayer}>
       <div className={styles.tasksLayerTitle}>
-        <ListTodo size={13} /> {t('ws.tasksTitle')}
+        <ListTodo size={14} /> {t('ws.tasksTitle')}
         {teamName ? ` · ${teamName}` : ''}
       </div>
       <div className={styles.tasksLayerGrid}>

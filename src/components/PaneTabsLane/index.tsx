@@ -94,7 +94,7 @@ function PaneTab({
         title={t('ws.tabs.close')}
         aria-label={t('ws.tabs.close')}
       >
-        <X size={10} />
+        <X size={12} />
       </button>
     </div>
   )
@@ -201,7 +201,7 @@ export function PaneTabsLane({ project, container, panes }: PaneTabsLaneProps) {
             title={t('ws.tabs.closeSideTerminal')}
             aria-label={t('ws.tabs.closeSideTerminal')}
           >
-            <X size={10} />
+            <X size={12} />
           </button>
         </div>
       ) : canOpenSide ? (

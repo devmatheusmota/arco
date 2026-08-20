@@ -278,7 +278,7 @@ export function TaskSessionModal() {
                     onChange={(event) => setUnrestricted(event.target.checked)}
                   />
                   <span>
-                    <Zap size={13} /> {t('taskSession.unrestricted')}
+                    <Zap size={14} /> {t('taskSession.unrestricted')}
                   </span>
                 </label>
               ) : null}

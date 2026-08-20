@@ -129,7 +129,7 @@ export function NormalTerminalNode({
           title={t('ui.terminal.moreActions')}
           aria-label={t('ui.terminal.moreActions')}
         >
-          <MoreHorizontal size={13} />
+          <MoreHorizontal size={14} />
         </button>
       </span>
     </div>

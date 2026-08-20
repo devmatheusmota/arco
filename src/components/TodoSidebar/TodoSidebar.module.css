@@ -32,16 +32,16 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   color: var(--fg);
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 500;
 }
 
 .progress {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-4);
   margin: 8px 2px 7px;
 }
 
@@ -63,13 +63,13 @@
 
 .progressCount {
   color: var(--fg-faint);
-  font: 10px/1 var(--font-mono);
+  font: var(--font-size-1)/1 var(--font-mono);
 }
 
 .filters {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   min-height: 32px;
   border-bottom: 1px solid var(--border);
 }
@@ -80,7 +80,7 @@
   padding: 0 9px;
   border-radius: var(--radius-sm);
   color: var(--fg-faint);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 
@@ -111,7 +111,7 @@
 
 .addForm {
   display: block;
-  padding: 10px 10px 2px;
+  padding: var(--space-4) var(--space-4) var(--space-1);
   border-bottom: 0;
   animation: todoPanelIn 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -121,7 +121,7 @@
   height: 36px;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   padding: 0 8px;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-md);
@@ -165,7 +165,7 @@
   background: transparent;
   border: 0;
   outline: 0;
-  font: 12px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
 }
 
 .composerInput::placeholder {
@@ -177,14 +177,14 @@
   color: var(--fg-faint);
   background: transparent;
   border: 0;
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
 }
 
 .composerDetails {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 6px;
-  padding-top: 6px;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
 }
 
 .projectInputWrap {
@@ -192,7 +192,7 @@
   height: 26px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   padding: 0 7px;
   color: var(--fg-faint);
   border: 1px solid var(--border);
@@ -206,7 +206,7 @@
   position: absolute;
   right: 6px;
   color: var(--fg-faint);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   pointer-events: none;
 }
 
@@ -234,8 +234,8 @@
   white-space: nowrap;
 }
 .projectInputWrap .projectPickerButton {
-  padding-left: 8px;
-  font-size: 11px;
+  padding-left: var(--space-4);
+  font-size: var(--font-size-1);
 }
 .projectPickerButton:focus-visible {
   color: var(--fg);
@@ -247,7 +247,7 @@
   flex-direction: column;
   max-height: 240px;
   overflow-y: auto;
-  padding: 4px;
+  padding: var(--space-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -264,7 +264,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -288,7 +288,7 @@
   height: 26px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   padding: 0 7px;
   color: var(--fg-faint);
   background: var(--bg);
@@ -314,7 +314,7 @@
 .addInput {
   height: 30px;
   padding: 0 9px;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .addTagInput {
@@ -324,7 +324,7 @@
   border: 0;
   background: transparent;
   height: 26px;
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .addTagInput:focus {
@@ -366,7 +366,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 4px 8px 14px;
+  padding: var(--space-2) var(--space-4) var(--space-5);
   scrollbar-gutter: stable;
   animation: todoPanelIn 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -387,7 +387,7 @@
   height: 26px;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   padding: 0;
   color: var(--fg-faint);
 }
@@ -397,7 +397,7 @@
   height: 26px;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   flex: 1;
   padding: 0 5px;
   border-radius: var(--radius-sm);
@@ -431,7 +431,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -447,7 +447,7 @@
   border-radius: 999px;
   background: var(--bg-elevated);
   color: var(--fg-muted);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   letter-spacing: 0;
 }
 
@@ -481,7 +481,7 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
 .todoItem {
@@ -490,18 +490,18 @@
 }
 
 .todoRow {
-  min-height: 36px;
+  min-height: var(--size-row);
   display: grid;
-  grid-template-columns: 3px 13px 19px minmax(0, 1fr) auto;
+  grid-template-columns: 3px 14px 20px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 5px;
-  padding: 2px 5px 2px 1px;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) 0;
   border: 0;
   border-radius: var(--radius-md);
   color: var(--fg);
   transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
     box-shadow 180ms ease,
     transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
     opacity 160ms ease;
@@ -509,7 +509,7 @@
 
 .todoRow:hover,
 .todoRow:focus-within {
-  background: var(--panel-hover);
+  background: var(--state-hover);
 }
 
 .todoRowDragging {
@@ -523,7 +523,6 @@
   border-color: var(--accent);
   background: var(--accent-soft);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 14%, transparent);
-  transform: translateY(-1px);
 }
 
 .dragHandle {
@@ -544,7 +543,6 @@
 
 .todoRow:active .dragHandle {
   cursor: grabbing;
-  transform: scale(1.08);
   color: var(--accent);
 }
 
@@ -570,7 +568,7 @@
 .titleButton {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   width: auto;
   min-width: 0;
   padding: 4px 0;
@@ -578,7 +576,7 @@
   color: inherit;
   background: transparent;
   border: 0;
-  font: 12px/1.35 var(--font-sans);
+  font: var(--font-size-1)/1.35 var(--font-sans);
   text-align: left;
   cursor: pointer;
 }
@@ -606,7 +604,7 @@
 .metaRow {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   min-width: 0;
   overflow: hidden;
 }
@@ -624,13 +622,10 @@
 .sessionBadge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 0 5px;
-  height: 15px;
-  border-radius: 999px;
-  background: var(--bg-elevated);
-  color: var(--fg-muted);
-  font: 9px/1 var(--font-mono);
+  gap: var(--space-1);
+  padding: 0;
+  color: var(--fg-faint);
+  font: var(--font-size-1) / var(--line-height-1) var(--font-mono);
 }
 
 .sessionBadge[data-working='true'] {
@@ -660,7 +655,7 @@
   background: transparent;
   border: 0;
   border-radius: 0;
-  font-size: 9px;
+  font-size: var(--font-size-1);
   line-height: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -675,13 +670,13 @@
   width: 100%;
   height: 26px;
   padding: 0 6px;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .rowActions {
   display: inline-flex;
   align-items: center;
-  gap: 1px;
+  gap: 0;
   width: 0;
   max-width: 0;
   overflow: hidden;
@@ -718,9 +713,9 @@
 .details {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4);
   margin: 2px 0 8px 21px;
-  padding: 9px 10px;
+  padding: var(--space-4) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
@@ -730,33 +725,33 @@
 .detailBlock {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .detailLabel {
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .priorityRow {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .priorityPill {
-  height: 22px;
-  padding: 0 9px;
+  height: var(--size-icon-button);
+  padding: 0 var(--space-4);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  gap: var(--space-2);
+  border: 1px solid var(--line-default);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 
@@ -786,7 +781,7 @@
 .statusRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .statusPill {
@@ -811,34 +806,53 @@
 }
 
 /* Compact echo of the pill above, so the board position reads without expanding the row. */
+/*
+ * A status is a word and a dot, not a coloured capsule.
+ *
+ * A task line already carries a checkbox, a title, a work-item id, tags and a
+ * comment count. When each of those is a filled pill with its own border, none
+ * of them reads as more important than the rest — and the terminal, which is the
+ * actual content, ends up the calmest thing on screen.
+ */
 .statusChip {
-  padding: 0 6px;
-  height: 15px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--fg-muted);
-  font-size: 9px;
+  gap: var(--space-3);
+  color: var(--fg-faint);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-/* The resting state: readable, but never competing with the two that mean work. */
+.statusChip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+/* Only work in flight earns a colour; the resting states stay neutral. */
 .statusChip[data-status='todo'] {
-  color: var(--fg-muted);
-  border-color: var(--border);
+  color: var(--fg-faint);
 }
 
 .statusChip[data-status='in_progress'] {
-  color: var(--fg);
-  border-color: var(--border-strong);
+  color: var(--fg-muted);
+}
+
+.statusChip[data-status='in_progress']::before {
+  background: var(--status-working);
 }
 
 .statusChip[data-status='review'] {
-  color: var(--status-waiting);
-  border-color: var(--status-waiting);
+  color: var(--fg-muted);
+}
+
+.statusChip[data-status='review']::before {
+  background: var(--status-waiting);
 }
 
 /*
@@ -848,48 +862,38 @@
  * status chip, since it names a target rather than a state.
  */
 .adoChip {
-  padding: 0 6px;
-  height: 15px;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
   background: transparent;
-  color: var(--fg-muted);
-  font: 500 9px/1 var(--font-sans);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  color: var(--fg-faint);
+  font: var(--font-weight-medium) var(--font-size-1) / var(--line-height-1) var(--font-sans);
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    color 120ms ease,
-    border-color 120ms ease;
 }
 
 .adoChip:hover,
 .adoChip:focus-visible {
   color: var(--fg);
-  border-color: var(--border-strong);
-  outline: none;
 }
 
 .adoChip[data-kind='pr'] {
-  color: var(--accent, var(--fg));
-  border-color: var(--accent, var(--border-strong));
+  color: var(--fg-faint);
 }
 
 .notesInput {
   width: 100%;
   min-height: 58px;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   color: var(--fg);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   outline: none;
   resize: vertical;
-  font: 11px/1.5 var(--font-sans);
+  font: var(--font-size-1)/1.5 var(--font-sans);
 }
 
 .notesInput:focus {
@@ -904,13 +908,13 @@
 .sessionList {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .sessionRow {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -923,14 +927,14 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 24px;
   padding: 0 6px;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--fg);
-  font: 11px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   text-align: left;
   cursor: pointer;
 }
@@ -990,7 +994,7 @@
 .sessionRowMeta {
   flex: 0 0 auto;
   color: var(--fg-faint);
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
 }
 
 .sessionUnlink {
@@ -1012,8 +1016,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding-top: 2px;
+  gap: var(--space-4);
+  padding-top: var(--space-1);
   border-top: 1px solid var(--border);
 }
 
@@ -1021,7 +1025,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1031,13 +1035,13 @@
   height: 24px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   padding: 0 9px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--fg);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 
@@ -1050,19 +1054,19 @@
 .runningPill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   height: 19px;
   padding: 0 7px;
   border-radius: 999px;
   background: var(--status-working-soft);
   color: var(--status-working);
-  font: 9px/1 var(--font-mono);
+  font: var(--font-size-1)/1 var(--font-mono);
 }
 
 .tagFilters {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: var(--space-1);
   padding: 7px 0 6px;
 }
 
@@ -1073,7 +1077,7 @@
   border-radius: 999px;
   background: transparent;
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 
@@ -1091,7 +1095,7 @@
 .filterEmpty {
   margin: 12px 6px;
   color: var(--fg-faint);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .deleteAction:hover {
@@ -1102,9 +1106,9 @@
   min-height: 34px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   width: 100%;
-  padding: 5px 6px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--fg);
@@ -1145,7 +1149,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
 .gsdRowName {
@@ -1153,7 +1157,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
 }
 
@@ -1163,16 +1167,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .sectionEmpty {
   margin: 0;
-  padding: 6px;
+  padding: var(--space-3);
   color: var(--fg-faint);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .empty {
@@ -1181,8 +1185,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 24px;
+  gap: var(--space-3);
+  padding: var(--space-7);
   color: var(--fg-muted);
   text-align: center;
 }
@@ -1201,12 +1205,12 @@
 
 .empty strong {
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .empty span {
   max-width: 210px;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
 }
 
@@ -1258,16 +1262,16 @@
 }
 
 :global([data-visual-style='clean']) .heading {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
 }
 
 :global([data-visual-style='clean']) .addForm {
-  padding: 8px 8px 2px;
+  padding: var(--space-4) var(--space-4) var(--space-1);
 }
 
 :global([data-visual-style='clean']) .content {
-  padding: 4px 8px 14px;
+  padding: var(--space-2) var(--space-4) var(--space-5);
 }
 
 :global([data-visual-style='clean']) .sectionHeader {
@@ -1299,7 +1303,7 @@
 }
 
 :global([data-visual-style='clean']) .todoRow {
-  padding: 2px 5px 2px 1px;
+  padding: var(--space-1) var(--space-2) var(--space-1) 0;
 }
 
 :global([data-visual-style='clean']) .composerBox {

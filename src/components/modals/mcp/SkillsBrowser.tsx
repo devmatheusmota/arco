@@ -149,8 +149,8 @@ export function SkillsBrowser({
             onClick={() => setSelected(group.name)}
           >
             <span className={styles.skillName}>{group.name}</span>
-            {group.bundled ? <Lock size={11} /> : null}
-            {group.sharedEntry ? <Link2 size={11} /> : null}
+            {group.bundled ? <Lock size={12} /> : null}
+            {group.sharedEntry ? <Link2 size={12} /> : null}
             <span className={styles.skillCount}>{group.agents.length}</span>
           </button>
         ))}
@@ -240,7 +240,7 @@ function SkillDetailView({
           <span className={styles.detailName}>{group.name}</span>
           {group.bundled ? (
             <span className={styles.badge}>
-              <Lock size={10} /> {t('skills.badgeBundled')}
+              <Lock size={12} /> {t('skills.badgeBundled')}
             </span>
           ) : group.removable.length > 0 ? (
             <button
@@ -249,7 +249,7 @@ function SkillDetailView({
               disabled={busy}
               onClick={() => onRemove(group.removable)}
             >
-              <Trash2 size={11} />
+              <Trash2 size={12} />
               {group.removable.length > 1
                 ? t('skills.removeAllAction', { count: group.removable.length })
                 : t('skills.removeAction')}
@@ -267,12 +267,12 @@ function SkillDetailView({
               <span className={styles.agentName}>{agentLabel(entry.agent)}</span>
               {entry.bundled ? (
                 <span className={styles.badge}>
-                  <Lock size={10} /> {t('skills.badgeBundled')}
+                  <Lock size={12} /> {t('skills.badgeBundled')}
                 </span>
               ) : null}
               {entry.linked ? (
                 <span className={styles.badge}>
-                  <Link2 size={10} /> {t('skills.badgeLinked')}
+                  <Link2 size={12} /> {t('skills.badgeLinked')}
                 </span>
               ) : null}
               <span className={styles.path} title={entry.path}>
@@ -287,7 +287,7 @@ function SkillDetailView({
                   title={t('skills.removeAction')}
                   aria-label={t('skills.removeAction')}
                 >
-                  <Trash2 size={11} />
+                  <Trash2 size={12} />
                 </button>
               )}
             </div>
@@ -361,7 +361,7 @@ function TreeNode({ node, depth }: { node: SkillNode; depth: number }) {
   if (!node.isDir) {
     return (
       <span className={styles.treeRow} style={style}>
-        <FileText size={11} />
+        <FileText size={12} />
         {node.name}
       </span>
     )
@@ -375,8 +375,8 @@ function TreeNode({ node, depth }: { node: SkillNode; depth: number }) {
         style={style}
         onClick={() => setOpen((current) => !current)}
       >
-        {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-        <Folder size={11} />
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <Folder size={12} />
         {node.name}
       </button>
       {open

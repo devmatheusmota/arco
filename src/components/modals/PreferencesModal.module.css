@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.66);
+  background: var(--scrim);
   backdrop-filter: blur(3px);
   animation: fadeIn 120ms ease-out;
 }
@@ -28,7 +28,7 @@
 
 .sidebar {
   min-width: 0;
-  padding: 18px 14px;
+  padding: var(--space-6) var(--space-5);
   background: color-mix(in srgb, var(--bg-sunken) 78%, var(--bg-elevated));
   border-right: 1px solid var(--border);
   overflow-y: auto;
@@ -39,8 +39,8 @@
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 14px;
   align-items: center;
-  gap: 10px;
-  padding: 8px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   border-radius: var(--radius-md);
   color: var(--fg);
   text-align: left;
@@ -66,7 +66,7 @@
 .avatarLarge {
   width: 76px;
   height: 76px;
-  font-size: 24px;
+  font-size: var(--font-size-6);
 }
 .avatarFallback {
   color: var(--fg);
@@ -77,24 +77,24 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 .profileCopy strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .profileCopy span {
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .searchWrap {
   height: 38px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 14px 2px 16px;
   padding: 0 10px;
   color: var(--fg-muted);
@@ -113,7 +113,7 @@
   background: transparent;
   border: 0;
   outline: none;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .searchWrap input::placeholder {
   color: var(--fg-faint);
@@ -127,12 +127,12 @@
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
 }
 .navLabel {
   margin: 0 9px 6px;
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -142,11 +142,11 @@
   min-height: 48px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4);
   color: var(--fg-muted);
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   text-align: left;
 }
 .nav button:hover {
@@ -162,11 +162,11 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 .navCopy strong {
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -174,7 +174,7 @@
 .navCopy small {
   overflow: hidden;
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -186,13 +186,13 @@
 .searchResults {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
 }
 .searchResults button {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 9px 10px;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-4);
   color: var(--fg);
   border-radius: var(--radius-md);
   text-align: left;
@@ -202,16 +202,16 @@
   background: var(--panel-hover);
 }
 .searchResults strong {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .searchResults span {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 .searchEmpty {
-  padding: 18px 8px;
+  padding: var(--space-6) var(--space-4);
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   text-align: center;
 }
 
@@ -226,21 +226,21 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  padding: 20px 24px 16px;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7) var(--space-6);
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
 }
 .header h1 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-size-5);
   font-weight: 650;
 }
 .header p {
   max-width: 620px;
   margin: 5px 0 0;
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
 }
 .close {
@@ -278,7 +278,7 @@
   border-top: 1px solid var(--border);
 }
 .section:last-child {
-  padding-bottom: 24px;
+  padding-bottom: var(--space-7);
 }
 .section:focus .sectionHeading h2 {
   color: var(--accent);
@@ -288,14 +288,14 @@
 }
 .sectionHeading h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-size-4);
   font-weight: 620;
 }
 .sectionHeading p {
   max-width: 600px;
   margin: 6px 0 0;
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
 }
 .sectionBody {
@@ -305,44 +305,44 @@
 .profileEditor {
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
-  gap: 22px;
+  gap: var(--space-7);
   align-items: start;
 }
 .profileFields {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-5);
 }
 .profileFields label,
 .integrationFields label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .profileFields label > span,
 .integrationFields label > span {
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 
 .choiceGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-4);
 }
 .choiceGrid button {
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-4);
   padding: 0 14px;
   color: var(--fg);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .choiceGrid button:hover {
   border-color: var(--border-strong);
@@ -356,13 +356,13 @@
   min-height: 42px;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-4);
   padding: 0 14px;
   color: var(--fg);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .secondaryButton svg:last-child {
   margin-left: 8px;
@@ -374,26 +374,26 @@
 }
 
 .emptyState {
-  padding: 18px;
+  padding: var(--space-6);
   color: var(--fg-muted);
   background: var(--bg-sunken);
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .optionList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .optionRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 10px 12px;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -403,19 +403,19 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .optionCopy strong {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .optionCopy span {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 .rowActions {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 .iconActionDanger {
@@ -435,21 +435,21 @@
 .themeGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .visualStyleGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .visualStyleOption {
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  padding: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   color: var(--fg);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
@@ -488,8 +488,8 @@
 .previewSidebar {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 7px 5px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
   border-right: 1px solid var(--border);
 }
 
@@ -504,8 +504,8 @@
 .previewWorkspace {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 5px;
-  padding: 6px;
+  gap: var(--space-2);
+  padding: var(--space-3);
 }
 
 .visualStylePreviewNormal {
@@ -534,24 +534,24 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
 .visualStyleCopy strong {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .visualStyleCopy small {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.4;
 }
 .themeGrid > button {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-4);
+  padding: var(--space-5);
   color: var(--fg);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
@@ -583,12 +583,12 @@
 }
 .themeGrid > button > span:last-child {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.35;
 }
 .swatches {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .swatches span {
   width: 25px;
@@ -600,15 +600,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
+  gap: var(--space-4);
+  font-size: var(--font-size-1);
 }
 
 .zoomControl {
   width: min(320px, 100%);
   display: grid;
   grid-template-columns: 40px 1fr 40px 40px;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .zoomControl button,
 .zoomControl strong {
@@ -622,7 +622,7 @@
 }
 .zoomControl strong {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .zoomControl button:hover:not(:disabled) {
   background: var(--panel-hover);
@@ -637,7 +637,7 @@
   display: grid;
   grid-template-columns: minmax(160px, 1fr) 56px 40px;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 .opacityControl input {
   width: 100%;
@@ -655,7 +655,7 @@
 }
 .opacityControl strong {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .opacityControl button:hover:not(:disabled) {
   background: var(--panel-hover);
@@ -667,7 +667,7 @@
 .experimentalHint {
   margin: 10px 0 0;
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 
 .select {
@@ -693,14 +693,14 @@
 .agentList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .agentList label {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -725,15 +725,15 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
 }
 .agentCopy strong {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .agentCopy span {
   overflow: hidden;
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -746,31 +746,31 @@
 .integrationFields {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-5);
 }
 .integrationFields p {
   margin: 0;
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
 }
 
 .cliUsage {
   margin: 0;
-  padding: 10px 12px;
+  padding: var(--space-4) var(--space-5);
   overflow-x: auto;
   color: var(--fg-muted);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.7;
 }
 .cliActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .integrationFields p.cliPath {
   font-family: var(--font-mono);
@@ -782,7 +782,7 @@
 
 .segmented {
   display: inline-flex;
-  padding: 3px;
+  padding: var(--space-1);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -793,7 +793,7 @@
   padding: 0 14px;
   color: var(--fg-muted);
   border-radius: calc(var(--radius-md) - 2px);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 .segmented button:hover {
   color: var(--fg);
@@ -801,13 +801,13 @@
 .segmented button.segmentActive {
   color: var(--fg);
   background: var(--panel);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--bg) 82%, transparent);
 }
 
 .featureList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .featureList > button {
@@ -815,8 +815,8 @@
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto 32px;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--fg);
@@ -854,22 +854,22 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .featureCopy strong {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .featureCopy span {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.4;
 }
 
 .featureStatus {
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 
 .featureSwitch {
@@ -877,7 +877,7 @@
   height: 17px;
   display: flex;
   align-items: center;
-  padding: 2px;
+  padding: var(--space-1);
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--bg);
@@ -907,32 +907,32 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
+  gap: var(--space-5);
 }
 .resourceGrid {
   width: min(620px, 100%);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-4);
 }
 .resourceGrid label {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .resourceGrid label > span {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 .errorState {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--status-offline);
   background: var(--status-offline-soft);
   border: 1px solid var(--status-offline);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4);
 }
 
 .resourceGrid input {
@@ -944,7 +944,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   outline: none;
 }
 .resourceGrid input:focus {
@@ -954,7 +954,7 @@
   max-width: 620px;
   margin: 0;
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
 }
 
@@ -1023,8 +1023,8 @@
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1033,7 +1033,7 @@
 .cliPathValue,
 .cliPathWarning {
   font-family: var(--font-mono, monospace);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1048,12 +1048,12 @@
 .cliPathActions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .cliPathActions button {
-  padding: 4px 10px;
-  font-size: 11px;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-1);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg);
@@ -1072,7 +1072,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-5);
   padding: 10px 0;
   border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
 }

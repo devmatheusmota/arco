@@ -213,7 +213,7 @@ export function GitControl({ projectId, cwd, ptyId, terminalName }: GitControlPr
                 disabled={busy}
                 onClick={() => void handleInitGit()}
               >
-                <GitBranch size={13} />
+                <GitBranch size={14} />
                 {busy ? t('git.initOffer.busy') : t('git.initOffer.button')}
               </button>
             ) : null}
@@ -223,7 +223,7 @@ export function GitControl({ projectId, cwd, ptyId, terminalName }: GitControlPr
               style={{ width: '100%' }}
               onClick={() => void refresh()}
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={14} />
               {t('git.refresh')}
             </button>
           </div>
@@ -251,7 +251,7 @@ export function GitControl({ projectId, cwd, ptyId, terminalName }: GitControlPr
           title={t('files.revealFolder')}
           aria-label={t('files.revealFolder')}
         >
-          <FolderSearch size={13} />
+          <FolderSearch size={14} />
         </button>
         <button
           type="button"
@@ -261,12 +261,12 @@ export function GitControl({ projectId, cwd, ptyId, terminalName }: GitControlPr
           title={t('git.refresh')}
           aria-label={t('git.refresh')}
         >
-          <RefreshCw size={13} className={loading ? styles.spinning : undefined} />
+          <RefreshCw size={14} className={loading ? styles.spinning : undefined} />
         </button>
       </div>
 
       <div className={styles.branchRow}>
-        <GitBranch size={13} />
+        <GitBranch size={14} />
         <span>{status.branch}</span>
         {status.detached ? <small>{t('git.detached')}</small> : null}
         <button
@@ -280,11 +280,11 @@ export function GitControl({ projectId, cwd, ptyId, terminalName }: GitControlPr
           <RefreshCw size={12} className={busy ? styles.spinning : undefined} />
           <span className={styles.syncCounts}>
             <span>
-              <ArrowDown size={11} />
+              <ArrowDown size={12} />
               {status.behind}
             </span>
             <span>
-              <ArrowUp size={11} />
+              <ArrowUp size={12} />
               {status.ahead}
             </span>
           </span>
@@ -319,7 +319,7 @@ export function GitControl({ projectId, cwd, ptyId, terminalName }: GitControlPr
             onClick={() => void sync()}
             title={syncTitle}
           >
-            <RefreshCw size={13} className={busy ? styles.spinning : undefined} />
+            <RefreshCw size={14} className={busy ? styles.spinning : undefined} />
             {t('git.sync.action')}
           </button>
         </div>
@@ -413,7 +413,7 @@ function ChangeGroup({
           className={styles.groupToggle}
           onClick={() => setOpen((value) => !value)}
         >
-          {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           <strong>{label}</strong>
           <span>{items.length}</span>
         </button>
@@ -426,7 +426,7 @@ function ChangeGroup({
               aria-label={t('git.discardAll')}
               onClick={() => confirmDiscard(paths)}
             >
-              <RotateCcw size={13} />
+              <RotateCcw size={14} />
             </button>
           ) : null}
           <button
@@ -555,7 +555,7 @@ function TreeNodeView({
             aria-label={isStaged ? t('git.unstage') : t('git.stage')}
             onClick={() => onPrimary([change.path])}
           >
-            {isStaged ? <Minus size={13} /> : <Plus size={13} />}
+            {isStaged ? <Minus size={14} /> : <Plus size={14} />}
           </button>
         </div>
       </div>
@@ -573,7 +573,7 @@ function TreeNodeView({
           onClick={() => setOpen((value) => !value)}
         >
           {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-          <Folder size={13} className={styles.dirIcon} />
+          <Folder size={14} className={styles.dirIcon} />
           <span className={styles.dirName}>{node.name}</span>
         </button>
         <div className={styles.fileActions}>
@@ -595,7 +595,7 @@ function TreeNodeView({
             aria-label={isStaged ? t('git.unstageAll') : t('git.stageAll')}
             onClick={() => onPrimary(descendants)}
           >
-            {isStaged ? <Minus size={13} /> : <Plus size={13} />}
+            {isStaged ? <Minus size={14} /> : <Plus size={14} />}
           </button>
         </div>
       </div>
@@ -629,7 +629,7 @@ function GitMessage({
 }) {
   return (
     <div className={styles.message}>
-      <GitBranch size={22} />
+      <GitBranch size={20} />
       <strong>{title}</strong>
       {description ? <span>{description}</span> : null}
       {action}

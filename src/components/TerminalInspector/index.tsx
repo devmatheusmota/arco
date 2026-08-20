@@ -169,7 +169,7 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
           {isTerminalPane && activeTab ? (
             <AgentIcon type={activeTab.type} size={16} theme={terminalTheme} />
           ) : (
-            <TerminalSquare size={15} />
+            <TerminalSquare size={16} />
           )}
         </div>
         <div className={styles.titleBlock}>

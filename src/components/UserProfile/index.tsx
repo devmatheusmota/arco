@@ -53,7 +53,7 @@ export function UserProfile() {
             {activeProfile ? ` · ${activeProfile.name}` : ''}
           </span>
         </span>
-        <Settings size={13} className={styles.gear} />
+        <Settings size={14} className={styles.gear} />
       </button>
 
       {open ? (
@@ -79,7 +79,7 @@ export function UserProfile() {
               setOpen(false)
             }}
           >
-            <Settings size={13} />
+            <Settings size={14} />
             {t('profile.preferences')}
           </button>
           <button
@@ -90,11 +90,11 @@ export function UserProfile() {
               setOpen(false)
             }}
           >
-            <Users size={13} />
+            <Users size={14} />
             <span>{t('profile.manageAccounts')}</span>
           </button>
           <button type="button" className={`${styles.item} ${styles.dangerItem}`} onClick={logout}>
-            <LogOut size={13} />
+            <LogOut size={14} />
             <span>{t('profile.logout')}</span>
           </button>
         </div>

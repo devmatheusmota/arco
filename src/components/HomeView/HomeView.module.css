@@ -5,11 +5,11 @@
   isolation: isolate;
   background: var(--bg);
   color: var(--fg);
-  padding: 24px 28px 18px;
+  padding: var(--space-7) var(--space-7) var(--space-6);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: var(--space-7);
 }
 
 .home > :not(.asciiBackdrop):not(.homeBackdrop) {
@@ -39,24 +39,24 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: var(--space-7);
 }
 
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 .timeJumpButton {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 11px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
   color: var(--fg-muted);
-  font: 11px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   cursor: pointer;
 }
 .timeJumpButton:hover {
@@ -71,7 +71,7 @@
 .identity {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-6);
 }
 
 .avatar {
@@ -85,12 +85,12 @@
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   color: var(--fg);
-  font-size: 20px;
+  font-size: var(--font-size-5);
   font-weight: 600;
 }
 
 .greeting {
-  font-size: 26px;
+  font-size: var(--font-size-6);
   font-weight: 500;
   margin: 0;
   color: var(--fg);
@@ -99,7 +99,7 @@
 }
 
 .date {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   color: var(--text-tertiary);
   margin-top: 4px;
 }
@@ -109,8 +109,8 @@
 .nowPlaying {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 14px 6px 6px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5) var(--space-3) var(--space-3);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -147,12 +147,12 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .nowPlayingTrack {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   color: var(--fg);
   max-width: 180px;
@@ -164,11 +164,11 @@
 .nowPlayingArtistRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .nowPlayingArtist {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
   max-width: 140px;
   overflow: hidden;
@@ -177,7 +177,7 @@
 }
 
 .nowPlayingIdle {
-  font-size: 9px;
+  font-size: var(--font-size-1);
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--text-quaternary);
@@ -187,7 +187,7 @@
 .equalizer {
   display: inline-flex;
   align-items: flex-end;
-  gap: 1.5px;
+  gap: var(--space-1);
   height: 10px;
 }
 .eqBar {
@@ -223,8 +223,8 @@
 .agentHero {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-6);
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-sunken);
@@ -260,31 +260,31 @@
 .agentHeroBody {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   flex: 1;
 }
 
 .agentHeroTitle {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 600;
   color: var(--fg);
 }
 
 .agentHeroSub {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
 }
 
 .agentHeroCta {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--text-secondary);
-  padding: 7px 12px;
+  padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -299,27 +299,27 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-5);
   min-width: 0;
 }
 
 .sectionHeader {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   color: var(--text-tertiary);
   letter-spacing: 1.4px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .sectionCount {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   letter-spacing: 0;
   color: var(--text-tertiary);
-  padding: 1px 6px;
+  padding: 0 var(--space-3);
   border-radius: 999px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -330,7 +330,7 @@
   background: transparent;
   border: none;
   font-family: inherit;
-  font-size: 10px;
+  font-size: var(--font-size-1);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--text-quaternary);
@@ -344,8 +344,8 @@
 .emptyState {
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
-  padding: 22px 16px;
-  font-size: 12px;
+  padding: var(--space-7) var(--space-6);
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
   text-align: center;
 }
@@ -355,7 +355,7 @@
 .projectGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-5);
 }
 @media (max-width: 900px) {
   .projectGrid {
@@ -366,18 +366,18 @@
 .projectCard {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-5);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .nowPlayingArtist {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
   max-width: 140px;
   overflow: hidden;
@@ -386,7 +386,7 @@
 }
 
 .nowPlayingIdle {
-  font-size: 9px;
+  font-size: var(--font-size-1);
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--text-quaternary);
@@ -396,7 +396,7 @@
 .equalizer {
   display: inline-flex;
   align-items: flex-end;
-  gap: 1.5px;
+  gap: var(--space-1);
   height: 10px;
 }
 .eqBar {
@@ -432,8 +432,8 @@
 .agentHero {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-6);
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-sunken);
@@ -469,31 +469,31 @@
 .agentHeroBody {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   flex: 1;
 }
 
 .agentHeroTitle {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 600;
   color: var(--fg);
 }
 
 .agentHeroSub {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
 }
 
 .agentHeroCta {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--text-secondary);
-  padding: 7px 12px;
+  padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -508,27 +508,27 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-5);
   min-width: 0;
 }
 
 .sectionHeader {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   color: var(--text-tertiary);
   letter-spacing: 1.4px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .sectionCount {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   letter-spacing: 0;
   color: var(--text-tertiary);
-  padding: 1px 6px;
+  padding: 0 var(--space-3);
   border-radius: 999px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -539,7 +539,7 @@
   background: transparent;
   border: none;
   font-family: inherit;
-  font-size: 10px;
+  font-size: var(--font-size-1);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--text-quaternary);
@@ -553,8 +553,8 @@
 .emptyState {
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
-  padding: 22px 16px;
-  font-size: 12px;
+  padding: var(--space-7) var(--space-6);
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
   text-align: center;
 }
@@ -564,7 +564,7 @@
 .projectGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-5);
 }
 @media (max-width: 900px) {
   .projectGrid {
@@ -575,8 +575,8 @@
 .projectCard {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-5);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -617,7 +617,7 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  font-size: 15px;
+  font-size: var(--font-size-3);
   font-weight: 600;
   color: #fff;
   background: var(--accent);
@@ -626,13 +626,13 @@
 .projectInfo {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   flex: 1;
 }
 
 .projectName {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   color: var(--fg);
   overflow: hidden;
@@ -642,7 +642,7 @@
 
 .projectMeta {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -660,8 +660,8 @@
 .agentHero {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-6);
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-sunken);
@@ -697,31 +697,31 @@
 .agentHeroBody {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   flex: 1;
 }
 
 .agentHeroTitle {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 600;
   color: var(--fg);
 }
 
 .agentHeroSub {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
 }
 
 .agentHeroCta {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--text-secondary);
-  padding: 7px 12px;
+  padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -736,27 +736,27 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-5);
   min-width: 0;
 }
 
 .sectionHeader {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   color: var(--text-tertiary);
   letter-spacing: 1.4px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .sectionCount {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   letter-spacing: 0;
   color: var(--text-tertiary);
-  padding: 1px 6px;
+  padding: 0 var(--space-3);
   border-radius: 999px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -767,7 +767,7 @@
   background: transparent;
   border: none;
   font-family: inherit;
-  font-size: 10px;
+  font-size: var(--font-size-1);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--text-quaternary);
@@ -781,8 +781,8 @@
 .emptyState {
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
-  padding: 22px 16px;
-  font-size: 12px;
+  padding: var(--space-7) var(--space-6);
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
   text-align: center;
 }
@@ -792,7 +792,7 @@
 .projectGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-5);
 }
 @media (max-width: 900px) {
   .projectGrid {
@@ -803,8 +803,8 @@
 .projectCard {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-5);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -845,7 +845,7 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  font-size: 15px;
+  font-size: var(--font-size-3);
   font-weight: 600;
   color: #fff;
   background: var(--accent);
@@ -854,13 +854,13 @@
 .projectInfo {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   flex: 1;
 }
 
 .projectName {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   color: var(--fg);
   overflow: hidden;
@@ -870,7 +870,7 @@
 
 .projectMeta {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -886,7 +886,7 @@
 .bottomGrid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
-  gap: 22px;
+  gap: var(--space-7);
   align-items: start;
 }
 @media (max-width: 900px) {
@@ -912,8 +912,8 @@
 .notifItem {
   display: flex;
   align-items: flex-start;
-  gap: 11px;
-  padding: 12px 14px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-5);
   border-bottom: 1px solid var(--border-subtle);
   transition: background 0.15s;
 }
@@ -978,13 +978,13 @@
 .notifBody {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   flex: 1;
 }
 
 .notifTitle {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--fg);
   overflow: hidden;
@@ -993,7 +993,7 @@
 }
 
 .notifText {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1004,7 +1004,7 @@
 
 .notifTime {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
   flex-shrink: 0;
   margin-top: 1px;
@@ -1015,9 +1015,9 @@
 .usageStrip {
   display: grid;
   grid-template-columns: 1fr 1fr 1.15fr;
-  gap: 6px;
+  gap: var(--space-3);
   align-items: stretch;
-  padding: 6px;
+  padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--bg-sunken) 72%, transparent);
@@ -1070,7 +1070,7 @@
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 13px 14px;
+  padding: var(--space-5) var(--space-5);
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1089,7 +1089,7 @@
 .cardHead {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-4);
   margin-bottom: 14px;
   min-height: 26px;
 }
@@ -1125,7 +1125,7 @@
 }
 
 .name {
-  font-size: 13.5px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   letter-spacing: -0.01em;
   color: var(--fg);
@@ -1134,11 +1134,11 @@
 .plan {
   margin-left: 2px;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  padding: 2px 6px;
+  padding: var(--space-1) var(--space-3);
   border-radius: 5px;
   text-transform: lowercase;
 }
@@ -1147,16 +1147,16 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-4);
 }
 
 .live {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
 }
 .liveDot {
   width: 6px;
@@ -1199,17 +1199,17 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-4);
 }
 .heroNumWrap {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
 }
 .heroNum {
   font-family: var(--font-mono);
-  font-size: 28px;
+  font-size: var(--font-size-7);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -1217,19 +1217,19 @@
 }
 .heroDen {
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: var(--font-size-4);
   font-weight: 500;
   color: var(--text-quaternary);
 }
 .timechip {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
   border: 1px solid var(--border);
   border-radius: 7px;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   display: inline-flex;
-  gap: 5px;
+  gap: var(--space-2);
   align-items: center;
   white-space: nowrap;
   flex-shrink: 0;
@@ -1243,7 +1243,7 @@
 }
 .heroSub {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
   margin-top: 6px;
 }
@@ -1262,40 +1262,40 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-6);
   margin-top: 16px;
 }
 
 .meterList {
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: var(--space-5);
 }
 
 .statGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 9px 14px;
-  padding-top: 13px;
+  gap: var(--space-4) var(--space-5);
+  padding-top: var(--space-5);
   border-top: 1px solid var(--border-subtle);
 }
 
 .statCell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .statLabel {
-  font-size: 10px;
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
   letter-spacing: 0.02em;
 }
 
 .statValue {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -1309,18 +1309,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
   margin-top: 14px;
-  padding-top: 12px;
+  padding-top: var(--space-5);
   border-top: 1px solid var(--border-subtle);
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
 }
 .cardFootLeft {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1343,18 +1343,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   text-align: center;
   padding: 0;
 }
 .usageEmptyTitle {
-  font-size: 12.5px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   color: var(--text-tertiary);
 }
 .usageEmptyHint {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
 }
 
@@ -1364,7 +1364,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: var(--space-4);
   margin-top: 16px;
   min-height: 0;
 }
@@ -1383,35 +1383,35 @@
 .meter {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-3);
 }
 
 .meterRow {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .meterLabel {
-  font-size: 11.5px;
+  font-size: var(--font-size-1);
   color: var(--text-secondary);
   display: inline-flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .meterReset {
   color: var(--text-quaternary);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 400;
 }
 
 .meterValue {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   flex-shrink: 0;
 }
@@ -1462,7 +1462,7 @@
   display: inline-flex;
   align-items: center;
   align-self: flex-end;
-  gap: 3px;
+  gap: var(--space-1);
   color: var(--text-tertiary);
 }
 
@@ -1471,7 +1471,7 @@
 .activityHeatmap {
   flex: 1;
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
   align-items: stretch;
   min-height: 0;
 }
@@ -1479,11 +1479,11 @@
 .activityWeekdays {
   display: grid;
   grid-template-rows: repeat(7, 1fr);
-  gap: 2px;
+  gap: var(--space-1);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
-  padding-right: 2px;
+  padding-right: var(--space-1);
 }
 .activityWeekdays span {
   display: flex;
@@ -1493,7 +1493,7 @@
 
 .activityCols {
   display: flex;
-  gap: 2px;
+  gap: var(--space-1);
   flex: 1;
   min-width: 0;
 }
@@ -1501,7 +1501,7 @@
 .activityCol {
   display: grid;
   grid-template-rows: repeat(7, 1fr);
-  gap: 2px;
+  gap: var(--space-1);
   flex: 1;
   min-width: 0;
 }
@@ -1545,12 +1545,12 @@
   align-items: center;
   justify-content: center;
   height: 88px;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
 }
 
 .activityLegend {
-  font-size: 9px;
+  font-size: var(--font-size-1);
   color: var(--text-quaternary);
   margin: 0 2px;
 }
@@ -1566,14 +1566,14 @@
 .actionList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .actionCard {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-5);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1598,7 +1598,7 @@
 }
 
 .actionLabel {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--fg);
 }
 
@@ -1608,8 +1608,8 @@
 
 .kbd {
   font-family: var(--font-mono);
-  font-size: 10px;
-  padding: 2px 6px;
+  font-size: var(--font-size-1);
+  padding: var(--space-1) var(--space-3);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -1623,8 +1623,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding-top: 14px;
+  gap: var(--space-6);
+  padding-top: var(--space-5);
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -1632,24 +1632,24 @@
 .footerShortcuts {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .footerShortcuts {
-  gap: 14px;
+  gap: var(--space-5);
 }
 
 .footerLink {
   min-height: 28px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   padding: 0 9px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-tertiary);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   cursor: pointer;
   transition:
     color 140ms ease,
@@ -1668,9 +1668,9 @@
 .footerShortcut {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
   cursor: pointer;
   background: transparent;
@@ -1685,32 +1685,32 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--bg-sunken) 82%, transparent);
+  background: var(--surface-2);
 }
 .timeAnalyticsHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 13px 14px;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-5);
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg) 42%, transparent);
 }
 .timeAnalyticsTitle {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   color: var(--fg);
 }
 .timeAnalyticsSub {
   margin-top: 3px;
-  font-size: 9px;
+  font-size: var(--font-size-1);
   color: var(--text-tertiary);
 }
 .timeRange {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
+  gap: var(--space-1);
+  padding: var(--space-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--bg) 78%, transparent);
@@ -1722,7 +1722,7 @@
   padding: 0 8px;
   background: transparent;
   color: var(--text-tertiary);
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   cursor: pointer;
 }
 .timeRange .timeRangeOption:hover {
@@ -1748,70 +1748,70 @@
 .timeSummaryGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+  gap: var(--space-3);
   padding: 12px 14px 0;
 }
 .timeMetric {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px;
+  gap: var(--space-2);
+  padding: var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  background: var(--surface-1);
 }
 .timeMetric > span {
   color: var(--text-tertiary);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .timeMetric strong {
   color: var(--fg);
-  font: 600 20px var(--font-mono);
+  font: 600 var(--font-size-3) var(--font-mono);
 }
 .timeMetric small,
 .timeRow small {
   color: var(--text-quaternary);
-  font-size: 9px;
+  font-size: var(--font-size-1);
 }
 .timeBreakdowns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: var(--space-5);
   margin-top: 14px;
   padding: 0 14px;
 }
 .timeBreakdownTitle {
   margin-bottom: 7px;
   color: var(--text-tertiary);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .timeRows {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .timeRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 10px;
+  gap: var(--space-1) var(--space-4);
   align-items: center;
-  padding: 7px 9px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   background: color-mix(in srgb, var(--bg) 66%, transparent);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-muted);
 }
 .timeRowName {
   display: flex;
   align-items: center;
   min-width: 0;
-  gap: 7px;
+  gap: var(--space-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1820,16 +1820,16 @@
   grid-column: 1 / -1;
 }
 .timeEmpty {
-  padding: 13px;
+  padding: var(--space-5);
   color: var(--text-quaternary);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   text-align: center;
 }
 .timeFoot {
   margin-top: 11px;
   padding: 0 14px 12px;
   color: var(--text-quaternary);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   text-align: right;
 }
 @media (max-width: 900px) {
@@ -1845,7 +1845,7 @@
 
 .home {
   padding: 0 28px 18px;
-  gap: 24px;
+  gap: var(--space-7);
 }
 
 .home > .heroStage,
@@ -1877,7 +1877,8 @@
   height: clamp(560px, 72vh, 780px);
   pointer-events: auto;
   overflow: hidden;
-  opacity: 0.9;
+  /* Texture, not content: it sat at almost full strength behind the launcher. */
+  opacity: 0.35;
   -webkit-mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
 }
@@ -1909,7 +1910,7 @@
 
 .header {
   min-height: 56px;
-  padding-top: 10px;
+  padding-top: var(--space-4);
 }
 
 .headerSpacer {
@@ -1923,14 +1924,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: var(--space-6);
   padding: 28px 18px 42px;
   text-align: center;
 }
 
 .identity {
   flex-direction: column;
-  gap: 11px;
+  gap: var(--space-5);
 }
 
 .identityMedia {
@@ -1955,7 +1956,6 @@
   background: var(--bg-sunken);
   color: var(--fg);
   box-shadow: 0 5px 16px color-mix(in srgb, var(--bg) 72%, transparent);
-  backdrop-filter: blur(14px);
   font: 650 11px/1 var(--font-mono);
 }
 
@@ -1985,9 +1985,8 @@
 .avatar {
   width: 44px;
   height: 44px;
-  font-size: 16px;
-  background: color-mix(in srgb, var(--bg-sunken) 82%, transparent);
-  backdrop-filter: blur(8px);
+  font-size: var(--font-size-4);
+  background: var(--surface-2);
   position: relative;
   z-index: 4;
 }
@@ -2009,19 +2008,17 @@
   margin-top: 7px;
   color: var(--fg);
   font-weight: 500;
-  padding: 3px 8px;
+  padding: var(--space-1) var(--space-4);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg) 52%, transparent);
-  backdrop-filter: blur(6px);
+  background: var(--surface-1);
   text-shadow: 0 2px 12px var(--bg);
 }
 
 .agentHero {
   width: min(100%, 560px);
   min-height: 72px;
-  padding: 13px 15px;
-  background: color-mix(in srgb, var(--bg-sunken) 88%, transparent);
-  backdrop-filter: blur(14px);
+  padding: var(--space-5) var(--space-6);
+  background: var(--surface-2);
   box-shadow: 0 12px 42px color-mix(in srgb, var(--bg) 58%, transparent);
 }
 
@@ -2031,11 +2028,11 @@
 }
 
 .agentHeroTitle {
-  font-size: 14px;
+  font-size: var(--font-size-3);
 }
 
 .agentHeroSub {
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .agentHeroCta {
@@ -2048,7 +2045,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .heroFooter {
@@ -2057,20 +2054,19 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-5);
 }
 
 .quickLaunch {
   width: min(100%, 620px);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 7px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--bg) 76%, transparent);
+  background: var(--surface-1);
   box-shadow: 0 14px 36px color-mix(in srgb, var(--bg) 48%, transparent);
-  backdrop-filter: blur(18px);
   overflow: visible;
 }
 
@@ -2078,7 +2074,7 @@
   height: 27px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   margin: -7px -7px 0;
   padding: 0 11px;
   border-bottom: 1px solid var(--border);
@@ -2106,18 +2102,18 @@
 .quickTerminalTitle {
   margin-left: 4px;
   color: var(--text-tertiary);
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
 }
 
 .quickPromptLine {
   height: 42px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   padding: 0 9px;
   border-bottom: 1px solid var(--border);
   color: var(--accent);
-  font: 17px var(--font-mono);
+  font: var(--font-size-3) var(--font-mono);
 }
 
 .quickPrompt {
@@ -2128,7 +2124,7 @@
   border: 0;
   background: transparent;
   color: var(--fg);
-  font: 12px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   outline: none;
 }
 
@@ -2140,7 +2136,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
 }
 
 .quickAgentMenu {
@@ -2153,13 +2149,13 @@
   height: 30px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--bg-sunken) 72%, transparent);
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   cursor: pointer;
   list-style: none;
 }
@@ -2188,8 +2184,8 @@
   width: 176px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 5px;
+  gap: var(--space-1);
+  padding: var(--space-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -2208,11 +2204,11 @@
   height: 36px;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-4);
   padding: 0 9px;
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   text-align: left;
   cursor: pointer;
 }
@@ -2235,13 +2231,13 @@
   flex: 1 1 190px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--bg-sunken) 72%, transparent);
   color: var(--fg-muted);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   text-align: left;
   cursor: pointer;
 }
@@ -2250,13 +2246,13 @@
   height: 30px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--bg-sunken) 72%, transparent);
   color: var(--fg-muted);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   cursor: pointer;
   list-style: none;
 }
@@ -2312,8 +2308,8 @@
   min-width: 220px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 5px;
+  gap: var(--space-1);
+  padding: var(--space-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -2324,8 +2320,8 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
   text-align: left;
@@ -2340,7 +2336,7 @@
 .quickSelectOptions button small {
   margin-left: auto;
   color: var(--text-tertiary);
-  font: 8px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
 }
 .quickSelectOptions button:hover,
 .quickSelectOptions .quickSelectActive {
@@ -2393,12 +2389,11 @@
   min-width: 36px;
   max-width: 174px;
   height: 36px;
-  padding: 2px;
+  padding: var(--space-1);
   gap: 0;
   overflow: visible;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
-  backdrop-filter: blur(14px);
+  background: var(--surface-1);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--bg) 62%, transparent);
   transform-origin: left center;
   transition:
@@ -2412,8 +2407,8 @@
 
 .homePlayerDock .nowPlaying:hover,
 .homePlayerDock:focus-within .nowPlaying {
-  padding-right: 8px;
-  gap: 6px;
+  padding-right: var(--space-4);
+  gap: var(--space-3);
   transform: translateY(-1px);
   border-color: var(--accent-border);
   background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
@@ -2453,11 +2448,11 @@
 }
 .homePlayerDock .nowPlayingTrack {
   max-width: 124px;
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 .homePlayerDock .nowPlayingArtist {
   max-width: 98px;
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 .homePlayerDock .nowPlayingCoverStatus {
   position: absolute;
@@ -2476,7 +2471,7 @@
 .homePlayerDock .nowPlayingCoverStatus .equalizer {
   width: 8px;
   height: 7px;
-  gap: 1px;
+  gap: 0;
 }
 .homePlayerDock .nowPlayingCoverStatus .eqBar {
   width: 1px;
@@ -2510,15 +2505,14 @@
 .heroSecondaryAction {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 10px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg) 48%, transparent);
+  background: var(--surface-1);
   color: var(--fg-muted);
-  font: 11px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   cursor: pointer;
-  backdrop-filter: blur(8px);
 }
 
 .heroSecondaryAction:hover {
@@ -2529,25 +2523,24 @@
 .overviewGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: var(--space-6);
   align-items: start;
 }
 
 .overviewGrid .projectGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px 8px;
+  gap: var(--space-2) var(--space-4);
 }
 
 .overviewGrid .projectCard,
 .overviewGrid .actionCard {
   min-height: 44px;
-  background: color-mix(in srgb, var(--bg-sunken) 86%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--surface-2);
 }
 
 .overviewGrid .projectCard {
-  gap: 9px;
-  padding: 7px 10px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-color: color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: var(--radius-sm);
 }
@@ -2562,15 +2555,15 @@
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 
 .overviewGrid .projectName {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 .overviewGrid .projectMeta {
-  font-size: 9px;
+  font-size: var(--font-size-1);
 }
 .overviewGrid .projectArrow {
   width: 12px;
@@ -2585,7 +2578,7 @@
 .overviewGrid .actionList {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .bottomGrid {
@@ -2616,7 +2609,7 @@
   }
 
   .heroFooter {
-    gap: 8px;
+    gap: var(--space-4);
   }
 }
 
@@ -2681,7 +2674,7 @@
 .quickError {
   margin: 8px 12px 0;
   color: var(--danger, #f87171);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.4;
 }
 

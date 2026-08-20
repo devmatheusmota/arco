@@ -120,7 +120,7 @@ export function AgentInstallModal({ agent, label, open, onClose, onInstalled, ne
               disabled={running || blocked}
               onClick={() => void install(chosen)}
             >
-              <Download size={13} />
+              <Download size={14} />
               {running ? t('agentInstall.installing') : t('agentInstall.install')}
             </button>
           ) : null}
@@ -166,7 +166,7 @@ export function AgentInstallModal({ agent, label, open, onClose, onInstalled, ne
                 disabled={nodeRunning || blockedByOther('node-toolchain')}
                 onClick={() => void nodeInstall.install(nodeMethod)}
               >
-                <Download size={13} />
+                <Download size={14} />
                 {nodeRunning ? t('agentInstall.installing') : t('agentInstall.installNode')}
               </button>
             ) : null}
@@ -175,7 +175,7 @@ export function AgentInstallModal({ agent, label, open, onClose, onInstalled, ne
               className={styles.linkBtn}
               onClick={() => void openInBrowser(NODE_DOWNLOAD_URL).catch(() => undefined)}
             >
-              <ExternalLink size={13} /> {t('agentInstall.downloadNode')}
+              <ExternalLink size={14} /> {t('agentInstall.downloadNode')}
             </button>
           </div>
           {nodeMethod ? <div className={styles.command}>{nodeMethod.command}</div> : null}

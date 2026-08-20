@@ -392,7 +392,7 @@ export function NormalProjectSidebar() {
           onClick={() => openModal('findJump')}
           title={t('ui.sidebar.search')}
         >
-          <Search size={15} className={styles.quickNavIcon} />
+          <Search size={16} className={styles.quickNavIcon} />
           <span>{t('ui.sidebar.search')}</span>
         </button>
       </div>
@@ -532,7 +532,7 @@ export function NormalProjectSidebar() {
                 title={t('sync.title')}
                 aria-label={t('sync.title')}
               >
-                <RefreshCw size={13} />
+                <RefreshCw size={14} />
               </button>
             ) : null}
             {preferences.topbarShowProfile ? (
@@ -543,7 +543,7 @@ export function NormalProjectSidebar() {
                 title={t('profile.manageAccounts')}
                 aria-label={t('profile.manageAccounts')}
               >
-                <Users size={13} />
+                <Users size={14} />
               </button>
             ) : null}
           </div>

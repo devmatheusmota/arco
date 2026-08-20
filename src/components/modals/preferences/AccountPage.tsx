@@ -74,9 +74,9 @@ export function AccountPage({
         description={t('prefs.localAccountsDesc')}
       >
         <button type="button" className={styles.secondaryButton} onClick={onManageAccounts}>
-          <UserRound size={15} />
+          <UserRound size={16} />
           {t('profile.manageAccounts')}
-          <ChevronRight size={15} />
+          <ChevronRight size={16} />
         </button>
       </SettingsSection>
     </>

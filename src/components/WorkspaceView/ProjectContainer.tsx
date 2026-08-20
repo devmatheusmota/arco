@@ -113,7 +113,7 @@ export const ProjectContainer = memo(function ProjectContainer({
               title={t('ws.dragToReorderContainer')}
               aria-label={t('ws.dragContainer')}
             >
-              <GripVertical size={11} />
+              <GripVertical size={12} />
             </button>
           ) : null}
           {project.iconUrl ? (
@@ -136,7 +136,7 @@ export const ProjectContainer = memo(function ProjectContainer({
               title={t('ws.addPaneHere')}
               aria-label={t('ws.addPaneHere')}
             >
-              <Plus size={11} />
+              <Plus size={12} />
             </button>
             {graphifyEnabled && !graphifyPaneOpen && graphifyCwd ? (
               <button
@@ -150,7 +150,7 @@ export const ProjectContainer = memo(function ProjectContainer({
                 title={t('graphify.startInProject')}
                 aria-label={t('graphify.startInProject')}
               >
-                <Network size={11} />
+                <Network size={12} />
               </button>
             ) : null}
             <button
@@ -163,7 +163,7 @@ export const ProjectContainer = memo(function ProjectContainer({
               title={t('ws.collapseContainer')}
               aria-label={t('ws.collapse')}
             >
-              <ChevronRight size={11} />
+              <ChevronRight size={12} />
             </button>
             <button
               type="button"
@@ -179,7 +179,7 @@ export const ProjectContainer = memo(function ProjectContainer({
               title={isFullscreen ? t('ws.exitFullscreen') : t('ws.containerFullscreen')}
               aria-label={t('ws.toggleFullscreen')}
             >
-              {isFullscreen ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+              {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
             </button>
             <button
               type="button"
@@ -191,7 +191,7 @@ export const ProjectContainer = memo(function ProjectContainer({
               title={t('ws.closeContainer')}
               aria-label={t('ws.close')}
             >
-              <Minus size={11} />
+              <Minus size={12} />
             </button>
           </div>
         </div>

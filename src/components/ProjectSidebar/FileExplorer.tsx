@@ -178,7 +178,7 @@ export function FileExplorer({ projectId, cwd, ptyId, terminalName }: FileExplor
           title={t('files.revealFolder')}
           aria-label={t('files.revealFolder')}
         >
-          <FolderSearch size={13} />
+          <FolderSearch size={14} />
         </button>
         <button
           type="button"
@@ -187,7 +187,7 @@ export function FileExplorer({ projectId, cwd, ptyId, terminalName }: FileExplor
           title={t('files.refresh')}
           aria-label={t('files.refresh')}
         >
-          <RefreshCw size={13} />
+          <RefreshCw size={14} />
         </button>
       </div>
       <DirectoryNode
@@ -217,18 +217,18 @@ export function FileExplorer({ projectId, cwd, ptyId, terminalName }: FileExplor
           {!menu.entry.is_dir ? (
             <>
               <MenuAction
-                icon={<LayoutGrid size={13} />}
+                icon={<LayoutGrid size={14} />}
                 label={t('files.addToGrid')}
                 onClick={() => addToGrid(menu.entry)}
               />
               <MenuAction
-                icon={<Eye size={13} />}
+                icon={<Eye size={14} />}
                 label={t('files.preview')}
                 onClick={() => void showPreview(menu.entry)}
               />
               {MARKDOWN_PATTERN.test(menu.entry.path) ? (
                 <MenuAction
-                  icon={<PanelRightOpen size={13} />}
+                  icon={<PanelRightOpen size={14} />}
                   label={t('files.openMarkdownSidebar')}
                   onClick={() => openMarkdownInSidebar(menu.entry)}
                 />
@@ -236,7 +236,7 @@ export function FileExplorer({ projectId, cwd, ptyId, terminalName }: FileExplor
             </>
           ) : null}
           <MenuAction
-            icon={<FolderSearch size={13} />}
+            icon={<FolderSearch size={14} />}
             label={t('files.reveal')}
             onClick={() => {
               setMenu(null)
@@ -244,13 +244,13 @@ export function FileExplorer({ projectId, cwd, ptyId, terminalName }: FileExplor
             }}
           />
           <MenuAction
-            icon={<Pencil size={13} />}
+            icon={<Pencil size={14} />}
             label={t('files.rename')}
             onClick={() => void renameEntry(menu.entry)}
           />
           <MenuAction
             danger
-            icon={<Trash2 size={13} />}
+            icon={<Trash2 size={14} />}
             label={t('files.delete')}
             onClick={() => void deleteEntry(menu.entry)}
           />
@@ -330,7 +330,7 @@ function DirectoryNode({
         }
         title={path}
       >
-        {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         {open ? <FolderOpen size={14} /> : <Folder size={14} />}
         <span>{name}</span>
       </button>
@@ -367,7 +367,7 @@ function DirectoryNode({
                     onDoubleClick={() => onOpen(entry)}
                     onContextMenu={(event) => onContextMenu(event, entry)}
                   >
-                    <File size={13} />
+                    <File size={14} />
                     <span>{entry.name}</span>
                     <span className={styles.rowActions}>
                       <button

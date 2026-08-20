@@ -27,7 +27,7 @@ export function AgentInstallButton({ agent, label, onInstalled, nested }: Props)
         disabled={busyAgent !== null && busyAgent !== agent}
         onClick={() => setOpen(true)}
       >
-        <Download size={13} /> {t('agentInstall.install')}
+        <Download size={14} /> {t('agentInstall.install')}
       </button>
       <AgentInstallModal
         agent={agent}

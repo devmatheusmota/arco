@@ -165,7 +165,7 @@ export function NewProjectModal() {
         </label>
         <div className={controls.cwdRow}>
           <div className={controls.cwdInputWrap}>
-            <Folder size={15} aria-hidden="true" />
+            <Folder size={16} aria-hidden="true" />
             <input
               id="new-project-path"
               className={controls.input}
@@ -238,7 +238,7 @@ export function NewProjectModal() {
               cursor: 'pointer',
             }}
           >
-            <Palette size={13} />
+            <Palette size={14} />
           </button>
         </div>
       </div>

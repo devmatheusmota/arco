@@ -22,9 +22,9 @@
 .barStart {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   flex: 0 0 auto;
-  padding-right: 8px;
+  padding-right: var(--space-4);
   border-right: 1px solid var(--border);
 }
 
@@ -44,7 +44,6 @@
 .iconBtn:hover {
   background: var(--panel-hover);
   color: var(--fg);
-  transform: scale(1.08);
 }
 .iconBtnActive {
   color: var(--fg);
@@ -69,10 +68,10 @@
 .title {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   margin-left: 6px;
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   color: var(--fg);
   letter-spacing: 0.02em;
@@ -86,14 +85,14 @@
   border: 1px solid var(--border-strong);
   border-radius: 5px;
   color: var(--accent);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 750;
 }
 
 .barEnd {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   height: 100%;
   flex-shrink: 0;
 }
@@ -101,7 +100,7 @@
 .groupTabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
   flex: 100 1 0;
   height: 100%;
@@ -117,7 +116,7 @@
 .historyControls {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   flex: 0 0 auto;
 }
 
@@ -137,7 +136,6 @@
 .historyBtn:hover:not(:disabled) {
   color: var(--fg);
   background: var(--panel-hover);
-  transform: scale(1.08);
 }
 .historyBtn:disabled {
   opacity: 0.28;
@@ -150,36 +148,37 @@
   max-width: 190px;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   padding: 0 4px 0 8px;
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
   background: transparent;
   flex: 0 0 auto;
   transition:
-    transform 140ms cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease;
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
 }
 .groupTab:hover {
-  background: var(--panel-hover);
+  background: var(--state-hover);
   color: var(--fg);
-  transform: translateY(-1px);
 }
+
+/*
+ * The same wash and rail the session tabs and the sidebar rows use. It used to
+ * lift by a pixel, draw an inset border and cast a shadow — three ways of saying
+ * one thing, and the lift animated `transform` on a bar that sits above the
+ * terminal.
+ */
 .groupTabActive {
-  background: var(--bg-sunken);
+  background: var(--state-selected);
   color: var(--fg);
-  box-shadow:
-    inset 0 0 0 1px var(--border-strong),
-    0 2px 8px rgba(0, 0, 0, 0.25);
-  transform: translateY(-1px);
+  box-shadow: inset 2px 0 0 var(--state-selected-rail);
 }
 
 .groupTabMain {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   min-width: 0;
   flex: 1;
   height: 100%;
@@ -253,7 +252,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 
@@ -266,7 +265,7 @@
   place-items: center;
   background: var(--panel);
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   line-height: 14px;
   flex-shrink: 0;
@@ -281,7 +280,7 @@
 .widgets {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   height: 100%;
   flex-shrink: 0;
 }
@@ -290,27 +289,27 @@
 .statusGroup {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   height: 24px;
 }
 
 .statusGroup {
-  padding-left: 8px;
+  padding-left: var(--space-4);
   border-left: 1px solid var(--border);
 }
 
 .remoteDevicePill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 22px;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border: 1px solid var(--status-working);
   border-radius: 8px;
   color: var(--status-working);
   background: var(--status-working-soft);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -350,13 +349,13 @@
 .usagePill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: var(--space-3);
+  font-size: var(--font-size-1);
   font-family: var(--font-mono);
   color: var(--pill-color, var(--fg-muted));
   background: var(--bg-sunken);
   min-height: 22px;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border-radius: 8px;
   margin-right: 0;
   font-weight: 600;
@@ -389,12 +388,12 @@
   right: 0;
   min-width: 184px;
   max-width: 300px;
-  padding: 10px 12px;
+  padding: var(--space-4) var(--space-5);
   box-sizing: border-box;
   border-radius: 12px;
   border: 1px solid var(--border-strong);
   background: var(--bg-elevated);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--shadow-popover);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
@@ -415,7 +414,7 @@
 }
 
 .usagePopoverTitle {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   color: var(--fg);
   margin-bottom: 8px;
@@ -426,8 +425,8 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
-  font-size: 11px;
+  gap: var(--space-5);
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
 }
 
@@ -459,7 +458,7 @@
 
 .usagePopoverFooter {
   margin-top: 8px;
-  font-size: 10px;
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
   line-height: 1.3;
 }
@@ -497,14 +496,14 @@
 .profilePill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   max-width: 180px;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-family: var(--font-mono);
   color: var(--fg-muted);
   background: var(--bg-sunken);
   min-height: 22px;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border-radius: 8px;
   margin-right: 0;
   cursor: pointer;
@@ -523,12 +522,12 @@
 }
 
 .ramPill {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-family: var(--font-mono);
   color: var(--fg-muted);
   background: var(--bg-sunken);
   min-height: 22px;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border-radius: 8px;
   margin-right: 0;
   cursor: pointer;
@@ -596,7 +595,7 @@
 .barEnd > .rightSidebarBtn + .windowBtn {
   margin-left: 4px;
   border-left: 1px solid var(--border);
-  padding-left: 6px;
+  padding-left: var(--space-3);
   width: 34px;
 }
 .windowBtn:hover {
@@ -642,17 +641,17 @@
 
 .bar[data-style='three-areas'] .widgets {
   min-width: 0;
-  gap: 6px;
+  gap: var(--space-3);
   overflow: hidden;
 }
 
 .bar[data-style='three-areas'] .utilityGroup,
 .bar[data-style='three-areas'] .statusGroup {
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .bar[data-style='three-areas'] .statusGroup {
-  padding-left: 8px;
+  padding-left: var(--space-4);
 }
 
 .bar[data-style='three-areas'] .usageWidget,

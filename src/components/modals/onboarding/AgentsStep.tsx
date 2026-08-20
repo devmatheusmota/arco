@@ -172,14 +172,14 @@ export function AgentsStep({
                           if (selectable) onToggle(row.agent.id, !active)
                         }}
                       >
-                        {active ? <Check size={11} /> : null}
+                        {active ? <Check size={12} /> : null}
                       </span>
                     ) : null}
                   </td>
                   <td>
                     <div className={styles.agent}>
                       <span className={styles.icon}>
-                        <AgentIcon type={row.agent.id} size={22} theme={terminalTheme} />
+                        <AgentIcon type={row.agent.id} size={20} theme={terminalTheme} />
                       </span>
                       <span className={styles.meta}>
                         <b>{row.agent.label}</b>

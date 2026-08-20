@@ -16,12 +16,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--space-6);
   position: relative;
   z-index: 4;
   flex: 0 0 58px;
   box-sizing: border-box;
-  padding: 8px 16px;
+  padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--border);
   background: var(--panel);
 }
@@ -33,14 +33,14 @@
 
 .eyebrow {
   color: var(--accent);
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .header h1 {
   margin: 3px 0 2px;
-  font-size: 16px;
+  font-size: var(--font-size-4);
   letter-spacing: -0.02em;
 }
 
@@ -48,7 +48,7 @@
   max-width: 440px;
   margin: 0;
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
 }
 
@@ -56,7 +56,7 @@
 .composer {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .primaryButton,
@@ -65,13 +65,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  padding: 6px 9px;
+  padding: var(--space-3) var(--space-4);
   background: var(--bg-elevated);
   color: var(--fg);
-  font: 600 10px var(--font-sans);
+  font: 600 var(--font-size-1) var(--font-sans);
   cursor: pointer;
 }
 
@@ -171,7 +171,7 @@
   top: 8px;
   left: 12px;
   color: var(--accent);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 
@@ -208,7 +208,7 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   padding: 0 7px;
   background: var(--shape-tabs-lane-bg);
   border-bottom: 1px solid var(--shape-tabs-lane-border);
@@ -225,13 +225,13 @@
   flex: 0 0 auto;
 }
 .nodeHeader strong {
-  font: 500 12px var(--font-sans);
+  font: 500 var(--font-size-1) var(--font-sans);
   white-space: nowrap;
 }
 .status {
   margin-left: auto;
   color: var(--fg-faint);
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   text-transform: uppercase;
 }
 
@@ -249,7 +249,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--fg-muted);
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -257,7 +257,7 @@
 .nodeMeta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   height: 20px;
   box-sizing: border-box;
   padding: 0 8px;
@@ -265,7 +265,7 @@
   border-bottom: 1px solid var(--border);
   background: var(--bg-elevated);
   color: var(--fg-faint);
-  font: 8px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   white-space: nowrap;
 }
 
@@ -282,22 +282,22 @@
   border: 0;
   background: var(--bg-sunken);
   color: var(--fg-faint);
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   overflow: hidden;
 }
 
 .terminalSurface > span {
-  padding: 7px;
+  padding: var(--space-3);
 }
 .protocolTerminal {
   width: 100%;
   height: 100%;
   margin: 0;
-  padding: 8px;
+  padding: var(--space-4);
   overflow: auto;
   color: var(--fg);
   background: var(--bg-sunken);
-  font: 10px/1.35 var(--font-mono);
+  font: var(--font-size-1)/1.35 var(--font-mono);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -335,18 +335,18 @@
   display: flex;
   align-items: center;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   transform: translate(-50%, -50%);
   text-align: center;
 }
 
 .emptyState strong {
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .emptyState span {
   max-width: 280px;
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
 }
 .emptyIcon {
@@ -363,7 +363,7 @@
   right: 16px;
   bottom: 16px;
   color: var(--fg-faint);
-  font: 9px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
 }
 
 .composer {
@@ -372,7 +372,7 @@
   flex: 0 0 auto;
   width: auto;
   margin: 0 12px 12px;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -385,10 +385,10 @@
   min-width: 0;
   border: 1px solid var(--border-strong);
   border-radius: 5px;
-  padding: 6px 7px;
+  padding: var(--space-3) var(--space-3);
   background: var(--bg-sunken);
   color: var(--fg);
-  font: 10px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
 }
 
 .composer select {
@@ -444,7 +444,7 @@
   }
   .headerActions .secondaryButton {
     width: 28px;
-    padding: 6px;
+    padding: var(--space-3);
     font-size: 0;
   }
   .headerActions .secondaryButton svg {

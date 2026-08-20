@@ -1,6 +1,6 @@
 .inspector {
   flex: 0 0 auto;
-  padding: 10px;
+  padding: var(--space-4);
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg-sunken) 88%, var(--panel));
 }
@@ -8,7 +8,7 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
@@ -29,12 +29,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
 .eyebrow {
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -45,7 +45,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 650;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -78,13 +78,13 @@
 
 .path {
   margin-top: 8px;
-  padding: 6px 7px;
+  padding: var(--space-3) var(--space-3);
   overflow: hidden;
   color: var(--fg-muted);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font: 10px/1.35 var(--font-mono);
+  font: var(--font-size-1)/1.35 var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -92,7 +92,7 @@
 .actionsGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
+  gap: var(--space-2);
   margin-top: 8px;
 }
 
@@ -102,14 +102,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
+  gap: var(--space-3);
   padding: 0 8px;
   overflow: hidden;
   color: var(--fg-muted);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   text-align: left;
 }
 
@@ -144,9 +144,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -154,7 +154,7 @@
 
 .addTab {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -170,11 +170,11 @@
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) 8px;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   padding: 0 7px;
   color: var(--fg-muted);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   text-align: left;
 }
 
@@ -187,7 +187,7 @@
 .tabType {
   overflow: hidden;
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   text-overflow: ellipsis;
   text-transform: uppercase;

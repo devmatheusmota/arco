@@ -1,19 +1,19 @@
 .step {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-5);
   min-width: 0;
 }
 
 .intro {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
 .title {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--font-size-5);
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -21,27 +21,27 @@
 
 .subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   color: var(--fg-muted);
   max-width: 52ch;
 }
 
 .stats {
   display: flex;
-  gap: 7px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
 .stat {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12px;
+  gap: var(--space-3);
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 4px 11px 4px 9px;
+  padding: var(--space-2) var(--space-5) var(--space-2) var(--space-4);
 }
 
 .stat b {
@@ -72,7 +72,7 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .field {
@@ -95,10 +95,10 @@
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 8px 12px 8px 32px;
+  padding: var(--space-4) var(--space-5) var(--space-4) var(--space-8);
   color: var(--fg);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   transition: border-color 150ms ease;
 }
 
@@ -116,16 +116,16 @@
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 3px;
-  gap: 2px;
+  padding: var(--space-1);
+  gap: var(--space-1);
 }
 
 .segmented button {
   background: none;
   border: 0;
   color: var(--fg-muted);
-  font-size: 12px;
-  padding: 5px 11px;
+  font-size: var(--font-size-1);
+  padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
@@ -170,11 +170,11 @@
 
 /* One height for every row, so a row with an installer does not stand taller than the rest. */
 .table tbody td {
-  padding: 6px 12px;
+  padding: var(--space-3) var(--space-5);
   height: 58px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 
 .table tbody tr:last-child td {
@@ -212,7 +212,7 @@
 .agent {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-5);
   min-width: 0;
 }
 
@@ -238,7 +238,7 @@
 .meta b {
   display: block;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 1.35;
 }
 
@@ -246,7 +246,7 @@
 .meta > span {
   display: block;
   font-family: var(--font-mono, monospace);
-  font-size: 10.5px;
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
   line-height: 1.4;
   white-space: nowrap;
@@ -261,7 +261,7 @@
 
 .version {
   font-family: var(--font-mono, monospace);
-  font-size: 11.5px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -273,9 +273,9 @@
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  padding: 3px 9px;
+  gap: var(--space-3);
+  font-size: var(--font-size-1);
+  padding: var(--space-1) var(--space-4);
   border-radius: 20px;
   border: 1px solid transparent;
   white-space: nowrap;
@@ -312,21 +312,21 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .empty {
-  padding: 18px 12px;
+  padding: var(--space-6) var(--space-5);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
 }
 
 .note {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
+  gap: var(--space-4);
+  font-size: var(--font-size-2);
   color: var(--fg-faint);
 }
 
@@ -335,7 +335,7 @@
   border: 0;
   color: var(--accent);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--font-size-2);
   cursor: pointer;
   padding: 2px 0;
 }

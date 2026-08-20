@@ -46,7 +46,7 @@ export function ServerRow({ group, theme, onOpen }: Props) {
               key={agent}
               className={group.agents.includes(agent) ? styles.agentOn : styles.agentOff}
             >
-              <AgentIcon type={agent} size={13} theme={theme} />
+              <AgentIcon type={agent} size={14} theme={theme} />
             </i>
           ))}
         </span>

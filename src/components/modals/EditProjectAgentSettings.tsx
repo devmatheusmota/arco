@@ -172,7 +172,7 @@ export function EditProjectAgentSettings({
             disabled={gitInitBusy}
             onClick={() => void handleInitGit()}
           >
-            <GitBranch size={13} />
+            <GitBranch size={14} />
             {gitInitBusy ? t('git.initOffer.busy') : t('git.initOffer.button')}
           </button>
         </div>

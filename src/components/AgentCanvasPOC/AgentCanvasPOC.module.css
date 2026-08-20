@@ -26,14 +26,13 @@
 .agentPalette {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   width: min(300px, calc(100% - 32px));
-  padding: 10px;
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(14px);
 }
 
 .agentPaletteCollapsed {
@@ -43,15 +42,14 @@
 .paletteLauncher {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
   color: var(--fg-muted);
-  font: 600 12px var(--font-sans);
+  font: 600 var(--font-size-1) var(--font-sans);
   box-shadow: var(--shadow-md);
-  backdrop-filter: blur(12px);
   cursor: grab;
 }
 
@@ -62,7 +60,7 @@
 .paletteHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   cursor: grab;
 }
 
@@ -80,14 +78,14 @@
   border-radius: 999px;
   background: var(--bg-sunken);
   color: var(--fg-faint);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
 }
 
 .paletteGrid {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: var(--space-4);
   max-height: min(420px, calc(100vh - 220px));
   overflow-y: auto;
   overflow-x: hidden;
@@ -96,15 +94,15 @@
 .libraryTitle {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font: 600 10px var(--font-sans);
+  gap: var(--space-3);
+  font: 600 var(--font-size-1) var(--font-sans);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-tertiary);
 }
 
 .libraryHint {
-  font: 10px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--text-quaternary);
 }
 
@@ -116,10 +114,10 @@
 .agentChip {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   max-width: 260px;
   min-height: 30px;
-  padding: 3px 6px 3px 4px;
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
   border: 1px solid var(--border);
   border-left: 3px solid var(--agent-color);
   border-radius: 999px;
@@ -167,14 +165,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 12px var(--font-sans);
+  font: 600 var(--font-size-1) var(--font-sans);
   color: var(--agent-color);
 }
 
 .agentChipAction {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   flex-shrink: 0;
   margin-left: 2px;
 }
@@ -184,14 +182,14 @@
 }
 
 .libraryInstalledTag {
-  font: 10px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--status-working);
 }
 
 .costCheap,
 .costExpensive {
-  font: 10px var(--font-mono);
-  padding: 1px 6px;
+  font: var(--font-size-1) var(--font-mono);
+  padding: 0 var(--space-3);
   border-radius: 999px;
 }
 
@@ -220,8 +218,8 @@
 /* ── usage / fallback codex ── */
 
 .usagePill {
-  font: 11px var(--font-mono);
-  padding: 2px 8px;
+  font: var(--font-size-1) var(--font-mono);
+  padding: var(--space-1) var(--space-4);
   border-radius: 999px;
   color: var(--fg-muted);
   background: var(--bg-elevated);
@@ -249,8 +247,8 @@
   width: 250px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -269,20 +267,20 @@
 .usageTabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .usageTab,
 .usageTabActive {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-sunken);
   color: var(--fg-muted);
-  font: 11px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   cursor: pointer;
 }
 
@@ -295,7 +293,7 @@
 .usageClose {
   margin-left: auto;
   display: inline-flex;
-  padding: 4px;
+  padding: var(--space-2);
   border: none;
   background: transparent;
   color: var(--fg-faint);
@@ -305,20 +303,20 @@
 .usageBody {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: var(--space-4);
 }
 
 .usageRow {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .usageRowHead {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font: 11px var(--font-mono);
+  gap: var(--space-4);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-muted);
 }
 
@@ -330,7 +328,7 @@
 .usageRowReset {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--space-1);
   color: var(--fg-faint);
 }
 
@@ -354,8 +352,8 @@
 .usageStats {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
-  font: 10px var(--font-mono);
+  gap: var(--space-2) var(--space-4);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
 }
 
@@ -365,12 +363,12 @@
 
 .usageAction {
   margin-top: 2px;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-sunken);
   color: var(--fg-muted);
-  font: 11px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   cursor: pointer;
 }
 
@@ -380,9 +378,9 @@
 }
 
 .usageEmpty {
-  padding: 12px 8px;
+  padding: var(--space-5) var(--space-4);
   text-align: center;
-  font: 11px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--fg-faint);
 }
 
@@ -391,14 +389,14 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-4);
   margin: 8px 16px 0;
-  padding: 7px 12px;
+  padding: var(--space-3) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
   color: var(--fg-muted);
-  font: 12px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
 }
 
 .fallbackDot {
@@ -419,15 +417,15 @@
 .bannerButton {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   flex-shrink: 0;
   margin-left: auto;
-  padding: 3px 10px;
+  padding: var(--space-1) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-card-default);
   color: var(--fg-muted);
-  font: 11px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   cursor: pointer;
 }
 
@@ -444,7 +442,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-6);
   width: 100%;
   max-width: 1100px;
   margin-top: 40px;
@@ -454,9 +452,9 @@
 .codexCard {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   width: 260px;
-  padding: 12px 14px;
+  padding: var(--space-5) var(--space-5);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -472,8 +470,8 @@
 .codexType {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font: 600 12px var(--font-sans);
+  gap: var(--space-3);
+  font: 600 var(--font-size-1) var(--font-sans);
   color: var(--fg);
 }
 
@@ -481,7 +479,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 /* Resumo (cauda do scrollback) do que o worker terminou fazendo. */
@@ -490,10 +488,10 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--bg-sunken);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
   white-space: pre-wrap;
 }
@@ -501,9 +499,9 @@
 .codexExpandHint {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   flex-shrink: 0;
-  font: 10px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--fg-faint);
 }
 
@@ -513,7 +511,7 @@
   z-index: 45;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
 }
 
 .codexModal {
@@ -536,20 +534,20 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-4);
   margin-top: 18px;
   padding: 0 24px;
 }
 
 .chipForeign {
-  font: 10px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--status-waiting);
 }
 
 .chipAction {
   display: inline-flex;
   align-items: center;
-  padding: 2px;
+  padding: var(--space-1);
   border: none;
   background: transparent;
   color: var(--fg-faint);
@@ -569,7 +567,7 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 20px;
+  gap: var(--space-6);
   width: 100%;
   max-width: 1100px;
   margin-top: 56px;
@@ -583,13 +581,13 @@
 }
 
 .teammateMeta {
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--text-tertiary);
 }
 
 .statusIdle {
-  font: 10px var(--font-mono);
-  padding: 2px 6px;
+  font: var(--font-size-1) var(--font-mono);
+  padding: var(--space-1) var(--space-3);
   border-radius: 999px;
   color: var(--status-waiting);
   background: var(--status-waiting-soft);
@@ -600,10 +598,10 @@
 .tasksPanel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   width: 220px;
   flex-shrink: 0;
-  padding: 12px;
+  padding: var(--space-5);
   overflow-y: auto;
   border-left: 1px solid var(--border);
   background: var(--bg-sunken);
@@ -612,8 +610,8 @@
 .taskRow {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--surface-card-default);
 }
@@ -643,12 +641,12 @@
 }
 
 .taskSubject {
-  font: 12px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--fg);
 }
 
 .taskMeta {
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--text-quaternary);
 }
 
@@ -661,14 +659,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-5);
 }
 
 .tasksLayerTitle {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font: 600 11px var(--font-mono);
+  gap: var(--space-3);
+  font: 600 var(--font-size-1) var(--font-mono);
   color: var(--fg-muted);
 }
 
@@ -676,7 +674,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 14px;
+  gap: var(--space-5);
   width: 100%;
 }
 
@@ -684,8 +682,8 @@
   width: 200px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -698,7 +696,7 @@
 .taskNodeHead {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
@@ -709,7 +707,7 @@
 }
 
 .taskNodeSubject {
-  font: 600 12px var(--font-sans);
+  font: 600 var(--font-size-1) var(--font-sans);
   color: var(--fg);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -717,7 +715,7 @@
 }
 
 .taskNodeMeta {
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
 }
 
@@ -747,9 +745,9 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-5);
   width: 100%;
-  padding: 10px 16px;
+  padding: var(--space-4) var(--space-6);
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
@@ -758,13 +756,13 @@
 .clearButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
   color: var(--fg-muted);
-  font: 12px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   cursor: pointer;
 }
 
@@ -781,18 +779,18 @@
 
 .title {
   flex: 1;
-  font: 600 13px var(--font-sans);
+  font: 600 var(--font-size-2) var(--font-sans);
   color: var(--fg);
 }
 
 .topRight {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .counter {
-  font: 11px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
 }
 
@@ -818,8 +816,8 @@
 .zoomControls {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding-right: 8px;
+  gap: var(--space-1);
+  padding-right: var(--space-4);
   margin-right: 2px;
   border-right: 1px solid var(--border);
 }
@@ -827,7 +825,7 @@
 .zoomLabel {
   min-width: 38px;
   text-align: center;
-  font: 11px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
 }
 
@@ -860,9 +858,9 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
   margin-top: 40px;
-  padding: 12px 18px;
+  padding: var(--space-5) var(--space-6);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -871,11 +869,11 @@
 }
 
 .planeTitle {
-  font: 600 13px var(--font-sans);
+  font: 600 var(--font-size-2) var(--font-sans);
 }
 
 .planeSubtitle {
-  font: 11px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--fg-faint);
 }
 
@@ -900,7 +898,7 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 20px;
+  gap: var(--space-6);
   width: 100%;
   max-width: 1100px;
   margin-top: 96px;
@@ -910,8 +908,8 @@
 .agentGroup {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--agent-color, var(--fg-faint)) 5%, transparent);
@@ -920,10 +918,10 @@
 .agentGroupHeader {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 4px;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2);
   color: var(--agent-color, var(--fg-muted));
-  font: 600 12px var(--font-sans);
+  font: 600 var(--font-size-1) var(--font-sans);
 }
 
 .agentGroupName {
@@ -935,43 +933,43 @@
 .agentGroupCount {
   margin-left: auto;
   flex-shrink: 0;
-  font: 600 10px var(--font-mono);
+  font: 600 var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 1px 7px;
+  padding: 0 var(--space-3);
 }
 
 .agentGroupCards {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-5);
 }
 
 .empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-5);
   margin-top: 24px;
-  font: 12px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--fg-faint);
 }
 
 .testPrompt {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
   max-width: 640px;
-  padding: 10px 12px;
+  padding: var(--space-4) var(--space-5);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
 }
 
 .testPrompt code {
-  font: 11px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-muted);
   text-align: left;
 }
@@ -988,19 +986,19 @@
 .terminalHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 12px;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--border);
 }
 
 .terminalLabel {
-  font: 600 11px var(--font-mono);
+  font: 600 var(--font-size-1) var(--font-mono);
   color: var(--agent-claude);
 }
 
 .terminalCwd {
   flex: 1;
-  font: 11px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1008,12 +1006,12 @@
 }
 
 .terminalExited {
-  font: 11px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--status-offline);
 }
 
 .economyHint {
-  font: 11px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--status-waiting);
 }
 
@@ -1026,15 +1024,15 @@
   position: relative;
   flex: 1;
   min-height: 0;
-  padding: 4px;
+  padding: var(--space-2);
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   width: 230px;
-  padding: 12px 14px;
+  padding: var(--space-5) var(--space-5);
   border: 1px solid var(--border);
   border-left: 3px solid var(--agent-color);
   border-radius: var(--radius-md);
@@ -1062,18 +1060,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .cardType {
-  font: 600 12px var(--font-sans);
+  font: 600 var(--font-size-1) var(--font-sans);
   color: var(--agent-color);
 }
 
 .statusRunning,
 .statusDone {
-  font: 10px var(--font-mono);
-  padding: 2px 6px;
+  font: var(--font-size-1) var(--font-mono);
+  padding: var(--space-1) var(--space-3);
   border-radius: 999px;
 }
 
@@ -1092,12 +1090,12 @@
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font: 12px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--fg-muted);
 }
 
 .cardId {
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--text-quaternary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1115,8 +1113,8 @@
 .cardFeed {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 6px 8px;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--bg-sunken);
 }
@@ -1124,24 +1122,24 @@
 .feedRow {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
 .feedTime {
   flex-shrink: 0;
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--text-quaternary);
 }
 
 .feedTool {
   flex-shrink: 0;
-  font: 600 10px var(--font-mono);
+  font: 600 var(--font-size-1) var(--font-mono);
   color: var(--agent-color, var(--fg-muted));
 }
 
 .feedSummary {
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1149,41 +1147,41 @@
 }
 
 .feedMore {
-  font: 10px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--text-quaternary);
 }
 
 .cardCost {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .cardCostModel {
-  font: 600 10px var(--font-mono);
+  font: 600 var(--font-size-1) var(--font-mono);
   color: var(--agent-color, var(--fg-muted));
-  padding: 1px 6px;
+  padding: 0 var(--space-3);
   border-radius: 999px;
   background: color-mix(in srgb, var(--agent-color, var(--fg-muted)) 14%, transparent);
 }
 
 .cardCostTokens {
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
 }
 
 .cardCostUsd {
   margin-left: auto;
-  font: 700 11px var(--font-mono);
+  font: 700 var(--font-size-1) var(--font-mono);
 }
 
 .costPill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font: 11px var(--font-mono);
-  padding: 2px 8px;
+  gap: var(--space-2);
+  font: var(--font-size-1) var(--font-mono);
+  padding: var(--space-1) var(--space-4);
   border-radius: 999px;
   color: var(--fg-muted);
   background: var(--bg-elevated);
@@ -1206,9 +1204,9 @@
 .savingsPill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font: 11px var(--font-mono);
-  padding: 2px 8px;
+  gap: var(--space-2);
+  font: var(--font-size-1) var(--font-mono);
+  padding: var(--space-1) var(--space-4);
   border-radius: 999px;
   color: var(--status-working);
   background: color-mix(in srgb, var(--status-working) 12%, transparent);
@@ -1218,9 +1216,9 @@
 .budgetControl {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font: 11px var(--font-mono);
-  padding: 2px 8px;
+  gap: var(--space-2);
+  font: var(--font-size-1) var(--font-mono);
+  padding: var(--space-1) var(--space-4);
   border-radius: 999px;
   color: var(--fg-muted);
   background: var(--bg-elevated);
@@ -1232,7 +1230,7 @@
   border: none;
   background: transparent;
   color: var(--fg);
-  font: 11px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   outline: none;
 }
 
@@ -1257,16 +1255,16 @@
   z-index: 40;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--scrim);
 }
 
 .modal {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-5);
   width: min(680px, calc(100vw - 64px));
   max-height: min(72vh, 720px);
-  padding: 16px 18px;
+  padding: var(--space-6) var(--space-6);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   background: var(--surface-modal);
@@ -1276,12 +1274,12 @@
 .modalHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .modalId {
   flex: 1;
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--text-quaternary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1291,7 +1289,7 @@
 .modalSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 0;
 }
 
@@ -1300,7 +1298,7 @@
 }
 
 .modalSectionTitle {
-  font: 600 10px var(--font-sans);
+  font: 600 var(--font-size-1) var(--font-sans);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-tertiary);
@@ -1308,7 +1306,7 @@
 
 .modalPrompt,
 .modalResult {
-  font: 12px var(--font-sans);
+  font: var(--font-size-1) var(--font-sans);
   color: var(--fg-muted);
   white-space: pre-wrap;
   max-height: 120px;
@@ -1318,8 +1316,8 @@
 .modalCostList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--bg-sunken);
 }
@@ -1327,7 +1325,7 @@
 .modalCostRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .modalCostRow .feedSummary {
@@ -1337,15 +1335,15 @@
 .modalFeed {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   overflow-y: auto;
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--bg-sunken);
 }
 
 .modalTranscript {
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   color: var(--text-quaternary);
   overflow: hidden;
   text-overflow: ellipsis;

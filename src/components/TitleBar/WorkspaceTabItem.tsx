@@ -43,11 +43,11 @@ export function WorkspaceTabItem({
         onClick={onActivate}
         title={tab.label}
       >
-        {tab.pinned ? <Pin size={11} className={styles.groupTabPinIcon} /> : null}
+        {tab.pinned ? <Pin size={12} className={styles.groupTabPinIcon} /> : null}
         {tab.iconUrl ? (
           <img src={tab.iconUrl} alt="" className={styles.groupTabIcon} />
         ) : tab.kind === 'terminal' ? (
-          <TerminalSquare size={13} className={styles.groupTabIconSvg} />
+          <TerminalSquare size={14} className={styles.groupTabIconSvg} />
         ) : (
           <span className={styles.groupTabDot} style={{ background: tab.color ?? '#6ea8ff' }} />
         )}
@@ -64,7 +64,7 @@ export function WorkspaceTabItem({
         title={t('ui.titlebar.removeFromTopbar')}
         aria-label={t('ui.titlebar.removeNameFromTopbar', { name: tab.label })}
       >
-        <X size={11} />
+        <X size={12} />
       </button>
     </div>
   )

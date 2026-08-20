@@ -395,7 +395,7 @@ export function OnboardingModal() {
                               <div className={styles.themeOptionBody}>
                                 <div className={styles.themeOptionTitle}>
                                   <span>{themeLabel(t, theme.id)}</span>
-                                  {active ? <Check size={15} className={styles.checkMark} /> : null}
+                                  {active ? <Check size={16} className={styles.checkMark} /> : null}
                                 </div>
                                 <div className={styles.themeOptionDesc}>
                                   {themeDescription(t, theme.id)}
@@ -467,7 +467,7 @@ export function OnboardingModal() {
                                   )}
                                 </small>
                               </span>
-                              {active ? <Check size={15} className={styles.checkMark} /> : null}
+                              {active ? <Check size={16} className={styles.checkMark} /> : null}
                             </button>
                           )
                         })}
@@ -539,7 +539,7 @@ export function OnboardingModal() {
                               <div className={styles.agentOptionBody}>
                                 <div className={styles.agentNameRow}>
                                   <span className={styles.agentName}>{t(feature.titleKey)}</span>
-                                  {active ? <Check size={15} className={styles.checkMark} /> : null}
+                                  {active ? <Check size={16} className={styles.checkMark} /> : null}
                                 </div>
                                 <div className={styles.agentDesc}>{t(feature.descriptionKey)}</div>
                               </div>

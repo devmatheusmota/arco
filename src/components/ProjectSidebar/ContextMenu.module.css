@@ -8,7 +8,7 @@
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 4px;
+  padding: var(--space-2);
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
@@ -17,10 +17,10 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   text-align: left;
-  padding: 6px 10px;
-  font-size: 13px;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-2);
   color: var(--fg);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -70,6 +70,6 @@
 
 :global([data-visual-style='clean']) .item {
   min-height: var(--clean-row-height);
-  padding: 5px 9px;
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--clean-control-radius);
 }

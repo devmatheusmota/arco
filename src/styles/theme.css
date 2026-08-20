@@ -1,15 +1,174 @@
-*,
-*::before,
-*::after {
+/*
+ * The interface font ships with the app.
+ *
+ * `--font-sans` has named Inter for a long time while nothing loaded it, so
+ * every platform resolved to something else and the same build looked different
+ * on Windows and Linux. The file is read from the bundle, never from a network,
+ * which the app's CSP requires anyway.
+ */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/InterVariable.woff2') format('woff2');
+}
+
+/*
+ * The design system: type, spacing, size, surface, state and motion.
+ *
+ * These live on bare `:root` — not on the `:root, [data-theme='dark']` block
+ * below — because they are structural and every theme inherits them. A theme
+ * only ever overrides colour of identity. Surfaces and lines are derived from
+ * `--bg` and `--fg` with `color-mix`, so one definition serves all fourteen
+ * themes instead of fourteen copies that drift apart.
+ */
+:root {
+  /* Type. 12px is the floor: nothing readable is smaller, caps included. */
+  --font-size-1: 12px;
+  --font-size-2: 13px;
+  --font-size-3: 14px;
+  --font-size-4: 16px;
+  --font-size-5: 20px;
+  --font-size-6: 24px;
+  --font-size-7: 32px;
+  --line-height-1: 16px;
+  --line-height-2: 18px;
+  --line-height-3: 20px;
+  --line-height-4: 24px;
+  --line-height-5: 28px;
+  --line-height-6: 32px;
+  --line-height-7: 38px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Spacing and size. Everything sits on this grid; 27px belongs to no grid. */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 24px;
+  --space-8: 32px;
+  --size-row: 30px;
+  --size-control: 32px;
+  --size-icon-button: 28px;
+  --size-sidebar-header: 36px;
+
+  /*
+   * Surfaces. Mixing toward `--fg` lightens on a dark theme and darkens on a
+   * light one, which is the right direction in thirteen of the fourteen — the
+   * exception is `light`, whose panels are white over a grey page, and it
+   * overrides `--surface-tint` alone.
+   */
+  --surface-tint: var(--fg);
+  --surface-0: var(--bg);
+  --surface-1: color-mix(in srgb, var(--bg) 97%, var(--surface-tint));
+  --surface-2: color-mix(in srgb, var(--bg) 94%, var(--surface-tint));
+  --surface-3: color-mix(in srgb, var(--bg) 90%, var(--surface-tint));
+
+  --line-subtle: color-mix(in srgb, var(--fg) 8%, transparent);
+  --line-default: color-mix(in srgb, var(--fg) 12%, transparent);
+  --line-strong: color-mix(in srgb, var(--fg) 20%, transparent);
+
+  /* One signal per state — never a background and a border and a glow. */
+  --state-hover: color-mix(in srgb, var(--fg) 5%, transparent);
+  --state-pressed: color-mix(in srgb, var(--fg) 9%, transparent);
+  --state-selected: color-mix(in srgb, var(--accent) 10%, transparent);
+  --state-selected-rail: color-mix(in srgb, var(--accent) 72%, var(--fg));
+
+  /* Depth belongs to things that actually float. */
+  --shadow-card: none;
+  --shadow-popover: 0 8px 24px color-mix(in srgb, var(--bg) 68%, transparent);
+  --scrim: color-mix(in srgb, var(--bg) 68%, transparent);
+  --focus-outline: 2px solid var(--focus-ring);
+  --focus-offset: 2px;
+
+  --motion-instant: 80ms;
+  --motion-fast: 120ms;
+  --motion-overlay: 180ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/*
+ * Interactive chrome keeps its feedback.
+ *
+ * Not `*`: this is the set of things a pointer actually acts on, and only the
+ * properties that change on hover. No `box-shadow`, no `transform` — those are
+ * what made the old rule expensive next to the terminal.
+ */
+button,
+a,
+input,
+select,
+textarea,
+summary,
+[role='button'],
+[role='tab'],
+[role='option'],
+[role='menuitem'] {
   transition:
-    background-color 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease,
-    fill 0.18s ease,
-    stroke 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  summary,
+  [role='button'],
+  [role='tab'],
+  [role='option'],
+  [role='menuitem'] {
+    transition: none;
+  }
+}
+
+/*
+ * Keyboard focus, everywhere.
+ *
+ * Ten of seventy-one stylesheets defined `:focus-visible`, against twenty-five
+ * bare `outline: none` — so most of the app was reachable by keyboard without
+ * ever showing where you were. This is the floor; a component may draw a better
+ * ring, but none of them can leave nothing.
+ */
+:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-offset);
+}
+
+/*
+ * Theme switching used to be animated by a `transition` on `*, *::before,
+ * *::after` — eight properties, `box-shadow` and `transform` among them, on
+ * every element in the tree, including every descendant of the terminal. The
+ * fade is worth keeping; paying for it on every element of every frame is not.
+ * `App.tsx` adds this class around the switch and removes it right after.
+ */
+.themeSwitching,
+.themeSwitching *,
+.themeSwitching *::before,
+.themeSwitching *::after {
+  transition:
+    background-color var(--motion-overlay) var(--ease-standard),
+    color var(--motion-overlay) var(--ease-standard),
+    border-color var(--motion-overlay) var(--ease-standard),
+    fill var(--motion-overlay) var(--ease-standard),
+    stroke var(--motion-overlay) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .themeSwitching,
+  .themeSwitching *,
+  .themeSwitching *::before,
+  .themeSwitching *::after {
+    transition: none;
+  }
 }
 
 :root,
@@ -30,7 +189,7 @@
   --border: #2a2d33;
   --border-strong: rgba(243, 244, 246, 0.22);
 
-  /* texto */
+  /* Text */
   --fg: #f3f4f6;
   --fg-muted: #c8c8d0;
   --fg-faint: #8b8b95;
@@ -39,7 +198,7 @@
   --text-tertiary: #8b8b95;
   --text-quaternary: #7c7c87;
 
-  /* accent (off-white em dark — segue Arco) */
+  /* Accent: off-white on dark, following the Arco mark. */
   --accent: #f3f4f6;
   --accent-strong: #ffffff;
   --accent-on: #101114;
@@ -86,27 +245,66 @@
   --agent-mimo-soft: rgba(255, 122, 26, 0.15);
   --agent-antigravity-soft: rgba(66, 133, 244, 0.15);
 
-  /* foco dotted (Arco focus mode) */
+  /* Dotted focus (Arco focus mode) */
   --focus-ring: #38bdf8;
 
-  /* shape-tabs-lane casa com chrome do pane */
+  /*
+   * Names the components ask for that were never defined. Without them the
+   * declaration is dropped — and when it sits inside `color-mix()`, the whole
+   * rule goes with it: `AddBrowserModal` lost its colour, background and border
+   * in all fourteen themes because `--status-online` did not exist. Aliases are
+   * deliberately conservative: they restore the intent, they do not invent a
+   * new one.
+   */
+  --status-online: var(--status-working);
+  --status-success: var(--status-working);
+  --status-error: var(--status-offline);
+  --danger: var(--status-offline);
+  --surface-raised: var(--bg-elevated);
+  --bg-hover: var(--panel-hover);
+  --accent-fg: var(--accent-on);
+  --track-fill: var(--accent);
+
+  /* The tab lane matches the pane chrome around it. */
   --shape-tabs-lane-bg: #1a1c1f;
   --shape-tabs-lane-border: rgba(255, 255, 255, 0.06);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  /* Derived from the theme's own dark end: black shadows stayed black on light themes. */
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--bg) 60%, transparent);
+  --shadow-md: 0 4px 12px color-mix(in srgb, var(--bg) 50%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, var(--bg) 40%, transparent);
 
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 14px;
 
   --font-sans:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'Cascadia Mono', Consolas, 'Courier New', monospace;
+    'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  /* Courier is what the old stack resolved to on Linux: none of its three fonts exist there. */
+  --font-mono:
+    ui-monospace, 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
 }
 
 [data-theme='light'] {
+  /* Agent colours darkened for a light page; without these the theme used the dark ones. */
+  --agent-shell: #0f766e;
+  --agent-claude: #b45309;
+  --agent-codex: #0e7490;
+  --agent-opencode: #52525b;
+  --agent-freebuff: #5b21b6;
+  --agent-mimo: #c2410c;
+  --agent-antigravity: #1d4ed8;
+  --agent-shell-soft: rgba(15, 118, 110, 0.12);
+  --agent-claude-soft: rgba(180, 83, 9, 0.12);
+  --agent-codex-soft: rgba(14, 116, 144, 0.12);
+  --agent-opencode-soft: rgba(82, 82, 91, 0.12);
+  --agent-freebuff-soft: rgba(91, 33, 182, 0.12);
+  --agent-mimo-soft: rgba(194, 65, 12, 0.12);
+  --agent-antigravity-soft: rgba(29, 78, 216, 0.12);
+  --focus-ring: #0369a1;
+  /* The one theme whose panels sit above the page instead of below it. */
+  --surface-tint: #ffffff;
   --bg: #f6f7fb;
   --bg-elevated: #ffffff;
   --bg-sunken: #eef2f7;
@@ -739,6 +937,22 @@
 }
 
 [data-theme='ember'] {
+  /* Agent colours warmed to the theme; without these the theme used the dark ones. */
+  --agent-shell: #4ade80;
+  --agent-claude: #f0913a;
+  --agent-codex: #38bdf8;
+  --agent-opencode: #9aa3a9;
+  --agent-freebuff: #a78bfa;
+  --agent-mimo: #fb923c;
+  --agent-antigravity: #60a5fa;
+  --agent-shell-soft: rgba(74, 222, 128, 0.14);
+  --agent-claude-soft: rgba(240, 145, 58, 0.15);
+  --agent-codex-soft: rgba(56, 189, 248, 0.14);
+  --agent-opencode-soft: rgba(154, 163, 169, 0.14);
+  --agent-freebuff-soft: rgba(167, 139, 250, 0.14);
+  --agent-mimo-soft: rgba(251, 146, 60, 0.14);
+  --agent-antigravity-soft: rgba(96, 165, 250, 0.14);
+  --focus-ring: #f0913a;
   --bg: #0b0d0e;
   --bg-elevated: #191d21;
   --bg-sunken: #08090a;

@@ -1,19 +1,19 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .summary span {
-  padding: 3px 7px;
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--panel-hover);
@@ -21,17 +21,17 @@
 
 .warnings {
   margin: 0;
-  padding: 8px 10px 8px 28px;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-7);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
   background: var(--bg);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .label {
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 
@@ -39,14 +39,14 @@
   width: 100%;
   min-height: 360px;
   resize: vertical;
-  padding: 10px;
+  padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   outline: none;
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
 }
 
@@ -57,7 +57,7 @@
 .counter {
   align-self: flex-end;
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 
 .counterError,
@@ -68,7 +68,7 @@
 .loading,
 .privacy {
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .privacy {
@@ -78,14 +78,14 @@
 .unrestricted {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .primary,
 .secondary {
-  padding: 6px 12px;
+  padding: var(--space-3) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;

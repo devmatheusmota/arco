@@ -198,7 +198,7 @@ export function CanvasTopBar({
           onClick={onOpenCodexWorker}
           title={t('ws.openNewCodexTerminal')}
         >
-          <Plus size={13} />
+          <Plus size={14} />
           <CodexIcon size={14} />
         </button>
         <button

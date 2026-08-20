@@ -1,48 +1,46 @@
 /*
- * Arco Clean visual standard
+ * Density, not a second design.
  *
- * Components should consume these tokens instead of inventing local sizes.
- * The production-compatible Normal style remains defined by the base theme.
+ * `visualStyle` used to be a whole parallel look: its own sidebar component, its
+ * own radii, its own shadows, its own accent tokens, and ~110 override blocks
+ * scattered through the component stylesheets. One interface is drawn now, and
+ * this file only makes it tighter — rows, controls and the sidebar header. The
+ * `--clean-*` names stay as aliases while the modules that still reference them
+ * are migrated to the shared tokens.
  */
 
 [data-visual-style='clean'] {
-  --clean-row-height: 30px;
-  --clean-toolbar-height: 42px;
-  --clean-control-height: 30px;
-  --clean-sidebar-padding: 8px;
-  --clean-section-gap: 12px;
-  --clean-item-gap: 6px;
+  --size-row: 26px;
+  --size-control: 28px;
+  --size-icon-button: 26px;
+  --size-sidebar-header: 32px;
+
+  --clean-row-height: var(--size-row);
+  --clean-toolbar-height: var(--size-sidebar-header);
+  --clean-control-height: var(--size-control);
+  --clean-sidebar-padding: var(--space-4);
+  --clean-section-gap: var(--space-5);
+  --clean-item-gap: var(--space-3);
   --clean-surface-radius: 0px;
   --clean-row-radius: 0px;
-  --clean-control-radius: 4px;
-  --clean-popover-radius: 4px;
-  --clean-popover-duration: 180ms;
-  --clean-popover-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --clean-control-radius: var(--radius-sm);
+  --clean-popover-radius: var(--radius-sm);
+  --clean-popover-duration: var(--motion-overlay);
+  --clean-popover-ease: var(--ease-standard);
   --clean-popover-animation: cleanPopoverIn var(--clean-popover-duration) var(--clean-popover-ease)
     both;
-  --clean-modal-radius: 4px;
-  --clean-border: 1px solid var(--border);
-  --clean-hover-bg: var(--panel-hover);
-  --clean-active-bg: var(--panel-hover);
-  --clean-focus-border: var(--border-strong);
+  --clean-modal-radius: var(--radius-sm);
+  --clean-border: 1px solid var(--line-default);
+  --clean-hover-bg: var(--state-hover);
+  --clean-active-bg: var(--state-selected);
+  --clean-focus-border: var(--focus-ring);
   --clean-shadow: none;
   --clean-muted-opacity: 0.72;
 
-  /* Neutralize theme-colored selection chrome while preserving semantic status colors. */
-  --accent-soft: var(--panel-hover);
-  --accent-faint: var(--panel-hover);
-  --accent-border: var(--border-strong);
-  --accent-border-soft: var(--border);
-  --accent-ring: transparent;
-  --border-accent: var(--border);
-
-  /* Shared component tokens become denser throughout the application. */
+  /* Denser corners; colour and elevation now come from the shared tokens. */
   --radius-sm: 3px;
   --radius-md: 4px;
   --radius-lg: 6px;
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
 }
 
 @keyframes cleanPopoverIn {
@@ -56,41 +54,23 @@
   }
 }
 
-[data-visual-style='clean'] :is(button, a, [role='button']) {
-  transition-duration: 120ms;
-}
-
-[data-visual-style='clean'] button:active:not(:disabled) {
-  transform: none;
-}
-
-[data-visual-style='clean'] :is(button, a, [role='button']):hover {
-  transform: none;
-}
-
 [data-visual-style='clean'] :is(select, input:not([type='range']), textarea) {
-  border-radius: var(--clean-control-radius);
+  border-radius: var(--radius-sm);
 }
 
 [data-visual-style='clean'] select {
-  min-height: var(--clean-control-height);
-  height: var(--clean-control-height);
-}
-
-[data-visual-style='clean'] :focus-visible {
-  outline-offset: 1px;
+  min-height: var(--size-control);
+  height: var(--size-control);
 }
 
 [data-visual-style='clean'] :is([role='menu'], [role='listbox']) {
-  border-radius: var(--clean-popover-radius);
-  box-shadow: var(--clean-shadow);
+  border-radius: var(--radius-sm);
   transform-origin: top center;
   animation: var(--clean-popover-animation);
 }
 
 [data-visual-style='clean'] [role='dialog'] {
-  border-radius: var(--clean-modal-radius);
-  box-shadow: var(--clean-shadow);
+  border-radius: var(--radius-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {

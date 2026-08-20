@@ -25,7 +25,7 @@
   background: color-mix(in srgb, var(--bg) 78%, transparent);
   border: 1px dashed var(--accent);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 650;
 }
 
@@ -180,16 +180,16 @@
   height: 100%;
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: var(--space-6);
   min-height: 0;
 }
 
 .emptyProjectCard {
   width: min(520px, 100%);
   display: grid;
-  gap: 12px;
+  gap: var(--space-5);
   justify-items: center;
-  padding: 22px;
+  padding: var(--space-7);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
@@ -198,8 +198,8 @@
 .emptyProjectIntro {
   display: grid;
   justify-items: center;
-  gap: 6px;
-  padding: 8px 12px 12px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-5);
   text-align: center;
 }
 
@@ -217,13 +217,13 @@
 
 .emptyProjectIntro strong {
   color: var(--fg);
-  font-size: 17px;
+  font-size: var(--font-size-4);
 }
 
 .emptyProjectIntro span {
   max-width: 38ch;
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
 }
 
@@ -231,20 +231,20 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
   width: min(430px, 100%);
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .emptyAgentButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 32px;
   color: var(--fg-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 
@@ -258,13 +258,13 @@
 .emptyFolderRow {
   display: flex;
   width: min(430px, 100%);
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .emptyFolderLabel {
   width: min(430px, 100%);
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 650;
   text-align: left;
 }
@@ -283,7 +283,7 @@
 .emptyFolderButton {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-width: 0;
   flex: 1;
   padding: 0 10px;
@@ -317,10 +317,10 @@
 .emptyGraphifyToggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   width: min(430px, 100%);
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 

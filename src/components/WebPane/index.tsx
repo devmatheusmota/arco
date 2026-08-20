@@ -95,7 +95,7 @@ export const WebPane = memo(function WebPane({
             </button>
           ) : null}
           <span className={styles.iconWrap}>
-            <Favicon url={url} size={15} />
+            <Favicon url={url} size={16} />
           </span>
           <span className={styles.name} title={terminal.name}>
             {terminal.name}
@@ -104,7 +104,7 @@ export const WebPane = memo(function WebPane({
             {url}
           </span>
           <span className={styles.privateBadge} title={t('browser.privateTitle')}>
-            <ShieldCheck size={10} />
+            <ShieldCheck size={12} />
             {t('browser.privateBadge')}
           </span>
         </div>

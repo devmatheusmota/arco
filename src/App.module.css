@@ -155,10 +155,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
   z-index: 1;
   min-width: min(320px, calc(100% - 40px));
-  padding: 22px 26px 20px;
+  padding: var(--space-7) var(--space-7) var(--space-6);
   border: 1px solid color-mix(in srgb, var(--border-strong) 78%, transparent);
   border-radius: 14px;
   background: color-mix(in srgb, var(--bg-elevated) 84%, transparent);
@@ -171,7 +171,7 @@
 
 .loadingWordmark {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   letter-spacing: 0.52em;
   text-transform: uppercase;
@@ -182,11 +182,11 @@
 .loadingConsole {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   min-height: 18px;
   margin-top: 5px;
   color: var(--fg-faint);
-  font: 10px var(--font-mono);
+  font: var(--font-size-1) var(--font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -206,7 +206,7 @@
 .loadingRail {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   height: 10px;
   margin-top: 2px;
 }
@@ -308,7 +308,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   width: auto;
 
   max-width: min(640px, calc(100vw - 32px));
@@ -318,9 +318,9 @@
 .toast {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-4);
   max-width: 100%;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid color-mix(in srgb, var(--toast-accent, var(--accent)) 30%, var(--border));
   border-radius: 999px;
   background: var(--surface-modal);
@@ -345,13 +345,13 @@
   display: flex;
   align-items: baseline;
   min-width: 0;
-  gap: 6px;
+  gap: var(--space-3);
   overflow: hidden;
 }
 
 .toastText strong {
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
@@ -361,7 +361,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -369,11 +369,11 @@
 
 .toastAction {
   flex-shrink: 0;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border: 1px solid color-mix(in srgb, var(--toast-accent, var(--accent)) 40%, transparent);
   border-radius: 4px;
   color: var(--toast-accent, var(--accent));
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;

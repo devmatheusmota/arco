@@ -1,9 +1,9 @@
 .privateNotice {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-4);
   margin-bottom: 16px;
-  padding: 12px;
+  padding: var(--space-5);
   color: var(--status-online);
   background: color-mix(in srgb, var(--status-online) 8%, var(--bg-sunken));
   border: 1px solid color-mix(in srgb, var(--status-online) 32%, var(--border));
@@ -17,34 +17,34 @@
 
 .privateNotice div {
   display: grid;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
 .privateNotice strong {
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .privateNotice span {
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
 }
 
 .settingsGrid {
   display: grid;
   grid-template-columns: minmax(130px, 0.65fr) minmax(220px, 1.35fr);
-  gap: 10px;
+  gap: var(--space-4);
   align-items: stretch;
 }
 
 .toggleCard {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
+  gap: var(--space-4);
   min-width: 0;
   margin-bottom: 14px;
-  padding: 10px;
+  padding: var(--space-4);
   color: var(--fg);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
@@ -62,30 +62,30 @@
 
 .toggleCard span {
   display: grid;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
 .toggleCard strong {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 
 .toggleCard small {
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.35;
 }
 
 .destination {
   margin: 0;
   color: var(--fg-faint);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .error {
   margin: 0;
   color: var(--status-offline);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 @media (max-width: 560px) {

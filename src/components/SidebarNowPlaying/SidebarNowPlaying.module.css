@@ -1,7 +1,7 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   padding: 0 10px;
   border-top: 1px solid var(--border);
   height: 40px;
@@ -39,7 +39,7 @@
 }
 
 .track {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--fg);
   white-space: nowrap;
@@ -48,7 +48,7 @@
 }
 
 .artist {
-  font-size: 10px;
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
   white-space: nowrap;
   overflow: hidden;
@@ -59,7 +59,7 @@
 .eq {
   display: inline-flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-1);
   height: 12px;
   flex-shrink: 0;
 }
@@ -83,7 +83,7 @@
 }
 
 .pausedDot {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   color: var(--fg-faint);
   letter-spacing: -1px;
   flex-shrink: 0;

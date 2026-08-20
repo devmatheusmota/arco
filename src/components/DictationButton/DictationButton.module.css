@@ -12,7 +12,7 @@
   background: var(--bg-elevated, var(--bg-sunken));
   color: var(--fg-muted, var(--fg));
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--bg) 72%, transparent);
   transition:
     color 0.12s,
     border-color 0.12s,
@@ -40,11 +40,11 @@
   0% {
     box-shadow:
       0 0 0 0px color-mix(in srgb, var(--status-offline) 60%, transparent),
-      0 6px 20px rgba(0, 0, 0, 0.35);
+      0 6px 20px color-mix(in srgb, var(--bg) 65%, transparent);
   }
   100% {
     box-shadow:
       0 0 0 16px color-mix(in srgb, var(--status-offline) 0%, transparent),
-      0 6px 20px rgba(0, 0, 0, 0.35);
+      0 6px 20px color-mix(in srgb, var(--bg) 65%, transparent);
   }
 }

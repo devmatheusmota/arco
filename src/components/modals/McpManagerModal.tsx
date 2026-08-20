@@ -246,7 +246,7 @@ export function McpManagerModal() {
       <div className={styles.layout} hidden={tab !== 'servers'}>
         <aside className={styles.sidebar}>
           <div className={styles.search}>
-            <Search size={13} />
+            <Search size={14} />
             <input
               value={term}
               onChange={(event) => setTerm(event.target.value)}
@@ -260,7 +260,7 @@ export function McpManagerModal() {
             onClick={() => setAdding(true)}
             disabled={writableAgents.length === 0}
           >
-            <Plus size={13} />
+            <Plus size={14} />
             {t('mcp.addServer')}
           </button>
           <div className={styles.serverList}>
@@ -411,7 +411,7 @@ function ServerDetail({
             disabled={pending !== null}
             onClick={() => onRemove(group.records)}
           >
-            <Trash2 size={11} />
+            <Trash2 size={12} />
             {group.records.length > 1
               ? t('mcp.removeAllAction', { count: group.records.length })
               : t('mcp.removeAction')}
@@ -437,7 +437,7 @@ function ServerDetail({
               disabled={pending !== null}
               onClick={() => onSync(primary.agent, group.missingAgents, group.name)}
             >
-              <Copy size={11} />
+              <Copy size={12} />
               {t('mcp.copyToAll', { count: group.missingAgents.length })}
             </button>
           ) : null}
@@ -458,7 +458,7 @@ function ServerDetail({
                         disabled={pending !== null}
                         onClick={() => onSync(primary.agent, [agent], group.name)}
                       >
-                        <Copy size={11} />
+                        <Copy size={12} />
                         {t('mcp.copyHere')}
                       </button>
                     </span>
@@ -592,7 +592,7 @@ function EnvTable({ record, entries, header, revealed, onReveal }: EnvTableProps
                 className={`${controls.btn} ${controls.btnSm}`}
                 onClick={() => onReveal(record, key, header)}
               >
-                <Eye size={11} />
+                <Eye size={12} />
                 {t('mcp.reveal')}
               </button>
             ) : null}

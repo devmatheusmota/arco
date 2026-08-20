@@ -151,7 +151,7 @@ export function TimeAnalytics() {
               agentRows.map(([agent, value]) => (
                 <div className={styles.timeRow} key={agent}>
                   <span className={styles.timeRowName}>
-                    <AgentIcon type={agent as AgentType} size={13} theme={theme} />
+                    <AgentIcon type={agent as AgentType} size={14} theme={theme} />
                     {agent}
                   </span>
                   <span>{duration(value.workingMs)}</span>

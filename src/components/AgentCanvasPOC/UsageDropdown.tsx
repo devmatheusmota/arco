@@ -29,7 +29,7 @@ function Row({ label, util, reset }: { label: string; util: number; reset: strin
       <div className={styles.usageRowHead}>
         <span className={styles.usageRowLabel}>{label}</span>
         <span className={styles.usageRowReset}>
-          <Clock size={10} /> {reset}
+          <Clock size={12} /> {reset}
         </span>
         <span className={styles.usageRowPct}>{Math.round(util)}%</span>
       </div>
@@ -69,14 +69,14 @@ export function UsageDropdown({
           className={tab === 'claude' ? styles.usageTabActive : styles.usageTab}
           onClick={() => onTab('claude')}
         >
-          <ClaudeIcon size={13} /> claude code
+          <ClaudeIcon size={14} /> claude code
         </button>
         <button
           type="button"
           className={tab === 'codex' ? styles.usageTabActive : styles.usageTab}
           onClick={() => onTab('codex')}
         >
-          <CodexIcon size={13} /> codex
+          <CodexIcon size={14} /> codex
         </button>
         <button
           type="button"
@@ -84,7 +84,7 @@ export function UsageDropdown({
           onClick={onClose}
           aria-label={t('common.close')}
         >
-          <X size={13} />
+          <X size={14} />
         </button>
       </div>
 

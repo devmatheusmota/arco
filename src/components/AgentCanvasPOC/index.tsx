@@ -85,7 +85,7 @@ export function AgentCanvasPOC() {
             cost={AGENT_LIBRARY.find((t) => t.name === draggingAgent)?.cost}
             summary={AGENT_LIBRARY.find((t) => t.name === draggingAgent)?.summary}
             ghost
-            action={<Link2 size={13} />}
+            action={<Link2 size={14} />}
           />
         ) : null}
       </DragOverlay>
@@ -598,7 +598,7 @@ function AgentCanvasInner() {
                         onClick={() => uninstallAgent(agent)}
                         aria-label={t('ws.removeAgent', { name: agent.name })}
                       >
-                        <X size={13} />
+                        <X size={14} />
                       </button>
                     }
                   />
@@ -641,7 +641,7 @@ function AgentCanvasInner() {
                   <div className={styles.testPrompt}>
                     <code>{TEST_PROMPT}</code>
                     <button type="button" className={styles.clearButton} onClick={copyTestPrompt}>
-                      <ClipboardCopy size={13} />
+                      <ClipboardCopy size={14} />
                       {copied ? t('ws.copied') : t('ws.copy')}
                     </button>
                   </div>
@@ -662,7 +662,7 @@ function AgentCanvasInner() {
                           else cardRefs.current.delete(`group:${type}`)
                         }}
                       >
-                        <Icon size={13} />
+                        <Icon size={14} />
                         <span className={styles.agentGroupName}>{type}</span>
                         <span className={styles.agentGroupCount}>{cards.length}</span>
                       </div>

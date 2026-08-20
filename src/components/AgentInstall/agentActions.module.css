@@ -1,7 +1,7 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
@@ -16,7 +16,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 28px;
   min-width: 96px;
   padding: 0 10px;
@@ -25,7 +25,7 @@
   background: var(--bg);
   color: var(--fg-muted);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
@@ -70,13 +70,13 @@
 
 .modalText {
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 1.5;
   color: var(--fg);
 }
 
 .status {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
 }
 .statusSuccess {
@@ -88,12 +88,12 @@
 
 .command {
   font-family: var(--font-mono, monospace);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   overflow-x: auto;
   white-space: nowrap;
 }
@@ -101,8 +101,8 @@
 .toolchain {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
+  gap: var(--space-3);
+  padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
@@ -111,13 +111,13 @@
 .log {
   margin: 0;
   font-family: var(--font-mono, monospace);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
   color: var(--fg);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   max-height: 160px;
   overflow: auto;
   white-space: pre-wrap;
@@ -127,15 +127,15 @@
 .methodList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   margin-bottom: 12px;
 }
 
 .method {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 9px 11px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
@@ -159,19 +159,19 @@
 .methodBody {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .methodBody b {
-  font-size: 12.5px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   color: var(--fg);
 }
 
 .methodBody code {
   font-family: var(--font-mono, monospace);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   word-break: break-all;
 }
@@ -179,14 +179,14 @@
 .docsLink {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   margin-top: 10px;
   padding: 0;
   border: 0;
   background: none;
   color: var(--accent);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 

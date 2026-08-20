@@ -103,7 +103,7 @@ export function TerminalPage({ enabledCount }: { enabledCount: number }) {
             className={styles.secondaryButton}
             onClick={() => openModal('memoryAnalytics')}
           >
-            <Activity size={15} />
+            <Activity size={16} />
             {t('ui.titlebar.openMemoryAnalytics')}
           </button>
         </div>
@@ -121,7 +121,7 @@ export function TerminalPage({ enabledCount }: { enabledCount: number }) {
             disabled={concurrency <= SPAWN_CONCURRENCY_LIMITS.min}
             aria-label={t('prefs.spawnConcurrencyDecrease')}
           >
-            <Minus size={15} />
+            <Minus size={16} />
           </button>
           <strong>{concurrency}</strong>
           <button
@@ -130,7 +130,7 @@ export function TerminalPage({ enabledCount }: { enabledCount: number }) {
             disabled={concurrency >= SPAWN_CONCURRENCY_LIMITS.max}
             aria-label={t('prefs.spawnConcurrencyIncrease')}
           >
-            <Plus size={15} />
+            <Plus size={16} />
           </button>
           <button
             type="button"
@@ -138,7 +138,7 @@ export function TerminalPage({ enabledCount }: { enabledCount: number }) {
             disabled={concurrency === 3}
             aria-label={t('prefs.spawnConcurrencyReset')}
           >
-            <RotateCcw size={15} />
+            <RotateCcw size={16} />
           </button>
         </div>
       </SettingsSection>
@@ -282,7 +282,7 @@ export function TerminalPage({ enabledCount }: { enabledCount: number }) {
           onClick={() => void onResetLastSession()}
           disabled={resetting}
         >
-          <RotateCcw size={15} />
+          <RotateCcw size={16} />
           {resetting ? t('prefs.resetSessionBusy') : t('prefs.resetSessionButton')}
         </button>
       </SettingsSection>

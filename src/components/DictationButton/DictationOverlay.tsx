@@ -42,7 +42,7 @@ export function DictationOverlay({ startedAt, onStop }: Props) {
         {minutes > 0 ? `${minutes}:${String(seconds).padStart(2, '0')}` : `${seconds}s`}
       </span>
       <button type="button" className={styles.stop} onClick={onStop} title={t('dictation.stop')}>
-        <Square size={11} fill="currentColor" />
+        <Square size={12} fill="currentColor" />
       </button>
     </div>
   )

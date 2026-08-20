@@ -1,6 +1,6 @@
 .subtitle {
   margin: 0 0 14px;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   line-height: 1.45;
 }
@@ -8,7 +8,7 @@
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-5);
 }
 @media (max-width: 540px) {
   .grid {
@@ -19,8 +19,8 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: var(--space-5);
+  padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
@@ -31,7 +31,7 @@
 
 .cardHead {
   display: flex;
-  gap: 10px;
+  gap: var(--space-4);
   align-items: flex-start;
 }
 
@@ -50,20 +50,20 @@
 .cardTitleWrap {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .cardTitle {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 600;
   color: var(--fg);
 }
 
 .cardDesc {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   line-height: 1.4;
 }
@@ -71,8 +71,8 @@
 .connected {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: var(--space-3);
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
 }
 .dot {
@@ -87,7 +87,7 @@
 .connectForm {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .input {
@@ -95,8 +95,8 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 8px 10px;
-  font-size: 13px;
+  padding: var(--space-4) var(--space-4);
+  font-size: var(--font-size-2);
   font-family: var(--font-mono);
   color: var(--fg);
   outline: none;
@@ -108,14 +108,14 @@
 
 .hint {
   margin: 0;
-  font-size: 10.5px;
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
   line-height: 1.4;
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .btn,
@@ -124,11 +124,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   flex: 1;
-  padding: 7px 12px;
+  padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-md);
-  font-size: 12.5px;
+  font-size: var(--font-size-2);
   font-weight: 500;
   border: 1px solid var(--border);
   cursor: pointer;
@@ -172,28 +172,28 @@
 .confirm {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   border: 1px solid var(--status-waiting);
   background: var(--status-waiting-soft);
   border-radius: var(--radius-md);
 }
 .confirm p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--font-size-1);
   color: var(--fg);
   line-height: 1.4;
 }
 .confirmActions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  font-size: 10.5px;
+  gap: var(--space-1);
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
 }
 
@@ -201,15 +201,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .link,
 .linkDanger {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
+  gap: var(--space-2);
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -234,14 +234,14 @@
 .cloudTitleRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .badge {
-  font-size: 9px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 2px 6px;
+  padding: var(--space-1) var(--space-3);
   border-radius: 999px;
   background: var(--accent-faint);
   border: 1px solid var(--border);
@@ -253,10 +253,10 @@
   margin-top: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .premium {
-  font-size: 10.5px;
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
 }
 .cloudFoot .btn {
@@ -265,12 +265,12 @@
 
 .error {
   margin: 12px 0 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--status-offline);
 }
 .notice {
   margin: 12px 0 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--status-working);
 }
 
@@ -282,10 +282,10 @@
 .sponsor {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
   border-radius: var(--radius-md);
-  font-size: 12.5px;
+  font-size: var(--font-size-2);
   font-weight: 600;
   background: var(--accent-faint);
   border: 1px solid var(--accent-border);

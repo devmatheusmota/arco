@@ -168,7 +168,7 @@ function GsdSyncRow({
           <span className={styles.gsdErrorDot} />
         ) : session.busy ? (
           <DotmCircular2
-            size={13}
+            size={14}
             dotSize={2}
             cellPadding={1}
             speed={1.2}
@@ -315,7 +315,7 @@ function TodoRow({
             }
           }}
         >
-          <GripVertical size={13} />
+          <GripVertical size={14} />
         </button>
         <button
           type="button"
@@ -370,7 +370,7 @@ function TodoRow({
               ))}
               {todo.notes ? (
                 <span className={styles.metaIcon} title={t('todo.notesIndicator')}>
-                  <StickyNote size={10} />
+                  <StickyNote size={12} />
                 </span>
               ) : null}
               {liveSessions.length > 0 ? (
@@ -381,7 +381,7 @@ function TodoRow({
                 >
                   {workingCount > 0 ? (
                     <DotmCircular2
-                      size={11}
+                      size={12}
                       dotSize={2}
                       cellPadding={1}
                       speed={1.2}
@@ -417,7 +417,7 @@ function TodoRow({
                 title={t('todo.saveEdit')}
                 aria-label={t('todo.saveEdit')}
               >
-                <Check size={13} />
+                <Check size={14} />
               </button>
               <button
                 type="button"
@@ -427,7 +427,7 @@ function TodoRow({
                 title={t('common.cancel')}
                 aria-label={t('common.cancel')}
               >
-                <X size={13} />
+                <X size={14} />
               </button>
             </>
           ) : (
@@ -622,7 +622,7 @@ function SessionRow({
         title={t('todo.sessionUnlink')}
         aria-label={t('todo.sessionUnlink')}
       >
-        <Unlink size={11} />
+        <Unlink size={12} />
       </button>
     </div>
   )
@@ -782,7 +782,7 @@ export function TodoSidebar() {
             aria-expanded={!collapsed}
           >
             <ChevronDown
-              size={13}
+              size={14}
               className={`${styles.sectionChevron} ${collapsed ? styles.sectionChevronClosed : ''}`}
             />
             {iconUrl ? <img src={iconUrl} alt="" className={styles.sectionIcon} /> : null}
@@ -798,7 +798,7 @@ export function TodoSidebar() {
               title={t('todo.add')}
               aria-label={t('todo.add')}
             >
-              <Plus size={13} />
+              <Plus size={14} />
             </button>
           ) : null}
         </div>
@@ -838,13 +838,13 @@ export function TodoSidebar() {
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <div className={styles.heading}>
-            <ListTodo size={17} />
+            <ListTodo size={16} />
             <span>{t('todo.title')}</span>
           </div>
           {runningCount > 0 ? (
             <span className={styles.runningPill}>
               <DotmCircular2
-                size={11}
+                size={12}
                 dotSize={2}
                 cellPadding={1}
                 speed={1.2}
@@ -935,7 +935,7 @@ export function TodoSidebar() {
             title={t('todo.add')}
             aria-label={t('todo.add')}
           >
-            <Plus size={15} />
+            <Plus size={16} />
           </button>
           <input
             ref={addInputRef}
@@ -955,7 +955,7 @@ export function TodoSidebar() {
         {composerExpanded ? (
           <div className={styles.composerDetails}>
             <div className={styles.tagInputWrap}>
-              <Tag size={13} aria-hidden="true" />
+              <Tag size={14} aria-hidden="true" />
               <input
                 className={`${styles.addInput} ${styles.addTagInput}`}
                 value={tagDraft}
@@ -1077,7 +1077,7 @@ function ProjectPicker({
 
   return (
     <div className={styles.projectInputWrap}>
-      <FolderKanban size={13} aria-hidden="true" />
+      <FolderKanban size={14} aria-hidden="true" />
       <button
         ref={triggerRef}
         type="button"

@@ -146,12 +146,12 @@ export function McpPanel() {
           title={t('mcp.refresh')}
           aria-label={t('mcp.refresh')}
         >
-          <RefreshCw size={13} className={loading ? styles.spinning : undefined} />
+          <RefreshCw size={14} className={loading ? styles.spinning : undefined} />
         </button>
       </div>
 
       <div className={styles.search}>
-        <Search size={13} />
+        <Search size={14} />
         <input
           value={term}
           onChange={(event) => setTerm(event.target.value)}
@@ -174,7 +174,7 @@ export function McpPanel() {
                 title={AGENT_TYPE_LABELS[agent]}
                 aria-label={AGENT_TYPE_LABELS[agent]}
               >
-                <AgentIcon type={agent} size={13} theme={theme} />
+                <AgentIcon type={agent} size={14} theme={theme} />
               </button>
             )
           })}
@@ -232,12 +232,12 @@ export function McpPanel() {
                 >
                   <span className={styles.rowTop}>
                     <span className={styles.name}>{group.name}</span>
-                    {group.bundled ? <Lock size={11} /> : null}
-                    {group.sharedEntry ? <Link2 size={11} /> : null}
+                    {group.bundled ? <Lock size={12} /> : null}
+                    {group.sharedEntry ? <Link2 size={12} /> : null}
                     <span className={styles.agentIcons} title={group.agents.join(', ')}>
                       {group.agents.map((agent) => (
                         <i key={agent} className={styles.agentOn}>
-                          <AgentIcon type={agent as AgentType} size={13} theme={theme} />
+                          <AgentIcon type={agent as AgentType} size={14} theme={theme} />
                         </i>
                       ))}
                     </span>
@@ -263,7 +263,7 @@ export function McpPanel() {
           )
         }
       >
-        <Plus size={13} />
+        <Plus size={14} />
         {showingServers ? t('mcp.addMore') : t('skills.manage')}
       </button>
 

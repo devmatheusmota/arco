@@ -1,9 +1,9 @@
 .taskLine {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-3);
   margin: 0 0 14px;
-  padding: 9px 11px;
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
@@ -12,7 +12,7 @@
 .taskLabel {
   flex: 0 0 auto;
   color: var(--fg-faint);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -21,7 +21,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -30,14 +30,14 @@
 .promptInput {
   width: 100%;
   min-height: 104px;
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4);
   color: var(--fg);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   outline: none;
   resize: vertical;
-  font: 12px/1.5 var(--font-mono);
+  font: var(--font-size-1)/1.5 var(--font-mono);
 }
 
 .promptInput:focus {
@@ -48,13 +48,13 @@
 .toggles {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  gap: var(--space-4) var(--space-6);
 }
 
 .toggles span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
 }
 
 :global([data-visual-style='clean']) .promptInput,

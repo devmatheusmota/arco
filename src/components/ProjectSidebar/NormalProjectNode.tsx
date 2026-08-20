@@ -108,7 +108,7 @@ export function NormalProjectNode({
         {project.mode === 'agentSandbox' ? (
           <Network size={12} className={styles.agentProjectIcon} />
         ) : null}
-        {allDisabled ? <Pause size={11} className={styles.projectPauseIcon} /> : null}
+        {allDisabled ? <Pause size={12} className={styles.projectPauseIcon} /> : null}
         <button
           type="button"
           className={`${styles.rowHoverBtn} ${isEmpty ? styles.rowHoverBtnVisible : ''}`}
@@ -119,7 +119,7 @@ export function NormalProjectNode({
           title={t('ui.sidebar.newTerminal')}
           aria-label={t('ui.sidebar.newTerminal')}
         >
-          <Plus size={15} />
+          <Plus size={16} />
         </button>
         <span className={`${styles.rowEndSlot} ${runningCount > 0 ? styles.rowEndSlotActive : ''}`}>
           {runningCount > 0 ? (
@@ -158,7 +158,7 @@ export function NormalProjectNode({
             aria-expanded={!project.collapsed}
           >
             <ChevronDown
-              size={15}
+              size={16}
               className={`${styles.disclosureChevron} ${project.collapsed ? styles.disclosureClosed : ''}`}
             />
           </button>

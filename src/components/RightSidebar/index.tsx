@@ -197,7 +197,7 @@ function GitSidebarContent({
   return (
     <section className={styles.gitPanel}>
       <header className={styles.panelHeader}>
-        <GitBranch size={15} />
+        <GitBranch size={16} />
         <span>{t('ui.sidebar.sourceControl')}</span>
       </header>
       {activeProject && sidebarTerminal && sidebarSubTab ? (
@@ -405,7 +405,7 @@ function MarkdownSidebarViewer() {
       ) : null}
       <header className={styles.header}>
         <div className={styles.heading}>
-          <FileText size={15} />
+          <FileText size={16} />
           <span title={selected?.title ?? markdown.title}>{selected?.title ?? markdown.title}</span>
         </div>
         <div className={styles.headerActions}>
@@ -416,7 +416,7 @@ function MarkdownSidebarViewer() {
             title={t('ui.markdown.refresh')}
             aria-label={t('ui.markdown.refresh')}
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={16} />
           </button>
           <button
             type="button"
@@ -426,7 +426,7 @@ function MarkdownSidebarViewer() {
             title={copied ? t('ui.markdown.copied') : t('ui.markdown.copySource')}
             aria-label={copied ? t('ui.markdown.copied') : t('ui.markdown.copySource')}
           >
-            <ClipboardCopy size={15} />
+            <ClipboardCopy size={16} />
           </button>
           <button
             type="button"
@@ -435,7 +435,7 @@ function MarkdownSidebarViewer() {
             title={t('rightSidebar.backToTodo')}
             aria-label={t('rightSidebar.backToTodo')}
           >
-            <ArrowLeft size={15} />
+            <ArrowLeft size={16} />
           </button>
           <button
             type="button"
@@ -444,7 +444,7 @@ function MarkdownSidebarViewer() {
             title={t('todo.closeSidebar')}
             aria-label={t('todo.closeSidebar')}
           >
-            <PanelRightClose size={15} />
+            <PanelRightClose size={16} />
           </button>
         </div>
       </header>
@@ -470,7 +470,7 @@ function MarkdownSidebarViewer() {
                   openMarkdownSidebar(tab.path, tab.title)
                 }}
               >
-                <FileText size={11} />
+                <FileText size={12} />
                 <span>{tab.title}</span>
               </button>
               {tab.closable ? (
@@ -481,7 +481,7 @@ function MarkdownSidebarViewer() {
                   title={t('rightSidebar.closeMarkdownTab')}
                   aria-label={t('rightSidebar.closeMarkdownTab')}
                 >
-                  <X size={10} />
+                  <X size={12} />
                 </button>
               ) : null}
             </div>

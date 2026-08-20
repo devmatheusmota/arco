@@ -343,7 +343,7 @@ export function TitleBar() {
             title={t('whatsNew.button')}
             aria-label={t('whatsNew.button')}
           >
-            <Newspaper size={13} />
+            <Newspaper size={14} />
             {updateInfo ? <span className={styles.whatsNewDot} /> : null}
           </button>
         ) : null}
@@ -367,7 +367,7 @@ export function TitleBar() {
               title={t('ui.titlebar.back')}
               aria-label={t('ui.titlebar.back')}
             >
-              <ArrowLeft size={13} />
+              <ArrowLeft size={14} />
             </button>
             <button
               type="button"
@@ -380,7 +380,7 @@ export function TitleBar() {
               title={t('ui.titlebar.forward')}
               aria-label={t('ui.titlebar.forward')}
             >
-              <ArrowRight size={13} />
+              <ArrowRight size={14} />
             </button>
           </div>
           {workspaceTabs.map((tab) => (
@@ -449,7 +449,7 @@ export function TitleBar() {
                 title={t('ui.titlebar.closeAgentPlanning')}
                 aria-label={t('ui.titlebar.closeAgentPlanning')}
               >
-                <X size={11} />
+                <X size={12} />
               </button>
             </div>
           ) : null}
@@ -467,7 +467,7 @@ export function TitleBar() {
                 title={t('whatsNew.button')}
                 aria-label={t('whatsNew.button')}
               >
-                <Newspaper size={13} />
+                <Newspaper size={14} />
                 {updateInfo ? <span className={styles.whatsNewDot} /> : null}
               </button>
             ) : null}
@@ -523,7 +523,7 @@ export function TitleBar() {
                   title={t('ui.titlebar.openUsageDetails')}
                   aria-label={t('ui.titlebar.openUsageDetails')}
                 >
-                  <ClaudeIcon size={13} />
+                  <ClaudeIcon size={14} />
                   <span>{claudeUsage.five_hour.utilization.toFixed(0)}%</span>
                 </button>
                 <div
@@ -565,7 +565,7 @@ export function TitleBar() {
                   title={t('ui.titlebar.openUsageDetails')}
                   aria-label={t('ui.titlebar.openUsageDetails')}
                 >
-                  <CodexIcon size={13} />
+                  <CodexIcon size={14} />
                   <span>{codexUsage.primary.used_percent.toFixed(0)}%</span>
                 </button>
                 <div
@@ -610,7 +610,7 @@ export function TitleBar() {
                   title={t('ui.titlebar.openUsageDetails')}
                   aria-label={t('ui.titlebar.openUsageDetails')}
                 >
-                  <AntigravityIcon size={13} />
+                  <AntigravityIcon size={14} />
                   <span>{antigravityReady ? formatPct(antigravityUsage.used_percent) : '—'}</span>
                 </button>
                 <div

@@ -10,8 +10,8 @@
   min-height: 48px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px 7px 12px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--border);
 }
 .repoContext {
@@ -19,13 +19,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 .repoContext strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 650;
 }
 .repoContext span {
@@ -33,7 +33,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--fg-faint);
-  font-size: 9px;
+  font-size: var(--font-size-1);
 }
 .iconButton,
 .groupActions button,
@@ -63,12 +63,12 @@
   min-height: 30px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   padding: 0 8px 0 12px;
   color: var(--fg-muted);
   border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 .branchRow > span {
   min-width: 0;
@@ -87,7 +87,7 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   height: 22px;
   padding: 0 7px;
   color: var(--fg-muted);
@@ -103,33 +103,33 @@
 .syncCounts {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .syncCounts > span {
   display: inline-flex;
   align-items: center;
-  gap: 1px;
+  gap: 0;
 }
 
 .commitBox {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 9px 10px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4);
   border-bottom: 1px solid var(--border);
 }
 .commitBox textarea {
   width: 100%;
   min-height: 48px;
   resize: vertical;
-  padding: 7px 8px;
+  padding: var(--space-3) var(--space-4);
   color: var(--fg);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   outline: none;
   font: inherit;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.35;
 }
 .commitBox textarea:focus {
@@ -141,7 +141,7 @@
 }
 .commitRow {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .commitButton {
   flex: 1;
@@ -149,11 +149,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   color: var(--accent-on);
   background: var(--accent);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 650;
 }
 .commitButton:hover:not(:disabled) {
@@ -167,13 +167,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   padding: 0 12px;
   color: var(--fg);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 .syncWide:hover:not(:disabled) {
@@ -188,7 +188,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: 8px;
+  padding-bottom: var(--space-4);
 }
 .group {
   border-bottom: 1px solid var(--border);
@@ -205,7 +205,7 @@
   height: 100%;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
   color: var(--fg);
   text-align: left;
 }
@@ -213,7 +213,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -227,12 +227,12 @@
   color: var(--fg-muted);
   background: var(--panel);
   border-radius: 9px;
-  font-size: 9px;
+  font-size: var(--font-size-1);
 }
 .groupActions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
 }
 .groupActions button {
   width: 22px;
@@ -249,8 +249,8 @@
   min-height: 26px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 4px;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
 }
 .dir:hover,
@@ -263,7 +263,7 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   color: var(--fg-muted);
   text-align: left;
 }
@@ -280,7 +280,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg);
 }
 
@@ -290,13 +290,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 .status {
   width: 14px;
   flex: 0 0 auto;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   text-align: center;
   color: var(--fg-muted);
@@ -324,7 +324,7 @@
 .fileActions {
   display: none;
   align-items: center;
-  gap: 1px;
+  gap: 0;
 }
 .dir:hover .fileActions,
 .dir:focus-within .fileActions,
@@ -352,8 +352,8 @@
 }
 .clean {
   min-height: 150px;
-  gap: 6px;
-  padding: 24px 16px;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-6);
 }
 .clean svg {
   color: var(--status-working);
@@ -361,20 +361,20 @@
 .clean strong,
 .message strong {
   color: var(--fg);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .clean span,
 .message span {
   max-width: 240px;
   color: var(--fg-muted);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
 }
 .message {
   flex: 1;
   min-height: 180px;
-  gap: 8px;
-  padding: 24px 18px;
+  gap: var(--space-4);
+  padding: var(--space-7) var(--space-6);
 }
 .message > svg {
   color: var(--fg-faint);
@@ -383,14 +383,14 @@
   min-height: 30px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   margin-top: 4px;
   padding: 0 10px;
   color: var(--fg);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 .retry:hover {
   background: var(--panel-hover);

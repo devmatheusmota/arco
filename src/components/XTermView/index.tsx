@@ -508,7 +508,7 @@ export function XTermView({
                   hideLinkActions()
                 }}
               >
-                <LayoutGrid size={15} />
+                <LayoutGrid size={16} />
                 <span>{t('xterm.openInGrid')}</span>
               </button>
             ) : null}
@@ -522,7 +522,7 @@ export function XTermView({
                   hideLinkActions()
                 }}
               >
-                <AppWindow size={15} />
+                <AppWindow size={16} />
                 <span>
                   {t(linkActions.fileKind === 'video' ? 'xterm.playInApp' : 'xterm.openInApp')}
                 </span>
@@ -539,7 +539,7 @@ export function XTermView({
                     hideLinkActions()
                   }}
                 >
-                  <Maximize2 size={15} />
+                  <Maximize2 size={16} />
                   <span>{t('xterm.openMarkdownFullscreen')}</span>
                 </button>
                 <button
@@ -554,7 +554,7 @@ export function XTermView({
                     hideLinkActions()
                   }}
                 >
-                  <PanelRight size={15} />
+                  <PanelRight size={16} />
                   <span>{t('xterm.openMarkdownSidebar')}</span>
                 </button>
               </>
@@ -568,7 +568,7 @@ export function XTermView({
                 hideLinkActions()
               }}
             >
-              <ExternalLink size={15} />
+              <ExternalLink size={16} />
               <span>
                 {t(linkActions.kind === 'url' ? 'xterm.openInBrowser' : 'xterm.openInDefaultApp')}
               </span>
@@ -583,7 +583,7 @@ export function XTermView({
                   hideLinkActions()
                 }}
               >
-                <FolderOpen size={15} />
+                <FolderOpen size={16} />
                 <span>{t('xterm.openInFolder')}</span>
               </button>
             ) : null}
@@ -596,7 +596,7 @@ export function XTermView({
                 hideLinkActions()
               }}
             >
-              <Copy size={15} />
+              <Copy size={16} />
               <span>{t('xterm.copy')}</span>
             </button>
           </div>

@@ -93,7 +93,7 @@ function Hero({
           <span className={styles.heroDen}>%</span>
         </div>
         <span className={styles.timechip}>
-          <Clock size={11} />
+          <Clock size={12} />
           <b>{reset}</b>
         </span>
       </div>

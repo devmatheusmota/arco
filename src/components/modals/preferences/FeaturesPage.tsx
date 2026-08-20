@@ -44,7 +44,7 @@ export function FeaturesPage() {
               aria-pressed={enabled}
             >
               <span className={styles.featureIcon}>
-                <FeatureIcon size={17} />
+                <FeatureIcon size={16} />
               </span>
               <span className={styles.featureCopy}>
                 <strong>{t(feature.titleKey)}</strong>

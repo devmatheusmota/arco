@@ -35,7 +35,7 @@ export function ThemePickerModal() {
               </span>
               <span className={controls.themeTitleRow}>
                 <strong>{themeLabel(t, theme.id)}</strong>
-                {active ? <Check size={15} /> : null}
+                {active ? <Check size={16} /> : null}
               </span>
               <span className={controls.themeDescription}>{themeDescription(t, theme.id)}</span>
             </button>

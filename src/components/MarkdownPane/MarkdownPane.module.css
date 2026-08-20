@@ -27,10 +27,8 @@
   height: auto;
   background: color-mix(in srgb, var(--bg-sunken) 72%, transparent) !important;
   border-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   box-shadow:
-    0 32px 72px rgba(0, 0, 0, 0.45),
+    0 32px 72px color-mix(in srgb, var(--bg) 55%, transparent),
     0 0 0 1px rgba(255, 255, 255, 0.06);
   animation: paneFocusIn 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -110,18 +108,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
   padding: 0 8px;
   background: var(--shape-tabs-lane-bg);
   border-bottom: 1px solid var(--shape-tabs-lane-border);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   flex-shrink: 0;
 }
 
 .headLeft {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-width: 0;
   flex: 1;
 }
@@ -129,7 +127,7 @@
 .headRight {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
@@ -146,12 +144,12 @@
 .identity {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
 .name {
-  font: 500 12px var(--font-sans);
+  font: 500 var(--font-size-1) var(--font-sans);
   color: var(--fg);
   white-space: nowrap;
   overflow: hidden;
@@ -159,11 +157,11 @@
 }
 
 .cwdPill {
-  font: 500 10px var(--font-mono);
+  font: 500 var(--font-size-1) var(--font-mono);
   color: var(--fg-faint);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  padding: 1px 7px;
+  padding: 0 var(--space-3);
   border-radius: 999px;
   line-height: 16px;
   white-space: nowrap;
@@ -175,7 +173,7 @@
 .actions {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .action {
@@ -217,19 +215,19 @@
   place-items: center;
   align-content: center;
   color: var(--fg-faint);
-  font-size: 12px;
-  gap: 10px;
-  padding: 24px;
+  font-size: var(--font-size-1);
+  gap: var(--space-4);
+  padding: var(--space-7);
   text-align: center;
 }
 
 .retryBtn {
-  padding: 6px 16px;
+  padding: var(--space-3) var(--space-6);
   background: var(--bg-elevated);
   color: var(--fg);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -249,9 +247,9 @@
 
 .textView {
   margin: 0;
-  padding: 14px 16px;
+  padding: var(--space-5) var(--space-6);
   color: var(--fg);
-  font: 400 12px/1.6 var(--font-mono);
+  font: 400 var(--font-size-1)/1.6 var(--font-mono);
   white-space: pre;
   tab-size: 2;
 }
@@ -262,19 +260,19 @@
   min-height: 0;
   resize: none;
   box-sizing: border-box;
-  padding: 18px 22px;
+  padding: var(--space-6) var(--space-7);
   border: 0;
   outline: none;
   background: var(--bg-sunken);
   color: var(--fg);
-  font: 400 13px/1.6 var(--font-mono);
+  font: 400 var(--font-size-2)/1.6 var(--font-mono);
   tab-size: 2;
 }
 
 .markdownBody {
-  padding: 20px 24px;
+  padding: var(--space-6) var(--space-7);
   color: var(--fg);
-  font: 400 14px/1.65 var(--font-sans);
+  font: 400 var(--font-size-3)/1.65 var(--font-sans);
   word-wrap: break-word;
 }
 
@@ -349,7 +347,7 @@
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
+  padding: var(--space-5) var(--space-5);
   overflow: auto;
   margin: 0 0 1em;
 }
@@ -357,7 +355,7 @@
   background: none;
   border: none;
   padding: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.55;
 }
 
@@ -377,7 +375,7 @@
 .markdownBody th,
 .markdownBody td {
   border: 1px solid var(--border);
-  padding: 6px 12px;
+  padding: var(--space-3) var(--space-5);
   text-align: left;
 }
 .markdownBody th {
@@ -405,8 +403,8 @@
   border: 1px solid var(--status-offline);
   color: var(--fg-muted);
   border-radius: var(--radius-md);
-  padding: 10px 12px;
-  font-size: 11px;
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-size-1);
   white-space: pre-wrap;
   margin: 0 0 1em;
 }

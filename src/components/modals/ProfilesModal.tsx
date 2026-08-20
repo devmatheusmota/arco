@@ -274,7 +274,7 @@ export function ProfilesModal() {
 
         <section className={styles.createCard}>
           <div className={styles.createIcon} aria-hidden="true">
-            <Plus size={17} />
+            <Plus size={16} />
           </div>
           <div className={styles.createCopy}>
             <h3>{t('profiles.createTitle')}</h3>
@@ -313,7 +313,7 @@ export function ProfilesModal() {
               <h3>{t('profiles.listTitle')}</h3>
               <p>{t('profiles.listDescription')}</p>
             </div>
-            {busy === 'load' ? <Loader2 size={15} className={styles.spin} /> : null}
+            {busy === 'load' ? <Loader2 size={16} className={styles.spin} /> : null}
           </div>
 
           {items.length === 0 ? (
@@ -343,7 +343,7 @@ export function ProfilesModal() {
                         <strong>{profile.name}</strong>
                         {profile.is_active ? (
                           <span className={styles.currentBadge}>
-                            <Check size={11} />
+                            <Check size={12} />
                             {t('profiles.current')}
                           </span>
                         ) : null}
@@ -465,7 +465,7 @@ export function ProfilesModal() {
                 onClick={() => setPendingDelete(null)}
                 aria-label={t('common.close')}
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             </div>
             <button

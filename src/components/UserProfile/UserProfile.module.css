@@ -7,9 +7,9 @@
 .button {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
   width: 100%;
-  padding: 14px 12px;
+  padding: var(--space-5) var(--space-5);
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -30,7 +30,7 @@
   place-items: center;
   background: var(--bg-sunken);
   color: var(--fg);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 700;
 }
 
@@ -42,7 +42,7 @@
 }
 
 .name {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 600;
   color: var(--fg);
   overflow: hidden;
@@ -51,7 +51,7 @@
 }
 
 .email {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg-faint);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -67,7 +67,7 @@
 }
 
 :global([data-visual-style='clean']) .button {
-  gap: 8px;
+  gap: var(--space-4);
   height: 40px;
   padding: 0 10px;
 }
@@ -75,7 +75,7 @@
 :global([data-visual-style='clean']) .avatar {
   width: 24px;
   height: 24px;
-  font-size: 9px;
+  font-size: var(--font-size-1);
 }
 
 :global([data-visual-style='clean']) .identity {
@@ -87,13 +87,13 @@
 :global([data-visual-style='clean']) .name {
   flex: 1;
   min-width: 0;
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 :global([data-visual-style='clean']) .email {
   max-width: none;
   flex: none;
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 
 :global([data-visual-style='clean']) .gear {
@@ -110,10 +110,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
-  padding: 4px;
+  padding: var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   animation: pop 120ms ease-out;
 }
 
@@ -131,8 +131,8 @@
 .popHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 10px 6px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-3);
 }
 
 .popAvatar {
@@ -146,7 +146,7 @@
   place-items: center;
   background: var(--bg-sunken);
   color: var(--fg);
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 700;
 }
 
@@ -157,12 +157,12 @@
 }
 
 .popName {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   color: var(--fg);
 }
 
 .popEmail {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -178,9 +178,9 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  font-size: 13px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-2);
   color: var(--fg);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -209,27 +209,27 @@
 }
 
 :global([data-visual-style='clean']) .popHeader {
-  gap: 8px;
-  padding: 7px 8px 5px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-2);
 }
 
 :global([data-visual-style='clean']) .popAvatar {
   width: 28px;
   height: 28px;
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 :global([data-visual-style='clean']) .popName {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 :global([data-visual-style='clean']) .popEmail {
-  font-size: 10px;
+  font-size: var(--font-size-1);
 }
 
 :global([data-visual-style='clean']) .item {
   min-height: var(--clean-row-height);
   padding: 0 8px;
   border-radius: var(--clean-row-radius);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }

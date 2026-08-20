@@ -1,9 +1,9 @@
 .tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
+  gap: var(--space-2);
   margin: 0 0 16px;
-  padding: 3px;
+  padding: var(--space-1);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -14,7 +14,7 @@
   padding: 0 6px;
   color: var(--fg-muted);
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--font-size-1);
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
@@ -35,37 +35,37 @@
 }
 .sectionIntro {
   margin: 0 0 16px;
-  padding-bottom: 12px;
+  padding-bottom: var(--space-5);
   border-bottom: 1px solid var(--border);
 }
 .sectionIntro h3 {
   margin: 0;
   color: var(--fg);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 700;
 }
 .sectionIntro p {
   margin: 4px 0 0;
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.4;
 }
 .choiceRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .choice {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 30px;
   padding: 0 9px;
   color: var(--fg-muted);
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   cursor: pointer;
 }
 .choice:has(input:checked) {
@@ -75,21 +75,21 @@
 }
 .commandInput {
   min-height: 76px;
-  padding: 7px 9px;
+  padding: var(--space-3) var(--space-4);
   resize: vertical;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 .toggleRow {
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 8px 0 0;
 }
 .toggleLabel {
   margin: 0;
   color: var(--fg-muted);
-  font-size: 11px;
+  font-size: var(--font-size-1);
   line-height: 1.35;
   cursor: pointer;
 }

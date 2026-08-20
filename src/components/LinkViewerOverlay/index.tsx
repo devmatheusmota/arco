@@ -68,7 +68,7 @@ export function LinkViewerOverlay() {
             title={t('xterm.openInBrowser')}
             aria-label={t('xterm.openInBrowser')}
           >
-            <ExternalLink size={15} />
+            <ExternalLink size={16} />
           </button>
           <button
             type="button"
@@ -77,7 +77,7 @@ export function LinkViewerOverlay() {
             title={t('common.close')}
             aria-label={t('common.close')}
           >
-            <X size={15} />
+            <X size={16} />
           </button>
         </div>
         <div className={styles.body}>

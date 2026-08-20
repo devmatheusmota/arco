@@ -49,7 +49,7 @@ export function AgentChip({
       title={summary}
     >
       <span className={styles.personaToken} aria-hidden="true">
-        <Icon size={13} />
+        <Icon size={14} />
       </span>
       <span className={styles.agentChipName}>{name}</span>
       {cost ? <span className={costClass}>{cost}</span> : null}
