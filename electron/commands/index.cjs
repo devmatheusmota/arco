@@ -389,4 +389,4 @@ function missingCommand(cmd) {
   return null
 }
 
-module.exports = { buildCommands, missingCommand }
+module.exports = { buildCommands, missingCommand, appendLog }

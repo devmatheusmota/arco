@@ -24,6 +24,17 @@ function send(message) {
   process.stdout.write(`${JSON.stringify(message)}\n`)
 }
 
+/**
+ * A line for `app-events.log`, written by the main process.
+ *
+ * The host has no window and its stderr goes wherever the desktop launcher
+ * sends it, which is nowhere the user can reach. Anything worth explaining a
+ * terminal that never appeared goes through here instead.
+ */
+function log(kind, message) {
+  send({ type: 'log', kind, message })
+}
+
 function scrollbackPath(id) {
   return path.join(scrollbackDir, `${id}.bin`)
 }
@@ -118,13 +129,22 @@ function nearestExistingDir(dir) {
 
 function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
   const existing = sessions.get(id)
-  if (existing) return { id }
+  if (existing) {
+    log('pty.spawn', `id=${id} reused pid=${existing.child.pid}`)
+    return { id }
+  }
 
   const shell = process.env.SHELL || '/bin/bash'
   const requested = launcherOverride || command || shell
   const file = resolveExecutable(requested)
-  if (!file) throw new Error(`command not found: ${requested}`)
+  if (!file) {
+    log('pty.spawn.error', `id=${id} command=${requested} error=not found on PATH`)
+    throw new Error(`command not found: ${requested}`)
+  }
   const spawnCwd = cwd ? nearestExistingDir(cwd) : os.homedir()
+  if (cwd && spawnCwd !== cwd) {
+    log('pty.spawn', `id=${id} cwd=${cwd} missing, fell back to ${spawnCwd}`)
+  }
   const child = pty.spawn(file, args ?? [], {
     name: 'xterm-256color',
     cols: cols ?? 80,
@@ -145,6 +165,10 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
     lastActivityAt: 0,
   }
   sessions.set(id, session)
+  log(
+    'pty.spawn',
+    `id=${id} pid=${child.pid} command=${file} args=${(args ?? []).length} cwd=${spawnCwd}`,
+  )
 
   child.onData((data) => {
     session.scrollback += data
@@ -172,9 +196,16 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
     }
   })
 
+  const startedAt = Date.now()
   child.onExit(({ exitCode }) => {
     persist(session)
     sessions.delete(id)
+    // An agent that dies in its first seconds leaves a pane that looks like it
+    // never started at all; the elapsed time is what tells the two apart.
+    log(
+      'pty.exit',
+      `id=${id} pid=${child.pid} code=${exitCode ?? '—'} after=${Date.now() - startedAt}ms`,
+    )
     send({ type: 'exit', id, code: exitCode ?? null })
   })
 
@@ -260,8 +291,10 @@ process.stdin.on('data', (chunk) => {
         const handler = handlers[request.cmd]
         try {
           const result = handler ? handler(request.args ?? {}) : null
+          if (!handler) log('pty.command', `unknown command ${request.cmd}`)
           send({ type: 'reply', requestId: request.requestId, result })
         } catch (error) {
+          log('pty.command.error', `cmd=${request.cmd} error=${String(error)}`)
           send({ type: 'reply', requestId: request.requestId, error: String(error) })
         }
       }

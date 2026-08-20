@@ -15,7 +15,11 @@ import { getLocale, translate } from '../../lib/i18n'
 import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
 import { measure } from '../../lib/mainThreadBudget'
 import { isWindows } from '../../lib/platform'
-import { usePtyPanelFocused, usePtyPanelVisible } from '../../lib/ptyVisibility'
+import {
+  isPtyPanelVisibleNow,
+  usePtyPanelFocused,
+  usePtyPanelVisible,
+} from '../../lib/ptyVisibility'
 import {
   claimDiscoveredSession,
   claimMostRecentSession,
@@ -32,7 +36,7 @@ import {
   saveSession,
 } from '../../lib/sessionResume'
 import { waitForSessionHint } from '../../lib/sessionWatch'
-import { acquireSpawnSlot, releaseSpawnSlot } from '../../lib/spawnQueue'
+import { acquireSpawnSlot, getSpawnQueueSnapshot, releaseSpawnSlot } from '../../lib/spawnQueue'
 import {
   aiMemoryCodexConfigWrite,
   aiMemoryDetect,
@@ -200,6 +204,7 @@ export function useXtermSession(params: {
   usedResumeRef: MutableRefObject<boolean>
   earlyExitRetriedRef: MutableRefObject<boolean>
   forceFreshRef: MutableRefObject<boolean>
+  forceStartRef: MutableRefObject<boolean>
   onSpawnedRef: MutableRefObject<((id: string) => void) | undefined>
   onSessionIdRef: MutableRefObject<((id: string | undefined) => void) | undefined>
   onInitialInputSentRef: MutableRefObject<(() => void) | undefined>
@@ -241,6 +246,7 @@ export function useXtermSession(params: {
     usedResumeRef,
     earlyExitRetriedRef,
     forceFreshRef,
+    forceStartRef,
     onSpawnedRef,
     onSessionIdRef,
     onInitialInputSentRef,
@@ -258,6 +264,32 @@ export function useXtermSession(params: {
   } = params
 
   const isPanelVisible = usePtyPanelVisible(ptyId)
+  const bootStartedAtRef = useRef(0)
+
+  /**
+   * Boot phases, in `app-events.log`.
+   *
+   * A pane that never reaches a terminal is the hardest thing in this app to
+   * explain after the fact: the console is gone with the window, and the phase
+   * lives in React state. One line per transition is what turns "it just does
+   * not open" into the step it stopped on.
+   */
+  const trackBoot = useCallback(
+    (phase: BootPhase, detail?: string) => {
+      setBootPhase(phase)
+      if (phase === 'preparing') bootStartedAtRef.current = Date.now()
+      const elapsed = bootStartedAtRef.current ? Date.now() - bootStartedAtRef.current : 0
+      void recordAppEvent(
+        'terminal.boot',
+        `pty=${ptyId} agent=${command ?? '(shell)'} phase=${phase} elapsed=${elapsed}ms${
+          detail ? ` ${detail}` : ''
+        }`,
+      )
+    },
+    [command, ptyId, setBootPhase],
+  )
+  const trackBootRef = useRef(trackBoot)
+  trackBootRef.current = trackBoot
   const isPanelFocused = usePtyPanelFocused(ptyId)
   const isPanelFocusedRef = useRef(isPanelFocused)
   isPanelFocusedRef.current = isPanelFocused
@@ -281,6 +313,8 @@ export function useXtermSession(params: {
   const screenPrimedRef = useRef(false)
   /** Set while a session is waiting for its pane to be looked at before it starts. */
   const deferredStartRef = useRef<(() => Promise<void>) | null>(null)
+  /** Set when a deferred start was just fired, so the visibility effect knows. */
+  const startingRef = useRef(false)
   const rendererRef = useRef<TerminalRenderer | null>(null)
   /** Set while an attach is still waiting for the pane to have a size. */
   const cancelRendererAttachRef = useRef<(() => void) | null>(null)
@@ -1090,7 +1124,7 @@ export function useXtermSession(params: {
     }
 
     const attachExistingPty = async (existingId: string) => {
-      setBootPhase('attaching')
+      trackBootRef.current('attaching', `pty=${existingId} reason=reattached to a live process`)
       ptyIdRef.current = existingId
       useTerminalsStore.getState().registerPty(existingId)
       onSpawnedRef.current?.(existingId)
@@ -1156,7 +1190,7 @@ export function useXtermSession(params: {
       unlistenExit = exitUnlisten
 
       scheduleResize()
-      if (!disposed) setBootPhase('ready')
+      if (!disposed) trackBootRef.current('ready')
     }
 
     terminal.onData((data) => {
@@ -1205,7 +1239,7 @@ export function useXtermSession(params: {
         await flushResizeToPty()
         if (disposed) return
         setCommandNotFound(null)
-        setBootPhase('preparing')
+        trackBootRef.current('preparing')
 
         const existingRuntime = useTerminalsStore.getState().byPtyId[ptyId]
         if (existingRuntime?.alive && !existingRuntime.parked) {
@@ -1225,11 +1259,26 @@ export function useXtermSession(params: {
         // The session starts when it reaches the screen instead — except when it
         // was given something to run, which is a session that has work to do
         // whether or not it is being watched.
-        if (!isPanelVisibleRef.current && !initialInput) {
+        // Read the stores, not the ref: everything above this line is async, and
+        // the ref only catches up on the next commit. A pane that came on screen
+        // while this was running used to arm a deferred start *after* the event
+        // that would have fired it — and stayed black until the app restarted.
+        const onScreen = isPtyPanelVisibleNow(ptyId) || isPanelVisibleRef.current
+        if (!onScreen && !initialInput && !forceStartRef.current) {
           deferredStartRef.current = start
-          setBootPhase('idle')
+          trackBootRef.current('idle', 'reason=pane not visible; waiting to be opened')
+          // One more check, after the ref had a chance to settle: the pane may
+          // have arrived while this branch was being taken.
+          window.setTimeout(() => {
+            if (disposed || !deferredStartRef.current) return
+            if (!isPtyPanelVisibleNow(ptyId)) return
+            const deferred = deferredStartRef.current
+            deferredStartRef.current = null
+            void deferred()
+          }, 0)
           return
         }
+        forceStartRef.current = false
         deferredStartRef.current = null
 
         let launcherOverride: string | undefined
@@ -1270,7 +1319,8 @@ export function useXtermSession(params: {
           command && RESUMABLE_AGENTS.includes(command) ? peekSession(sessionPersistenceKey) : null
         const savedConversationId = savedConversationIdFor(savedSession, command, cwd)
         let resumeId = sessionId ?? savedConversationId
-        // Fallback: se a tentativa anterior morreu no nascimento usando resume,
+        // Fallback: if the previous attempt died at birth while resuming, the
+        // next one starts a fresh conversation instead of retrying the same one.
 
         const intendedResumeId = resumeId
         /**
@@ -1281,11 +1331,11 @@ export function useXtermSession(params: {
         const dropped = (reason: string, replacement?: string) =>
           void recordAppEvent(
             'session.resume',
-            `agent=${command ?? '(shell)'} wanted=${intendedResumeId ?? '—'} got=${replacement ?? 'nova sessão'} reason=${reason}`,
+            `agent=${command ?? '(shell)'} wanted=${intendedResumeId ?? '—'} got=${replacement ?? 'fresh session'} reason=${reason}`,
           )
 
         if (forceFreshRef.current) {
-          console.warn(`[pty-launch] ${command} reabrindo SEM resume (fallback de early-exit)`)
+          console.warn(`[pty-launch] ${command} reopening WITHOUT resume (early-exit fallback)`)
           if (resumeId) dropped('early-exit-fallback')
           resumeId = undefined
         }
@@ -1463,7 +1513,7 @@ export function useXtermSession(params: {
           if (RESUMABLE_AGENTS.includes(command) && resumeId === intendedResumeId) {
             void recordAppEvent(
               'session.resume',
-              `agent=${command} wanted=${intendedResumeId ?? '—'} got=${resumeId ?? 'nova sessão'} reason=${intendedResumeId ? 'resumed' : 'sem ponteiro salvo'}`,
+              `agent=${command} wanted=${intendedResumeId ?? '—'} got=${resumeId ?? 'fresh session'} reason=${intendedResumeId ? 'resumed' : 'no saved pointer'}`,
             )
           }
         }
@@ -1491,14 +1541,17 @@ export function useXtermSession(params: {
             : null
 
         // Too many parallel PTY spawns can stall the app.
-        setBootPhase('queued')
+        trackBootRef.current('queued', `queue=${getSpawnQueueSnapshot().queued}`)
         const acquiredSpawnSlot = await acquireSpawnSlot(spawnQueueAbort.signal)
-        if (!acquiredSpawnSlot) return
+        if (!acquiredSpawnSlot) {
+          trackBootRef.current('queued', 'reason=abandoned in the spawn queue')
+          return
+        }
         if (disposed) {
           releaseSpawnSlot()
           return
         }
-        setBootPhase('spawning')
+        trackBootRef.current('spawning')
         let response: { id: string }
         try {
           response = await spawnPtyWithTimeout({
@@ -1521,12 +1574,13 @@ export function useXtermSession(params: {
         spawnedAtRef.current = Date.now()
         usedResumeRef.current = Boolean(resumeId)
         if (disposed) return
-        setBootPhase('attaching')
+        trackBootRef.current('attaching', `pty=${response.id}`)
         ptyIdRef.current = response.id
         useTerminalsStore.getState().registerPty(response.id)
         onSpawnedRef.current?.(response.id)
 
-        // visibilidade correta desde o primeiro lote (ex.: pane aberto num
+        // Correct visibility from the very first batch (a pane opened in the
+        // background must not be treated as the one on screen).
 
         void setPtyVisible(response.id, isPanelVisibleRef.current).catch(() => {})
         if (command && cwd && launch.sessionId) {
@@ -1778,19 +1832,19 @@ export function useXtermSession(params: {
               window.setTimeout(() => void writePty(response.id, '\r').catch(() => {}), 1_200)
               onInitialInputSentRef.current?.()
             } catch (error) {
-              console.warn('[pty-launch] não foi possível enviar o prompt inicial:', error)
+              console.warn('[pty-launch] could not send the initial prompt:', error)
             }
           }
           void sendInitialInput()
         }
 
         scheduleResize()
-        if (!disposed) setBootPhase('ready')
+        if (!disposed) trackBootRef.current('ready')
       } catch (err) {
-        console.error(`[pty-launch] ${command ?? 'shell'} FALHOU ao iniciar PTY:`, err)
+        console.error(`[pty-launch] ${command ?? 'shell'} FAILED to start the PTY:`, err)
         onLaunchErrorRef.current?.(err)
         if (!disposed) terminal.writeln(`Failed to start PTY: ${String(err)}`)
-        if (!disposed) setBootPhase('ready')
+        if (!disposed) trackBootRef.current('ready', `error=${String(err)}`)
       }
     }
     openWhenSized()
@@ -1849,6 +1903,18 @@ export function useXtermSession(params: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionPersistenceKey, retryKey])
 
+  // The session this pane holds was left unstarted until somebody asked for it.
+  // This is somebody asking. It sits in an effect of its own because the
+  // visibility effect below skips its first run — and a pane whose first run is
+  // the one that turns it visible would never start.
+  useEffect(() => {
+    if (!isPanelVisible || !deferredStartRef.current) return
+    const deferred = deferredStartRef.current
+    deferredStartRef.current = null
+    startingRef.current = true
+    void deferred()
+  }, [isPanelVisible])
+
   useEffect(() => {
     isPanelVisibleRef.current = isPanelVisible
     const wasVisible = wasPanelVisibleRef.current
@@ -1874,16 +1940,8 @@ export function useXtermSession(params: {
 
     let cancelled = false
     let resyncTimer: number | null = null
-
-    // The session this pane holds was left unstarted until somebody asked for
-    // it. This is somebody asking.
-    let starting = false
-    if (isPanelVisible && deferredStartRef.current) {
-      const deferred = deferredStartRef.current
-      deferredStartRef.current = null
-      starting = true
-      void deferred()
-    }
+    const starting = startingRef.current
+    startingRef.current = false
 
     // A pane coming back writes exactly the output it missed, so its terminal is
     // never reset and the agent's own view of the screen stays valid. The full

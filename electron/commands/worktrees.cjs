@@ -42,7 +42,23 @@ function buildWorktreeCommands() {
   return {
     worktree_provision: async ({ repo, agentId, mode }) => {
       const target = worktreePath(repo, agentId)
-      if (fs.existsSync(target)) return info(repo, agentId)
+      if (fs.existsSync(target)) {
+        // A directory is not proof of a worktree. A provision interrupted
+        // halfway leaves the folder behind without the `.git` file that makes
+        // it one, and accepting it hands the agent a checkout git knows nothing
+        // about. The remains are kept — they may hold work — and moved aside so
+        // a real worktree can take the name.
+        if (mode === 'localCopy' || fs.existsSync(path.join(target, '.git'))) {
+          return info(repo, agentId)
+        }
+        const salvaged = `${target}.broken-${Date.now()}`
+        try {
+          fs.renameSync(target, salvaged)
+        } catch (error) {
+          throw new Error(`worktree ${target} is incomplete and cannot be moved`, { cause: error })
+        }
+        await git(['worktree', 'prune'], repo).catch(() => null)
+      }
       paths.ensureDir(path.dirname(target))
       if (mode === 'localCopy') {
         await new Promise((resolve, reject) => {

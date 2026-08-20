@@ -78,6 +78,18 @@ function visibilitySets(): PtyVisibilitySets {
   return cached
 }
 
+/**
+ * Whether a pane is on screen *right now*, straight from the stores.
+ *
+ * The hook value reaches a ref through an effect, so code that runs between
+ * commits — an async boot deciding whether to start its session — can read a
+ * value that is already stale. This asks the source instead.
+ */
+export function isPtyPanelVisibleNow(ptyId: string | undefined): boolean {
+  if (!ptyId) return false
+  return visibilitySets().visible.has(ptyId)
+}
+
 export function usePtyPanelVisible(ptyId: string | undefined): boolean {
   return useSyncExternalStore(subscribePtyVisibility, () => {
     if (!ptyId) return false

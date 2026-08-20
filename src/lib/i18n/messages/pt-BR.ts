@@ -789,6 +789,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v266.note1':
+    'A sess\u00e3o aberta pela barra de abas podia ficar preta pra sempre, sem nada na tela pra clicar e sem nada no log pra explicar. Se um pane sobe a sess\u00e3o dele depende de estar na sua frente, e essa resposta era lida um instante tarde demais \u2014 um pane que chegava enquanto o pr\u00f3prio start ainda decidia sentava pra esperar algo que j\u00e1 tinha acontecido. Agora ele pergunta na hora em que decide. Sess\u00e3o que ainda n\u00e3o subiu tamb\u00e9m mostra um bot\u00e3o pra iniciar, em vez de um pane vazio.',
+  'whatsNew.v266.note2':
+    'Quando um terminal n\u00e3o abre, o app agora sabe dizer onde parou. Cada passo da subida de um pane vai pro log com quanto tempo levou, junto com o que o host de terminais fez: o que ele lan\u00e7ou e com qual pid, comando que n\u00e3o est\u00e1 no PATH, pasta que n\u00e3o existe mais, e toda sa\u00edda com o c\u00f3digo dela. Pane que passa vinte segundos sem ficar pronto avisa na tela, diz em que passo parou e oferece tentar de novo.',
   'whatsNew.v265.note1':
     'Fechar uma sess\u00e3o, ou o app, agora derruba junto os processos do pr\u00f3prio agente. O ajuste da 2.6.4 encerrava o processo que roda os terminais, mas isso s\u00f3 empurrou o vazamento um n\u00edvel abaixo: cada terminal \u00e9 um mundo pr\u00f3prio, ent\u00e3o o agente dentro dele \u2014 e os servidores MCP que o agente subiu, que s\u00e3o quem segura a mem\u00f3ria \u2014 continuavam rodando, entregues ao sistema. Aqui isso deu 4,5 GB que fechar a janela n\u00e3o devolvia. Agora tudo que o terminal iniciou \u00e9 encerrado junto, e o que se recusar leva kill dois segundos depois.',
   'whatsNew.v264.note1':
@@ -1192,6 +1196,11 @@ export const ptBR: Record<MessageKey, string> = {
   'term.bootQueued': 'Aguardando uma vaga para iniciar…',
   'term.bootSpawning': 'Iniciando processo…',
   'term.bootAttaching': 'Conectando ao terminal…',
+  'term.bootIdle': 'Esta sess\u00e3o ainda n\u00e3o foi iniciada.',
+  'term.bootStart': 'Iniciar sess\u00e3o',
+  'term.bootStalled': 'Este terminal est\u00e1 demorando mais que o normal para iniciar.',
+  'term.bootStalledPhase': 'Parou em: {phase}',
+  'term.bootRetry': 'Tentar de novo',
   'term.chooseFolder': 'Escolher pasta',
   'term.nameOptional': 'Nome (opcional)',
   'term.folderCwd': 'Pasta (cwd)',

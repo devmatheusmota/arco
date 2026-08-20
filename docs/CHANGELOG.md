@@ -10,6 +10,33 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.6.6] — 2026-08-20
+
+### Added
+
+- Starting a session is now recorded step by step in `app-events.log`: every boot phase of a pane
+  (preparing, queued, spawning, attaching, ready) with how long it took, plus the reason a pane
+  stopped short — waiting to be opened, abandoned in the spawn queue, or a launch that threw. The
+  terminal host reports too: what it spawned and with which pid, a command missing from `PATH`, a
+  working directory that no longer exists, and every exit with its code and how long the process
+  ran. Its stderr, which used to go to a console nobody could reach, lands in the same file, and a
+  command that fails behind the scenes leaves an `invoke.error` line instead of failing silently.
+- A pane that has not finished starting after twenty seconds says so, names the step it stopped on,
+  and offers to try again.
+
+### Fixed
+
+- A session opened from the tab bar could stay black forever. Whether a pane starts its session
+  depends on it being on screen, and that answer was read from a value that only refreshes on the
+  next render — so a pane that arrived while its own start was still being decided armed itself to
+  wait for an event that had already passed. It now asks whether it is on screen at the moment it
+  decides, and the wait is re-armed independently of the first render.
+- A session that has not started yet shows a button to start it, instead of an empty black pane with
+  nothing to click.
+- An interrupted agent worktree is no longer handed to the next session as if it were complete. The
+  directory was taken as proof the worktree existed, so a checkout git never finished registering
+  was reused; what is left of it is now moved aside and a real worktree takes its place.
+
 ## [2.6.5] — 2026-08-20
 
 ### Fixed

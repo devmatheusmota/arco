@@ -17,7 +17,13 @@ import { cliPathMatchesAgent } from '../../lib/agentCliPath'
 import { pickFile } from '../../lib/dialog'
 import { getLocale, translate, useT } from '../../lib/i18n'
 import { writeScopedStorage } from '../../lib/storageNamespace'
-import { openInBrowser, openInFileExplorer, writeClipboardText, writePty } from '../../lib/tauri'
+import {
+  openInBrowser,
+  openInFileExplorer,
+  recordAppEvent,
+  writeClipboardText,
+  writePty,
+} from '../../lib/tauri'
 import {
   AGENT_TYPE_LABELS,
   agentCliCommand,
@@ -67,6 +73,9 @@ export type XTermViewProps = {
   onLaunchError?: (error: unknown) => void
   onAgentComplete?: () => void
 }
+
+/** How long a pane may sit mid-boot before the UI admits something is wrong. */
+const BOOT_STALL_MS = 20_000
 
 const LINK_MENU_WIDTH = 272
 const LINK_MENU_MAX_HEIGHT = 276
@@ -134,6 +143,7 @@ export function XTermView({
   const usedResumeRef = useRef(false)
   const earlyExitRetriedRef = useRef(false)
   const forceFreshRef = useRef(false)
+  const forceStartRef = useRef(false)
 
   const [commandNotFound, setCommandNotFound] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
@@ -323,6 +333,7 @@ export function XTermView({
     usedResumeRef,
     earlyExitRetriedRef,
     forceFreshRef,
+    forceStartRef,
     onSpawnedRef,
     onSessionIdRef,
     onInitialInputSentRef,
@@ -372,6 +383,29 @@ export function XTermView({
     [setCliPath],
   )
 
+  // A boot that never lands used to be indistinguishable from an idle pane: no
+  // label, no error, nothing in the log. After this long, say so on screen and
+  // write the phase it stopped on where it can be read later.
+  const [bootStalled, setBootStalled] = useState(false)
+  useEffect(() => {
+    setBootStalled(false)
+    if (bootPhase === 'ready' || bootPhase === 'idle') return
+    const timer = window.setTimeout(() => {
+      setBootStalled(true)
+      void recordAppEvent(
+        'terminal.stuck',
+        `pty=${ptyId} agent=${command ?? '(shell)'} phase=${bootPhase} waited=${BOOT_STALL_MS}ms`,
+      )
+    }, BOOT_STALL_MS)
+    return () => window.clearTimeout(timer)
+  }, [bootPhase, command, ptyId])
+
+  const startSessionNow = useCallback(() => {
+    forceStartRef.current = true
+    setBootStalled(false)
+    setRetryKey((value) => value + 1)
+  }, [setRetryKey])
+
   const bootLabel =
     bootPhase === 'preparing'
       ? t('term.bootPreparing')
@@ -394,6 +428,25 @@ export function XTermView({
         <div className={styles.bootOverlay}>
           <div className={styles.bootSpinner} aria-hidden />
           <div className={styles.bootLabel}>{bootLabel}</div>
+        </div>
+      ) : null}
+      {bootPhase === 'idle' && !commandNotFound ? (
+        <div className={styles.overlay}>
+          <div className={styles.overlayText}>{t('term.bootIdle')}</div>
+          <button type="button" className={styles.overlayBtn} onClick={startSessionNow}>
+            {t('term.bootStart')}
+          </button>
+        </div>
+      ) : null}
+      {bootStalled && !commandNotFound ? (
+        <div className={styles.overlay}>
+          <div className={styles.overlayText}>{t('term.bootStalled')}</div>
+          <div className={styles.overlayText}>
+            {t('term.bootStalledPhase', { phase: bootPhase })}
+          </div>
+          <button type="button" className={styles.overlayBtn} onClick={startSessionNow}>
+            {t('term.bootRetry')}
+          </button>
         </div>
       ) : null}
       {commandNotFound ? (

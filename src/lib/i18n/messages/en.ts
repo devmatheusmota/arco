@@ -777,6 +777,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v266.note1':
+    'A session opened from the tab bar could stay black forever, with nothing on screen to click and nothing in the log to explain it. Whether a pane starts its session depends on it being in front of you, and that answer was read a moment too late \u2014 a pane that arrived while its own start was still being decided sat down to wait for something that had already happened. It now asks at the moment it decides. A session that has not started also shows a button to start it, instead of an empty pane.',
+  'whatsNew.v266.note2':
+    'When a terminal does not open, the app can now tell you where it stopped. Every step of starting a pane is written to the log with how long it took, along with what the terminal host did: what it launched and with which pid, a command missing from PATH, a folder that no longer exists, and every exit with its code. A pane still not ready after twenty seconds says so on screen, names the step it stopped on, and offers to try again.',
   'whatsNew.v265.note1':
     'Closing a session, or the app, now takes the agent\u2019s own processes down with it. The fix in 2.6.4 stopped the process that runs the terminals, but that only moved the leak one level down: each terminal is a world of its own, so the agent inside it \u2014 and the MCP servers the agent brought up, which are what hold the memory \u2014 kept running, handed over to the system. Here that was 4.5 GB that closing the window had not given back. Everything a terminal started is now closed together, and whatever refuses is killed two seconds later.',
   'whatsNew.v264.note1':
@@ -1178,6 +1182,11 @@ export const en = {
   'term.bootQueued': 'Waiting for a spawn slot…',
   'term.bootSpawning': 'Starting process…',
   'term.bootAttaching': 'Connecting to terminal…',
+  'term.bootIdle': 'This session has not started yet.',
+  'term.bootStart': 'Start session',
+  'term.bootStalled': 'This terminal is taking longer than usual to start.',
+  'term.bootStalledPhase': 'Stopped at: {phase}',
+  'term.bootRetry': 'Try again',
   'term.chooseFolder': 'Choose folder',
   'term.nameOptional': 'Name (optional)',
   'term.folderCwd': 'Folder (cwd)',

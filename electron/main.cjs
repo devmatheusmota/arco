@@ -11,7 +11,7 @@ const { spawn } = require('node:child_process')
 const fs = require('node:fs')
 const { pathToFileURL } = require('node:url')
 
-const { buildCommands, missingCommand } = require('./commands/index.cjs')
+const { buildCommands, missingCommand, appendLog } = require('./commands/index.cjs')
 const paths = require('./commands/paths.cjs')
 const { collectFromArgv } = require('./pending-open.cjs')
 const { applyLoginEnv } = require('./login-env.cjs')
@@ -105,10 +105,20 @@ function startPtyHost(send) {
     console.error('[arco] no Node runtime found; terminals cannot start')
   }
   const child = spawn(nodeBinary ?? 'node', [hostPath], {
-    stdio: ['pipe', 'pipe', 'inherit'],
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
+  // A desktop launch has no console to read: node-pty failing to load, or a
+  // terminal dying with `execvp(3) failed`, used to be printed where only a
+  // terminal launch could see it.
+  child.stderr?.on('data', (chunk) => {
+    const text = chunk.toString().trim()
+    if (!text) return
+    console.error(`[pty-host] ${text}`)
+    appendLog('app-events.log', `[pty.host.stderr] ${text}`)
   })
   child.on('error', (error) => {
     console.error('[arco] could not start the PTY host — is Node installed?', error)
+    appendLog('app-events.log', `[pty.host.error] ${String(error)}`)
   })
   const pending = new Map()
   let nextRequestId = 1
@@ -140,6 +150,8 @@ function startPtyHost(send) {
         send(`pty://activity/${message.id}`, message.data)
       } else if (message.type === 'exit') {
         send(`pty://exit/${message.id}`, { code: message.code, reason: null })
+      } else if (message.type === 'log') {
+        appendLog('app-events.log', `[${message.kind}] ${message.message}`)
       }
     }
   })
@@ -149,6 +161,7 @@ function startPtyHost(send) {
   // next request starts a fresh host.
   child.on('exit', (code) => {
     console.error(`[arco] PTY host exited (${code}); failing ${pending.size} pending call(s)`)
+    appendLog('app-events.log', `[pty.host.exit] code=${code} pending=${pending.size}`)
     for (const entry of pending.values()) entry.reject(new Error('pty host exited'))
     pending.clear()
   })
@@ -319,6 +332,7 @@ app.whenReady().then(() => {
     try {
       return await handler(args ?? {})
     } catch (error) {
+      appendLog('app-events.log', `[invoke.error] cmd=${cmd} error=${String(error)}`)
       return { __error: String(error) }
     }
   })
