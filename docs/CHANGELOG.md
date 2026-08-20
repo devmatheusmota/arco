@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.6.2] — 2026-08-20
+
 ### Fixed
 
 - A session picked from the tab bar shows its screen again. Every session of a project is mounted,

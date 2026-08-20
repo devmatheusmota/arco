@@ -777,6 +777,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v262.note1':
+    'A session you pick from the tab bar shows its screen again. Every session of a project stays loaded, and the ones behind the tab bar reconnect to their agent without redrawing \u2014 which left them blank when you opened them, until that agent printed something new. A project with several sessions waiting for you meant every tab opened onto an empty terminal. A session arriving on screen without its content now asks for it.',
+  'whatsNew.v262.note2':
+    'A tab is named after the conversation it holds, the same name the sidebar shows for that session. Nine Claude sessions in one project all read \u201cclaude\u201d, so the tab bar told you nothing about which was which.',
+  'whatsNew.v262.note3':
+    'Sessions stop going black after a long stretch of switching between them. Each pane on screen holds a GPU context, and the ones leaving the screen were only handing theirs back whenever the browser got around to it \u2014 past the limit it takes the oldest, which is the one you are looking at. The context is now released with the pane. Typing also lands in the session on screen right after a project opens, instead of in whichever session finished loading last.',
   'whatsNew.v261.note1':
     'Each session tab is named after its conversation again. Two Claude sessions in the same project both read \u201cclaude\u201d, with nothing to tell them apart — the tab bar was using the session\u2019s fallback name while the sidebar already showed the conversation title. Both read the same name now.',
   'whatsNew.v261.note2':

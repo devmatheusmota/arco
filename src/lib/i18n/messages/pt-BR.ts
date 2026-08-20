@@ -789,6 +789,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v262.note1':
+    'A sess\u00e3o que voc\u00ea escolhe na barra de abas volta a mostrar a tela. Toda sess\u00e3o do projeto fica carregada, e as que est\u00e3o atr\u00e1s da barra reconectam no agente sem redesenhar \u2014 o que deixava elas em branco na hora de abrir, at\u00e9 o agente escrever algo novo. Num projeto com v\u00e1rias sess\u00f5es esperando voc\u00ea, cada aba abria num terminal vazio. Agora a sess\u00e3o que chega na tela sem conte\u00fado pede o conte\u00fado.',
+  'whatsNew.v262.note2':
+    'A aba tem o nome da conversa que ela carrega, o mesmo nome que a barra lateral mostra pra aquela sess\u00e3o. Nove sess\u00f5es do Claude num projeto liam \u201cclaude\u201d todas, ent\u00e3o a barra de abas n\u00e3o dizia qual era qual.',
+  'whatsNew.v262.note3':
+    'As sess\u00f5es param de ficar pretas depois de muita troca entre elas. Cada pane na tela segura um contexto de GPU, e os que saem da tela s\u00f3 devolviam o deles quando o navegador resolvia \u2014 passando do limite, ele toma o mais antigo, que \u00e9 justo o que voc\u00ea est\u00e1 olhando. Agora o contexto sai junto com o pane. O que voc\u00ea digita tamb\u00e9m cai na sess\u00e3o da tela logo depois de abrir um projeto, em vez de na \u00faltima que terminou de carregar.',
   'whatsNew.v261.note1':
     'Cada aba de sess\u00e3o volta a ter o nome da conversa. Duas sess\u00f5es do Claude no mesmo projeto liam \u201cclaude\u201d as duas, sem nada pra diferenciar \u2014 a barra de abas usava o nome de reserva da sess\u00e3o enquanto a barra lateral j\u00e1 mostrava o t\u00edtulo da conversa. Agora as duas leem do mesmo lugar.',
   'whatsNew.v261.note2':
