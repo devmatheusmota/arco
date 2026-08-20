@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- Closing a session, or the app, now takes the agent's own processes down with it. The previous fix
+  stopped the process that hosts the terminals, but stopping it only moved the leak one level down:
+  each terminal is a session of its own, so the agent inside it — and the MCP servers the agent
+  brought up, which are what hold the memory — survived and were handed to the system. Killing the
+  host by hand freed 4.5 GB that closing the window had not. Everything a terminal started is now
+  hung up together, and whatever ignores the hangup is killed two seconds later.
+
 ## [2.6.4] — 2026-08-20
 
 ### Fixed

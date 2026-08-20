@@ -303,11 +303,13 @@ app.whenReady().then(() => {
     try {
       child.kill('SIGTERM')
     } catch {}
+    // Longer than the host's own grace period, so this never cuts it off while
+    // it is still killing the terminals it owns.
     setTimeout(() => {
       try {
         child.kill('SIGKILL')
       } catch {}
-    }, 2_000).unref()
+    }, 5_000).unref()
   })
 
   ipcMain.handle('tauri:invoke', async (_event, { cmd, args }) => {

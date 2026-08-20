@@ -789,6 +789,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v265.note1':
+    'Fechar uma sess\u00e3o, ou o app, agora derruba junto os processos do pr\u00f3prio agente. O ajuste da 2.6.4 encerrava o processo que roda os terminais, mas isso s\u00f3 empurrou o vazamento um n\u00edvel abaixo: cada terminal \u00e9 um mundo pr\u00f3prio, ent\u00e3o o agente dentro dele \u2014 e os servidores MCP que o agente subiu, que s\u00e3o quem segura a mem\u00f3ria \u2014 continuavam rodando, entregues ao sistema. Aqui isso deu 4,5 GB que fechar a janela n\u00e3o devolvia. Agora tudo que o terminal iniciou \u00e9 encerrado junto, e o que se recusar leva kill dois segundos depois.',
   'whatsNew.v264.note1':
     'Fechar o Arco agora derruba os terminais junto. O processo que roda todos os terminais sobrevivia \u00e0 janela \u2014 ele era entregue ao sistema em vez de ser encerrado, e mantinha as sess\u00f5es dele, agentes inclusive, rodando pelo resto do dia. Aqui isso deu 7 GB ainda presos em duas sess\u00f5es do Claude de uma janela fechada vinte minutos antes, e cada ciclo de abrir e fechar empilhava mais um por cima. Agora ele encerra junto com o app, e tamb\u00e9m sai sozinho se o app sumir sem encerrar ele, ent\u00e3o um crash tamb\u00e9m n\u00e3o deixa sobra.',
   'whatsNew.v263.note1':

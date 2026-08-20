@@ -777,6 +777,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v265.note1':
+    'Closing a session, or the app, now takes the agent\u2019s own processes down with it. The fix in 2.6.4 stopped the process that runs the terminals, but that only moved the leak one level down: each terminal is a world of its own, so the agent inside it \u2014 and the MCP servers the agent brought up, which are what hold the memory \u2014 kept running, handed over to the system. Here that was 4.5 GB that closing the window had not given back. Everything a terminal started is now closed together, and whatever refuses is killed two seconds later.',
   'whatsNew.v264.note1':
     'Closing Arco now shuts its terminals down. The process that runs every terminal outlived the window \u2014 it was handed over to the system instead of being stopped, and it kept the sessions it owned, agents and all, running for the rest of the day. Here that meant 7 GB still held by two Claude sessions from a window closed twenty minutes earlier, and every open-and-close cycle stacked another one on top. It now stops with the app, and it also exits on its own if the app goes away without stopping it, so a crash does not leave it behind either.',
   'whatsNew.v263.note1':

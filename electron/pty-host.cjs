@@ -14,6 +14,8 @@ const pty = require('@homebridge/node-pty-prebuilt-multiarch')
 
 const SCROLLBACK_CAP_BYTES = 512 * 1024
 const FLUSH_INTERVAL_MS = 250
+// How long a terminal has to leave on its own before it is killed.
+const KILL_GRACE_MS = 2_000
 
 const sessions = new Map()
 let scrollbackDir = path.join(os.tmpdir(), 'arco-electron-scrollback')
@@ -199,9 +201,11 @@ const handlers = {
   kill_pty({ id }) {
     const session = sessions.get(id)
     if (!session) return false
-    try {
-      session.child.kill()
-    } catch {}
+    // Same tree as on shutdown: closing one session must not leave the agent's
+    // MCP servers behind, and whatever holds the hangup is killed after the
+    // same grace period.
+    const pid = hangUp(session)
+    setTimeout(() => killGroup(pid, 'SIGKILL'), KILL_GRACE_MS).unref()
     return true
   },
   attach_pty: ({ id }) => readScrollback(id),
@@ -273,18 +277,69 @@ const flushTimer = setInterval(() => {
 }, FLUSH_INTERVAL_MS)
 flushTimer.unref()
 
+// The whole tree, not just the process on the other end of the pty. node-pty
+// puts the child in a session and process group of its own, so a negative pid
+// reaches everything it started — a coding agent is not one process, and the
+// MCP servers it brings up are the ones holding the memory. Signalling the
+// child alone leaves them running, reparented to init, for the rest of the
+// login session. Windows has no process groups; there the pty kill is all
+// there is.
+function killGroup(pid, signal) {
+  if (!pid || process.platform === 'win32') return
+  try {
+    process.kill(-pid, signal)
+  } catch {}
+}
+
+/**
+ * Hangs up a terminal and returns the pid of its group, so the caller can come
+ * back with SIGKILL. The pid has to be kept: the session leaves `sessions` as
+ * soon as the pty reports the exit, and by then the children that ignored the
+ * hangup have no one left pointing at them.
+ */
+function hangUp(session) {
+  const pid = session.child?.pid
+  killGroup(pid, 'SIGHUP')
+  try {
+    session.child.kill()
+  } catch {}
+  return pid
+}
+
+let shuttingDown = false
+
 // Killing the main process does not kill this one — POSIX only reparents it, so
 // without this the host outlives the window and holds every terminal it owns
 // alive forever. Closed stdin means the parent is gone; a signal means someone
-// asked it to stop. Both end in `exit`, which flushes and kills the sessions.
-const shutdown = () => process.exit(0)
-process.stdin.on('end', shutdown)
-process.stdin.on('close', shutdown)
-for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(signal, shutdown)
+// asked it to stop. A signal never reaches `exit` on its own, so the cleanup has
+// to hang off the signal itself.
+function shutdown(code = 0) {
+  if (shuttingDown) return
+  shuttingDown = true
+  const groups = []
+  for (const session of sessions.values()) {
+    persist(session)
+    groups.push(hangUp(session))
+  }
+  // Whatever ignored the hangup — a wedged agent, an MCP server that outlives
+  // the agent that started it — gets killed. Deliberately not unref'd: this
+  // timer is the only thing holding the loop open, and it ends the process.
+  setTimeout(() => {
+    for (const pid of groups) killGroup(pid, 'SIGKILL')
+    process.exit(code)
+  }, KILL_GRACE_MS)
+}
 
+process.stdin.on('end', () => shutdown(0))
+process.stdin.on('close', () => shutdown(0))
+for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(signal, () => shutdown(0))
+
+// Last resort for an exit nothing else caught. Timers no longer run here, so
+// this is a single synchronous pass and nothing more.
 process.on('exit', () => {
   for (const session of sessions.values()) {
     persist(session)
+    killGroup(session.child?.pid, 'SIGKILL')
     try {
       session.child.kill()
     } catch {}
