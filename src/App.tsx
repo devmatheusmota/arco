@@ -51,10 +51,10 @@ import { useKeybindings } from './hooks/useKeybindings'
 import { useMcpIntroPrompt } from './hooks/useMcpIntroPrompt'
 import { useRemoteControlService } from './hooks/useRemoteControlService'
 import { useResourceSupervisor } from './hooks/useResourceSupervisor'
+import { rendersWorkspace } from './lib/activeView'
 import { startActivityTracker } from './lib/activityTracker'
 import { APP_SHELL_ID } from './lib/appShell'
 import { startCliBridge } from './lib/cliBridge'
-import { AGENT_SANDBOX_ENABLED } from './lib/featureFlags'
 import { intlLocale, translate, useT } from './lib/i18n'
 import { visibilityFromPanelResize, widthFromPanelResize } from './lib/sidebarPanelState'
 import { setMaxConcurrentSpawns } from './lib/spawnQueue'
@@ -507,14 +507,16 @@ export default function App() {
             <main className={styles.mainView}>
               <ErrorBoundary label="view">
                 <Suspense fallback={<LoadingScreen />}>
-                  {activeView === 'home' ? (
-                    <HomeView />
-                  ) : activeView === 'agentSandbox' && AGENT_SANDBOX_ENABLED ? (
+                  {/* The workspace answers for anything the enum cannot render;
+                      `rendersWorkspace` is the same rule the panes read. */}
+                  {rendersWorkspace(activeView) ? (
+                    <WorkspaceView />
+                  ) : activeView === 'agentSandbox' ? (
                     <AgentSandbox />
                   ) : activeView === 'agentCanvas' ? (
                     <AgentCanvasPOC />
                   ) : (
-                    <WorkspaceView />
+                    <HomeView />
                   )}
                 </Suspense>
               </ErrorBoundary>

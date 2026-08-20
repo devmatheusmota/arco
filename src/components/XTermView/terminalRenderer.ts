@@ -104,12 +104,45 @@ export function attachTerminalRenderer(
   }
 }
 
+function paneCanvases(terminal: Terminal): HTMLCanvasElement[] {
+  const screen = terminal.element?.querySelector('.xterm-screen')
+  return screen ? Array.from(screen.querySelectorAll('canvas')) : []
+}
+
+/**
+ * Hands the GPU context back to the WebView.
+ *
+ * Disposing the addon detaches its canvas but leaves the context alive until the
+ * canvas is collected, and a WebView counts contexts, not canvases: switching
+ * between sessions long enough pushes the page past the cap, and Chromium then
+ * takes the oldest contexts — which are the ones a visible pane is drawing from,
+ * so the pane goes black. Releasing the context here keeps the live count equal
+ * to the panes actually on screen.
+ */
+function releaseGpuContexts(canvases: HTMLCanvasElement[]): void {
+  for (const canvas of canvases) {
+    try {
+      // Only the renderer's own canvas answers to webgl2; the link layer above
+      // it is 2D and returns null.
+      const gl = canvas.getContext('webgl2') as WebGL2RenderingContext | null
+      gl?.getExtension('WEBGL_lose_context')?.loseContext()
+    } catch {}
+  }
+}
+
 /** Releases the renderer. Safe to call on an addon that already lost its context. */
-export function detachTerminalRenderer(renderer: TerminalRenderer | null): null {
+export function detachTerminalRenderer(
+  renderer: TerminalRenderer | null,
+  terminal?: Terminal | null,
+): null {
   if (!renderer?.addon) return null
+  // Read the canvases while they are still in the DOM: disposing the addon is
+  // what takes them out of it.
+  const canvases = renderer.kind === 'webgl' && terminal ? paneCanvases(terminal) : []
   try {
     renderer.addon.dispose()
   } catch {}
+  releaseGpuContexts(canvases)
   return null
 }
 

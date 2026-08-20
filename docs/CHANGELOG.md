@@ -10,6 +10,24 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A session picked from the tab bar shows its screen again. Every session of a project is mounted,
+  so all but the one in front attach to their agent while hidden — and a pane that attaches hidden
+  is never given the screen its agent is already on. It stayed blank until that agent happened to
+  print more than the host retains, which for a project holding several idle sessions never came:
+  every tab opened onto an empty terminal. A pane that reaches the screen without one now asks the
+  host for it.
+- A tab is named after the conversation it holds, like the sidebar row for the same session. Nine
+  Claude sessions of one project all read `claude`, so the tab bar said nothing about which was
+  which and nothing tied a tab to the session listed in the sidebar.
+- Sessions stop going black after a long stretch of switching between them. The GPU context of a
+  pane leaving the screen was only released when the browser got around to collecting its canvas,
+  and a WebView caps how many contexts a page may hold: past the cap it takes the oldest, which are
+  the ones a visible pane is drawing from. The context is handed back with the pane now.
+- Typing goes to the session on screen right after a project opens. Every session mounting at once
+  meant every one of them claiming the keyboard, and the last to finish won.
+
 ## [2.6.1] — 2026-08-19
 
 ### Added

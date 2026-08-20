@@ -1,9 +1,10 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Columns2, Plus, X } from 'lucide-react'
 
+import { useSidebarChatTitle } from '../../hooks/useSidebarChatTitle'
 import { useT } from '../../lib/i18n'
 import { completeAgentHandoff } from '../../lib/tauri'
-import type { Project, Terminal, Theme, WorkspaceContainer } from '../../lib/types'
+import type { Project, SubTab, Terminal, Theme, WorkspaceContainer } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { AgentIcon } from '../icons/AgentIcons'
@@ -12,6 +13,7 @@ import styles from './PaneTabsLane.module.css'
 type PaneTab = {
   key: string
   pane: Terminal
+  tab: SubTab
   tabId: string
   label: string
   agent: Terminal['tabs'][number]['type']
@@ -25,6 +27,7 @@ function flattenTabs(panes: Terminal[], container: WorkspaceContainer): PaneTab[
     pane.tabs.map((tab) => ({
       key: `${pane.id}:${tab.id}`,
       pane,
+      tab,
       tabId: tab.id,
       label: tab.name || pane.name,
       agent: tab.type,
@@ -47,6 +50,11 @@ function PaneTab({
   onClose: () => void
 }) {
   const t = useT()
+  // The sidebar names a session after the conversation it is holding; the tab
+  // bar reads the same source, or every Claude session of a project reads
+  // "claude" and nothing tells them apart.
+  const chatTitle = useSidebarChatTitle(entry.tab)
+  const label = chatTitle ?? entry.label
   const draggable = useDraggable({ id: `pane:${entry.pane.id}` })
   const droppable = useDroppable({ id: `pane:${entry.pane.id}` })
   const setRefs = (node: HTMLElement | null) => {
@@ -65,13 +73,13 @@ function PaneTab({
         type="button"
         className={styles.item}
         onClick={onActivate}
-        title={entry.label}
+        title={label}
         aria-current={entry.isActive ? 'true' : undefined}
         {...draggable.attributes}
         {...draggable.listeners}
       >
         <AgentIcon type={entry.agent} size={14} theme={terminalTheme} />
-        <span className={styles.name}>{entry.label}</span>
+        <span className={styles.name}>{label}</span>
         {entry.unread ? (
           <span className={styles.doneBadge} aria-label={t('ui.terminal.responseReady')} />
         ) : null}

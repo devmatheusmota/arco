@@ -268,6 +268,16 @@ export function useXtermSession(params: {
   const resyncTerminalRef = useRef<(() => Promise<void>) | null>(null)
   /** Writes what the pane missed while hidden; false when only a full resync can recover it. */
   const flushHiddenBacklogRef = useRef<(() => boolean) | null>(null)
+  /**
+   * Whether this terminal has ever been given the screen its process is on.
+   *
+   * A session that mounts hidden attaches to its PTY without replaying the
+   * scrollback — nine sessions of a project replaying at once is the cost the
+   * tab bar exists to avoid. What it must not do is stay empty: until the pane
+   * has that screen, the bytes arriving on the activity channel describe
+   * repaints of a screen it never drew, so the only way back is a resync.
+   */
+  const screenPrimedRef = useRef(false)
   const rendererRef = useRef<TerminalRenderer | null>(null)
   /** Set while an attach is still waiting for the pane to have a size. */
   const cancelRendererAttachRef = useRef<(() => void) | null>(null)
@@ -300,8 +310,8 @@ export function useXtermSession(params: {
   const releaseRenderer = useCallback(() => {
     cancelRendererAttachRef.current?.()
     cancelRendererAttachRef.current = null
-    rendererRef.current = detachTerminalRenderer(rendererRef.current)
-  }, [])
+    rendererRef.current = detachTerminalRenderer(rendererRef.current, terminalRef.current)
+  }, [terminalRef])
 
   useEffect(() => {
     const container = containerRef.current
@@ -316,6 +326,8 @@ export function useXtermSession(params: {
     }
 
     let disposed = false
+    // A fresh terminal starts with nothing on it.
+    screenPrimedRef.current = false
     const spawnQueueAbort = new AbortController()
     let unlistenData: (() => void) | null = null
     let unlistenActivity: (() => void) | null = null
@@ -402,8 +414,13 @@ export function useXtermSession(params: {
         openDeadline = null
       }
       terminal.open(container)
-      if (isPanelVisibleRef.current) attachRenderer(terminal, container)
-      terminal.focus()
+      if (isPanelVisibleRef.current) {
+        attachRenderer(terminal, container)
+        // Every session of the project mounts, and the ones behind the tab bar
+        // mount at the same moment: focusing them takes the keyboard away from
+        // the session the user is actually reading.
+        terminal.focus()
+      }
       void start()
     }
     const openWhenSized = () => {
@@ -979,7 +996,10 @@ export function useXtermSession(params: {
     }
 
     const flushHiddenBacklog = (): boolean => {
-      if (hiddenBacklog.overflowed) {
+      // A pane that attached while hidden has an empty screen, and the backlog
+      // holds repaints of a screen it never drew. Only the host's scrollback can
+      // give it one.
+      if (!screenPrimedRef.current || hiddenBacklog.overflowed) {
         hiddenBacklog.reset()
         return false
       }
@@ -1009,6 +1029,7 @@ export function useXtermSession(params: {
           pendingWriteLength = 0
           cancelWriteFlush()
           if (replay) await writeReplayAtOnce(replay)
+          screenPrimedRef.current = true
           // The host appends to its scrollback before it emits, so part of what
           // arrived during the fetch is already inside the replay.
           const pending = dropReplayOverlap(replay, arrivedDuringFetch.join(''))
@@ -1099,6 +1120,7 @@ export function useXtermSession(params: {
             replayInFlight = false
           }
         }
+        screenPrimedRef.current = true
         if (disposed) return
       }
 
@@ -1476,6 +1498,9 @@ export function useXtermSession(params: {
           releaseSpawnSlot()
         }
         console.info(`[pty-launch] ${command ?? 'shell'} spawn OK id=${response.id}`)
+        // A process that starts here draws its screen from the first byte, so
+        // an empty terminal is the state it expects.
+        screenPrimedRef.current = true
         spawnedAtRef.current = Date.now()
         usedResumeRef.current = Boolean(resumeId)
         if (disposed) return
@@ -1834,8 +1859,9 @@ export function useXtermSession(params: {
 
     // A pane coming back writes exactly the output it missed, so its terminal is
     // never reset and the agent's own view of the screen stays valid. The full
-    // resync only runs when that backlog gave up — more output than the host
-    // itself retains, which leaves the raw scrollback as the only source.
+    // resync runs when that backlog cannot stand on its own: it gave up — more
+    // output than the host itself retains — or the pane never had a screen to
+    // apply it to, because it attached to its session while hidden.
     const recovered = isPanelVisible && !wasVisible ? flushHiddenBacklogRef.current?.() : true
 
     void setPtyVisible(ptyId, isPanelVisible)

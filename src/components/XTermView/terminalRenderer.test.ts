@@ -20,7 +20,7 @@ vi.mock('@xterm/addon-webgl', () => ({ WebglAddon: FakeWebglAddon }))
 vi.mock('@xterm/addon-canvas', () => ({ CanvasAddon: class {} }))
 vi.mock('../../lib/tauri', () => ({ recordAppEvent: vi.fn(() => Promise.resolve()) }))
 
-const { attachTerminalRenderer, attachTerminalRendererWhenSized } =
+const { attachTerminalRenderer, attachTerminalRendererWhenSized, detachTerminalRenderer } =
   await import('./terminalRenderer')
 
 function fakeTerminal(): Terminal {
@@ -89,5 +89,26 @@ describe('attachTerminalRendererWhenSized', () => {
     width = 400
 
     expect(settled).not.toHaveBeenCalled()
+  })
+})
+
+describe('detachTerminalRenderer', () => {
+  it('hands the GPU context back instead of waiting for the canvas to be collected', () => {
+    const loseContext = vi.fn()
+    const terminal = fakeTerminal()
+    const screen = document.createElement('div')
+    screen.className = 'xterm-screen'
+    const canvas = document.createElement('canvas')
+    canvas.getContext = (() => ({
+      getExtension: (name: string) => (name === 'WEBGL_lose_context' ? { loseContext } : null),
+    })) as HTMLCanvasElement['getContext']
+    screen.appendChild(canvas)
+    terminal.element?.appendChild(screen)
+
+    const renderer = attachTerminalRenderer(terminal)
+    detachTerminalRenderer(renderer, terminal)
+
+    expect(webglDispose).toHaveBeenCalledOnce()
+    expect(loseContext).toHaveBeenCalledOnce()
   })
 })

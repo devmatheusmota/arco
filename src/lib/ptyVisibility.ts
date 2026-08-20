@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 
 import { useProjectsStore } from '../stores/projectsStore'
 import { useUiStore } from '../stores/uiStore'
+import { rendersWorkspace } from './activeView'
 
 export type PtyVisibilitySets = {
   visible: Set<string>
@@ -13,7 +14,7 @@ export function computeVisibleFocusedPtyIds(): PtyVisibilitySets {
   const ui = useUiStore.getState()
   const visible = new Set<string>()
   const focused = new Set<string>()
-  const workspaceVisible = ui.activeView === 'workspace'
+  const workspaceVisible = rendersWorkspace(ui.activeView)
   const focusedTerminalIds = new Set(
     [ui.focusedTerminalId, ui.activeTerminal?.terminalId].filter(
       (id): id is string => typeof id === 'string',
