@@ -138,7 +138,7 @@ export function XTermView({
   const [commandNotFound, setCommandNotFound] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
   const [bootPhase, setBootPhase] = useState<
-    'preparing' | 'queued' | 'spawning' | 'attaching' | 'ready'
+    'idle' | 'preparing' | 'queued' | 'spawning' | 'attaching' | 'ready'
   >('preparing')
   const [linkActions, setLinkActions] = useState<LinkActionState | null>(null)
   const [dropActive, setDropActive] = useState(false)

@@ -10,6 +10,16 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- A session starts when you open it, not when the app does. Opening a project used to start every
+  session it holds at once, and a coding agent is not one process — each one brings up its MCP
+  servers, which measured at about 3 GB per session here: ten sessions took 32 GB and the machine
+  went to swap before the window had finished drawing. Only the session on screen — and the terminal
+  beside it — starts now; the others wait in the tab bar and start when picked, which takes a couple
+  of seconds. A session that was given something to run still starts on its own, watched or not, and
+  a session already running is never touched.
+
 ## [2.6.2] — 2026-08-20
 
 ### Fixed

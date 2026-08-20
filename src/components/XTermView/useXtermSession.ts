@@ -168,7 +168,8 @@ function isBrowserInputPending(): boolean {
 
 let aiMemoryMissingWarned = false
 
-type BootPhase = 'preparing' | 'queued' | 'spawning' | 'attaching' | 'ready'
+/** `idle` is a session whose process has not been started yet — see `start`. */
+type BootPhase = 'idle' | 'preparing' | 'queued' | 'spawning' | 'attaching' | 'ready'
 
 export function useXtermSession(params: {
   ptyId: string
@@ -278,6 +279,8 @@ export function useXtermSession(params: {
    * repaints of a screen it never drew, so the only way back is a resync.
    */
   const screenPrimedRef = useRef(false)
+  /** Set while a session is waiting for its pane to be looked at before it starts. */
+  const deferredStartRef = useRef<(() => Promise<void>) | null>(null)
   const rendererRef = useRef<TerminalRenderer | null>(null)
   /** Set while an attach is still waiting for the pane to have a size. */
   const cancelRendererAttachRef = useRef<(() => void) | null>(null)
@@ -1215,6 +1218,20 @@ export function useXtermSession(params: {
           return
         }
 
+        // No process to attach to, and nobody is looking at this pane: starting
+        // one costs what the agent costs, which for a coding agent is a tree of
+        // MCP servers and gigabytes. A project holding ten sessions used to pay
+        // all ten the moment it opened, for nine screens nobody had asked for.
+        // The session starts when it reaches the screen instead — except when it
+        // was given something to run, which is a session that has work to do
+        // whether or not it is being watched.
+        if (!isPanelVisibleRef.current && !initialInput) {
+          deferredStartRef.current = start
+          setBootPhase('idle')
+          return
+        }
+        deferredStartRef.current = null
+
         let launcherOverride: string | undefined
         if (command && command !== 'shell') {
           if (cliPathOverride) {
@@ -1821,6 +1838,7 @@ export function useXtermSession(params: {
       setLinkActions(null)
       openObserver?.disconnect()
       if (openDeadline !== null) window.clearTimeout(openDeadline)
+      deferredStartRef.current = null
       releaseRenderer()
       if (terminalRef.current === terminal) terminalRef.current = null
       ptyIdRef.current = null
@@ -1857,6 +1875,16 @@ export function useXtermSession(params: {
     let cancelled = false
     let resyncTimer: number | null = null
 
+    // The session this pane holds was left unstarted until somebody asked for
+    // it. This is somebody asking.
+    let starting = false
+    if (isPanelVisible && deferredStartRef.current) {
+      const deferred = deferredStartRef.current
+      deferredStartRef.current = null
+      starting = true
+      void deferred()
+    }
+
     // A pane coming back writes exactly the output it missed, so its terminal is
     // never reset and the agent's own view of the screen stays valid. The full
     // resync runs when that backlog cannot stand on its own: it gave up — more
@@ -1867,7 +1895,9 @@ export function useXtermSession(params: {
     void setPtyVisible(ptyId, isPanelVisible)
       .catch(() => false)
       .then((applied) => {
-        if (!applied && isPanelVisible) {
+        // A session that is only starting now has no process to make visible
+        // yet; the spawn sets its own visibility.
+        if (!applied && isPanelVisible && !starting) {
           console.warn(
             `[pty-visibility] ${ptyId} was not registered when the panel became visible; ` +
               'the resource sampler will reconcile it',
