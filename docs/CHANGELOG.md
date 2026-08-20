@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.6.3] — 2026-08-20
+
 ### Changed
 
 - A session starts when you open it, not when the app does. Opening a project used to start every

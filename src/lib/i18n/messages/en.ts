@@ -777,6 +777,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v263.note1':
+    'A session starts when you open it, not when the app does. Opening a project started every session it held at once \u2014 and a coding agent is not one process: each one brings up its MCP servers, which measured around 3 GB per session, so ten sessions took 32 GB and the machine was already swapping while the window drew. Now only the session on screen, and the terminal beside it, starts with the app; the rest wait in the tab bar and start when you pick them, which takes a couple of seconds. A session you gave something to run still starts on its own, and a session already running is never touched.',
   'whatsNew.v262.note1':
     'A session you pick from the tab bar shows its screen again. Every session of a project stays loaded, and the ones behind the tab bar reconnect to their agent without redrawing \u2014 which left them blank when you opened them, until that agent printed something new. A project with several sessions waiting for you meant every tab opened onto an empty terminal. A session arriving on screen without its content now asks for it.',
   'whatsNew.v262.note2':

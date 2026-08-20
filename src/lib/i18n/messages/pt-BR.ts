@@ -789,6 +789,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v263.note1':
+    'A sess\u00e3o come\u00e7a quando voc\u00ea abre ela, n\u00e3o quando o app abre. Abrir um projeto iniciava todas as sess\u00f5es de uma vez \u2014 e um agente de c\u00f3digo n\u00e3o \u00e9 um processo s\u00f3: cada um sobe os servidores MCP dele, o que deu cerca de 3 GB por sess\u00e3o, ent\u00e3o dez sess\u00f5es tomavam 32 GB e a m\u00e1quina j\u00e1 estava em swap enquanto a janela desenhava. Agora s\u00f3 a sess\u00e3o na tela, e o terminal ao lado dela, sobem junto com o app; as outras esperam na barra de abas e s\u00f3 sobem quando voc\u00ea escolhe, o que leva uns segundos. Sess\u00e3o que recebeu algo pra rodar continua subindo sozinha, e sess\u00e3o j\u00e1 rodando nunca \u00e9 mexida.',
   'whatsNew.v262.note1':
     'A sess\u00e3o que voc\u00ea escolhe na barra de abas volta a mostrar a tela. Toda sess\u00e3o do projeto fica carregada, e as que est\u00e3o atr\u00e1s da barra reconectam no agente sem redesenhar \u2014 o que deixava elas em branco na hora de abrir, at\u00e9 o agente escrever algo novo. Num projeto com v\u00e1rias sess\u00f5es esperando voc\u00ea, cada aba abria num terminal vazio. Agora a sess\u00e3o que chega na tela sem conte\u00fado pede o conte\u00fado.',
   'whatsNew.v262.note2':
