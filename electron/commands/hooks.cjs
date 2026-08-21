@@ -102,6 +102,15 @@ function startHookListener(send, readTodos) {
       json(response, readTodos())
       return
     }
+    // What `arco --version` compares the binary it ran against.
+    if (route === '/version') {
+      let version = null
+      try {
+        version = require('electron').app.getVersion()
+      } catch {}
+      json(response, { ok: true, version })
+      return
+    }
 
     // `/cli/*` is the surface the `arco` command talks to. The frontend owns
     // workspace state, so every request is handed over and answered with what

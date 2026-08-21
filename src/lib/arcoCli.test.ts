@@ -7,6 +7,7 @@ const {
   parseTodo,
   parseTodoImplicit,
   parseTodoEdit,
+  parseSession,
   formatTodoTable,
   formatTodoReceipt,
   formatTodoDetail,
@@ -15,6 +16,7 @@ const {
   parseTodo: (args: string[]) => Record<string, unknown>
   parseTodoImplicit: (args: string[]) => Record<string, unknown>
   parseTodoEdit: (args: string[]) => Record<string, unknown>
+  parseSession: (args: string[]) => Record<string, unknown>
   formatTodoTable: (todos: unknown[]) => string
   formatTodoReceipt: (verb: string, todo: unknown) => string
   formatTodoDetail: (todo: unknown, projectName?: string | null) => string
@@ -232,5 +234,55 @@ describe('formatTodoDetail', () => {
     })
     expect(detail).toContain('!10900')
     expect(detail).toContain('(SOA)')
+  })
+})
+
+describe('--session', () => {
+  it('reads the session off an add without dragging it into the title', () => {
+    expect(parseTodo(['ligar', 'card', '--session', 'current'])).toMatchObject({
+      title: 'ligar card',
+      session: 'current',
+      force: false,
+    })
+  })
+
+  it('reads the session, the release and the override on an edit', () => {
+    expect(parseTodoEdit(['abc123', '--session', 'aB3', '--force'])).toEqual({
+      ref: 'abc123',
+      session: 'aB3',
+      force: true,
+    })
+    expect(parseTodoEdit(['abc123', '--clear-session'])).toEqual({
+      ref: 'abc123',
+      clearSession: true,
+    })
+  })
+
+  it('lets a session be born tied to a task', () => {
+    expect(parseSession(['--todo', 'abc123', '--force'])).toMatchObject({
+      todo: 'abc123',
+      force: true,
+    })
+  })
+
+  it('marks the tasks a session owns in the listing', () => {
+    const table = formatTodoTable([
+      { id: 'aaaaaaaa1', title: 'com sessao', tags: [], session: { id: 'bbbbbbbb2' } },
+      { id: 'cccccccc3', title: 'sem sessao', tags: [] },
+    ])
+    expect(table).toContain('@bbbbbbbb')
+    expect(table.split('\n')[1]).not.toContain('@')
+  })
+
+  it('names the session in the detail, and says so when there is none', () => {
+    const detail = formatTodoDetail({
+      id: 'aaaaaaaa1',
+      title: 'com sessao',
+      tags: [],
+      session: { id: 'bbbbbbbb2', name: 'claude', agent: 'claude' },
+    })
+    expect(detail).toContain('sessao')
+    expect(detail).toContain('bbbbbbbb claude (claude)')
+    expect(formatTodoDetail({ id: 'x', title: 'sem', tags: [] })).toMatch(/sessao\s+-/)
   })
 })

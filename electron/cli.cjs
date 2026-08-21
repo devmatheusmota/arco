@@ -45,6 +45,8 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --prompt <texto>        texto enviado ao agente ao abrir
       --worktree              forca worktree nova
       --no-worktree           forca a mesma arvore
+      --todo <ref>            ja nasce amarrada a essa tarefa
+      --force                 tira a tarefa da sessao que a segura hoje
 
   arco todo list [--json] [--status <status>]
       lista as tarefas; sem --json sai em tabela com id curto
@@ -53,7 +55,7 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
 
   arco todo add <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
                     [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
-                    [--watch]
+                    [--watch] [--session <id|current>]
   arco todo <titulo> [opcoes]     atalho de "add", so para titulo com mais de uma palavra
 
   arco todo edit <ref> [opcoes]   edita uma tarefa existente
@@ -70,12 +72,19 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --clear-ado             remove a ligacao com o Azure DevOps
       --watch                 acompanha o card no Azure DevOps (exige --ado e PAT)
       --no-watch              para de acompanhar o card
+      --session <id|current>  amarra a tarefa a uma sessao do Arco
+      --clear-session         solta a tarefa da sessao
+      --force                 troca a sessao mesmo com outra ja amarrada
 
   arco todo status <ref> <status>   atalho para --status
   arco todo delete <ref> [--yes]    apaga a tarefa; --yes dispensa a confirmacao
 
 <ref> e o id (inteiro ou o prefixo que aparece em "arco todo list") ou um
 trecho do titulo, desde que so uma tarefa corresponda.
+
+--session current resolve a sessao deste terminal: pelo ARCO_SESSION_ID que o
+pane exporta e, na falta dele, pelo diretorio atual. Duas sessoes na mesma
+arvore nao dao para distinguir dessa forma, e o comando pede --session <id>.
 
 Os subcomandos exigem o app aberto: falam com o listener local dele.`
 
@@ -188,6 +197,8 @@ function parseTodo(args) {
   let notes = null
   let adoRefInput = null
   let watch = null
+  let session = null
+  let force = false
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
     if (arg === '--project') project = args[++index]
@@ -196,6 +207,8 @@ function parseTodo(args) {
     else if (arg === '--priority') priority = args[++index]
     else if (arg === '--notes') notes = args[++index]
     else if (arg === '--ado') adoRefInput = args[++index]
+    else if (arg === '--session') session = args[++index]
+    else if (arg === '--force') force = true
     else if (arg === '--watch') watch = true
     else if (arg === '--no-watch') watch = false
     // A mistyped option used to end up inside the title, which is how
@@ -211,7 +224,24 @@ function parseTodo(args) {
     priority,
     notes,
     adoRefInput,
+    session,
+    force,
     ...(watch === null ? {} : { watch }),
+  }
+}
+
+/**
+ * What the app needs to answer `--session current`.
+ *
+ * The pane exports its own id, and that is the only answer that survives two
+ * sessions sharing one tree. The directory is the fallback, for a session that
+ * started before the app exported anything and for a terminal it did not spawn.
+ */
+function sessionScope() {
+  const sessionId = (process.env.ARCO_SESSION_ID ?? '').trim()
+  return {
+    ...(sessionId ? { sessionId } : {}),
+    sessionCwd: process.cwd(),
   }
 }
 
@@ -268,6 +298,9 @@ function parseTodoEdit(args) {
     else if (flag === '--project') payload.project = rest[++index]
     else if (flag === '--ado') payload.adoRefInput = rest[++index]
     else if (flag === '--clear-ado') payload.clearAdoRef = true
+    else if (flag === '--session') payload.session = rest[++index]
+    else if (flag === '--clear-session') payload.clearSession = true
+    else if (flag === '--force') payload.force = true
     else if (flag === '--watch') payload.watch = true
     else if (flag === '--no-watch') payload.watch = false
     else throw new Error(`arco todo edit: opcao desconhecida: ${flag}`)
@@ -298,6 +331,9 @@ function formatTodoTable(todos) {
     status: STATUS_LABEL[statusOf(todo)],
     title: String(todo.title ?? ''),
     tags: (todo.tags ?? []).map((tag) => `#${tag}`).join(' '),
+    // A task nobody can trace back to a session reads the same as one that was
+    // never claimed, so the marker carries the session it belongs to.
+    session: sessionIdOf(todo) ? `@${sessionIdOf(todo).slice(0, 8)}` : '',
   }))
   const width = (key) => Math.max(...rows.map((row) => row[key].length))
   const idWidth = width('id')
@@ -307,7 +343,7 @@ function formatTodoTable(todos) {
       (row) =>
         `${row.id.padEnd(idWidth)}  ${row.status.padEnd(statusWidth)}  ${row.title}${
           row.tags ? `  ${row.tags}` : ''
-        }`,
+        }${row.session ? `  ${row.session}` : ''}`,
     )
     .join('\n')}\n`
 }
@@ -325,6 +361,21 @@ function formatTodoReceipt(verb, todo) {
   return `${verb}  ${id}  ${STATUS_LABEL[statusOf(todo)]}  ${String(todo.title ?? '')}${
     tags ? `  ${tags}` : ''
   }\n`
+}
+
+/** The session a task belongs to, or an empty string when it belongs to none. */
+function sessionIdOf(todo) {
+  const id = todo?.session?.id
+  return typeof id === 'string' ? id : ''
+}
+
+function formatSession(session) {
+  const id = sessionIdOf({ session })
+  if (!id) return null
+  const parts = [id.slice(0, 8)]
+  if (session.name) parts.push(String(session.name))
+  if (session.agent) parts.push(`(${session.agent})`)
+  return parts.join(' ')
 }
 
 function formatAdoRef(ref) {
@@ -346,6 +397,7 @@ function formatTodoDetail(todo, projectName) {
     ['tags', (todo.tags ?? []).map((tag) => `#${tag}`).join(' ') || '-'],
     ['projeto', projectName || todo.projectId || '-'],
     ['ado', formatAdoRef(todo.adoRef) || '-'],
+    ['sessao', formatSession(todo.session) || '-'],
     ['watch', todo.watch ? 'sim' : 'nao'],
   ]
   if (todo.createdAt) lines.push(['criada em', new Date(todo.createdAt).toISOString()])
@@ -365,6 +417,8 @@ function parseSession(args) {
     else if (flag === '--prompt') payload.prompt = args[++index]
     else if (flag === '--worktree') payload.worktree = 'new'
     else if (flag === '--no-worktree') payload.worktree = 'none'
+    else if (flag === '--todo') payload.todo = args[++index]
+    else if (flag === '--force') payload.force = true
     else throw new Error(`arco session: opcao desconhecida: ${flag}`)
   }
   return payload
@@ -419,14 +473,18 @@ async function runTodo(rest) {
     if (!todo) throw new Error(`nenhuma tarefa encontrada para "${ref}"`)
     writeOut(
       args.includes('--json')
-        ? `${JSON.stringify(todo)}\n`
+        ? // `sessionId` is lifted to the top level so a caller reading the JSON
+          // does not have to know how the link is stored.
+          `${JSON.stringify({ ...todo, sessionId: result.data?.sessionId ?? null })}\n`
         : formatTodoDetail(todo, result.data?.projectName),
     )
     return
   }
 
   if (subcommand === 'edit') {
-    const result = await post('todo/edit', parseTodoEdit(args))
+    const payload = parseTodoEdit(args)
+    if (payload.session) Object.assign(payload, sessionScope())
+    const result = await post('todo/edit', payload)
     writeOut(formatTodoReceipt('editada', result.data?.todo))
     writeWarnings(result)
     return
@@ -467,11 +525,15 @@ async function runTodo(rest) {
   const result = await post('todo', {
     title: parsed.title,
     tags: parsed.tags,
+    // Without this the task lands in whatever project the window has open,
+    // which is not the one the terminal is standing in.
+    cwd: process.cwd(),
     ...(parsed.project ? { project: parsed.project } : {}),
     ...(parsed.status ? { status: parsed.status } : {}),
     ...(parsed.priority ? { priority: parsed.priority } : {}),
     ...(parsed.notes !== null ? { notes: parsed.notes } : {}),
     ...(parsed.adoRefInput ? { adoRefInput: parsed.adoRefInput } : {}),
+    ...(parsed.session ? { session: parsed.session, force: parsed.force, ...sessionScope() } : {}),
     ...(parsed.watch === undefined ? {} : { watch: parsed.watch }),
   })
   writeOut(formatTodoReceipt('criada', result.data?.todo))
@@ -512,6 +574,36 @@ function appVersion() {
 }
 
 /**
+ * The version of the app that is actually answering, when one is up.
+ *
+ * `arco --version` reads the binary it was launched from, which is not always
+ * the app in front of the user: an update that lands while the old window is
+ * still open leaves the two apart, and a number that does not match what the
+ * window does is the wrong number to debug against.
+ */
+async function runningVersion() {
+  try {
+    const { base, token } = listener()
+    const response = await fetch(`${base}/version`, {
+      headers: { 'X-Arco-Token': token },
+      signal: AbortSignal.timeout(1500),
+    })
+    const body = await response.json()
+    return typeof body?.version === 'string' ? body.version : null
+  } catch {
+    return null
+  }
+}
+
+/** Prints the binary's version, and the running app's when the two disagree. */
+async function reportVersion() {
+  const local = appVersion()
+  writeOut(`arco ${local}\n`)
+  const running = await runningVersion()
+  if (running && running !== local) writeOut(`app  ${running}  (versao do app aberto)\n`)
+}
+
+/**
  * Finds where the user's arguments start.
  *
  * Counting from a fixed offset does not survive contact with reality: the
@@ -542,8 +634,10 @@ function handleCli(rawArgv, exit = process.exit) {
   // Without this, `arco --version` matched nothing here and fell through to
   // opening a window: the command hung until it was killed.
   if (VERSION.has(command)) {
-    writeOut(`arco ${appVersion()}\n`)
-    exit(0)
+    reportVersion().then(
+      () => exit(0),
+      () => exit(0),
+    )
     return true
   }
   if (!HANDLED.has(command)) return false
@@ -560,6 +654,7 @@ function handleCli(rawArgv, exit = process.exit) {
 module.exports = {
   handleCli,
   USAGE,
+  parseSession,
   parseTodo,
   parseTodoImplicit,
   parseTodoEdit,

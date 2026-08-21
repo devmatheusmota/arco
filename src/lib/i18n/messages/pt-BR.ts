@@ -505,6 +505,8 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.sessionUnlink': 'Desvincular sessão',
   'todo.sessionCount': '{count} sessão(ões)',
   'todo.sessionGone': 'Sessão encerrada',
+  'todo.sessionCurrent': 'Esta sessão',
+  'todo.sessionCurrentHint': 'A sessão em que você está trabalha nesta tarefa',
   'todo.runningCount': '{count} rodando',
   'todo.metaCreated': 'Criada em {date}',
   'todo.metaCompleted': 'Concluída em {date}',
@@ -789,6 +791,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v280.note1':
+    'Uma tarefa agora diz qual sess\u00e3o est\u00e1 trabalhando nela. De dentro de uma sess\u00e3o, `arco todo add \u2026 --session current` ou `arco todo edit <ref> --session current` amarra a tarefa \u00e0quele terminal, e `arco session --todo <ref>` abre uma sess\u00e3o j\u00e1 amarrada. A lista de tarefas destaca a linha em que a sess\u00e3o \u00e0 sua frente est\u00e1, ent\u00e3o o quadro e a \u00e1rea de trabalho finalmente apontam um para o outro. O v\u00ednculo continua depois que a sess\u00e3o acaba \u2014 esse hist\u00f3rico \u00e9 o motivo dele existir.',
+  'whatsNew.v280.note2':
+    'Sess\u00e3o nova volta a come\u00e7ar sozinha. Um painel n\u00e3o tinha id de processo antes de iniciar um, e a verifica\u00e7\u00e3o que decide se algu\u00e9m est\u00e1 olhando para a sess\u00e3o s\u00f3 reconhecia painel por esse id \u2014 ent\u00e3o uma sess\u00e3o rec\u00e9m-criada concluía que estava fora da tela e esperava, mostrando \u201cEsta sess\u00e3o ainda n\u00e3o come\u00e7ou\u201d com o painel bem \u00e0 vista. S\u00f3 o bot\u00e3o resolvia.',
+  'whatsNew.v280.note3':
+    'Duas coisas menores na linha de comando: tarefa criada com `arco todo add` agora vai para o projeto em que o terminal est\u00e1, e n\u00e3o para o que a janela tinha aberto, e `arco --version` tamb\u00e9m informa a vers\u00e3o do app que responde quando ela difere da do comando. Esta vers\u00e3o mexe no `arco`, ent\u00e3o reinstale em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es \u2192 Comando de terminal \u2014 o pacote n\u00e3o atualiza esse atalho.',
   'whatsNew.v270.note1':
     'A interface levou uma passada de ponta a ponta. O texto est\u00e1 numa escala s\u00f3, sem nada leg\u00edvel abaixo de 12px \u2014 o app tinha r\u00f3tulo em 8 e 9px \u2014 linhas e controles compartilham as mesmas alturas em vez de cada tela inventar a sua, e a fonte vai junto com o app, ent\u00e3o ele fica igual no Windows e no Linux.',
   'whatsNew.v270.note2':

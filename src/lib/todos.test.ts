@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   buildTaskSessionPrompt,
   collectTodoTags,
+  isCurrentSessionTodo,
   normalizeTodoNotes,
+  normalizeTodoSessionOwner,
   normalizeTodoPriority,
   normalizeTodoSessions,
   normalizeTodoTitle,
@@ -125,5 +127,65 @@ describe('todos', () => {
       { id: 'c', title: 'C', completed: true, tags: ['fix'] },
     ]
     expect(collectTodoTags(list)).toEqual(['docs', 'fix'])
+  })
+})
+
+describe('normalizeTodoSessionOwner', () => {
+  it('keeps a link whose pane is long gone, since that is the point of it', () => {
+    expect(normalizeTodoSessionOwner({ id: 'term-1' })).toEqual({ id: 'term-1', linkedAt: 0 })
+  })
+
+  it('reads the context that makes a dead session legible', () => {
+    expect(
+      normalizeTodoSessionOwner({
+        id: 'term-1',
+        projectId: 'p1',
+        agent: 'claude',
+        name: 'claude',
+        cwd: '/tmp/arco',
+        linkedAt: 42,
+      }),
+    ).toEqual({
+      id: 'term-1',
+      projectId: 'p1',
+      agent: 'claude',
+      name: 'claude',
+      cwd: '/tmp/arco',
+      linkedAt: 42,
+    })
+  })
+
+  it('refuses a link with nothing to point at', () => {
+    expect(normalizeTodoSessionOwner(null)).toBeNull()
+    expect(normalizeTodoSessionOwner({ name: 'claude' })).toBeNull()
+  })
+})
+
+describe('isCurrentSessionTodo', () => {
+  const base: TodoItem = { id: 't1', title: 'x', completed: false, tags: [] }
+
+  it('recognises the link the command line writes', () => {
+    const todo = { ...base, session: { id: 'term-1', linkedAt: 0 } }
+    expect(isCurrentSessionTodo(todo, ['term-1'])).toBe(true)
+    expect(isCurrentSessionTodo(todo, ['term-2'])).toBe(false)
+  })
+
+  it('recognises a session that was started from the task', () => {
+    const todo = {
+      ...base,
+      sessions: [{ projectId: 'p1', terminalId: 'term-3', agent: 'claude' as const, startedAt: 0 }],
+    }
+    expect(isCurrentSessionTodo(todo, ['term-3'])).toBe(true)
+  })
+
+  it('takes any of the ways a pane can be the one in front', () => {
+    const todo = { ...base, session: { id: 'term-1', linkedAt: 0 } }
+    expect(isCurrentSessionTodo(todo, ['outra', 'term-1'])).toBe(true)
+  })
+
+  it('lights nothing up when no pane is in front', () => {
+    expect(isCurrentSessionTodo({ ...base, session: { id: 'term-1', linkedAt: 0 } }, [])).toBe(
+      false,
+    )
   })
 })

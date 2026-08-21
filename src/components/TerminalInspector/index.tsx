@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { type ReactNode, useMemo, useState } from 'react'
 
-import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { useT } from '../../lib/i18n'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import {
@@ -124,6 +124,7 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
       activeTab.type,
       activeTab.runtimeProfile,
       activeTab.extraArgs ?? [],
+      paneSessionEnv(terminal.id),
     )
     const launch = buildAgentLaunch(activeTab.type, preparedRuntime.args, activeTab.sessionId)
     if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {

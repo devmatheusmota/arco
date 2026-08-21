@@ -1,4 +1,4 @@
-import type { TodoItem, TodoPriority, TodoSessionLink, TodoStatus } from './types'
+import type { TodoItem, TodoPriority, TodoSessionLink, TodoSessionOwner, TodoStatus } from './types'
 
 export const TODO_TITLE_MAX_LENGTH = 200
 export const TODO_TAG_MAX_LENGTH = 24
@@ -114,6 +114,50 @@ export function normalizeTodoSessions(value: unknown): TodoSessionLink[] {
     })
   }
   return links.sort((a, b) => b.startedAt - a.startedAt).slice(0, TODO_SESSIONS_MAX)
+}
+
+/**
+ * Reads the session that owns a task, or null when the stored value says nothing.
+ *
+ * Only the id is required: a link written from a terminal whose pane has already
+ * been closed carries no agent and no name, and dropping it for that would throw
+ * away exactly the history the field exists to keep.
+ */
+export function normalizeTodoSessionOwner(value: unknown): TodoSessionOwner | null {
+  const raw = value as Partial<TodoSessionOwner> | null | undefined
+  const id = typeof raw?.id === 'string' ? raw.id.trim() : ''
+  if (!id) return null
+  const text = (input: unknown) =>
+    typeof input === 'string' && input.trim() ? input.trim().slice(0, 200) : undefined
+  return {
+    id,
+    ...(text(raw?.projectId) ? { projectId: text(raw?.projectId) } : {}),
+    ...(text(raw?.agent) ? { agent: raw?.agent } : {}),
+    ...(text(raw?.name) ? { name: text(raw?.name) } : {}),
+    ...(text(raw?.cwd) ? { cwd: text(raw?.cwd) } : {}),
+    linkedAt: typeof raw?.linkedAt === 'number' ? raw.linkedAt : 0,
+  }
+}
+
+/**
+ * Whether a task belongs to the session the user is in.
+ *
+ * Two links can say so: the one the command line writes (`session`) and the
+ * jump-back link a task-started session leaves behind (`sessions`). Both mean
+ * the same thing to somebody reading the board — this row is what the pane in
+ * front is working on — so both count.
+ *
+ * Which pane is in front is answered by more than one piece of state, and none
+ * of them alone is the answer: focus mode names a pane only while it is on,
+ * the last pane pointed at is unset until something is pointed at, and the
+ * container knows what it renders but not what the user is typing into. Any of
+ * them naming the task is enough.
+ */
+export function isCurrentSessionTodo(todo: TodoItem, sessionIds: readonly string[]): boolean {
+  if (sessionIds.length === 0) return false
+  const wanted = new Set(sessionIds)
+  if (todo.session && wanted.has(todo.session.id)) return true
+  return (todo.sessions ?? []).some((link) => wanted.has(link.terminalId))
 }
 
 /**

@@ -26,6 +26,7 @@ import { formatShortcut } from '../../lib/platform'
 import { openInBrowser, type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
 import {
   collectTodoTags,
+  isCurrentSessionTodo,
   normalizeTodoPriority,
   normalizeTodoStatus,
   sortTodosByPriority,
@@ -207,6 +208,7 @@ function TodoRow({
   total,
   onMoveUp,
   onMoveDown,
+  currentSession,
 }: {
   todo: TodoItem
   projects: Project[]
@@ -217,6 +219,8 @@ function TodoRow({
   total: number
   onMoveUp?: () => void
   onMoveDown?: () => void
+  /** The pane the user is in is working on this task. */
+  currentSession: boolean
 }) {
   const t = useT()
   const renameTodo = useProjectsStore((state) => state.renameTodo)
@@ -276,6 +280,7 @@ function TodoRow({
         className={[
           styles.todoRow,
           todo.completed ? styles.todoRowCompleted : '',
+          currentSession ? styles.todoRowCurrentSession : '',
           expanded ? styles.todoRowExpanded : '',
           drag.draggedId === todo.id ? styles.todoRowDragging : '',
           drag.dropTargetId === todo.id && drag.draggedId !== todo.id
@@ -354,6 +359,13 @@ function TodoRow({
           >
             <span className={styles.todoTitleText}>{todo.title}</span>
             <span className={styles.metaRow}>
+              {/* Colour alone would not carry this: the row wash says where the
+                  user is, and the chip says it in words. */}
+              {currentSession ? (
+                <span className={styles.currentSessionChip} title={t('todo.sessionCurrentHint')}>
+                  {t('todo.sessionCurrent')}
+                </span>
+              ) : null}
               {/* Every open task states where it stands. Without the chip on `todo`,
                   a task with no chip reads as a task with no status at all. `done`
                   keeps none: the completed section already says it. */}
@@ -634,6 +646,23 @@ export function TodoSidebar() {
   const projects = useProjectsStore((state) => state.projects)
   const createTodo = useProjectsStore((state) => state.createTodo)
   const reorderTodo = useProjectsStore((state) => state.reorderTodo)
+  // Read once here rather than per row: an answer that is the same for every
+  // task should not cost a subscription per task. Each selector returns a
+  // primitive, so none of them rerenders the list on an unrelated store tick.
+  const focusModeTerminalId = useUiStore((state) => state.focusedTerminalId)
+  const pointedTerminalId = useUiStore((state) => state.activeTerminal?.terminalId ?? null)
+  const renderedPaneId = useProjectsStore(
+    (state) =>
+      state.workspace.containers.find((container) => container.projectId === state.activeProjectId)
+        ?.activePaneId ?? null,
+  )
+  const currentSessionIds = useMemo(
+    () =>
+      [focusModeTerminalId, pointedTerminalId, renderedPaneId].filter((id): id is string =>
+        Boolean(id),
+      ),
+    [focusModeTerminalId, pointedTerminalId, renderedPaneId],
+  )
   const [title, setTitle] = useState('')
   const [tagDraft, setTagDraft] = useState('')
   const [projectDraft, setProjectDraft] = useState('')
@@ -814,6 +843,7 @@ export function TodoSidebar() {
                 onToggleExpanded={() => toggleExpanded(todo.id)}
                 position={index + 1}
                 total={items.length}
+                currentSession={isCurrentSessionTodo(todo, currentSessionIds)}
                 onMoveUp={index > 0 ? () => reorderTodo(todo.id, items[index - 1].id) : undefined}
                 // Moving down is the neighbour moving up: the reorder inserts
                 // the dragged item where the target sits, so aiming at the item

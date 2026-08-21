@@ -76,6 +76,24 @@ export type TodoSessionLink = {
   startedAt: number
 }
 
+/**
+ * The session a task belongs to, recorded from the command line.
+ *
+ * Not the same thing as `sessions`: those are jump-back links and are dropped
+ * the moment the pane they point at closes. This one is provenance — it answers
+ * "which session produced this task" long after the pane is gone, so it outlives
+ * the pane and keeps the name and directory it was linked from.
+ */
+export type TodoSessionOwner = {
+  /** Pane id, the same value `ARCO_SESSION_ID` carries inside the session. */
+  id: string
+  projectId?: string
+  agent?: AgentType
+  name?: string
+  cwd?: string
+  linkedAt: number
+}
+
 /** Structured link to an Azure DevOps work item and, optionally, its pull request. */
 export type TodoAdoRef = {
   org: string
@@ -108,6 +126,8 @@ export type TodoItem = {
   completedAt?: number
   /** Sessions launched from this task, newest first. */
   sessions?: TodoSessionLink[]
+  /** The session that claimed this task. Survives the pane, unlike `sessions`. */
+  session?: TodoSessionOwner
   /** Azure DevOps work item and PR the task refers to. Used by the sidebar chip and the watcher. */
   adoRef?: TodoAdoRef
   /**

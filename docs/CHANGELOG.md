@@ -10,6 +10,39 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.8.0] — 2026-08-21
+
+### Added
+
+- A task can be tied to the session working on it. `arco todo add` and `arco todo edit` take
+  `--session <id|current>`, `arco todo edit` takes `--clear-session`, and `arco session` takes
+  `--todo <ref>` so a session is born already attached to its task. The board used to be right
+  about what was being done and silent about who was doing it: a task gave no way back to the
+  session that produced it, and a session no way to say which task it was on. `current` is
+  answered by the pane's own id and, failing that, by the directory the command ran in; two
+  sessions sharing a tree cannot be told apart that way, so the command asks for an explicit id
+  rather than linking the wrong one. The link is kept after the session ends — that history is
+  what it is for. `arco todo list` marks the tasks a session owns, `arco todo show` names it, and
+  `arco todo show --json` carries it as `sessionId`.
+- Every terminal exports `ARCO_SESSION_ID`, so anything running inside a pane can name the session
+  it belongs to.
+- The task list marks the task the session in front is working on — the row carries the same
+  highlight a selected item gets anywhere else in the app, plus a chip that says it in words.
+  The board said what was being done and the workspace said where, and the two never met on
+  screen: finding which task a session belonged to meant opening tasks one at a time.
+
+### Fixed
+
+- A new session starts on its own again. A pane had no process id until it spawned, and the check
+  that decides whether a session is on screen only knew panes by that id — so a brand-new session
+  concluded nobody was looking at it and waited, showing "This session has not started yet" with
+  the pane in full view. Only the button got it going.
+- A task created with `arco todo add` lands in the project the terminal is standing in, instead of
+  whichever project the window happened to have open.
+- `arco --version` also reports the version of the app that is answering when it differs from the
+  binary's — an update that lands while the old window is still open used to leave the two apart
+  with nothing saying so.
+
 ## [2.7.0] — 2026-08-20
 
 ### Changed

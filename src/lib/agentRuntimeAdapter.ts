@@ -39,6 +39,17 @@ export type PreparedRuntimeLaunch = {
   env: Record<string, string> | undefined
 }
 
+/**
+ * What every pane exports so the `arco` command inside it can name its own session.
+ *
+ * Without it, `arco todo --session current` has only the working directory to go
+ * on, and two sessions started on the same tree share that directory — the one
+ * case where guessing links the task to the wrong session.
+ */
+export function paneSessionEnv(terminalId: string): Record<string, string> {
+  return { ARCO_SESSION_ID: terminalId }
+}
+
 function addArg(args: string[], value: string): void {
   if (!args.includes(value)) args.push(value)
 }

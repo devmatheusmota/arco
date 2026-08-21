@@ -501,6 +501,8 @@ export const en = {
   'todo.sessionUnlink': 'Unlink session',
   'todo.sessionCount': '{count} session(s)',
   'todo.sessionGone': 'Session closed',
+  'todo.sessionCurrent': 'This session',
+  'todo.sessionCurrentHint': 'The session you are in is working on this task',
   'todo.runningCount': '{count} running',
   'todo.metaCreated': 'Created {date}',
   'todo.metaCompleted': 'Completed {date}',
@@ -777,6 +779,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v280.note1':
+    'A task can now say which session is working on it. From inside a session, `arco todo add \u2026 --session current` or `arco todo edit <ref> --session current` ties the task to that terminal, and `arco session --todo <ref>` opens a session already attached to one. The task list marks the row the session in front is on, so the board and the workspace finally point at each other. The link is kept after the session ends \u2014 that history is the point of it.',
+  'whatsNew.v280.note2':
+    'A new session starts on its own again. A pane had no process id until it started one, and the check that decides whether anybody is looking at a session only recognised panes by that id \u2014 so a session that had just been created concluded it was off screen and waited, showing \u201cThis session has not started yet\u201d with the pane in full view. Only the button got it going.',
+  'whatsNew.v280.note3':
+    'Two smaller things on the command line: a task created with `arco todo add` now lands in the project the terminal is standing in, instead of whichever project the window had open, and `arco --version` also reports the version of the app that answers when it differs from the command\u2019s. This release changes `arco`, so reinstall it in Preferences \u2192 Integrations \u2192 Terminal command \u2014 the package does not update that shortcut.',
   'whatsNew.v270.note1':
     'The interface got a pass end to end. Text sits on one scale with nothing readable under 12px — the app used to have labels at 8 and 9px — rows and controls share the same heights instead of each screen inventing its own, and the font ships with the app, so it looks the same on Windows and on Linux.',
   'whatsNew.v270.note2':

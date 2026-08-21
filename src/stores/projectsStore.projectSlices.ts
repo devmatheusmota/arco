@@ -2,7 +2,7 @@
 
 import { nanoid } from 'nanoid'
 
-import { preparePtyRuntimeLaunch } from '../lib/agentRuntimeAdapter'
+import { paneSessionEnv, preparePtyRuntimeLaunch } from '../lib/agentRuntimeAdapter'
 import { getLocale, translate } from '../lib/i18n'
 import { buildAgentLaunch } from '../lib/sessionLaunch'
 import { collectTerminalPtyIds, getProjectRepoRoot } from '../lib/terminalFactory'
@@ -208,6 +208,7 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
                 tab.type,
                 tab.runtimeProfile,
                 tab.extraArgs ?? [],
+                paneSessionEnv(terminal.id),
               )
               const launch = buildAgentLaunch(tab.type, runtime.args)
               useTerminalsStore.getState().beginRestart(tab.ptyId)

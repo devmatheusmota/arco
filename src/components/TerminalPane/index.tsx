@@ -1,7 +1,7 @@
 import { ArrowRightLeft, Clock, Maximize2, Minimize2, RefreshCw, Trash2, X } from 'lucide-react'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 
-import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { buildGhosttyCommand } from '../../lib/ghosttyCommand'
 import { useT } from '../../lib/i18n'
 import { shouldUseNativeBackend } from '../../lib/platform'
@@ -125,6 +125,8 @@ export const TerminalPane = memo(function TerminalPane({
     return args
   }, [activeTab?.extraArgs, activeTab?.handoff])
 
+  const paneEnv = useMemo(() => paneSessionEnv(terminal.id), [terminal.id])
+
   const isShell = activeTab?.type === 'shell'
   const showFloatingIdentity = Boolean(activeTab && !isShell)
   const showLeftFloating = showFloatingIdentity
@@ -180,6 +182,7 @@ export const TerminalPane = memo(function TerminalPane({
       activeTab.type,
       activeTab.runtimeProfile,
       activeTab.extraArgs ?? [],
+      paneSessionEnv(terminal.id),
     )
     const launch = buildAgentLaunch(activeTab.type, preparedRuntime.args, resumeSessionId)
     if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {
@@ -400,6 +403,7 @@ export const TerminalPane = memo(function TerminalPane({
                   command={activeTab.type === 'shell' ? null : activeTab.type}
                   cwd={activeTab.cwd || null}
                   extraArgs={runtimeExtraArgs}
+                  env={paneEnv}
                   initialInput={activeTab.initialInput}
                   runtimeProfile={activeTab.runtimeProfile}
                   sessionId={activeTab.sessionId}

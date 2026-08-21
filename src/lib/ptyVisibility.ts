@@ -31,6 +31,12 @@ export function computeVisibleFocusedPtyIds(): PtyVisibilitySets {
     )
     for (const terminal of project.terminals) {
       const activeTab = terminal.tabs.find((tab) => tab.id === terminal.activeTabId)
+      // A tab has no pty id until it spawns, and the pane it mounts is keyed by
+      // the tab's own id until then — which is the id the process is spawned
+      // with. Keying on the pty id alone left a brand-new session invisible to
+      // itself: it sat on screen waiting to be opened, and only the button
+      // started it.
+      const paneId = activeTab ? (activeTab.ptyId ?? activeTab.id) : null
       // Only what is on screen streams: the session in front and the terminal
       // beside it. Every other session of the project is a tab.
       const onScreen =
@@ -38,11 +44,11 @@ export function computeVisibleFocusedPtyIds(): PtyVisibilitySets {
         !container.collapsed &&
         (container.activePaneId === terminal.id || container.sidePaneId === terminal.id)
       const isKeptAlive = keptAlivePaneIds.has(terminal.id)
-      if (activeTab?.ptyId && workspaceVisible && (onScreen || isKeptAlive)) {
-        visible.add(activeTab.ptyId)
+      if (paneId && workspaceVisible && (onScreen || isKeptAlive)) {
+        visible.add(paneId)
       }
-      if (activeTab?.ptyId && focusedTerminalIds.has(terminal.id)) {
-        focused.add(activeTab.ptyId)
+      if (paneId && focusedTerminalIds.has(terminal.id)) {
+        focused.add(paneId)
       }
     }
   }

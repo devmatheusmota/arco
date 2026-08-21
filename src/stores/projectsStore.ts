@@ -30,6 +30,7 @@ import {
   type TodoItem,
   type TodoPriority,
   type TodoSessionLink,
+  type TodoSessionOwner,
   type TodoStatus,
   type WorkspaceContainer,
   type WorkspaceRecentTab,
@@ -163,6 +164,11 @@ export type ProjectsState = ProjectsFile & {
   setTodoAdoRef: (id: string, ref: TodoAdoRef | null, mode?: 'replace' | 'merge') => void
   /** Opts a task in or out of the ADO watcher. */
   setTodoWatch: (id: string, watch: boolean) => void
+  /**
+   * Claims a task for a session, or releases it. Written from the command line
+   * and kept after the pane closes — the value of the link is the history.
+   */
+  setTodoSession: (id: string, session: TodoSessionOwner | null) => void
   /** Records the session a task launched so the row can jump back to that pane. */
   linkTodoSession: (id: string, link: TodoSessionLink) => void
   unlinkTodoSession: (id: string, terminalId: string) => void

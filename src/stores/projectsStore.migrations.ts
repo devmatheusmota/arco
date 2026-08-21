@@ -5,6 +5,7 @@ import { normalizeEnabledFeatures } from '../lib/features'
 import {
   normalizeTodoNotes,
   normalizeTodoPriority,
+  normalizeTodoSessionOwner,
   normalizeTodoSessions,
   normalizeTodoStatus,
   normalizeTodoTags,
@@ -158,6 +159,7 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
     seen.add(id)
     const notes = normalizeTodoNotes(item?.notes)
     const sessions = normalizeTodoSessions(item?.sessions)
+    const session = normalizeTodoSessionOwner(item?.session)
     const adoRef = normalizeAdoRef(item?.adoRef)
     const completed = Boolean(item?.completed)
     result.push({
@@ -176,6 +178,7 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
         : {}),
       ...(notes ? { notes } : {}),
       ...(sessions.length > 0 ? { sessions } : {}),
+      ...(session ? { session } : {}),
       ...(adoRef ? { adoRef } : {}),
       ...(item?.watch ? { watch: true } : {}),
     })

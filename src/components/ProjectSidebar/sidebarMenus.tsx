@@ -13,7 +13,7 @@ import {
   Trash2,
 } from 'lucide-react'
 
-import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { useT } from '../../lib/i18n'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import { getPtyCwd, openInFileExplorer, openInVscode, restartPty } from '../../lib/tauri'
@@ -214,6 +214,7 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
       activeTab.type,
       activeTab.runtimeProfile,
       activeTab.extraArgs ?? [],
+      paneSessionEnv(term.id),
     )
     const launch = buildAgentLaunch(activeTab.type, runtime.args, activeTab.sessionId)
     useTerminalsStore.getState().beginRestart(activeTab.ptyId)

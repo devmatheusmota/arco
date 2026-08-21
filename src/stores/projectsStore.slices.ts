@@ -67,6 +67,7 @@ type TodosSlice = Pick<
   | 'setTodoProject'
   | 'setTodoAdoRef'
   | 'setTodoWatch'
+  | 'setTodoSession'
   | 'linkTodoSession'
   | 'unlinkTodoSession'
   | 'resetTodosToDefault'
@@ -180,6 +181,17 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
         todos: state.todos.map((item) =>
           item.id === id ? { ...item, priority: normalizeTodoPriority(priority) } : item,
         ),
+      })),
+
+    setTodoSession: (id, session) =>
+      update((state) => ({
+        todos: state.todos.map((item) => {
+          if (item.id !== id) return item
+          const next = { ...item }
+          if (session) next.session = session
+          else delete next.session
+          return next
+        }),
       })),
 
     linkTodoSession: (id, link) =>
