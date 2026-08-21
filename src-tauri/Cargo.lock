@@ -103,7 +103,7 @@ dependencies = [
 
 [[package]]
 name = "arco"
-version = "2.8.1"
+version = "2.8.2"
 dependencies = [
  "base64 0.22.1",
  "cc",
