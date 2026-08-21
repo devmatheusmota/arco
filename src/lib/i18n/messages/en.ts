@@ -501,8 +501,6 @@ export const en = {
   'todo.sessionUnlink': 'Unlink session',
   'todo.sessionCount': '{count} session(s)',
   'todo.sessionGone': 'Session closed',
-  'todo.sessionCurrent': 'This session',
-  'todo.sessionCurrentHint': 'The session you are in is working on this task',
   'todo.runningCount': '{count} running',
   'todo.metaCreated': 'Created {date}',
   'todo.metaCompleted': 'Completed {date}',
@@ -779,6 +777,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v281.note1':
+    'The task your session is working on is marked by the highlight on its row and nothing else. The chip that repeated it in words sat next to the status and the tags on a line that already had plenty to read.',
   'whatsNew.v280.note1':
     'A task can now say which session is working on it. From inside a session, `arco todo add \u2026 --session current` or `arco todo edit <ref> --session current` ties the task to that terminal, and `arco session --todo <ref>` opens a session already attached to one. The task list marks the row the session in front is on, so the board and the workspace finally point at each other. The link is kept after the session ends \u2014 that history is the point of it.',
   'whatsNew.v280.note2':

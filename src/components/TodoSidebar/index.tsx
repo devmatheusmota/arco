@@ -289,6 +289,9 @@ function TodoRow({
         ]
           .filter(Boolean)
           .join(' ')}
+        // The wash is the only thing saying this is where the user is, and a
+        // wash is not readable out loud.
+        aria-current={currentSession ? 'true' : undefined}
         draggable={!editing}
         onDragStart={(event) => drag.onDragStart(todo, event)}
         onDragEnd={drag.onDragEnd}
@@ -359,13 +362,6 @@ function TodoRow({
           >
             <span className={styles.todoTitleText}>{todo.title}</span>
             <span className={styles.metaRow}>
-              {/* Colour alone would not carry this: the row wash says where the
-                  user is, and the chip says it in words. */}
-              {currentSession ? (
-                <span className={styles.currentSessionChip} title={t('todo.sessionCurrentHint')}>
-                  {t('todo.sessionCurrent')}
-                </span>
-              ) : null}
               {/* Every open task states where it stands. Without the chip on `todo`,
                   a task with no chip reads as a task with no status at all. `done`
                   keeps none: the completed section already says it. */}

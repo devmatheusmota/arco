@@ -505,8 +505,6 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.sessionUnlink': 'Desvincular sessão',
   'todo.sessionCount': '{count} sessão(ões)',
   'todo.sessionGone': 'Sessão encerrada',
-  'todo.sessionCurrent': 'Esta sessão',
-  'todo.sessionCurrentHint': 'A sessão em que você está trabalha nesta tarefa',
   'todo.runningCount': '{count} rodando',
   'todo.metaCreated': 'Criada em {date}',
   'todo.metaCompleted': 'Concluída em {date}',
@@ -791,6 +789,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v281.note1':
+    'A tarefa em que a sua sess\u00e3o est\u00e1 trabalhando \u00e9 marcada pelo destaque na linha, e s\u00f3 por ele. O chip que repetia isso por escrito ficava ao lado do status e das tags, numa linha que j\u00e1 tinha bastante coisa para ler.',
   'whatsNew.v280.note1':
     'Uma tarefa agora diz qual sess\u00e3o est\u00e1 trabalhando nela. De dentro de uma sess\u00e3o, `arco todo add \u2026 --session current` ou `arco todo edit <ref> --session current` amarra a tarefa \u00e0quele terminal, e `arco session --todo <ref>` abre uma sess\u00e3o j\u00e1 amarrada. A lista de tarefas destaca a linha em que a sess\u00e3o \u00e0 sua frente est\u00e1, ent\u00e3o o quadro e a \u00e1rea de trabalho finalmente apontam um para o outro. O v\u00ednculo continua depois que a sess\u00e3o acaba \u2014 esse hist\u00f3rico \u00e9 o motivo dele existir.',
   'whatsNew.v280.note2':

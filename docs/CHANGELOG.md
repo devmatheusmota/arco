@@ -10,6 +10,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.8.1] — 2026-08-21
+
+### Changed
+
+- The task the session in front is working on is marked by the highlight alone. The chip repeating
+  it in words next to the status and the tags was noise on a row that already had enough of it.
+
 ## [2.8.0] — 2026-08-21
 
 ### Added

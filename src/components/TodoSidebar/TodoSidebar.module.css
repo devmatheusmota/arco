@@ -830,27 +830,6 @@
  * of them reads as more important than the rest — and the terminal, which is the
  * actual content, ends up the calmest thing on screen.
  */
-/* Chip silhouette of the status chip, in accent: it names where the user is. */
-.currentSessionChip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--accent);
-  font-size: var(--font-size-1);
-  line-height: var(--line-height-1);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.currentSessionChip::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentcolor;
-}
-
 .statusChip {
   display: inline-flex;
   align-items: center;
