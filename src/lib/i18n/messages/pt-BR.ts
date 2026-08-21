@@ -789,6 +789,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v282.note1':
+    'O chip de pull request de uma tarefa volta a abrir o pull request. Board e código moram em projetos diferentes do Azure DevOps aqui, e o link era montado com o projeto do work item, então respondia "Repository not found". O Arco agora pergunta ao Azure DevOps onde cada pull request mora de verdade e conserta as referências que encontra erradas — quem permite isso é o token pessoal em Preferências.',
   'whatsNew.v281.note1':
     'A tarefa em que a sua sess\u00e3o est\u00e1 trabalhando \u00e9 marcada pelo destaque na linha, e s\u00f3 por ele. O chip que repetia isso por escrito ficava ao lado do status e das tags, numa linha que j\u00e1 tinha bastante coisa para ler.',
   'whatsNew.v280.note1':

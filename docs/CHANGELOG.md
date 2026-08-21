@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.8.2] — 2026-08-21
+
+### Fixed
+
+- The pull request chip on a task now opens the pull request. It was built with the work item's
+  project, and board and code sit in different Azure DevOps projects here — a card in
+  `Plataforma EMR` pointing at a pull request in the `EGA` repository, which lives in `Eduardo` —
+  so the link answered "Repository not found". The watcher now asks Azure DevOps where the pull
+  request actually lives and repairs the reference it finds wrong, including the ones an older
+  build stored as a repository GUID.
+
 ## [2.8.1] — 2026-08-21
 
 ### Changed

@@ -25,6 +25,10 @@ export type AdoPullRequestSnapshot = {
   hasActiveThreads: boolean
   latestCommitDate?: string
   repositoryId?: string
+  /** Repository slug as it appears in a browser URL (`EGA`), not the GUID. */
+  repositoryName?: string
+  /** Project the repository lives in — the only one that resolves a PR URL. */
+  projectName?: string
 }
 
 export type AdoReviewerSnapshot = {
@@ -146,9 +150,11 @@ export async function fetchPullRequest(
   pat: string,
 ): Promise<AdoPullRequestSnapshot | null> {
   if (!ref.prId) return null
-  // The pull request answers in its own project, which is not always the work
-  // item's — asking the board's project for it returns 404.
-  const url = `${baseUrl({ org: ref.org, project: ref.prProject?.trim() || ref.project })}/_apis/git/pullrequests/${ref.prId}?api-version=7.0`
+  // Asked at the organization level on purpose: a pull request id is unique
+  // across the org, and the project a task carries is the work item's, which is
+  // routinely not the code's. Scoping the call to it answers 404 for every pull
+  // request that lives elsewhere.
+  const url = `https://dev.azure.com/${encodeURIComponent(ref.org)}/_apis/git/pullrequests/${ref.prId}?api-version=7.0`
   const raw = (await request(url, pat)) as {
     pullRequestId: number
     status: string
@@ -156,10 +162,13 @@ export async function fetchPullRequest(
     createdBy?: { uniqueName?: string }
     reviewers?: Array<{ uniqueName?: string; vote?: number; isRequired?: boolean }>
     lastMergeSourceCommit?: { commitId?: string; url?: string }
-    repository?: { id?: string }
+    repository?: { id?: string; name?: string; project?: { name?: string } }
+    url?: string
   }
-  const threadsUrl = `${baseUrl(ref)}/_apis/git/repositories/${encodeURIComponent(raw.repository?.id ?? '')}/pullRequests/${ref.prId}/threads?api-version=7.0`
-  const threads = raw.repository?.id
+  // The self link already points at the right project and repository, so the
+  // threads call inherits both instead of guessing them again.
+  const threadsUrl = raw.url ? `${raw.url}/threads?api-version=7.0` : null
+  const threads = threadsUrl
     ? ((await request(threadsUrl, pat)) as {
         value?: Array<{ status?: string; isDeleted?: boolean }>
       })
@@ -184,5 +193,7 @@ export async function fetchPullRequest(
     })),
     hasActiveThreads,
     repositoryId: raw.repository?.id,
+    repositoryName: raw.repository?.name,
+    projectName: raw.repository?.project?.name,
   }
 }

@@ -777,6 +777,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v282.note1':
+    'The pull request chip on a task opens the pull request again. Board and code live in different Azure DevOps projects here, and the link was built with the project of the work item, so it answered "Repository not found". Arco now asks Azure DevOps where each pull request actually lives and repairs the references it finds wrong — a personal access token in Preferences is what lets it do that.',
   'whatsNew.v281.note1':
     'The task your session is working on is marked by the highlight on its row and nothing else. The chip that repeated it in words sat next to the status and the tags on a line that already had plenty to read.',
   'whatsNew.v280.note1':

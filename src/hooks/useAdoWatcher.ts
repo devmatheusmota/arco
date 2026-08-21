@@ -26,6 +26,7 @@ export function useAdoWatcher(): void {
   const identityRef = useRef<WatcherIdentity>({})
   const identityFetchedForPat = useRef<string | null>(null)
   const lastErrorAt = useRef(0)
+  const repairedTodoIds = useRef(new Set<string>())
 
   useEffect(() => {
     let cancelled = false
@@ -59,25 +60,26 @@ export function useAdoWatcher(): void {
         // card that is still being refined, which is what #19394 showed: the
         // chip pointed at !10398, completed back in July.
         let latest: (typeof ordered)[number] | undefined
+        let latestSnapshot: AdoPullRequestSnapshot | null = null
         for (const link of ordered) {
-          const snapshot = await fetchPullRequest(
-            { ...todo.adoRef, prId: link.prId, prProject: link.projectId },
-            pat,
-          )
+          const snapshot = await fetchPullRequest({ ...todo.adoRef, prId: link.prId }, pat)
           if (snapshot && snapshot.status === 'active') {
             latest = link
+            latestSnapshot = snapshot
             break
           }
         }
         if (!latest) return todo
-        // The link carries the pull request's own project, and it is usually not
-        // the work item's. Keeping the board's project here builds a URL that
-        // resolves to nothing.
+        // The link only carries GUIDs, and a GUID in a browser URL is not what
+        // the user reads on a chip. The pull request itself answers with the
+        // repository slug and the project it lives in — usually not the work
+        // item's, and keeping the board's project there builds a URL that
+        // resolves to nothing ("Repository not found").
         const merged = {
           ...todo.adoRef,
           prId: latest.prId,
-          repository: latest.repositoryId,
-          prProject: latest.projectId,
+          repository: latestSnapshot?.repositoryName ?? latest.repositoryId,
+          prProject: latestSnapshot?.projectName ?? latest.projectId,
         }
         useProjectsStore.getState().setTodoAdoRef(todo.id, merged, 'merge')
         return { ...todo, adoRef: merged }
@@ -105,6 +107,7 @@ export function useAdoWatcher(): void {
       }
       const [workItem, pullRequest] = snapshot
       if (cancelled) return
+      realignPullRequestLocation(todo, pullRequest)
       const event = planTaskTransition(todo, { workItem, pullRequest }, identityRef.current)
       if (!event?.status) return
       const store = useProjectsStore.getState()
@@ -118,6 +121,32 @@ export function useAdoWatcher(): void {
       })
     }
 
+    /**
+     * Repairs a reference whose pull request coordinates point at the wrong
+     * place. A task created from a work item URL inherits the board's project,
+     * and one attached by an older build stored the repository GUID — both
+     * render a chip that opens "Repository not found". The pull request is the
+     * authority on where it lives, so its answer overwrites what was guessed.
+     */
+    function realignPullRequestLocation(
+      todo: TodoItem,
+      pullRequest: AdoPullRequestSnapshot | null,
+    ): void {
+      const ref = todo.adoRef
+      if (!ref || !pullRequest?.repositoryName || !pullRequest.projectName) return
+      const projectMatches = (ref.prProject?.trim() || ref.project) === pullRequest.projectName
+      if (ref.repository === pullRequest.repositoryName && projectMatches) return
+      useProjectsStore.getState().setTodoAdoRef(
+        todo.id,
+        {
+          ...ref,
+          repository: pullRequest.repositoryName,
+          prProject: pullRequest.projectName,
+        },
+        'merge',
+      )
+    }
+
     function reportPatFailure(): void {
       const now = Date.now()
       if (now - lastErrorAt.current < 15 * 60 * 1000) return
@@ -128,10 +157,35 @@ export function useAdoWatcher(): void {
       })
     }
 
+    /**
+     * Checks every task that carries a pull request once per app run, so a chip
+     * stored with the wrong project — or with a repository GUID — starts opening
+     * the pull request without waiting for the task to be watched. Watching is
+     * opt-in because it drives status transitions; a link that points at nothing
+     * is a defect, and repairing it costs one call per task, once.
+     */
+    async function repairPullRequestChips(todos: TodoItem[], pat: string): Promise<void> {
+      const pending = todos.filter(
+        (todo) => todo.adoRef?.prId && !repairedTodoIds.current.has(todo.id),
+      )
+      if (pending.length === 0) return
+      await Promise.all(
+        pending.map(async (todo) => {
+          repairedTodoIds.current.add(todo.id)
+          try {
+            realignPullRequestLocation(todo, await fetchPullRequest(todo.adoRef!, pat))
+          } catch (error) {
+            if (error instanceof AdoApiError && error.status === 401) reportPatFailure()
+          }
+        }),
+      )
+    }
+
     async function tick(): Promise<void> {
       const state = useProjectsStore.getState()
       const pat = state.preferences.adoPat?.trim()
       if (!pat) return
+      await repairPullRequestChips(state.todos, pat)
       const watched = state.todos.filter((todo) => todo.watch && todo.adoRef && !todo.completed)
       if (watched.length === 0) return
       await ensureIdentity(pat)
