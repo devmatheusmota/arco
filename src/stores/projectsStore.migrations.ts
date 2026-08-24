@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid'
 
+import { normalizeAdoRef } from '../lib/adoRef'
 import { normalizeEnabledFeatures } from '../lib/features'
 import {
   normalizeTodoNotes,
@@ -118,6 +119,8 @@ export function normalizePreferences(raw: LegacyPreferences | undefined): Prefer
     displayName: preferences.displayName.trim(),
     profileImageUrl: preferences.profileImageUrl.trim(),
     todoStoragePath: preferences.todoStoragePath.trim(),
+    adoOrg: (preferences.adoOrg ?? '').trim(),
+    adoProject: (preferences.adoProject ?? '').trim(),
     uiZoom: clampUiZoom(preferences.uiZoom),
     spawnConcurrency: clampSpawnConcurrency(preferences.spawnConcurrency),
     resourcePolicy: {
@@ -153,6 +156,7 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
     const notes = normalizeTodoNotes(item?.notes)
     const sessions = normalizeTodoSessions(item?.sessions)
     const session = normalizeTodoSessionOwner(item?.session)
+    const adoRef = normalizeAdoRef(item?.adoRef)
     const completed = Boolean(item?.completed)
     result.push({
       id,
@@ -171,6 +175,7 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
       ...(notes ? { notes } : {}),
       ...(sessions.length > 0 ? { sessions } : {}),
       ...(session ? { session } : {}),
+      ...(adoRef ? { adoRef } : {}),
     })
   }
   return [...result.filter((item) => !item.completed), ...result.filter((item) => item.completed)]

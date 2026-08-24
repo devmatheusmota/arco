@@ -10,7 +10,7 @@ export const CHANGELOG_RELEASES: ChangelogRelease[] = [
   {
     version: '2.10.0',
     date: '2026-08-24',
-    noteKeys: ['whatsNew.v2100.note1'],
+    noteKeys: ['whatsNew.v2100.note1', 'whatsNew.v2100.note2'],
   },
   {
     version: '2.9.0',

@@ -504,6 +504,8 @@ export const en = {
   'todo.runningCount': '{count} running',
   'todo.metaCreated': 'Created {date}',
   'todo.metaCompleted': 'Completed {date}',
+  'todo.adoWorkItem': 'Open work item #{id} on Azure DevOps',
+  'todo.adoPullRequest': 'Open pull request !{id} on Azure DevOps',
 
   /* ---- start an agent session from a task ---- */
   'taskSession.title': 'Start a session from this task',
@@ -675,6 +677,13 @@ export const en = {
   'prefs.cliContextOn': 'On',
   'prefs.cliContextOff': 'Off',
   'prefs.cliUnsupported': 'The terminal command is not available on this platform.',
+  'prefs.ado': 'Azure DevOps',
+  'prefs.adoDesc':
+    'Defaults used when a task reference is a bare id like `#22447` or `!10681`. Not needed when the full URL is passed to `arco todo`.',
+  'prefs.adoOrg': 'Organization',
+  'prefs.adoProject': 'Default project',
+  'prefs.adoHint':
+    'The organization slug is the segment right after `dev.azure.com/` in a work-item URL. Leave blank to require full URLs on every `--ado`.',
   'prefs.namePlaceholder': 'Name',
   'prefs.photoPlaceholder': 'Photo link',
   'prefs.zoomDecrease': 'Decrease zoom (Ctrl+-)',
@@ -751,6 +760,8 @@ export const en = {
   'whatsNew.releaseHeading': 'v{version} — {date}',
   'whatsNew.v2100.note1':
     'Spotify Now Playing and the Discord Rich Presence were removed. The player docked on Home, the row above the sidebar profile, and the two sections under Preferences \u2192 Integrations are gone. Neither worked in this version of Arco \u2014 every Spotify call answered \u201cnot connected\u201d and the Discord presence was never published \u2014 so what left the screen is what was already showing you nothing. The credentials saved in Preferences are dropped.',
+  'whatsNew.v2100.note2':
+    'Linking a task to an Azure DevOps work item and pull request is back. The #22447 and !10681 chips are on the row again, `arco todo --ado <url|id>` sets the link and `--clear-ado` removes it, and Preferences \u2192 Integrations takes the organization and the default project so a bare #22447 resolves. The last version took this out together with the watcher \u2014 only the watcher was meant to go. Nothing polls the board any more, and no token is asked for. Links saved before 2.9.0 were dropped by it and have to be set again.',
   'whatsNew.v290.note1':
     'The Azure DevOps integration was removed. A task no longer links to a work item or a pull request, the #22447 and !10681 chips and the eye icon are gone from the task row, and nothing polls the board in the background any more. Preferences \u2192 Integrations no longer asks for an organization, a project, a token or a poll interval, and `arco todo` dropped `--ado`, `--clear-ado`, `--watch` and `--no-watch`. Reinstall the terminal command under Preferences \u2192 Integrations for the new help text; references already saved on tasks are dropped, and nothing else about them changes.',
   'whatsNew.v282.note1':

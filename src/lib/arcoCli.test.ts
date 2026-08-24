@@ -52,9 +52,34 @@ describe('parseTodo', () => {
       notes: 'context for the session',
     })
   })
+
+  it('captures --ado as a raw string, leaving parsing to the app side', () => {
+    const parsed = parseTodo([
+      '22447',
+      'habilitar',
+      'simulado',
+      '--ado',
+      'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447',
+    ])
+    expect(parsed).toMatchObject({
+      title: '22447 habilitar simulado',
+      adoRefInput: 'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22447',
+    })
+  })
 })
 
-describe('parseTodoEdit with the notes flags', () => {
+describe('parseTodoEdit with the ADO flags', () => {
+  it('carries --ado through as adoRefInput', () => {
+    expect(parseTodoEdit(['abc', '--ado', '#22447'])).toMatchObject({
+      ref: 'abc',
+      adoRefInput: '#22447',
+    })
+  })
+
+  it('carries --clear-ado through as a boolean', () => {
+    expect(parseTodoEdit(['abc', '--clear-ado'])).toEqual({ ref: 'abc', clearAdoRef: true })
+  })
+
   it('accepts --append-notes as a separate field from --notes', () => {
     expect(parseTodoEdit(['abc', '--append-notes', 'PM respondeu.'])).toEqual({
       ref: 'abc',
@@ -143,7 +168,7 @@ describe('parseTodoImplicit', () => {
 
 describe('parseTodo', () => {
   it('refuses an unknown option instead of dragging it into the title', () => {
-    expect(() => parseTodo(['tarefa', '--tagg', 'cli'])).toThrow(/opcao desconhecida: --tagg/)
+    expect(() => parseTodo(['tarefa', '--adoo', '22657'])).toThrow(/opcao desconhecida: --adoo/)
   })
 })
 
@@ -160,7 +185,7 @@ describe('formatTodoReceipt', () => {
 })
 
 describe('formatTodoDetail', () => {
-  it('prints the project and the notes', () => {
+  it('prints the linked card and the notes', () => {
     const detail = formatTodoDetail(
       {
         id: 'abcdefgh1234',
@@ -168,12 +193,31 @@ describe('formatTodoDetail', () => {
         tags: ['cli'],
         status: 'todo',
         notes: 'primeira linha\nsegunda',
+        adoRef: { org: 'EuMedicoResidente', project: 'Plataforma EMR', workItemId: 22657 },
       },
       'Arco',
     )
+    expect(detail).toContain('EuMedicoResidente/Plataforma EMR#22657')
     expect(detail).toContain('projeto')
     expect(detail).toContain('Arco')
     expect(detail).toContain('  primeira linha')
+  })
+
+  it('shows a pull request alongside the work item', () => {
+    const detail = formatTodoDetail({
+      id: 'abcdefgh1234',
+      title: 'PR',
+      tags: [],
+      adoRef: {
+        org: 'EuMedicoResidente',
+        project: 'SOA',
+        workItemId: 22674,
+        prId: 10900,
+        repository: 'SOA',
+      },
+    })
+    expect(detail).toContain('!10900')
+    expect(detail).toContain('(SOA)')
   })
 })
 

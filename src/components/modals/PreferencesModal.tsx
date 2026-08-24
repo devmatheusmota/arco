@@ -257,6 +257,13 @@ export function PreferencesModal() {
       },
       {
         category: 'integrations',
+        target: 'ado',
+        label: t('prefs.ado'),
+        description: t('prefs.adoDesc'),
+        keywords: 'azure devops ado work item pull request card board',
+      },
+      {
+        category: 'integrations',
         target: 'dictation',
         label: t('prefs.dictation'),
         description: t('prefs.dictationDesc'),

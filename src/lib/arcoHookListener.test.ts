@@ -150,12 +150,12 @@ describe('the arco command against the listener', () => {
     answer = (payload) =>
       commands.cli_reply({
         requestId: String(payload.requestId),
-        result: { ok: false, message: 'Nenhuma tarefa encontrada para "abc"' },
+        result: { ok: false, message: 'Referência ADO não reconhecida: 22657' },
       })
-    const { code, out, err } = await arco('todo', 'edit', 'abc', '--title', 'novo')
+    const { code, out, err } = await arco('todo', 'edit', 'abc', '--ado', '22657')
     expect(code).toBe(1)
     expect(out).toBe('')
-    expect(err).toContain('Nenhuma tarefa encontrada')
+    expect(err).toContain('Referência ADO não reconhecida')
   })
 
   it('refuses a subcommand that does not exist without reaching the app', async () => {
@@ -194,6 +194,7 @@ describe('the arco command against the listener', () => {
               title: 'ligar card',
               tags: [],
               notes: 'contexto',
+              adoRef: { org: 'EuMedicoResidente', project: 'Plataforma EMR', workItemId: 22657 },
             },
             projectName: 'Arco',
           },
@@ -201,7 +202,7 @@ describe('the arco command against the listener', () => {
       })
     const { code, out } = await arco('todo', 'show', 'abcdefgh')
     expect(code).toBe(0)
-    expect(out).toContain('ligar card')
+    expect(out).toContain('EuMedicoResidente/Plataforma EMR#22657')
     expect(out).toContain('  contexto')
   })
 

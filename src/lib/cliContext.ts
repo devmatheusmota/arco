@@ -15,7 +15,7 @@ export const CLI_CONTEXT_PROMPT = [
   'and to review when you hand the work back.',
   '',
   '  arco todo list                      tasks with their short id, status and tags',
-  '  arco todo show <ref>                one task in full: notes, tags, session',
+  '  arco todo show <ref>                one task in full: notes, tags, linked card',
   '  arco todo add "<title>" [--tag <tag>] [--status <status>] [--session current]',
   '  arco todo status <ref> <status>     todo | in-progress | review | done',
   '  arco todo edit <ref> [--title <text>] [--add-tag <tag>] [--remove-tag <tag>]',

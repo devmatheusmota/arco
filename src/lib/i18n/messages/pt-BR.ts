@@ -508,6 +508,8 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.runningCount': '{count} rodando',
   'todo.metaCreated': 'Criada em {date}',
   'todo.metaCompleted': 'Concluída em {date}',
+  'todo.adoWorkItem': 'Abrir work item #{id} no Azure DevOps',
+  'todo.adoPullRequest': 'Abrir pull request !{id} no Azure DevOps',
 
   /* ---- iniciar sessão de agente a partir de uma tarefa ---- */
   'taskSession.title': 'Iniciar uma sessão a partir desta tarefa',
@@ -684,6 +686,13 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.cliContextOn': 'Ligado',
   'prefs.cliContextOff': 'Desligado',
   'prefs.cliUnsupported': 'O comando de terminal não está disponível nesta plataforma.',
+  'prefs.ado': 'Azure DevOps',
+  'prefs.adoDesc':
+    'Padrões usados quando a referência de uma tarefa é só um id, como `#22447` ou `!10681`. Não precisa preencher se a URL completa for passada ao `arco todo`.',
+  'prefs.adoOrg': 'Organização',
+  'prefs.adoProject': 'Projeto padrão',
+  'prefs.adoHint':
+    'O slug da organização é o trecho logo depois de `dev.azure.com/` na URL de um work item. Deixe em branco para exigir a URL completa em todo `--ado`.',
   'prefs.namePlaceholder': 'Nome',
   'prefs.photoPlaceholder': 'Link da foto',
   'prefs.zoomDecrease': 'Diminuir zoom (Ctrl+-)',
@@ -763,6 +772,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.releaseHeading': 'v{version} — {date}',
   'whatsNew.v2100.note1':
     'O Now Playing do Spotify e o Rich Presence do Discord foram removidos. O player na Home, a linha acima do perfil na barra lateral e as duas se\u00e7\u00f5es em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es sa\u00edram. Nenhum dos dois funcionava nesta vers\u00e3o do Arco \u2014 toda chamada ao Spotify respondia \u201cn\u00e3o conectado\u201d e a presen\u00e7a no Discord nunca era publicada \u2014 ent\u00e3o o que saiu da tela \u00e9 o que j\u00e1 n\u00e3o mostrava nada. As credenciais salvas em Prefer\u00eancias s\u00e3o descartadas.',
+  'whatsNew.v2100.note2':
+    'Voltou o v\u00ednculo de uma tarefa com work item e pull request do Azure DevOps. Os chips #22447 e !10681 est\u00e3o de novo na linha, `arco todo --ado <url|id>` liga e `--clear-ado` desliga, e Prefer\u00eancias \u2192 Integra\u00e7\u00f5es recebe a organiza\u00e7\u00e3o e o projeto padr\u00e3o para um #22447 sozinho resolver. A vers\u00e3o passada tirou isso junto com o watcher \u2014 s\u00f3 o watcher era para sair. Nada mais consulta o board, e nenhum token \u00e9 pedido. Os v\u00ednculos salvos antes da 2.9.0 foram descartados por ela e precisam ser definidos de novo.',
   'whatsNew.v290.note1':
     'A integra\u00e7\u00e3o com o Azure DevOps foi removida. Uma tarefa n\u00e3o aponta mais para work item nem pull request, os chips #22447 e !10681 e o \u00edcone de olho sa\u00edram da linha da tarefa, e nada mais consulta o board em segundo plano. Prefer\u00eancias \u2192 Integra\u00e7\u00f5es n\u00e3o pede mais organiza\u00e7\u00e3o, projeto, token nem intervalo de polling, e o `arco todo` perdeu `--ado`, `--clear-ado`, `--watch` e `--no-watch`. Reinstale o comando de terminal em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es para o texto de ajuda novo; as refer\u00eancias j\u00e1 salvas nas tarefas s\u00e3o descartadas, e nada mais muda nelas.',
   'whatsNew.v282.note1':

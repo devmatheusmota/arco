@@ -12,6 +12,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [2.10.0] — 2026-08-24
 
+### Added
+
+- A task can point at an Azure DevOps work item and pull request again. The row shows the `#22447`
+  and `!10681` chips — a click opens the page in the browser, Alt/Meta+click opens it inside the
+  app — and `arco todo --ado <url|id>` and `arco todo edit <ref> --ado|--clear-ado` set and clear
+  the link. Preferences → Integrations takes an organization and a default project again, so a bare
+  `#22447` resolves without the full URL. 2.9.0 removed this along with the watcher; only the
+  watcher was meant to go. What did not come back is the polling: nothing reads the board, nothing
+  moves a task on its own, and no personal access token is asked for or used. Links stored before
+  2.9.0 were dropped when that version read the task file, so they have to be set again.
+
 ### Removed
 
 - Spotify Now Playing is gone. The dock on Home and the row above the sidebar profile, the

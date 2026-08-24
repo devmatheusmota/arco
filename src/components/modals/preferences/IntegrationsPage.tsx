@@ -131,6 +131,32 @@ export function IntegrationsPage() {
         </div>
       </SettingsSection>
 
+      <SettingsSection id="ado" title={t('prefs.ado')} description={t('prefs.adoDesc')}>
+        <div className={styles.integrationFields}>
+          <label>
+            <span>{t('prefs.adoOrg')}</span>
+            <input
+              className={controls.input}
+              value={preferences.adoOrg}
+              placeholder="EuMedicoResidente"
+              onChange={(event) => setPreferences({ adoOrg: event.target.value })}
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            <span>{t('prefs.adoProject')}</span>
+            <input
+              className={controls.input}
+              value={preferences.adoProject}
+              placeholder="Plataforma EMR"
+              onChange={(event) => setPreferences({ adoProject: event.target.value })}
+              spellCheck={false}
+            />
+          </label>
+          <p>{t('prefs.adoHint')}</p>
+        </div>
+      </SettingsSection>
+
       <SettingsSection
         id="dictation"
         title={t('prefs.dictation')}
