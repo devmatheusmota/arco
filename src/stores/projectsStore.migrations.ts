@@ -1,6 +1,5 @@
 import { nanoid } from 'nanoid'
 
-import { normalizeAdoRef } from '../lib/adoRef'
 import { normalizeEnabledFeatures } from '../lib/features'
 import {
   normalizeTodoNotes,
@@ -121,10 +120,6 @@ export function normalizePreferences(raw: LegacyPreferences | undefined): Prefer
     todoStoragePath: preferences.todoStoragePath.trim(),
     spotifyClientId: preferences.spotifyClientId.trim(),
     spotifyClientSecret: preferences.spotifyClientSecret.trim(),
-    adoOrg: (preferences.adoOrg ?? '').trim(),
-    adoProject: (preferences.adoProject ?? '').trim(),
-    adoPat: (preferences.adoPat ?? '').trim(),
-    adoPollSecs: Math.min(3600, Math.max(60, Math.round(Number(preferences.adoPollSecs ?? 300)))),
     uiZoom: clampUiZoom(preferences.uiZoom),
     spawnConcurrency: clampSpawnConcurrency(preferences.spawnConcurrency),
     resourcePolicy: {
@@ -160,7 +155,6 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
     const notes = normalizeTodoNotes(item?.notes)
     const sessions = normalizeTodoSessions(item?.sessions)
     const session = normalizeTodoSessionOwner(item?.session)
-    const adoRef = normalizeAdoRef(item?.adoRef)
     const completed = Boolean(item?.completed)
     result.push({
       id,
@@ -179,8 +173,6 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
       ...(notes ? { notes } : {}),
       ...(sessions.length > 0 ? { sessions } : {}),
       ...(session ? { session } : {}),
-      ...(adoRef ? { adoRef } : {}),
-      ...(item?.watch ? { watch: true } : {}),
     })
   }
   return [...result.filter((item) => !item.completed), ...result.filter((item) => item.completed)]

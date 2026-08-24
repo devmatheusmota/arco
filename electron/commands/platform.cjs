@@ -170,8 +170,8 @@ ${SHIM_MARKER}
 # arco todo list [--json]     -> lista as tarefas
 # arco todo show <ref>        -> mostra uma tarefa inteira
 # arco todo add <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
-#                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
-# arco todo edit <ref> [--title|--tag|--add-tag|--remove-tag|--status|--ado|...]
+#                    [--priority <nivel>] [--notes <texto>] [--session <id|current>]
+# arco todo edit <ref> [--title|--tag|--add-tag|--remove-tag|--status|...]
 # arco todo status <ref> <status>
 # arco todo delete <ref> [--yes]
 #

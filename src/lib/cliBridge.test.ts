@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CliResult } from './tauri/cli'
-import type { TodoAdoRef, TodoItem, TodoSessionOwner } from './types'
+import type { TodoItem, TodoSessionOwner } from './types'
 
 const handlers = new Map<string, (event: { payload: unknown }) => void>()
 
@@ -38,7 +38,7 @@ const state = {
     },
   ],
   activeProjectId: 'p1',
-  preferences: { adoOrg: '', adoProject: '', adoPat: '' },
+  preferences: {},
   createTodo: vi.fn((title: string, tags: string[], projectId?: string) => {
     const todo: TodoItem = {
       id: `id-${state.todos.length}`,
@@ -51,11 +51,6 @@ const state = {
     state.todos = [...state.todos, todo]
     return todo
   }),
-  setTodoAdoRef: vi.fn((id: string, ref: TodoAdoRef | null) => {
-    state.todos = state.todos.map((item) =>
-      item.id === id ? { ...item, ...(ref ? { adoRef: ref } : {}) } : item,
-    )
-  }),
   setTodoSession: vi.fn((id: string, session: TodoSessionOwner | null) => {
     state.todos = state.todos.map((item) => {
       if (item.id !== id) return item
@@ -66,7 +61,6 @@ const state = {
     })
   }),
   setTodoStatus: vi.fn(),
-  setTodoWatch: vi.fn(),
   deleteTodo: vi.fn((id: string) => {
     state.todos = state.todos.filter((item) => item.id !== id)
   }),
@@ -119,19 +113,6 @@ describe('cli://todo-add', () => {
     expect(result.ok).toBe(true)
     expect((result.data as { todo: TodoItem }).todo.title).toBe('revisar PR 10900')
   })
-
-  it('fails the creation when the ADO reference cannot be resolved', async () => {
-    const result = await request('cli://todo-add', { title: 'x', adoRefInput: 'nao-e-uma-ref' })
-    expect(result.ok).toBe(false)
-    expect(result.message).toMatch(/não reconhecida/)
-    expect(state.todos).toHaveLength(0)
-  })
-
-  it('says a bare id needs the ADO defaults instead of blaming the number', async () => {
-    const result = await request('cli://todo-add', { title: 'x', adoRefInput: '22657' })
-    expect(result.ok).toBe(false)
-    expect(result.message).toMatch(/organização e o projeto do Azure DevOps/)
-  })
 })
 
 describe('cli://todo-edit', () => {
@@ -139,27 +120,6 @@ describe('cli://todo-edit', () => {
     const result = await request('cli://todo-edit', { ref: 'ausente', status: 'done' })
     expect(result.ok).toBe(false)
     expect(result.message).toMatch(/Nenhuma tarefa encontrada/)
-  })
-
-  it('links a work item URL and answers with the stored task', async () => {
-    await request('cli://todo-add', { title: 'ligar card' })
-    const result = await request('cli://todo-edit', {
-      ref: 'id-0',
-      adoRefInput: 'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_workitems/edit/22657',
-    })
-    expect(result.ok).toBe(true)
-    expect((result.data as { todo: TodoItem }).todo.adoRef).toMatchObject({
-      org: 'EuMedicoResidente',
-      project: 'Plataforma EMR',
-      workItemId: 22657,
-    })
-  })
-
-  it('fails when the reference does not parse, instead of reporting a link it did not write', async () => {
-    await request('cli://todo-add', { title: 'sem card' })
-    const result = await request('cli://todo-edit', { ref: 'id-0', adoRefInput: 'lixo aqui' })
-    expect(result.ok).toBe(false)
-    expect(state.todos[0].adoRef).toBeUndefined()
   })
 })
 

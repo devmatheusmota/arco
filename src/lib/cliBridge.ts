@@ -2,13 +2,11 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 import { useProjectsStore } from '../stores/projectsStore'
 import { useUiStore } from '../stores/uiStore'
-import { parseAdoRef } from './adoRef'
 import { cliReply, type CliResult } from './tauri/cli'
 import { findTodoByRef, parseTodoStatus } from './todos'
 import type {
   AgentType,
   Terminal,
-  TodoAdoRef,
   TodoItem,
   TodoPriority,
   TodoSessionOwner,
@@ -66,9 +64,6 @@ type TodoRequest = {
   notes?: string
   priority?: TodoPriority
   status?: string
-  /** Raw string handed by the CLI; parsed here against the ADO defaults. */
-  adoRefInput?: string
-  watch?: boolean
 } & SessionScope
 
 /** `arco todo show` and `arco todo delete` — a reference and nothing else. */
@@ -86,43 +81,8 @@ type TodoEditRequest = {
   priority?: TodoPriority
   status?: string
   project?: string
-  adoRefInput?: string
-  clearAdoRef?: boolean
-  watch?: boolean
   clearSession?: boolean
 } & SessionScope
-
-/** Reads the ADO defaults saved in Preferences, used to resolve short ids like `#22447`. */
-function adoDefaults(): { org?: string; project?: string } {
-  const preferences = useProjectsStore.getState().preferences
-  const org = preferences.adoOrg?.trim()
-  const project = preferences.adoProject?.trim()
-  return {
-    ...(org ? { org } : {}),
-    ...(project ? { project } : {}),
-  }
-}
-
-function resolveAdoRef(input: string | undefined): TodoAdoRef | null {
-  if (!input) return null
-  return parseAdoRef(input, adoDefaults())
-}
-
-/**
- * Why a reference did not resolve, in the terms of what the caller can change.
- *
- * A bare work item id needs the organization and the project to come from
- * somewhere, and Preferences is the only place that has them. Answering "not
- * recognized" for that case sends people looking for a typo in a number that
- * was right.
- */
-function adoRefProblem(input: string): string {
-  const defaults = adoDefaults()
-  if (/^[!#]?\d{1,7}$/.test(input.trim()) && (!defaults.org || !defaults.project)) {
-    return `Não dá para resolver "${input}" sem a organização e o projeto do Azure DevOps: preencha-os em Preferências ou passe a URL completa do work item.`
-  }
-  return `Referência ADO não reconhecida: ${input}. Aceito: id do work item, URL de work item (_workitems/edit/<id>) ou URL de pull request.`
-}
 
 /** A pane and the project holding it — what the CLI calls a session. */
 type SessionEntry = { terminal: Terminal; projectId: string }
@@ -371,10 +331,6 @@ function handleTodo(request: TodoRequest): CliResult {
   if (!title) return failure('Tarefa sem título.')
   const status = request.status ? parseTodoStatus(request.status) : null
   if (request.status && !status) return failure(`Status desconhecido: ${request.status}`)
-  const adoRef = resolveAdoRef(request.adoRefInput)
-  // A rejected reference fails the whole creation: a task that silently lost
-  // the card it was created for is worse than no task at all.
-  if (request.adoRefInput && !adoRef) return failure(adoRefProblem(request.adoRefInput))
   // Resolved before the write, so a session that cannot be named fails the
   // creation instead of leaving a task nobody can trace back.
   let session: TodoSessionOwner | null = null
@@ -388,35 +344,14 @@ function handleTodo(request: TodoRequest): CliResult {
     notes: request.notes,
     priority: request.priority,
     ...(status ? { status } : {}),
-    ...(adoRef ? { adoRef } : {}),
   })
   if (!todo) return failure(`Não consegui criar a tarefa "${title}".`)
   if (session) store.setTodoSession(todo.id, session)
-  const warnings: string[] = []
-  if (request.watch !== undefined) {
-    store.setTodoWatch(todo.id, request.watch)
-    if (request.watch) warnings.push(...idleWatcherWarnings(Boolean(adoRef)))
-  }
   return {
     ok: true,
     message: 'criada',
-    data: { todo: todoSnapshot(todo.id) ?? todo, warnings },
+    data: { todo: todoSnapshot(todo.id) ?? todo },
   }
-}
-
-/**
- * A task can be marked as watched before anything can act on it — the watcher
- * needs both a linked card and a PAT. Saying so at the call site is what keeps
- * `--watch` from looking like it worked while nothing polls.
- */
-function idleWatcherWarnings(hasAdoRef: boolean): string[] {
-  if (!hasAdoRef) {
-    return ['Acompanhamento ligado, mas a tarefa não tem card do ADO: nada será consultado.']
-  }
-  if (!useProjectsStore.getState().preferences.adoPat.trim()) {
-    return ['Acompanhamento ligado, mas falta o PAT do Azure DevOps em Preferências.']
-  }
-  return []
 }
 
 /**
@@ -444,19 +379,6 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
   if (request.project !== undefined) {
     store.setTodoProject(todo.id, request.project ? resolveProjectId(request) : null)
   }
-  let linked = Boolean(todo.adoRef)
-  if (request.clearAdoRef) {
-    store.setTodoAdoRef(todo.id, null)
-    linked = false
-  } else if (request.adoRefInput) {
-    const ref = resolveAdoRef(request.adoRefInput)
-    // Stopping here leaves the edits already applied in place, which is the
-    // honest outcome: the answer names what failed instead of reporting a link
-    // that was never written.
-    if (!ref) return failure(adoRefProblem(request.adoRefInput))
-    store.setTodoAdoRef(todo.id, ref, 'merge')
-    linked = true
-  }
   if (request.clearSession) {
     store.setTodoSession(todo.id, null)
   } else if (request.session) {
@@ -468,15 +390,9 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
     if (todo.session?.id !== resolved.owner.id) store.setTodoSession(todo.id, resolved.owner)
   }
 
-  const warnings: string[] = []
-  if (request.watch !== undefined) {
-    store.setTodoWatch(todo.id, request.watch)
-    if (request.watch) warnings.push(...idleWatcherWarnings(linked))
-  }
-
   const tags = nextTags(todo.tags, request)
   if (tags) store.updateTodoTags(todo.id, tags)
-  return { ok: true, message: 'editada', data: { todo: todoSnapshot(todo.id), warnings } }
+  return { ok: true, message: 'editada', data: { todo: todoSnapshot(todo.id) } }
 }
 
 /** `arco todo show <ref>` — the whole task, so nobody has to grep the JSON listing. */

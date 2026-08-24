@@ -508,15 +508,6 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.runningCount': '{count} rodando',
   'todo.metaCreated': 'Criada em {date}',
   'todo.metaCompleted': 'Concluída em {date}',
-  'todo.adoWorkItem': 'Abrir work item #{id} no Azure DevOps',
-  'todo.adoPullRequest': 'Abrir pull request !{id} no Azure DevOps',
-  'todo.adoWatchOn': 'Acompanhar esta tarefa no Azure DevOps',
-  'todo.adoWatchOff': 'Parar de acompanhar esta tarefa',
-  'toast.adoTransitionTitle': 'Tarefa reconciliada',
-  'toast.adoTransitionBody': '{title} — {reason}',
-  'toast.adoAuthTitle': 'Azure DevOps',
-  'toast.adoAuthBody':
-    'O PAT armazenado foi recusado (401). Atualize em Preferências → Integrações → Azure DevOps.',
 
   /* ---- iniciar sessão de agente a partir de uma tarefa ---- */
   'taskSession.title': 'Iniciar uma sessão a partir desta tarefa',
@@ -693,17 +684,6 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.cliContextOn': 'Ligado',
   'prefs.cliContextOff': 'Desligado',
   'prefs.cliUnsupported': 'O comando de terminal não está disponível nesta plataforma.',
-  'prefs.ado': 'Azure DevOps',
-  'prefs.adoDesc':
-    'Padrões usados quando a referência da tarefa é só um id como `#22447` ou `!10681`. Não é preciso quando a URL completa é passada em `arco todo`.',
-  'prefs.adoOrg': 'Organização',
-  'prefs.adoProject': 'Projeto padrão',
-  'prefs.adoHint':
-    'A organização é o trecho logo depois de `dev.azure.com/` na URL de um work item. Deixe em branco para exigir URL completa em todo `--ado`.',
-  'prefs.adoPat': 'Personal Access Token',
-  'prefs.adoPollSecs': 'Intervalo de polling (segundos)',
-  'prefs.adoPatHint':
-    'Armazenado em plaintext junto com os outros tokens. Só tarefas marcadas com o ícone de olho são acompanhadas — sem PAT, sem polling, sem tráfego.',
   'prefs.spotify': 'Spotify',
   'prefs.spotifyDesc': 'Configure o aplicativo do Spotify usado no widget Now Playing.',
   'prefs.discordPresence': 'Rich Presence do Discord',
@@ -789,6 +769,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v290.note1':
+    'A integra\u00e7\u00e3o com o Azure DevOps foi removida. Uma tarefa n\u00e3o aponta mais para work item nem pull request, os chips #22447 e !10681 e o \u00edcone de olho sa\u00edram da linha da tarefa, e nada mais consulta o board em segundo plano. Prefer\u00eancias \u2192 Integra\u00e7\u00f5es n\u00e3o pede mais organiza\u00e7\u00e3o, projeto, token nem intervalo de polling, e o `arco todo` perdeu `--ado`, `--clear-ado`, `--watch` e `--no-watch`. Reinstale o comando de terminal em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es para o texto de ajuda novo; as refer\u00eancias j\u00e1 salvas nas tarefas s\u00e3o descartadas, e nada mais muda nelas.',
   'whatsNew.v282.note1':
     'O chip de pull request de uma tarefa volta a abrir o pull request. Board e código moram em projetos diferentes do Azure DevOps aqui, e o link era montado com o projeto do work item, então respondia "Repository not found". O Arco agora pergunta ao Azure DevOps onde cada pull request mora de verdade e conserta as referências que encontra erradas — quem permite isso é o token pessoal em Preferências.',
   'whatsNew.v281.note1':

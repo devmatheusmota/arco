@@ -504,15 +504,6 @@ export const en = {
   'todo.runningCount': '{count} running',
   'todo.metaCreated': 'Created {date}',
   'todo.metaCompleted': 'Completed {date}',
-  'todo.adoWorkItem': 'Open work item #{id} on Azure DevOps',
-  'todo.adoPullRequest': 'Open pull request !{id} on Azure DevOps',
-  'todo.adoWatchOn': 'Watch this task on Azure DevOps',
-  'todo.adoWatchOff': 'Stop watching this task',
-  'toast.adoTransitionTitle': 'Task reconciled',
-  'toast.adoTransitionBody': '{title} — {reason}',
-  'toast.adoAuthTitle': 'Azure DevOps',
-  'toast.adoAuthBody':
-    'The stored PAT was refused (401). Refresh it under Preferences → Integrations → Azure DevOps.',
 
   /* ---- start an agent session from a task ---- */
   'taskSession.title': 'Start a session from this task',
@@ -684,17 +675,6 @@ export const en = {
   'prefs.cliContextOn': 'On',
   'prefs.cliContextOff': 'Off',
   'prefs.cliUnsupported': 'The terminal command is not available on this platform.',
-  'prefs.ado': 'Azure DevOps',
-  'prefs.adoDesc':
-    'Defaults used when a task reference is a bare id like `#22447` or `!10681`. Not needed when the full URL is passed to `arco todo`.',
-  'prefs.adoOrg': 'Organization',
-  'prefs.adoProject': 'Default project',
-  'prefs.adoHint':
-    'The organization slug is the segment right after `dev.azure.com/` in a work-item URL. Leave blank to require full URLs on every `--ado`.',
-  'prefs.adoPat': 'Personal Access Token',
-  'prefs.adoPollSecs': 'Poll interval (seconds)',
-  'prefs.adoPatHint':
-    'Kept in plaintext next to the other tokens. Only tasks marked with the eye icon are polled — no PAT, no polling, no traffic.',
   'prefs.spotify': 'Spotify',
   'prefs.spotifyDesc': 'Configure the Spotify application used by the Now Playing widget.',
   'prefs.discordPresence': 'Discord Rich Presence',
@@ -777,6 +757,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v290.note1':
+    'The Azure DevOps integration was removed. A task no longer links to a work item or a pull request, the #22447 and !10681 chips and the eye icon are gone from the task row, and nothing polls the board in the background any more. Preferences \u2192 Integrations no longer asks for an organization, a project, a token or a poll interval, and `arco todo` dropped `--ado`, `--clear-ado`, `--watch` and `--no-watch`. Reinstall the terminal command under Preferences \u2192 Integrations for the new help text; references already saved on tasks are dropped, and nothing else about them changes.',
   'whatsNew.v282.note1':
     'The pull request chip on a task opens the pull request again. Board and code live in different Azure DevOps projects here, and the link was built with the project of the work item, so it answered "Repository not found". Arco now asks Azure DevOps where each pull request actually lives and repairs the references it finds wrong — a personal access token in Preferences is what lets it do that.',
   'whatsNew.v281.note1':

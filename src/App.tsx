@@ -43,7 +43,6 @@ import { TitleBar } from './components/TitleBar'
 import { TokenHud } from './components/TokenHud'
 import { AsciiEffect } from './components/ui/ascii-effect'
 import { WorkspaceView } from './components/WorkspaceView'
-import { useAdoWatcher } from './hooks/useAdoWatcher'
 import { useCliOpenRequests } from './hooks/useCliOpenRequests'
 import { useCloseConfirmation } from './hooks/useCloseConfirmation'
 import { useDiscordPresence } from './hooks/useDiscordPresence'
@@ -241,7 +240,6 @@ export default function App() {
   useCloseConfirmation()
   useResourceSupervisor(hydrated)
   useCliOpenRequests(hydrated)
-  useAdoWatcher()
 
   useEffect(() => {
     void hydrate()

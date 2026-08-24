@@ -51,11 +51,10 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
   arco todo list [--json] [--status <status>]
       lista as tarefas; sem --json sai em tabela com id curto
 
-  arco todo show <ref> [--json]   mostra uma tarefa inteira: notas, tags, card do ADO
+  arco todo show <ref> [--json]   mostra uma tarefa inteira: notas, tags e sessao
 
   arco todo add <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
-                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
-                    [--watch] [--session <id|current>]
+                    [--priority <nivel>] [--notes <texto>] [--session <id|current>]
   arco todo <titulo> [opcoes]     atalho de "add", so para titulo com mais de uma palavra
 
   arco todo edit <ref> [opcoes]   edita uma tarefa existente
@@ -68,10 +67,6 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --notes <texto>         substitui as notas
       --append-notes <texto>  adiciona ao final das notas, separadas por linha em branco
       --project <nome>        move a tarefa de projeto
-      --ado <url|id>          liga a um work item ou PR do Azure DevOps
-      --clear-ado             remove a ligacao com o Azure DevOps
-      --watch                 acompanha o card no Azure DevOps (exige --ado e PAT)
-      --no-watch              para de acompanhar o card
       --session <id|current>  amarra a tarefa a uma sessao do Arco
       --clear-session         solta a tarefa da sessao
       --force                 troca a sessao mesmo com outra ja amarrada
@@ -168,8 +163,6 @@ const TODO_SUBCOMMANDS = new Set([
   'tag',
   'note',
   'notes',
-  'watch',
-  'unwatch',
   'help',
 ])
 
@@ -195,8 +188,6 @@ function parseTodo(args) {
   let status = null
   let priority = null
   let notes = null
-  let adoRefInput = null
-  let watch = null
   let session = null
   let force = false
   for (let index = 0; index < args.length; index += 1) {
@@ -206,13 +197,10 @@ function parseTodo(args) {
     else if (arg === '--status') status = args[++index]
     else if (arg === '--priority') priority = args[++index]
     else if (arg === '--notes') notes = args[++index]
-    else if (arg === '--ado') adoRefInput = args[++index]
     else if (arg === '--session') session = args[++index]
     else if (arg === '--force') force = true
-    else if (arg === '--watch') watch = true
-    else if (arg === '--no-watch') watch = false
     // A mistyped option used to end up inside the title, which is how
-    // `--adoo 22657` became part of a task's name instead of an error.
+    // `--tagg foo` became part of a task's name instead of an error.
     else if (arg.startsWith('--')) throw new Error(`arco todo: opcao desconhecida: ${arg}`)
     else words.push(arg)
   }
@@ -223,10 +211,8 @@ function parseTodo(args) {
     status,
     priority,
     notes,
-    adoRefInput,
     session,
     force,
-    ...(watch === null ? {} : { watch }),
   }
 }
 
@@ -296,13 +282,9 @@ function parseTodoEdit(args) {
     else if (flag === '--notes') payload.notes = rest[++index]
     else if (flag === '--append-notes') payload.appendNotes = rest[++index]
     else if (flag === '--project') payload.project = rest[++index]
-    else if (flag === '--ado') payload.adoRefInput = rest[++index]
-    else if (flag === '--clear-ado') payload.clearAdoRef = true
     else if (flag === '--session') payload.session = rest[++index]
     else if (flag === '--clear-session') payload.clearSession = true
     else if (flag === '--force') payload.force = true
-    else if (flag === '--watch') payload.watch = true
-    else if (flag === '--no-watch') payload.watch = false
     else throw new Error(`arco todo edit: opcao desconhecida: ${flag}`)
   }
   if (!payload.ref) throw new Error('arco todo edit: informe a tarefa (id ou trecho do titulo)')
@@ -378,15 +360,6 @@ function formatSession(session) {
   return parts.join(' ')
 }
 
-function formatAdoRef(ref) {
-  if (!ref) return null
-  const parts = [`${ref.org}/${ref.project}`]
-  if (ref.workItemId) parts.push(`#${ref.workItemId}`)
-  if (ref.prId) parts.push(` !${ref.prId}`)
-  if (ref.repository) parts.push(` (${ref.repository})`)
-  return parts.join('')
-}
-
 /** `arco todo show` — everything the sidebar shows about a task, as text. */
 function formatTodoDetail(todo, projectName) {
   const lines = [
@@ -396,9 +369,7 @@ function formatTodoDetail(todo, projectName) {
     ['prioridade', String(todo.priority ?? 'normal')],
     ['tags', (todo.tags ?? []).map((tag) => `#${tag}`).join(' ') || '-'],
     ['projeto', projectName || todo.projectId || '-'],
-    ['ado', formatAdoRef(todo.adoRef) || '-'],
     ['sessao', formatSession(todo.session) || '-'],
-    ['watch', todo.watch ? 'sim' : 'nao'],
   ]
   if (todo.createdAt) lines.push(['criada em', new Date(todo.createdAt).toISOString()])
   const width = Math.max(...lines.map(([label]) => label.length))
@@ -422,11 +393,6 @@ function parseSession(args) {
     else throw new Error(`arco session: opcao desconhecida: ${flag}`)
   }
   return payload
-}
-
-/** Prints whatever the app warned about, without failing the command. */
-function writeWarnings(result) {
-  for (const warning of result?.data?.warnings ?? []) writeErr(`aviso: ${warning}\n`)
 }
 
 /** Confirms a delete. Non-interactive callers pass `--yes`; there is no prompt to answer. */
@@ -486,7 +452,6 @@ async function runTodo(rest) {
     if (payload.session) Object.assign(payload, sessionScope())
     const result = await post('todo/edit', payload)
     writeOut(formatTodoReceipt('editada', result.data?.todo))
-    writeWarnings(result)
     return
   }
 
@@ -532,12 +497,9 @@ async function runTodo(rest) {
     ...(parsed.status ? { status: parsed.status } : {}),
     ...(parsed.priority ? { priority: parsed.priority } : {}),
     ...(parsed.notes !== null ? { notes: parsed.notes } : {}),
-    ...(parsed.adoRefInput ? { adoRefInput: parsed.adoRefInput } : {}),
     ...(parsed.session ? { session: parsed.session, force: parsed.force, ...sessionScope() } : {}),
-    ...(parsed.watch === undefined ? {} : { watch: parsed.watch }),
   })
   writeOut(formatTodoReceipt('criada', result.data?.todo))
-  writeWarnings(result)
 }
 
 async function run(argv) {

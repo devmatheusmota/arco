@@ -1,8 +1,6 @@
 import {
   Check,
   ChevronDown,
-  Eye,
-  EyeOff,
   FolderKanban,
   GripVertical,
   ListTodo,
@@ -19,11 +17,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { type GsdSyncSession, useGsdSyncSessions } from '../../hooks/useGsdSyncSessions'
-import { pullRequestUrl, workItemUrl } from '../../lib/adoRef'
 import { formatRelativeTimestamp } from '../../lib/greeting'
 import { type TFunction, useT } from '../../lib/i18n'
 import { formatShortcut } from '../../lib/platform'
-import { openInBrowser, type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
+import { type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
 import {
   collectTodoTags,
   isCurrentSessionTodo,
@@ -38,7 +35,6 @@ import {
   type Terminal,
   TODO_PRIORITIES,
   TODO_STATUSES,
-  type TodoAdoRef,
   type TodoItem,
   type TodoPriority,
   type TodoSessionLink,
@@ -229,7 +225,6 @@ function TodoRow({
   const setTodoPriority = useProjectsStore((state) => state.setTodoPriority)
   const setTodoStatus = useProjectsStore((state) => state.setTodoStatus)
   const setTodoProject = useProjectsStore((state) => state.setTodoProject)
-  const setTodoWatch = useProjectsStore((state) => state.setTodoWatch)
   const unlinkTodoSession = useProjectsStore((state) => state.unlinkTodoSession)
   const toggleTodo = useProjectsStore((state) => state.toggleTodo)
   const deleteTodo = useProjectsStore((state) => state.deleteTodo)
@@ -370,7 +365,6 @@ function TodoRow({
                   {t(`todo.statusValue.${status}`)}
                 </span>
               ) : null}
-              {todo.adoRef ? <AdoRefChips ref_={todo.adoRef} t={t} /> : null}
               {todo.tags.map((tag) => (
                 <span key={tag} className={styles.tag}>
                   #{tag}
@@ -449,19 +443,6 @@ function TodoRow({
               >
                 <Play size={12} />
               </button>
-              {todo.adoRef ? (
-                <button
-                  type="button"
-                  className={styles.rowAction}
-                  data-active={todo.watch ? 'true' : undefined}
-                  onClick={() => setTodoWatch(todo.id, !todo.watch)}
-                  title={todo.watch ? t('todo.adoWatchOff') : t('todo.adoWatchOn')}
-                  aria-label={todo.watch ? t('todo.adoWatchOff') : t('todo.adoWatchOn')}
-                  aria-pressed={Boolean(todo.watch)}
-                >
-                  {todo.watch ? <Eye size={12} /> : <EyeOff size={12} />}
-                </button>
-              ) : null}
               <button
                 type="button"
                 className={styles.rowAction}
@@ -1171,57 +1152,4 @@ function parseTags(value: string): string[] {
     .split(/[,#\s]+/)
     .map((tag) => tag.trim())
     .filter(Boolean)
-}
-
-/**
- * One chip per ADO reference on a task — a work item, a PR, or both.
- *
- * Plain click opens the page in the system browser (the shared default); holding
- * the modifier key (Alt/Meta) opens it inside the app viewer instead, so a
- * quick peek does not steal focus from the terminal.
- */
-function AdoRefChips({ ref_, t }: { ref_: TodoAdoRef; t: TFunction }) {
-  const openLinkViewer = useUiStore((state) => state.openLinkViewer)
-
-  const open = (event: React.MouseEvent<HTMLButtonElement>, url: string) => {
-    event.stopPropagation()
-    event.preventDefault()
-    if (event.altKey || event.metaKey) {
-      openLinkViewer(url)
-      return
-    }
-    void openInBrowser(url).catch(() => openLinkViewer(url))
-  }
-
-  const workItemHref = ref_.workItemId > 0 ? workItemUrl(ref_) : null
-  const prHref = pullRequestUrl(ref_)
-
-  return (
-    <>
-      {workItemHref ? (
-        <button
-          type="button"
-          className={styles.adoChip}
-          data-kind="wi"
-          onClick={(event) => open(event, workItemHref)}
-          title={t('todo.adoWorkItem', { id: ref_.workItemId })}
-          aria-label={t('todo.adoWorkItem', { id: ref_.workItemId })}
-        >
-          #{ref_.workItemId}
-        </button>
-      ) : null}
-      {prHref && ref_.prId ? (
-        <button
-          type="button"
-          className={styles.adoChip}
-          data-kind="pr"
-          onClick={(event) => open(event, prHref)}
-          title={t('todo.adoPullRequest', { id: ref_.prId })}
-          aria-label={t('todo.adoPullRequest', { id: ref_.prId })}
-        >
-          !{ref_.prId}
-        </button>
-      ) : null}
-    </>
-  )
 }

@@ -131,59 +131,6 @@ export function IntegrationsPage() {
         </div>
       </SettingsSection>
 
-      <SettingsSection id="ado" title={t('prefs.ado')} description={t('prefs.adoDesc')}>
-        <div className={styles.integrationFields}>
-          <label>
-            <span>{t('prefs.adoOrg')}</span>
-            <input
-              className={controls.input}
-              value={preferences.adoOrg}
-              placeholder="EuMedicoResidente"
-              onChange={(event) => setPreferences({ adoOrg: event.target.value })}
-              spellCheck={false}
-            />
-          </label>
-          <label>
-            <span>{t('prefs.adoProject')}</span>
-            <input
-              className={controls.input}
-              value={preferences.adoProject}
-              placeholder="Plataforma EMR"
-              onChange={(event) => setPreferences({ adoProject: event.target.value })}
-              spellCheck={false}
-            />
-          </label>
-          <label>
-            <span>{t('prefs.adoPat')}</span>
-            <input
-              className={controls.input}
-              type="password"
-              value={preferences.adoPat}
-              placeholder="pat_xxxxxxxx"
-              onChange={(event) => setPreferences({ adoPat: event.target.value })}
-              spellCheck={false}
-              autoComplete="off"
-            />
-          </label>
-          <label>
-            <span>{t('prefs.adoPollSecs')}</span>
-            <input
-              className={controls.input}
-              type="number"
-              min={60}
-              max={3600}
-              step={60}
-              value={preferences.adoPollSecs}
-              onChange={(event) =>
-                setPreferences({ adoPollSecs: Number(event.target.value) || 300 })
-              }
-            />
-          </label>
-          <p>{t('prefs.adoHint')}</p>
-          <p>{t('prefs.adoPatHint')}</p>
-        </div>
-      </SettingsSection>
-
       <SettingsSection id="spotify" title={t('prefs.spotify')} description={t('prefs.spotifyDesc')}>
         <div className={styles.integrationFields}>
           <label>

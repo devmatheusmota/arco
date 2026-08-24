@@ -877,28 +877,6 @@
  * strip of tokens, not three different UI elements. Kept lower-contrast than the
  * status chip, since it names a target rather than a state.
  */
-.adoChip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--fg-faint);
-  font: var(--font-weight-medium) var(--font-size-1) / var(--line-height-1) var(--font-sans);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.adoChip:hover,
-.adoChip:focus-visible {
-  color: var(--fg);
-}
-
-.adoChip[data-kind='pr'] {
-  color: var(--fg-faint);
-}
-
 .notesInput {
   width: 100%;
   min-height: 58px;

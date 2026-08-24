@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.9.0] — 2026-08-24
+
+### Removed
+
+- The Azure DevOps integration is gone. A task no longer links to a work item or a pull request,
+  the `#22447` and `!10681` chips and the eye icon left the task row, the watcher that polled the
+  board and moved tasks on its own no longer runs, and Preferences → Integrations no longer asks
+  for an organization, a project, a personal access token or a poll interval. On the command line,
+  `arco todo` and `arco todo edit` dropped `--ado`, `--clear-ado`, `--watch` and `--no-watch`, and
+  `arco todo show` no longer prints a linked card. References already saved are discarded the next
+  time the task file is read — nothing else about the task changes.
+
 ## [2.8.2] — 2026-08-21
 
 ### Fixed
