@@ -124,18 +124,6 @@ export async function recordAppEvent(kind: string, message: string): Promise<voi
   }
 }
 
-export async function setDiscordPresence(
-  details: string,
-  state: string,
-  startedAt: number,
-): Promise<void> {
-  await invoke('set_discord_presence', { details, state, startedAt })
-}
-
-export async function clearDiscordPresence(): Promise<void> {
-  await invoke('clear_discord_presence')
-}
-
 export async function findCliLauncher(agent: string): Promise<string | null> {
   return invoke<string | null>('find_cli_launcher', { agent })
 }
@@ -356,38 +344,4 @@ export async function setPlanningAutocommit(enabled: boolean): Promise<void> {
 
 export async function getPlanningAutocommit(): Promise<boolean> {
   return invoke<boolean>('get_planning_autocommit')
-}
-
-// --- Spotify ---
-
-export type NowPlaying = {
-  playing: boolean
-  track: string
-  artist: string
-  album: string
-  cover_url: string | null
-  duration_ms: number
-  progress_ms: number
-  track_url: string | null
-}
-
-export type SpotifyCredentials = {
-  clientId?: string
-  clientSecret?: string
-}
-
-export function spotifyLogin(credentials: SpotifyCredentials): Promise<void> {
-  return invoke('spotify_login', credentials)
-}
-
-export function spotifyLogout(): Promise<void> {
-  return invoke('spotify_logout')
-}
-
-export function spotifyStatus(): Promise<boolean> {
-  return invoke<boolean>('spotify_status')
-}
-
-export function spotifyGetCurrent(credentials: SpotifyCredentials): Promise<NowPlaying | null> {
-  return invoke<NowPlaying | null>('spotify_get_current', credentials)
 }

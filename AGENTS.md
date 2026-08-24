@@ -127,7 +127,7 @@ relative to the repository.
 - `projects.rs` — atomic load/save of `projects.json`. `profiles` — isolated multi-profile support.
 - `cli_resolver.rs` — discovers CLIs (pwsh/powershell, Node managers, VS Code) on Windows.
 - `claude_sessions.rs` / `codex_sessions.rs` / `claude_usage.rs` — session and usage reading.
-- `spotify.rs`, `backup.rs`, `diagnostics.rs`, `agent_library.rs`, `agent_events.rs`, `stats.rs`.
+- `backup.rs`, `diagnostics.rs`, `agent_library.rs`, `agent_events.rs`, `stats.rs`.
 
 **Communication:** the frontend calls `invoke(...)` through `lib/tauri/`; the terminal receives
 streaming through the Tauri events `pty://data/{id}` and `pty://exit/{id}`.
@@ -146,7 +146,7 @@ streaming through the Tauri events `pty://data/{id}` and `pty://exit/{id}`.
 - The renderer reaches every command through `tauri:invoke`. Treat any rendered input as untrusted.
 - `spawn_pty` runs a shell with the command/args coming from the frontend — **validate input on the
   frontend** before spawning.
-- OAuth tokens (Spotify, Claude) are stored in **plaintext** in app data; do not log or expose them.
+- OAuth tokens (Claude) are stored in **plaintext** in app data; do not log or expose them.
 - The Windows build requires `vcvars64`. The Rust toolchain on `C:` can be corrupted by Windows
   Defender — prefer building from `D:`.
 - Local data: `%APPDATA%/Arco/` (profiles, `projects.json`, scrollback `*.bin`, `spawn.log`).

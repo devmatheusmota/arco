@@ -2,7 +2,7 @@
 
 Arco is a desktop workspace for running coding agents and shells side by side. It turns terminals into persistent workspace units: each pane has its own cwd, PTY, scrollback, tabs, layout state, and local resume data.
 
-The app is local-first. Projects, preferences, layouts, scrollback, sessions, and Spotify credentials stay on the user's machine unless an optional cloud service is added later.
+The app is local-first. Projects, preferences, layouts, scrollback, and sessions stay on the user's machine unless an optional cloud service is added later.
 
 ## What It Provides
 
@@ -54,7 +54,6 @@ Typical files include:
 - `profiles.json`: local account/profile registry.
 - `profiles/<profileId>/projects.json`: projects, workspace state, preferences, and CLI paths.
 - `profiles/<profileId>/scrollback/`: terminal scrollback snapshots.
-- `profiles/<profileId>/spotify_tokens.json`: local Spotify token cache, when configured.
 - `profiles/<profileId>/spawn.log`: local spawn and diagnostic log.
 
 ## Development

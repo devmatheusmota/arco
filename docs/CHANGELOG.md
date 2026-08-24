@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.10.0] — 2026-08-24
+
+### Removed
+
+- Spotify Now Playing is gone. The dock on Home and the row above the sidebar profile, the
+  Preferences → Integrations section asking for a Client ID and a Client Secret, and the polling
+  behind them were all removed. Neither widget had shown anything since v2: this shell answers
+  "not connected" to every Spotify call, so the credentials saved in Preferences reached nothing.
+- Discord Rich Presence is gone, along with its on/off switch under Preferences → Integrations.
+  It was equally inert here — the presence call was a no-op in this shell, so nothing was ever
+  published to a Discord profile.
+
 ## [2.9.0] — 2026-08-24
 
 ### Removed

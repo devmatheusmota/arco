@@ -388,11 +388,6 @@ export type Preferences = {
   /** Local do controle Git: sidebar esquerda ou direita. */
   gitControlPlacement: 'left' | 'right'
 
-  /** Credenciais locais do Spotify Developer Dashboard para Now Playing. */
-  spotifyClientId: string
-  spotifyClientSecret: string
-  /** Exibe a atividade atual do Arco no perfil do Discord. */
-  discordRichPresenceEnabled: boolean
   /** Itens opcionais exibidos no canto direito da topbar. */
   topbarShowClaudeUsage: boolean
   topbarShowCodexUsage: boolean
@@ -525,9 +520,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   lastTerminalCreation: null,
   topbarStyle: 'classic',
   gitControlPlacement: 'left',
-  spotifyClientId: '',
-  spotifyClientSecret: '',
-  discordRichPresenceEnabled: true,
   topbarShowClaudeUsage: true,
   topbarShowCodexUsage: true,
   topbarShowAntigravityUsage: true,

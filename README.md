@@ -105,7 +105,6 @@ choice over forced completeness.
 - Suspend groups to free memory.
 - Local backup export/import.
 - `arco` terminal command to open any folder as a project.
-- Spotify Now Playing through the user's own Spotify app credentials.
 - Experimental agent planning canvas.
 - GitHub Actions release workflow for Windows, Linux, and macOS.
 
@@ -242,23 +241,6 @@ already running, the existing window is focused rather than starting a second in
 The command is installed to `~/.local/bin/arco` on macOS/Linux and to
 `%LOCALAPPDATA%\Arco\bin\arco.cmd` on Windows (added to the user `Path`). Reinstall it after
 moving or reinstalling the app — the settings screen flags a stale command.
-
-## Spotify
-
-To use Now Playing, create an app in the Spotify Developer Dashboard and register this Redirect URI:
-
-```text
-http://127.0.0.1:8888/callback
-```
-
-Then add your `Client ID` and `Client Secret` in **Preferences > Spotify**.
-
-For local development, a `.env` file can also provide:
-
-```env
-SPOTIFY_CLIENT_ID=
-SPOTIFY_CLIENT_SECRET=
-```
 
 ## Releases
 

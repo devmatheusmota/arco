@@ -45,7 +45,6 @@ import { AsciiEffect } from './components/ui/ascii-effect'
 import { WorkspaceView } from './components/WorkspaceView'
 import { useCliOpenRequests } from './hooks/useCliOpenRequests'
 import { useCloseConfirmation } from './hooks/useCloseConfirmation'
-import { useDiscordPresence } from './hooks/useDiscordPresence'
 import { useKeybindings } from './hooks/useKeybindings'
 import { useMcpIntroPrompt } from './hooks/useMcpIntroPrompt'
 import { useRemoteControlService } from './hooks/useRemoteControlService'
@@ -234,7 +233,6 @@ export default function App() {
   }
 
   useKeybindings()
-  useDiscordPresence()
   useMcpIntroPrompt()
   useRemoteControlService()
   useCloseConfirmation()

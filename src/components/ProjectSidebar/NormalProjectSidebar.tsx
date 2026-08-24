@@ -35,7 +35,6 @@ import { type Project } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { EmptyState } from '../EmptyState'
-import { SidebarNowPlaying } from '../SidebarNowPlaying'
 import { UserProfile } from '../UserProfile'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { FileExplorer } from './FileExplorer'
@@ -549,7 +548,6 @@ export function NormalProjectSidebar() {
           </div>
         </div>
       ) : null}
-      <SidebarNowPlaying />
       <SidebarUpdate />
       <UserProfile />
     </aside>

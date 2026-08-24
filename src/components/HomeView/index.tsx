@@ -34,7 +34,6 @@ import { Avatar } from '../ui/Avatar'
 import { computeStreak } from './ActivityGraph'
 import { ActivityGraph } from './ActivityGraph'
 import styles from './HomeView.module.css'
-import { NowPlayingWidget } from './NowPlayingWidget'
 import { TimeAnalytics } from './TimeAnalytics'
 import { UsageStrip } from './UsageStrip'
 
@@ -300,9 +299,6 @@ export function HomeView() {
               <strong>{activityStreak ?? '–'}</strong>
             </div>
             <Avatar key={avatarUrl} src={avatarUrl} initial={initial} className={styles.avatar} />
-            <div className={styles.homePlayerDock}>
-              <NowPlayingWidget enabled />
-            </div>
           </div>
           <div className={styles.heroCopy}>
             <h1 className={styles.greeting}>

@@ -19,7 +19,6 @@ const preferences: Preferences = {
   ...DEFAULT_PREFERENCES,
   onboardingDone: true,
   accountCreated: true,
-  discordRichPresenceEnabled: false,
 }
 
 const projects: Project[] = [

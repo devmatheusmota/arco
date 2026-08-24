@@ -60,7 +60,6 @@ base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["png", "bmp"] }
 urlencoding = "2"
 dotenvy = "0.15"
-discord-rich-presence = "1.1.0"
 notify = "6"
 rusqlite = { version = "0.31", features = ["bundled"] }
 regex = "1"

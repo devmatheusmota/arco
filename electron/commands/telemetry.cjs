@@ -302,15 +302,6 @@ function buildTelemetryCommands({ send }) {
     // that can exit on its own.
     ghostty_set_focus: () => null,
     ghostty_surface_exited: () => false,
-
-    // Spotify and the Discord presence are deliberately not part of this build.
-    // The UI still calls them on startup, so they answer "not connected" rather
-    // than failing and raising a toast.
-    spotify_login: () => {
-      throw new Error('Spotify is not available in this build')
-    },
-    spotify_logout: () => null,
-    clear_discord_presence: () => null,
   }
 }
 

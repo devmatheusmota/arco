@@ -18,7 +18,6 @@ mod dictation;
 mod contract_check;
 mod crash_watch;
 mod diagnostics;
-mod discord_presence;
 mod economy_agents;
 mod event_bus;
 mod filesystem;
@@ -57,7 +56,6 @@ mod session_watcher;
 mod skills;
 mod speech_catalog;
 mod speech_download;
-mod spotify;
 mod stats;
 mod supervisor;
 mod telemetry;
@@ -179,7 +177,6 @@ pub fn run() {
         .manage(resource_supervisor)
         .manage(ghostty_bridge::GhosttySurfaces::default())
         .manage(filesystem::FileWatchers::default())
-        .manage(discord_presence::DiscordPresence::new())
         .manage(planning::PlanningWatchers::default())
         .manage(cli_launch::PendingOpen::default())
         .plugin(tauri_plugin_dialog::init())
@@ -381,16 +378,10 @@ pub fn run() {
             diagnostics::export_logs,
             logging::record_frontend_error,
             logging::record_app_event,
-            discord_presence::set_discord_presence,
-            discord_presence::clear_discord_presence,
             stats::get_memory_stats,
             resources::get_runtime_snapshot,
             resources::set_resource_policy,
             resources::update_pty_runtime_meta,
-            spotify::spotify_login,
-            spotify::spotify_logout,
-            spotify::spotify_status,
-            spotify::spotify_get_current,
             claude_sessions::snapshot_claude_sessions,
             claude_sessions::list_claude_sessions,
             claude_sessions::get_claude_session_title,

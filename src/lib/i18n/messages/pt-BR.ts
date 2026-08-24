@@ -684,19 +684,11 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.cliContextOn': 'Ligado',
   'prefs.cliContextOff': 'Desligado',
   'prefs.cliUnsupported': 'O comando de terminal não está disponível nesta plataforma.',
-  'prefs.spotify': 'Spotify',
-  'prefs.spotifyDesc': 'Configure o aplicativo do Spotify usado no widget Now Playing.',
-  'prefs.discordPresence': 'Rich Presence do Discord',
-  'prefs.discordPresenceEnabled': 'Ativado',
-  'prefs.discordPresenceDisabled': 'Desativado',
-  'prefs.discordPresenceHint': 'Mostra que você está usando o Arco sem expor nomes de projetos.',
   'prefs.namePlaceholder': 'Nome',
   'prefs.photoPlaceholder': 'Link da foto',
   'prefs.zoomDecrease': 'Diminuir zoom (Ctrl+-)',
   'prefs.zoomIncrease': 'Aumentar zoom (Ctrl+=)',
   'prefs.zoomReset': 'Resetar zoom (Ctrl+0)',
-  'prefs.spotifyHint':
-    'Cadastre {redirect} como Redirect URI no Spotify Developer Dashboard. Em dev, {idEnv} e {secretEnv} ainda funcionam como fallback.',
   'prefs.checkUpdates': 'Atualizações do software',
   'prefs.checkUpdatesDesc':
     'Verifique se uma versão mais recente do Arco está disponível para baixar.',
@@ -769,6 +761,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2100.note1':
+    'O Now Playing do Spotify e o Rich Presence do Discord foram removidos. O player na Home, a linha acima do perfil na barra lateral e as duas se\u00e7\u00f5es em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es sa\u00edram. Nenhum dos dois funcionava nesta vers\u00e3o do Arco \u2014 toda chamada ao Spotify respondia \u201cn\u00e3o conectado\u201d e a presen\u00e7a no Discord nunca era publicada \u2014 ent\u00e3o o que saiu da tela \u00e9 o que j\u00e1 n\u00e3o mostrava nada. As credenciais salvas em Prefer\u00eancias s\u00e3o descartadas.',
   'whatsNew.v290.note1':
     'A integra\u00e7\u00e3o com o Azure DevOps foi removida. Uma tarefa n\u00e3o aponta mais para work item nem pull request, os chips #22447 e !10681 e o \u00edcone de olho sa\u00edram da linha da tarefa, e nada mais consulta o board em segundo plano. Prefer\u00eancias \u2192 Integra\u00e7\u00f5es n\u00e3o pede mais organiza\u00e7\u00e3o, projeto, token nem intervalo de polling, e o `arco todo` perdeu `--ado`, `--clear-ado`, `--watch` e `--no-watch`. Reinstale o comando de terminal em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es para o texto de ajuda novo; as refer\u00eancias j\u00e1 salvas nas tarefas s\u00e3o descartadas, e nada mais muda nelas.',
   'whatsNew.v282.note1':
@@ -1092,10 +1086,6 @@ export const ptBR: Record<MessageKey, string> = {
   'widget.modelsLabel': 'modelos',
   'widget.quotaBucketsShort': 'grupos',
   'widget.quotaBuckets': '{n} grupos de quota',
-  'widget.nowPlaying': 'Tocando agora',
-  'widget.lastTrack': 'Última faixa',
-  'widget.last': 'última',
-  'widget.paused': 'pausado',
   'crud.newProjectTitle': 'Novo projeto',
   'crud.cancel': 'Cancelar',
   'crud.create': 'Criar',

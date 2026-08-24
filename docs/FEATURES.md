@@ -53,7 +53,7 @@ you are reading. Only a terminal is accepted there, and only one at a time.
 ## Local Accounts
 
 - Multiple local accounts/profiles in one app installation.
-- Each profile has isolated projects, preferences, sessions, scrollback, caches, and Spotify tokens.
+- Each profile has isolated projects, preferences, sessions, scrollback, and caches.
 - The active account is visible in the title bar.
 - Users can create, switch, rename, and delete local accounts.
 
@@ -87,7 +87,6 @@ you are reading. Only a terminal is accepted there, and only one at a time.
 - Recent projects and terminals.
 - Quick actions for project and terminal creation.
 - Claude usage/activity widgets when available.
-- Spotify Now Playing when configured.
 
 ![Home view with recent projects and quick actions](screenshots/home-view.png)
 
@@ -136,14 +135,6 @@ you are reading. Only a terminal is accepted there, and only one at a time.
 - Import backup by replacing local state.
 - Protect against zip-slip during import.
 - Use atomic project-file writes to reduce corruption risk.
-
-## Spotify
-
-- OAuth Authorization Code flow with local callback.
-- Callback URL: `http://127.0.0.1:8888/callback`.
-- User-provided Spotify Client ID and Client Secret.
-- Local token persistence and automatic refresh.
-- Now Playing widgets on Home and the sidebar.
 
 ## Agent Planning
 
