@@ -115,7 +115,7 @@ export function parseAdoRef(input: string, defaults: AdoRefDefaults = {}): AdoRe
  */
 export function mergeAdoRef(base: AdoRef | undefined, next: AdoRef): AdoRef {
   if (!base) return next
-  return {
+  const merged: AdoRef = {
     ...base,
     ...next,
     workItemId: next.workItemId || base.workItemId,
@@ -125,6 +125,18 @@ export function mergeAdoRef(base: AdoRef | undefined, next: AdoRef): AdoRef {
       : {}),
     ...(next.prProject || base.prProject ? { prProject: next.prProject ?? base.prProject } : {}),
   }
+  // The work item's project addresses the board, the pull request's addresses the
+  // code, and here they routinely differ. Spreading `next` last would let whichever
+  // URL arrived second decide both, so each side keeps the project it came with.
+  const fromWorkItem = [next, base].find((ref) => ref.workItemId > 0)
+  const fromPullRequest = [next, base].find((ref) => ref.prId)
+  if (fromWorkItem && fromPullRequest) {
+    const prProject = fromPullRequest.prProject?.trim() || fromPullRequest.project
+    merged.project = fromWorkItem.project
+    if (prProject && prProject !== fromWorkItem.project) merged.prProject = prProject
+    else delete merged.prProject
+  }
+  return merged
 }
 
 /** Best-effort validation used when reading a stored file: drops garbage silently. */

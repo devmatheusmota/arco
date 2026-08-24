@@ -770,6 +770,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2101.note1':
+    'Tarefa cujo work item e pull request moram em projetos diferentes do Azure DevOps agora abre os dois chips na p\u00e1gina certa. Ligar os dois com `--ado` deixava a segunda URL decidir o projeto de ambos, ent\u00e3o um dos chips sempre apontava para onde o item n\u00e3o est\u00e1 \u2014 o board fica em Plataforma EMR e o c\u00f3digo em SOA ou agentic-product-os. Cada lado guarda o pr\u00f3prio projeto agora. Rode `--ado` de novo com a URL do pull request nas tarefas que abriam a p\u00e1gina errada.',
   'whatsNew.v2100.note1':
     'O Now Playing do Spotify e o Rich Presence do Discord foram removidos. O player na Home, a linha acima do perfil na barra lateral e as duas se\u00e7\u00f5es em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es sa\u00edram. Nenhum dos dois funcionava nesta vers\u00e3o do Arco \u2014 toda chamada ao Spotify respondia \u201cn\u00e3o conectado\u201d e a presen\u00e7a no Discord nunca era publicada \u2014 ent\u00e3o o que saiu da tela \u00e9 o que j\u00e1 n\u00e3o mostrava nada. As credenciais salvas em Prefer\u00eancias s\u00e3o descartadas.',
   'whatsNew.v2100.note2':

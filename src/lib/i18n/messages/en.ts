@@ -758,6 +758,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2101.note1':
+    'A task whose work item and pull request live in different Azure DevOps projects now opens both chips on the right page. Linking the two with `--ado` let the second URL decide the project for both, so one chip always pointed somewhere that does not hold it \u2014 the board is in Plataforma EMR and the code in SOA or agentic-product-os. Each side keeps its own project now. Re-run `--ado` with the pull request URL on any task showing the wrong page.',
   'whatsNew.v2100.note1':
     'Spotify Now Playing and the Discord Rich Presence were removed. The player docked on Home, the row above the sidebar profile, and the two sections under Preferences \u2192 Integrations are gone. Neither worked in this version of Arco \u2014 every Spotify call answered \u201cnot connected\u201d and the Discord presence was never published \u2014 so what left the screen is what was already showing you nothing. The credentials saved in Preferences are dropped.',
   'whatsNew.v2100.note2':

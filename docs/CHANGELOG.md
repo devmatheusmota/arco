@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.10.1] — 2026-08-24
+
+### Fixed
+
+- A task linked to a work item and a pull request that live in different Azure DevOps projects now
+  opens both. The board sits in `Plataforma EMR` and the code in `SOA` or `agentic-product-os`, and
+  merging the two `--ado` URLs let whichever arrived second decide the project for both chips — so
+  one of them always pointed at a project that does not hold it, and ADO answered "Repository not
+  found". Each side now keeps the project it was given. Until 2.9.0 the watcher repaired this after
+  the fact; with the watcher gone, `--ado` had to get it right on its own.
+
 ## [2.10.0] — 2026-08-24
 
 ### Added

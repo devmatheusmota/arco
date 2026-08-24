@@ -129,6 +129,46 @@ describe('pullRequestUrl across projects', () => {
     )
   })
 
+  it('records the pull request project when a PR URL joins a work item in another one', () => {
+    const workItem = mergeAdoRef(undefined, {
+      org: 'EuMedicoResidente',
+      project: 'Plataforma EMR',
+      workItemId: 22734,
+    })
+    const merged = mergeAdoRef(workItem, {
+      org: 'EuMedicoResidente',
+      project: 'agentic-product-os',
+      repository: 'emr-agent-skills',
+      workItemId: 0,
+      prId: 10949,
+    })
+    expect(merged).toMatchObject({
+      project: 'Plataforma EMR',
+      prProject: 'agentic-product-os',
+      workItemId: 22734,
+      prId: 10949,
+    })
+    expect(workItemUrl(merged)).toContain('/Plataforma%20EMR/_workitems/edit/22734')
+    expect(pullRequestUrl(merged)).toBe(
+      'https://dev.azure.com/EuMedicoResidente/agentic-product-os/_git/emr-agent-skills/pullrequest/10949',
+    )
+  })
+
+  it('leaves prProject off when the two sides share a project', () => {
+    const merged = mergeAdoRef(
+      { org: 'EuMedicoResidente', project: 'SOA', workItemId: 22672 },
+      {
+        org: 'EuMedicoResidente',
+        project: 'SOA',
+        repository: 'SOA',
+        workItemId: 0,
+        prId: 10899,
+      },
+    )
+    expect(merged.prProject).toBeUndefined()
+    expect(merged.project).toBe('SOA')
+  })
+
   it('keeps prProject through normalize and merge', () => {
     expect(normalizeAdoRef({ ...base, prProject: 'Eduardo' })).toMatchObject({
       prProject: 'Eduardo',
