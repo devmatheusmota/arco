@@ -682,6 +682,12 @@ export const en = {
     'Defaults used when a task reference is a bare id like `#22447` or `!10681`. Not needed when the full URL is passed to `arco todo`.',
   'prefs.adoOrg': 'Organization',
   'prefs.adoProject': 'Default project',
+  'prefs.adoPat': 'Personal Access Token',
+  'prefs.adoPatHint':
+    'Used once per app start to ask Azure DevOps where each linked pull request lives, so a chip stored with the wrong project stops opening "Repository not found". Nothing polls with it. Leave blank and the chips stay exactly as they were saved.',
+  'toast.adoAuthTitle': 'Azure DevOps',
+  'toast.adoAuthBody':
+    'The stored token was refused (401). Refresh it under Preferences \u2192 Integrations \u2192 Azure DevOps.',
   'prefs.adoHint':
     'The organization slug is the segment right after `dev.azure.com/` in a work-item URL. Leave blank to require full URLs on every `--ado`.',
   'prefs.namePlaceholder': 'Name',
@@ -758,6 +764,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2120.note1':
+    'A pull request chip that opens \u201cRepository not found\u201d fixes itself. Once per app start, every task carrying a pull request asks Azure DevOps where that pull request really lives, and the link is rewritten when what was stored disagrees \u2014 including the ones an older build saved with a repository GUID. Boards and code live in separate projects here, so a link written from a work item URL inherits the wrong one. Fill the Personal Access Token under Preferences \u2192 Integrations \u2192 Azure DevOps to turn it on; leave it blank and nothing runs. It repairs links and does nothing else \u2014 no polling, and no task moved for you.',
   'whatsNew.v2110.note1':
     'The GitHub sync uploads on its own. Sync your data has a switch and an interval \u2014 5, 15, 30, 60 or 180 minutes \u2014 and Arco pushes your workspace to the Gist on that schedule, with nobody pressing Upload. It is on at 15 minutes for an account already connected. A tick where nothing changed sends nothing, so an idle day costs no Gist revisions. Three failures in a row park it and say why, right under the buttons. Download stays manual: overwriting your workspace is not a decision for a timer.',
   'whatsNew.v2110.note2':

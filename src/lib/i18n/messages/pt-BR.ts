@@ -691,6 +691,12 @@ export const ptBR: Record<MessageKey, string> = {
     'Padrões usados quando a referência de uma tarefa é só um id, como `#22447` ou `!10681`. Não precisa preencher se a URL completa for passada ao `arco todo`.',
   'prefs.adoOrg': 'Organização',
   'prefs.adoProject': 'Projeto padrão',
+  'prefs.adoPat': 'Personal Access Token',
+  'prefs.adoPatHint':
+    'Usado uma vez por abertura do app para perguntar ao Azure DevOps onde mora cada pull request vinculado, para que um chip salvo com o projeto errado pare de abrir "Repository not found". Nada fica consultando com ele. Em branco, os chips ficam exatamente como foram salvos.',
+  'toast.adoAuthTitle': 'Azure DevOps',
+  'toast.adoAuthBody':
+    'O token salvo foi recusado (401). Atualize em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es \u2192 Azure DevOps.',
   'prefs.adoHint':
     'O slug da organização é o trecho logo depois de `dev.azure.com/` na URL de um work item. Deixe em branco para exigir a URL completa em todo `--ado`.',
   'prefs.namePlaceholder': 'Nome',
@@ -770,6 +776,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2120.note1':
+    'Chip de pull request que abre \u201cRepository not found\u201d se conserta sozinho. Uma vez por abertura do app, cada tarefa com pull request pergunta ao Azure DevOps onde aquele PR mora de verdade, e o v\u00ednculo \u00e9 reescrito quando o que estava salvo discorda \u2014 inclusive os que uma vers\u00e3o antiga gravou com GUID de reposit\u00f3rio. Board e c\u00f3digo moram em projetos diferentes aqui, ent\u00e3o v\u00ednculo escrito a partir da URL do work item herda o projeto errado. Preencha o Personal Access Token em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es \u2192 Azure DevOps para ligar; em branco, nada roda. Ele conserta v\u00ednculo e nada mais \u2014 n\u00e3o fica consultando, e n\u00e3o move tarefa por voc\u00ea.',
   'whatsNew.v2110.note1':
     'O sync do GitHub envia sozinho. O Sync your data ganhou um interruptor e um intervalo \u2014 5, 15, 30, 60 ou 180 minutos \u2014 e o Arco empurra o seu workspace pro Gist nesse ritmo, sem ningu\u00e9m apertar Upload. Nasce ligado em 15 minutos para quem j\u00e1 est\u00e1 conectado. Passagem em que nada mudou n\u00e3o envia nada, ent\u00e3o dia parado n\u00e3o custa revis\u00e3o de Gist. Tr\u00eas falhas seguidas param o envio e dizem o motivo, logo abaixo dos bot\u00f5es. O download continua manual: sobrescrever o seu workspace n\u00e3o \u00e9 decis\u00e3o de temporizador.',
   'whatsNew.v2110.note2':

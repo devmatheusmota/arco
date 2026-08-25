@@ -121,6 +121,7 @@ export function normalizePreferences(raw: LegacyPreferences | undefined): Prefer
     todoStoragePath: preferences.todoStoragePath.trim(),
     adoOrg: (preferences.adoOrg ?? '').trim(),
     adoProject: (preferences.adoProject ?? '').trim(),
+    adoPat: (preferences.adoPat ?? '').trim(),
     uiZoom: clampUiZoom(preferences.uiZoom),
     spawnConcurrency: clampSpawnConcurrency(preferences.spawnConcurrency),
     resourcePolicy: {

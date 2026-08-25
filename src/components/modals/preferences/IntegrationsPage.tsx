@@ -153,7 +153,20 @@ export function IntegrationsPage() {
               spellCheck={false}
             />
           </label>
+          <label>
+            <span>{t('prefs.adoPat')}</span>
+            <input
+              className={controls.input}
+              type="password"
+              value={preferences.adoPat}
+              placeholder="pat_xxxxxxxx"
+              onChange={(event) => setPreferences({ adoPat: event.target.value })}
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </label>
           <p>{t('prefs.adoHint')}</p>
+          <p>{t('prefs.adoPatHint')}</p>
         </div>
       </SettingsSection>
 

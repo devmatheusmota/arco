@@ -43,6 +43,7 @@ import { TitleBar } from './components/TitleBar'
 import { TokenHud } from './components/TokenHud'
 import { AsciiEffect } from './components/ui/ascii-effect'
 import { WorkspaceView } from './components/WorkspaceView'
+import { useAdoRefRepair } from './hooks/useAdoRefRepair'
 import { useCliOpenRequests } from './hooks/useCliOpenRequests'
 import { useCloseConfirmation } from './hooks/useCloseConfirmation'
 import { useKeybindings } from './hooks/useKeybindings'
@@ -238,6 +239,7 @@ export default function App() {
   useCloseConfirmation()
   useResourceSupervisor(hydrated)
   useCliOpenRequests(hydrated)
+  useAdoRefRepair(hydrated)
 
   useEffect(() => {
     void hydrate()

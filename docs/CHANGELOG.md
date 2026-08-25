@@ -10,6 +10,21 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.12.0] — 2026-08-25
+
+### Added
+
+- A pull request chip stored with the wrong project repairs itself. Once per app start, every task
+  carrying a pull request asks Azure DevOps where that pull request actually lives, and the
+  reference is rewritten when the stored one disagrees — including the ones an older build saved
+  with a repository GUID. Boards and code sit in separate projects here, so a reference written
+  from a work item URL inherits the board's project and renders a chip that opens "Repository not
+  found"; the pull request is the only authority on the answer. 2.8.2 did this from inside the
+  watcher and 2.9.0 removed it with the rest of the integration — this brings back the repair and
+  nothing else: no polling, no status moved, no task touched that has no pull request.
+- Preferences → Integrations takes a Personal Access Token again, used by that one call and nothing
+  else. Left blank, the pass does not run and chips stay exactly as they were saved.
+
 ## [2.11.0] — 2026-08-25
 
 ### Added

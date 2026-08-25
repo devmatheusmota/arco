@@ -451,6 +451,13 @@ export type Preferences = {
    */
   adoOrg: string
   adoProject: string
+  /**
+   * Personal Access Token, used by one thing only: asking Azure DevOps where a
+   * linked pull request lives, so a chip stored with the wrong project stops
+   * opening "Repository not found". Nothing polls with it. Kept in plaintext
+   * alongside the other tokens.
+   */
+  adoPat: string
   /** Ditado por voz (speech-to-text) escreve no terminal ativo. Default false. */
   dictationEnabled: boolean
   /** Hold dita enquanto o atalho fica pressionado; toggle liga e desliga a cada toque. */
@@ -575,6 +582,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   cliContextInjection: true,
   adoOrg: '',
   adoProject: '',
+  adoPat: '',
   dictationEnabled: false,
   dictationMode: 'hold',
   dictationShortcut: 'ctrl+e',
