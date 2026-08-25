@@ -2,14 +2,11 @@
 // app server bridge.
 
 const fs = require('node:fs')
-const path = require('node:path')
 const readline = require('node:readline')
 const { spawn } = require('node:child_process')
 
-const paths = require('./paths.cjs')
+const githubSync = require('./github-sync.cjs')
 
-const GITHUB_STATE = () => path.join(paths.appLocalDataDir(), 'github-sync.json')
-const GIST_FILE = 'arco-projects.json'
 const TRACE_LIMIT = 2_000
 
 // ── token pricing ───────────────────────────────────────────────────────────
@@ -150,50 +147,6 @@ function publishEvent(eventType, correlationId, agentId, taskId, data) {
   if (traces.length > TRACE_LIMIT) traces.splice(0, traces.length - TRACE_LIMIT)
 }
 
-// ── GitHub sync ─────────────────────────────────────────────────────────────
-
-function githubState() {
-  return paths.readJson(GITHUB_STATE(), {
-    token: null,
-    login: null,
-    gist_id: null,
-    gist_url: null,
-    last_push_ms: null,
-    last_pull_ms: null,
-  })
-}
-
-function githubStatus(state) {
-  return {
-    connected: Boolean(state.token && state.login),
-    login: state.login,
-    gist_id: state.gist_id,
-    gist_url: state.gist_url,
-    last_push_ms: state.last_push_ms,
-    last_pull_ms: state.last_pull_ms,
-  }
-}
-
-async function gist(state, method, endpoint, body) {
-  const response = await fetch(`https://api.github.com${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${state.token}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'arco',
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  if (!response.ok) throw new Error(`GitHub returned ${response.status}`)
-  return response.json()
-}
-
-function activeProjectsFile() {
-  const registry = paths.readJson(paths.profilesRegistryPath(), { active_profile_id: 'default' })
-  return path.join(paths.profileDir(registry.active_profile_id ?? 'default'), 'projects.json')
-}
-
 // ── Codex app server ────────────────────────────────────────────────────────
 //
 // `codex app-server` speaks JSON-RPC over stdio. One process per id; replies and
@@ -213,48 +166,8 @@ function buildTelemetryCommands({ send }) {
         ? traces.filter((event) => event.correlation_id === correlationId)
         : [...traces],
 
-    github_sync_push: async () => {
-      const state = githubState()
-      if (!state.token) throw new Error('GitHub is not connected')
-      let contents = '{}'
-      try {
-        contents = fs.readFileSync(activeProjectsFile(), 'utf8')
-      } catch {}
-      const files = { [GIST_FILE]: { content: contents } }
-      const result = state.gist_id
-        ? await gist(state, 'PATCH', `/gists/${state.gist_id}`, { files })
-        : await gist(state, 'POST', '/gists', {
-            description: 'Arco workspace sync',
-            public: false,
-            files,
-          })
-      const updated = {
-        ...state,
-        gist_id: result.id,
-        gist_url: result.html_url,
-        last_push_ms: Date.now(),
-      }
-      paths.writeJson(GITHUB_STATE(), updated)
-      publishEvent('GithubSyncPushed', `gh-${result.id}`, null, null, { bytes: contents.length })
-      return githubStatus(updated)
-    },
-    github_sync_pull: async () => {
-      const state = githubState()
-      if (!state.token) throw new Error('GitHub is not connected')
-      if (!state.gist_id) throw new Error('nothing has been pushed yet')
-      const result = await gist(state, 'GET', `/gists/${state.gist_id}`)
-      const content = result.files?.[GIST_FILE]?.content
-      if (typeof content !== 'string') throw new Error('the gist has no Arco payload')
-      // Through a temporary file: a torn write here would cost the workspace.
-      const target = activeProjectsFile()
-      paths.ensureDir(path.dirname(target))
-      const temporary = `${target}.tmp`
-      fs.writeFileSync(temporary, content)
-      fs.renameSync(temporary, target)
-      const updated = { ...state, last_pull_ms: Date.now() }
-      paths.writeJson(GITHUB_STATE(), updated)
-      return githubStatus(updated)
-    },
+    github_sync_push: () => githubSync.push({ publishEvent }),
+    github_sync_pull: () => githubSync.pull(),
 
     codex_app_server_start: ({ id, cwd }) => {
       if (codexServers.has(id)) return null

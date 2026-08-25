@@ -10,6 +10,33 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.11.0] — 2026-08-25
+
+### Added
+
+- The GitHub sync uploads on its own. Sync your data now carries a switch and an interval — 5, 15,
+  30, 60 or 180 minutes — and the shell pushes the workspace to the gist on that schedule without
+  anyone pressing Upload. It is on by default at 15 minutes for an account that is already
+  connected. A tick where the workspace is byte for byte what was uploaded last sends nothing, so
+  an idle day costs no gist revisions and no rate limit. Three failures in a row park the timer and
+  the reason appears under the buttons — a revoked token stops being retried every quarter hour.
+  The schedule is kept in `github-sync.json`, outside the file being synced, so pulling on another
+  machine does not carry this machine's interval over to it. Downloads stay manual: overwriting the
+  local workspace is not something a timer should decide.
+
+### Fixed
+
+- A task's notes hold 32 000 characters instead of 4 000, and a note that does not fit is refused
+  rather than stored with its tail cut off. The old ceiling was reached by a real briefing note —
+  acceptance criteria, the command to run, the branch and a running log of what changed — and the
+  cut happened mid-word, on save, with nothing said: `--append-notes` reported success and dropped
+  what it could not fit. The command line now names the length and the limit and writes nothing,
+  and the notes box in the sidebar stops accepting past the ceiling instead of losing the excess
+  when it saves.
+- Sync failures now say what went wrong in your language. "Nothing uploaded yet" and "the Gist has
+  no projects data" reached the dialog as raw English from the shell and fell through to the
+  generic "Sync failed" line, which is the one message that tells you nothing.
+
 ## [2.10.1] — 2026-08-24
 
 ### Fixed

@@ -758,6 +758,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2110.note1':
+    'The GitHub sync uploads on its own. Sync your data has a switch and an interval \u2014 5, 15, 30, 60 or 180 minutes \u2014 and Arco pushes your workspace to the Gist on that schedule, with nobody pressing Upload. It is on at 15 minutes for an account already connected. A tick where nothing changed sends nothing, so an idle day costs no Gist revisions. Three failures in a row park it and say why, right under the buttons. Download stays manual: overwriting your workspace is not a decision for a timer.',
+  'whatsNew.v2110.note2':
+    'A task\u2019s notes hold 32,000 characters instead of 4,000, and a note that does not fit is refused instead of saved with its tail cut off. The old ceiling was reached by a real note and the cut landed mid-word, on save, with nothing said \u2014 `arco todo edit --append-notes` reported success and dropped the rest. The command now names the length and the limit and writes nothing.',
   'whatsNew.v2101.note1':
     'A task whose work item and pull request live in different Azure DevOps projects now opens both chips on the right page. Linking the two with `--ado` let the second URL decide the project for both, so one chip always pointed somewhere that does not hold it \u2014 the board is in Plataforma EMR and the code in SOA or agentic-product-os. Each side keeps its own project now. Re-run `--ado` with the pull request URL on any task showing the wrong page.',
   'whatsNew.v2100.note1':
@@ -1840,6 +1844,10 @@ export const en = {
   'sync.github.pulling': 'Downloading…',
   'sync.github.disconnect': 'Disconnect',
   'sync.github.openGist': 'Open Gist',
+  'sync.github.auto': 'Upload automatically',
+  'sync.github.autoInterval': 'How often to upload',
+  'sync.github.autoEvery': 'every {minutes} min',
+  'sync.github.autoFailed': 'Automatic upload stopped: {error}. Upload once to start it again.',
   'sync.github.lastPush': 'Last upload: {when}',
   'sync.github.lastPull': 'Last download: {when}',
   'sync.github.never': 'never',
@@ -1859,6 +1867,7 @@ export const en = {
   'sync.error.no_remote': 'Nothing uploaded yet — upload first.',
   'sync.error.nothing_to_sync': 'No data to sync yet.',
   'sync.error.remote_missing_projects': 'The Gist has no projects data.',
+  'sync.error.sync_in_progress': 'Another sync is still running — try again in a moment.',
   'sync.error.generic': 'Sync failed: {error}',
 
   /* ---- resource supervisor ---- */

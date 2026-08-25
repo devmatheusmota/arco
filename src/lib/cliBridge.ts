@@ -4,7 +4,7 @@ import { useProjectsStore } from '../stores/projectsStore'
 import { useUiStore } from '../stores/uiStore'
 import { parseAdoRef } from './adoRef'
 import { cliReply, type CliResult } from './tauri/cli'
-import { findTodoByRef, parseTodoStatus } from './todos'
+import { findTodoByRef, parseTodoStatus, TODO_NOTES_MAX_LENGTH } from './todos'
 import type {
   AgentType,
   Terminal,
@@ -120,6 +120,19 @@ function adoRefProblem(input: string): string {
     return `Não dá para resolver "${input}" sem a organização e o projeto do Azure DevOps: preencha-os em Preferências ou passe a URL completa do work item.`
   }
   return `Referência ADO não reconhecida: ${input}. Aceito: id do work item, URL de work item (_workitems/edit/<id>) ou URL de pull request.`
+}
+
+/**
+ * Refuses a note that would not fit whole.
+ *
+ * The store clamps to `TODO_NOTES_MAX_LENGTH`, and a clamp the caller never
+ * hears about is how an append reports success and drops its tail. Saying no
+ * leaves the note that is there intact and tells the caller what to cut.
+ */
+function notesTooLong(text: string, existing = ''): string | null {
+  const combined = existing ? `${existing}\n\n${text}` : text
+  if (combined.length <= TODO_NOTES_MAX_LENGTH) return null
+  return `Notas grandes demais: ${combined.length} caracteres, o limite e ${TODO_NOTES_MAX_LENGTH}. Nada foi gravado.`
 }
 
 /** A pane and the project holding it — what the CLI calls a session. */
@@ -369,6 +382,10 @@ function handleTodo(request: TodoRequest): CliResult {
   if (!title) return failure('Tarefa sem título.')
   const status = request.status ? parseTodoStatus(request.status) : null
   if (request.status && !status) return failure(`Status desconhecido: ${request.status}`)
+  if (request.notes) {
+    const problem = notesTooLong(request.notes)
+    if (problem) return failure(problem)
+  }
   const adoRef = resolveAdoRef(request.adoRefInput)
   // A rejected reference fails the whole creation: a task that silently lost
   // the card it was created for is worse than no task at all.
@@ -416,8 +433,16 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
     store.setTodoStatus(todo.id, status)
   }
   if (request.title?.trim()) store.renameTodo(todo.id, request.title)
-  if (request.notes !== undefined) store.updateTodoNotes(todo.id, request.notes)
-  if (request.appendNotes !== undefined) store.appendTodoNotes(todo.id, request.appendNotes)
+  if (request.notes !== undefined) {
+    const problem = notesTooLong(request.notes)
+    if (problem) return failure(problem)
+    store.updateTodoNotes(todo.id, request.notes)
+  }
+  if (request.appendNotes !== undefined) {
+    const problem = notesTooLong(request.appendNotes, todo.notes ?? '')
+    if (problem) return failure(problem)
+    store.appendTodoNotes(todo.id, request.appendNotes)
+  }
   if (request.priority) store.setTodoPriority(todo.id, request.priority)
   if (request.project !== undefined) {
     store.setTodoProject(todo.id, request.project ? resolveProjectId(request) : null)

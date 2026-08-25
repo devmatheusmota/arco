@@ -2,7 +2,16 @@ import type { TodoItem, TodoPriority, TodoSessionLink, TodoSessionOwner, TodoSta
 
 export const TODO_TITLE_MAX_LENGTH = 200
 export const TODO_TAG_MAX_LENGTH = 24
-export const TODO_NOTES_MAX_LENGTH = 4000
+/**
+ * Ceiling for a task's notes.
+ *
+ * There has to be one: `projects.json` is read whole, saved on a debounce and
+ * pushed to the sync gist in one piece, so an unbounded field on 50 tasks is a
+ * file nobody can move. 4000 was too low for what it actually holds — a work
+ * item's acceptance criteria, the command to run, the branch, and a running log
+ * of what changed — and a briefing note reached it and lost its tail.
+ */
+export const TODO_NOTES_MAX_LENGTH = 32_000
 /** Sessions kept per task. Older links are dropped so the file cannot grow forever. */
 export const TODO_SESSIONS_MAX = 8
 

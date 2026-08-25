@@ -12,12 +12,12 @@ const os = require('node:os')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
 
+const githubSync = require('./github-sync.cjs')
 const paths = require('./paths.cjs')
 
 const SHIM_DIR = path.join(os.homedir(), '.local', 'bin')
 const SHIM_PATH = path.join(SHIM_DIR, 'arco')
 const SHIM_MARKER = '# arco-cli-shim'
-const GITHUB_STATE = () => path.join(paths.appLocalDataDir(), 'github-sync.json')
 
 // ── MCP ─────────────────────────────────────────────────────────────────────
 
@@ -98,39 +98,6 @@ async function checkServer(server) {
     )
     setTimeout(() => finish(child.exitCode === null ? 'ok' : 'error'), 3000)
   })
-}
-
-// ── GitHub sync ─────────────────────────────────────────────────────────────
-
-function githubState() {
-  return paths.readJson(GITHUB_STATE(), {
-    token: null,
-    login: null,
-    gist_id: null,
-    gist_url: null,
-    last_push_ms: null,
-    last_pull_ms: null,
-  })
-}
-
-function githubStatus(state = githubState()) {
-  return {
-    connected: Boolean(state.token && state.login),
-    login: state.login,
-    gist_id: state.gist_id,
-    gist_url: state.gist_url,
-    last_push_ms: state.last_push_ms,
-    last_pull_ms: state.last_pull_ms,
-  }
-}
-
-async function githubUser(token) {
-  const response = await fetch('https://api.github.com/user', {
-    headers: { Authorization: `Bearer ${token}`, 'User-Agent': 'arco' },
-  })
-  if (!response.ok) throw new Error(`GitHub returned ${response.status}`)
-  const body = await response.json()
-  return body.login ?? null
 }
 
 // ── CLI shim ────────────────────────────────────────────────────────────────
@@ -263,24 +230,13 @@ function buildPlatformCommands() {
       }
     },
 
-    github_sync_status: () => githubStatus(),
+    github_sync_status: () => githubSync.status(),
     github_sync_set_token: async ({ token }) => {
-      const login = await githubUser(token)
-      const state = { ...githubState(), token, login }
-      paths.writeJson(GITHUB_STATE(), state)
-      return githubStatus(state)
+      const login = await githubSync.githubUser(token)
+      return githubSync.setToken(token, login)
     },
-    github_sync_logout: () => {
-      paths.writeJson(GITHUB_STATE(), {
-        token: null,
-        login: null,
-        gist_id: null,
-        gist_url: null,
-        last_push_ms: null,
-        last_pull_ms: null,
-      })
-      return githubStatus()
-    },
+    github_sync_logout: () => githubSync.logout(),
+    github_sync_set_auto: ({ enabled, minutes }) => githubSync.setAuto({ enabled, minutes }),
 
     cli_shim_status: () => shimStatus(),
     cli_shim_install: () => {

@@ -28,6 +28,7 @@ import {
   normalizeTodoPriority,
   normalizeTodoStatus,
   sortTodosByPriority,
+  TODO_NOTES_MAX_LENGTH,
   TODO_TITLE_MAX_LENGTH,
 } from '../../lib/todos'
 import {
@@ -513,6 +514,7 @@ function TodoRow({
               className={styles.notesInput}
               value={notesDraft}
               rows={3}
+              maxLength={TODO_NOTES_MAX_LENGTH}
               placeholder={t('todo.notesPlaceholder')}
               onChange={(event) => setNotesDraft(event.target.value)}
               onBlur={commitNotes}

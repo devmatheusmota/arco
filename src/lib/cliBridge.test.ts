@@ -133,6 +133,31 @@ describe('cli://todo-add', () => {
   })
 })
 
+describe('notes that do not fit', () => {
+  it('refuses the creation instead of storing a note with its tail cut off', async () => {
+    const result = await request('cli://todo-add', { title: 'x', notes: 'a'.repeat(32_001) })
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/limite/)
+    expect(state.todos).toHaveLength(0)
+  })
+
+  it('refuses an append that would overflow, counting what is already there', async () => {
+    await request('cli://todo-add', { title: 'com nota', notes: 'a'.repeat(31_000) })
+    state.todos = state.todos.map((item) => ({ ...item, notes: 'a'.repeat(31_000) }))
+    const result = await request('cli://todo-edit', {
+      ref: 'id-0',
+      appendNotes: 'b'.repeat(2_000),
+    })
+    expect(result.ok).toBe(false)
+    expect(state.appendTodoNotes).not.toHaveBeenCalled()
+  })
+
+  it('takes a note that fits', async () => {
+    const result = await request('cli://todo-add', { title: 'y', notes: 'a'.repeat(31_999) })
+    expect(result.ok).toBe(true)
+  })
+})
+
 describe('cli://todo-edit', () => {
   it('reports a reference that matches nothing', async () => {
     const result = await request('cli://todo-edit', { ref: 'ausente', status: 'done' })

@@ -155,6 +155,12 @@ export type GithubSyncStatus = {
   gist_url: string | null
   last_push_ms: number | null
   last_pull_ms: number | null
+  /** Whether the shell pushes on a timer, with no one pressing Upload. */
+  auto_push: boolean
+  /** How often that timer fires, in minutes. */
+  auto_push_minutes: number
+  /** What the last automatic push failed with, cleared by the next success. */
+  auto_push_error: string | null
 }
 
 export async function githubSyncStatus(): Promise<GithubSyncStatus> {
@@ -175,6 +181,13 @@ export async function githubSyncPush(): Promise<GithubSyncStatus> {
 
 export async function githubSyncPull(): Promise<GithubSyncStatus> {
   return invoke<GithubSyncStatus>('github_sync_pull')
+}
+
+export async function githubSyncSetAuto(options: {
+  enabled?: boolean
+  minutes?: number
+}): Promise<GithubSyncStatus> {
+  return invoke<GithubSyncStatus>('github_sync_set_auto', options)
 }
 
 // --- RFC-001 — Event Bus & Observabilidade ---

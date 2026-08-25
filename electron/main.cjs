@@ -12,6 +12,8 @@ const fs = require('node:fs')
 const { pathToFileURL } = require('node:url')
 
 const { buildCommands, missingCommand, appendLog } = require('./commands/index.cjs')
+const githubSync = require('./commands/github-sync.cjs')
+const { publishEvent } = require('./commands/telemetry.cjs')
 const paths = require('./commands/paths.cjs')
 const { collectFromArgv } = require('./pending-open.cjs')
 const { applyLoginEnv } = require('./login-env.cjs')
@@ -302,6 +304,12 @@ app.whenReady().then(() => {
   }
   const ptyHost = startPtyHost(send)
   const commands = buildCommands({ ptyHost, mainWindow: () => mainWindow, send })
+
+  // The gist only stays current if something pushes to it while the app runs;
+  // the timer lives here rather than in the window so a minimised or hidden
+  // renderer cannot have its interval throttled out of existence.
+  githubSync.startAutoSync({ publishEvent })
+  app.on('before-quit', () => githubSync.stopAutoSync())
 
   // Quitting the window leaves the host running otherwise: it is reparented to
   // init and keeps every terminal — and the agents inside them — alive for the

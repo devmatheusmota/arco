@@ -6,6 +6,7 @@ import {
   githubSyncLogout,
   githubSyncPull,
   githubSyncPush,
+  githubSyncSetAuto,
   githubSyncSetToken,
   githubSyncStatus,
   openInBrowser,
@@ -22,6 +23,9 @@ const CREATE_TOKEN_URL =
 
 type Busy = null | 'connect' | 'push' | 'pull' | 'logout'
 
+/** Offered intervals, in minutes. The shell clamps anything outside 5..720. */
+const AUTO_INTERVALS = [5, 15, 30, 60, 180] as const
+
 const KNOWN_ERRORS = new Set([
   'empty_token',
   'invalid_token',
@@ -29,6 +33,7 @@ const KNOWN_ERRORS = new Set([
   'no_remote',
   'nothing_to_sync',
   'remote_missing_projects',
+  'sync_in_progress',
 ])
 
 export function SyncModal() {
@@ -128,6 +133,16 @@ export function SyncModal() {
     }
   }
 
+  const onAuto = async (options: { enabled?: boolean; minutes?: number }) => {
+    setError(null)
+    setNotice(null)
+    try {
+      setStatus(await githubSyncSetAuto(options))
+    } catch (e) {
+      setError(mapError(e))
+    }
+  }
+
   const onLogout = async () => {
     setBusy('logout')
     setError(null)
@@ -220,6 +235,35 @@ export function SyncModal() {
                 <span>{t('sync.github.lastPush', { when: formatWhen(status?.last_push_ms) })}</span>
                 <span>{t('sync.github.lastPull', { when: formatWhen(status?.last_pull_ms) })}</span>
               </div>
+
+              <div className={styles.auto}>
+                <label className={styles.autoLabel}>
+                  <input
+                    type="checkbox"
+                    checked={status?.auto_push ?? false}
+                    onChange={(e) => void onAuto({ enabled: e.target.checked })}
+                  />
+                  {t('sync.github.auto')}
+                </label>
+                <select
+                  className={styles.autoSelect}
+                  value={status?.auto_push_minutes ?? 15}
+                  disabled={!status?.auto_push}
+                  aria-label={t('sync.github.autoInterval')}
+                  onChange={(e) => void onAuto({ minutes: Number(e.target.value) })}
+                >
+                  {AUTO_INTERVALS.map((minutes) => (
+                    <option key={minutes} value={minutes}>
+                      {t('sync.github.autoEvery', { minutes })}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {status?.auto_push_error ? (
+                <p className={styles.autoError}>
+                  {t('sync.github.autoFailed', { error: status.auto_push_error })}
+                </p>
+              ) : null}
 
               <div className={styles.cardFooter}>
                 {status?.gist_url ? (

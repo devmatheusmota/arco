@@ -770,6 +770,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2110.note1':
+    'O sync do GitHub envia sozinho. O Sync your data ganhou um interruptor e um intervalo \u2014 5, 15, 30, 60 ou 180 minutos \u2014 e o Arco empurra o seu workspace pro Gist nesse ritmo, sem ningu\u00e9m apertar Upload. Nasce ligado em 15 minutos para quem j\u00e1 est\u00e1 conectado. Passagem em que nada mudou n\u00e3o envia nada, ent\u00e3o dia parado n\u00e3o custa revis\u00e3o de Gist. Tr\u00eas falhas seguidas param o envio e dizem o motivo, logo abaixo dos bot\u00f5es. O download continua manual: sobrescrever o seu workspace n\u00e3o \u00e9 decis\u00e3o de temporizador.',
+  'whatsNew.v2110.note2':
+    'As notas de uma tarefa cabem em 32.000 caracteres em vez de 4.000, e nota que n\u00e3o couber \u00e9 recusada em vez de salva com o fim cortado. O teto antigo foi atingido por uma nota de verdade e o corte caiu no meio da palavra, na hora de salvar, sem avisar \u2014 o `arco todo edit --append-notes` dizia que deu certo e jogava o resto fora. Agora o comando diz o tamanho e o limite, e n\u00e3o grava nada.',
   'whatsNew.v2101.note1':
     'Tarefa cujo work item e pull request moram em projetos diferentes do Azure DevOps agora abre os dois chips na p\u00e1gina certa. Ligar os dois com `--ado` deixava a segunda URL decidir o projeto de ambos, ent\u00e3o um dos chips sempre apontava para onde o item n\u00e3o est\u00e1 \u2014 o board fica em Plataforma EMR e o c\u00f3digo em SOA ou agentic-product-os. Cada lado guarda o pr\u00f3prio projeto agora. Rode `--ado` de novo com a URL do pull request nas tarefas que abriam a p\u00e1gina errada.',
   'whatsNew.v2100.note1':
@@ -1855,6 +1859,10 @@ export const ptBR: Record<MessageKey, string> = {
   'sync.github.pulling': 'Baixando…',
   'sync.github.disconnect': 'Desconectar',
   'sync.github.openGist': 'Abrir Gist',
+  'sync.github.auto': 'Enviar automaticamente',
+  'sync.github.autoInterval': 'De quanto em quanto tempo enviar',
+  'sync.github.autoEvery': 'a cada {minutes} min',
+  'sync.github.autoFailed': 'O envio automático parou: {error}. Envie uma vez para religar.',
   'sync.github.lastPush': 'Último envio: {when}',
   'sync.github.lastPull': 'Último download: {when}',
   'sync.github.never': 'nunca',
@@ -1875,6 +1883,8 @@ export const ptBR: Record<MessageKey, string> = {
   'sync.error.no_remote': 'Nada enviado ainda — envie primeiro.',
   'sync.error.nothing_to_sync': 'Ainda não há dados pra sincronizar.',
   'sync.error.remote_missing_projects': 'O Gist não tem os dados de projetos.',
+  'sync.error.sync_in_progress':
+    'Outra sincronização ainda está rodando — tente de novo em instantes.',
   'sync.error.generic': 'Falha na sincronização: {error}',
 
   /* ---- supervisor de recursos ---- */
