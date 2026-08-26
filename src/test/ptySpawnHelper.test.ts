@@ -97,8 +97,11 @@ describe('unpacked asar paths', () => {
       ),
       'utf8',
     )
-    expect(source).toContain("helperPath.replace(/app\\.asar(?!\\.unpacked)/, 'app.asar.unpacked')")
-    expect(source).not.toContain("helperPath.replace('app.asar', 'app.asar.unpacked')")
+    const unpatched = 'run `node scripts/patch-node-pty-helper.mjs`, or reinstall — npm does it'
+    expect(source, unpatched).toContain(
+      "helperPath.replace(/app\\.asar(?!\\.unpacked)/, 'app.asar.unpacked')",
+    )
+    expect(source, unpatched).not.toContain("helperPath.replace('app.asar', 'app.asar.unpacked')")
   })
 })
 
