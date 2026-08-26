@@ -15,8 +15,18 @@ const WORKTREE_ROOT = ['.arco', 'worktrees']
 function git(args, cwd) {
   return new Promise((resolve, reject) => {
     execFile('git', args, { cwd, maxBuffer: 16 * 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) reject(new Error(stderr?.trim() || error.message))
-      else resolve(stdout)
+      if (!error) {
+        resolve(stdout)
+        return
+      }
+      // Which git command failed is half the diagnosis, and the toast that
+      // shows this only has room for the first couple of lines. `ENOENT` says
+      // git itself is missing, which reads as nothing at all without this.
+      const detail =
+        error.code === 'ENOENT'
+          ? 'git is not installed or not on PATH'
+          : stderr?.trim() || error.message
+      reject(new Error(`git ${args[0]} failed: ${detail}`))
     })
   })
 }
@@ -38,45 +48,60 @@ async function info(repo, agentId) {
   return { agentId, path: target, branch: branchName(agentId), createdAt }
 }
 
+async function provision({ repo, agentId, mode }) {
+  const target = worktreePath(repo, agentId)
+  if (fs.existsSync(target)) {
+    // A directory is not proof of a worktree. A provision interrupted halfway
+    // leaves the folder behind without the `.git` file that makes it one, and
+    // accepting it hands the agent a checkout git knows nothing about. The
+    // remains are kept — they may hold work — and moved aside so a real
+    // worktree can take the name.
+    if (mode === 'localCopy' || fs.existsSync(path.join(target, '.git'))) {
+      return info(repo, agentId)
+    }
+    const salvaged = `${target}.broken-${Date.now()}`
+    try {
+      fs.renameSync(target, salvaged)
+    } catch (error) {
+      throw new Error(`worktree ${target} is incomplete and cannot be moved`, { cause: error })
+    }
+    await git(['worktree', 'prune'], repo).catch(() => null)
+  }
+  paths.ensureDir(path.dirname(target))
+  if (mode === 'localCopy') {
+    await new Promise((resolve, reject) => {
+      execFile('cp', ['-a', repo, target], (error) => (error ? reject(error) : resolve()))
+    })
+    return info(repo, agentId)
+  }
+  const branch = branchName(agentId)
+  const exists = await git(['rev-parse', '--verify', branch], repo)
+    .then(() => true)
+    .catch(() => false)
+  await git(
+    exists
+      ? ['worktree', 'add', target, branch]
+      : ['worktree', 'add', '-b', branch, target, 'HEAD'],
+    repo,
+  )
+  return info(repo, agentId)
+}
+
 function buildWorktreeCommands() {
   return {
     worktree_provision: async ({ repo, agentId, mode }) => {
-      const target = worktreePath(repo, agentId)
-      if (fs.existsSync(target)) {
-        // A directory is not proof of a worktree. A provision interrupted
-        // halfway leaves the folder behind without the `.git` file that makes
-        // it one, and accepting it hands the agent a checkout git knows nothing
-        // about. The remains are kept — they may hold work — and moved aside so
-        // a real worktree can take the name.
-        if (mode === 'localCopy' || fs.existsSync(path.join(target, '.git'))) {
-          return info(repo, agentId)
-        }
-        const salvaged = `${target}.broken-${Date.now()}`
-        try {
-          fs.renameSync(target, salvaged)
-        } catch (error) {
-          throw new Error(`worktree ${target} is incomplete and cannot be moved`, { cause: error })
-        }
-        await git(['worktree', 'prune'], repo).catch(() => null)
+      try {
+        return await provision({ repo, agentId, mode })
+      } catch (error) {
+        // The UI turns this into one truncated toast line. The log is where the
+        // whole reason survives, and without it a failed isolation on a machine
+        // that is not at hand cannot be explained at all.
+        paths.appendLog(
+          'app-events.log',
+          `[worktree.provision.error] repo=${repo} agent=${agentId} mode=${mode ?? 'gitWorktree'} error=${String(error)}`,
+        )
+        throw error
       }
-      paths.ensureDir(path.dirname(target))
-      if (mode === 'localCopy') {
-        await new Promise((resolve, reject) => {
-          execFile('cp', ['-a', repo, target], (error) => (error ? reject(error) : resolve()))
-        })
-        return info(repo, agentId)
-      }
-      const branch = branchName(agentId)
-      const exists = await git(['rev-parse', '--verify', branch], repo)
-        .then(() => true)
-        .catch(() => false)
-      await git(
-        exists
-          ? ['worktree', 'add', target, branch]
-          : ['worktree', 'add', '-b', branch, target, 'HEAD'],
-        repo,
-      )
-      return info(repo, agentId)
     },
     worktree_remove: async ({ repo, agentId, force }) => {
       const target = worktreePath(repo, agentId)

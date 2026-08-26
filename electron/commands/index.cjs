@@ -71,12 +71,7 @@ function which(command) {
   })
 }
 
-function appendLog(file, line) {
-  try {
-    paths.ensureDir(paths.logsDir())
-    fs.appendFileSync(path.join(paths.logsDir(), file), `[${Date.now() / 1000}] ${line}\n`)
-  } catch {}
-}
+const { appendLog } = paths
 
 function buildCommands({ ptyHost, mainWindow, send }) {
   // Hook payloads reach the UI as `agent-hook`, the same event the Rust

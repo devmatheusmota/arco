@@ -10,6 +10,12 @@ const os = require('node:os')
 const fs = require('node:fs')
 const path = require('node:path')
 const { loginEnv, mergePath } = require('./login-env.cjs')
+const {
+  inspectSpawnHelper,
+  prepareSpawnHelper,
+  repairSpawnHelper,
+  spawnHelperError,
+} = require('./pty-spawn-helper.cjs')
 const pty = require('@homebridge/node-pty-prebuilt-multiarch')
 
 const SCROLLBACK_CAP_BYTES = 512 * 1024
@@ -145,13 +151,33 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
   if (cwd && spawnCwd !== cwd) {
     log('pty.spawn', `id=${id} cwd=${cwd} missing, fell back to ${spawnCwd}`)
   }
-  const child = pty.spawn(file, args ?? [], {
+  const options = {
     name: 'xterm-256color',
     cols: cols ?? 80,
     rows: rows ?? 24,
     cwd: spawnCwd,
     env: { ...process.env, ...LOGIN_ENV, ...(env ?? {}), PATH: SPAWN_PATH, TERM: 'xterm-256color' },
-  })
+  }
+  let child
+  try {
+    child = pty.spawn(file, args ?? [], options)
+  } catch (error) {
+    // `posix_spawnp failed.` is node-pty's macOS-only failure to start its own
+    // helper, and it says nothing about why. Repair what can be repaired and
+    // try once more before handing the user a message they can act on.
+    if (process.platform !== 'darwin' || !/posix_spawnp/i.test(String(error))) throw error
+    log('pty.spawn.error', `id=${id} posix_spawnp failed; inspecting the node-pty helper`)
+    const state = inspectSpawnHelper()
+    if (!repairSpawnHelper(state, (message) => log('pty.helper', message))) {
+      throw spawnHelperError(error, state)
+    }
+    try {
+      child = pty.spawn(file, args ?? [], options)
+      log('pty.helper', `id=${id} spawned after repairing the helper`)
+    } catch (retryError) {
+      throw spawnHelperError(retryError)
+    }
+  }
 
   const session = {
     id,
@@ -272,6 +298,10 @@ const handlers = {
   },
   list_pty_processes: () => [...sessions.values()].map((s) => ({ id: s.id, pid: s.child.pid })),
 }
+
+// Before the first terminal, so a quarantined helper is cleared while nobody is
+// waiting on a pane rather than on the spawn that would have failed.
+prepareSpawnHelper((message) => log('pty.helper', message))
 
 let buffer = ''
 process.stdin.on('data', (chunk) => {

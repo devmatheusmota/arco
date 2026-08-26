@@ -42,6 +42,20 @@ function readJson(file, fallback) {
   }
 }
 
+/**
+ * A line in one of the app's log files.
+ *
+ * It lives here rather than in the command router because commands need it too:
+ * a failure explained only through a toast is a failure nobody can debug after
+ * the toast is gone.
+ */
+function appendLog(file, line) {
+  try {
+    ensureDir(logsDir())
+    fs.appendFileSync(path.join(logsDir(), file), `[${Date.now() / 1000}] ${line}\n`)
+  } catch {}
+}
+
 /** Atomic write, same tmp-then-rename the Rust side uses. */
 function writeJson(file, value) {
   ensureDir(path.dirname(file))
@@ -57,6 +71,7 @@ module.exports = {
   profileDir,
   logsDir,
   ensureDir,
+  appendLog,
   readJson,
   writeJson,
 }

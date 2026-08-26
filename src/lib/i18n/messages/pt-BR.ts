@@ -776,6 +776,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2121.note1':
+    'Os terminais abrem no macOS. A build de Mac não é assinada, então o macOS deixava em quarentena o binário auxiliar por onde todo terminal é iniciado, e o painel mostrava “Failed to start PTY: posix_spawnp failed.” e mais nada. Agora o Arco tira essa marca sozinho antes do primeiro terminal e tenta de novo; se ainda assim não conseguir, ele diz qual é o motivo e mostra o comando que resolve. No Linux e no Windows não muda nada.',
+  'whatsNew.v2121.note2':
+    'Os instaladores de macOS levam o motor de terminal para as versões 20, 22 e 24 do Node, e não só a versão em que a release foi construída. Os terminais rodam sob o Node instalado na sua máquina, e a incompatibilidade deixava todos os painéis mortos com “pty host exited”. Onde isso ainda pode acontecer — a build de Windows leva um motor só — a mensagem passa a dizer de qual versão do Node ele precisa e qual você tem. Agente que não consegue criar a worktree também diz o porquê, e o motivo completo vai para o `app-events.log`.',
   'whatsNew.v2120.note1':
     'Chip de pull request que abre \u201cRepository not found\u201d se conserta sozinho. Uma vez por abertura do app, cada tarefa com pull request pergunta ao Azure DevOps onde aquele PR mora de verdade, e o v\u00ednculo \u00e9 reescrito quando o que estava salvo discorda \u2014 inclusive os que uma vers\u00e3o antiga gravou com GUID de reposit\u00f3rio. Board e c\u00f3digo moram em projetos diferentes aqui, ent\u00e3o v\u00ednculo escrito a partir da URL do work item herda o projeto errado. Preencha o Personal Access Token em Prefer\u00eancias \u2192 Integra\u00e7\u00f5es \u2192 Azure DevOps para ligar; em branco, nada roda. Ele conserta v\u00ednculo e nada mais \u2014 n\u00e3o fica consultando, e n\u00e3o move tarefa por voc\u00ea.',
   'whatsNew.v2110.note1':

@@ -10,6 +10,24 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.12.1] — 2026-08-26
+
+### Fixed
+
+- Terminals start on macOS where Gatekeeper was blocking them. The macOS build spawns every
+  terminal through a small helper binary that ships with node-pty, and on an unsigned download that
+  file carries the quarantine flag — the pane then showed `Failed to start PTY: posix_spawnp
+  failed.` and nothing else, whatever the actual cause. Arco now clears the flag itself before the
+  first terminal, retries a spawn that hit it, and when it still cannot run the helper says which
+  of the four possible reasons applies and prints the `xattr` command that fixes it.
+- The macOS installers carry the terminal binary for Node 20, 22 and 24 instead of only the version
+  the release was built with. Terminals run under the Node installed on the machine, so a mismatch
+  used to leave every pane dead with `pty host exited`. When one still happens — on Windows, which
+  ships a single build — the message now names the Node that was expected and the one that is
+  installed.
+- An agent that cannot get its worktree says why. The toast still carries the short version, and
+  the full reason, including a `git` that is not installed at all, is written to `app-events.log`.
+
 ## [2.12.0] — 2026-08-25
 
 ### Added

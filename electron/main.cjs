@@ -17,6 +17,7 @@ const { publishEvent } = require('./commands/telemetry.cjs')
 const paths = require('./commands/paths.cjs')
 const { collectFromArgv } = require('./pending-open.cjs')
 const { applyLoginEnv } = require('./login-env.cjs')
+const { explainHostFailure } = require('./pty-host-failure.cjs')
 const { handleCli } = require('./cli.cjs')
 
 // `arco todo` / `arco session` are answered here and the process exits. They
@@ -111,12 +112,16 @@ function startPtyHost(send) {
   })
   // A desktop launch has no console to read: node-pty failing to load, or a
   // terminal dying with `execvp(3) failed`, used to be printed where only a
-  // terminal launch could see it.
+  // terminal launch could see it. The last line is also kept in memory — when
+  // the host dies on startup, stderr is the only evidence of why, and `exit`
+  // arrives after it.
+  let lastHostFailure = null
   child.stderr?.on('data', (chunk) => {
     const text = chunk.toString().trim()
     if (!text) return
     console.error(`[pty-host] ${text}`)
     appendLog('app-events.log', `[pty.host.stderr] ${text}`)
+    lastHostFailure = explainHostFailure(text)
   })
   child.on('error', (error) => {
     console.error('[arco] could not start the PTY host — is Node installed?', error)
@@ -164,7 +169,8 @@ function startPtyHost(send) {
   child.on('exit', (code) => {
     console.error(`[arco] PTY host exited (${code}); failing ${pending.size} pending call(s)`)
     appendLog('app-events.log', `[pty.host.exit] code=${code} pending=${pending.size}`)
-    for (const entry of pending.values()) entry.reject(new Error('pty host exited'))
+    const reason = lastHostFailure ? `pty host exited: ${lastHostFailure}` : 'pty host exited'
+    for (const entry of pending.values()) entry.reject(new Error(reason))
     pending.clear()
   })
 

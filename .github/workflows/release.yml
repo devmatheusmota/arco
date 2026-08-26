@@ -104,6 +104,13 @@ jobs:
         # The test suite is platform-independent and already ran on Linux.
         run: npm run build
 
+      - name: Fetch the macOS terminal binaries for every supported Node
+        # node-pty's install script leaves macOS with one binary, built for the
+        # Node that ran `npm ci` — this runner's. The PTY host runs under the
+        # user's Node, so without this the installer only works for whoever
+        # happens to match the runner. A no-op on Windows.
+        run: node scripts/fetch-pty-prebuilds.mjs
+
       - name: Package
         run: npx electron-builder --config electron-builder.yml ${{ matrix.targets }} --publish never
 
@@ -195,8 +202,10 @@ jobs:
           hosts run under the system Node, and that path was only ever validated on
           Linux.
 
-          **Requires Node.js 20+ on the machine.** Terminals and voice dictation run in
-          their own Node processes, because their native bindings target Node's ABI.
+          **Requires Node.js on the machine.** Terminals and voice dictation run in their
+          own Node processes, because their native bindings target Node's ABI. Linux and
+          macOS carry binaries for Node 20, 22 and 24; the Windows build carries Node 20
+          only, and a terminal there will not start under a different major.
 
           Voice dictation downloads its model on first use, from Preferences.
 

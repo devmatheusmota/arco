@@ -764,6 +764,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2121.note1':
+    'Terminals start on macOS. The Mac build is unsigned, so macOS quarantines the small helper binary every terminal is started through, and the pane showed “Failed to start PTY: posix_spawnp failed.” and nothing more. Arco now clears that flag itself before the first terminal and tries again; when it still cannot start the helper it says which reason applies and prints the command that fixes it. Nothing to do on Linux or Windows.',
+  'whatsNew.v2121.note2':
+    'The macOS installers carry the terminal engine for Node 20, 22 and 24 instead of only the version the release was built with. Terminals run under the Node installed on your machine, and a mismatch left every pane dead with “pty host exited”. Where one can still happen — the Windows build ships a single engine — the message now names the Node version that is needed and the one you have. An agent that cannot create its worktree also says why, and the full reason is written to `app-events.log`.',
   'whatsNew.v2120.note1':
     'A pull request chip that opens \u201cRepository not found\u201d fixes itself. Once per app start, every task carrying a pull request asks Azure DevOps where that pull request really lives, and the link is rewritten when what was stored disagrees \u2014 including the ones an older build saved with a repository GUID. Boards and code live in separate projects here, so a link written from a work item URL inherits the wrong one. Fill the Personal Access Token under Preferences \u2192 Integrations \u2192 Azure DevOps to turn it on; leave it blank and nothing runs. It repairs links and does nothing else \u2014 no polling, and no task moved for you.',
   'whatsNew.v2110.note1':
