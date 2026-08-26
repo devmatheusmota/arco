@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.13.1] — 2026-08-26
+
+### Fixed
+
+- Terminals start on macOS. node-pty finds the helper it spawns a shell through by rewriting
+  `app.asar` to `app.asar.unpacked` in its own path — but the terminal host runs under the system
+  Node and already loads it from the unpacked directory, so the rewrite ran twice and the helper
+  was looked for under `app.asar.unpacked.unpacked`, where nothing exists. Every terminal in the
+  macOS build died with `posix_spawnp failed.`, and clearing the quarantine flag the error blamed
+  changed nothing. The rewrite now applies at most once, everywhere Arco follows an archive path
+  to a real file, and a test fails the build if an installer is ever packaged without the fix.
+
 ## [2.13.0] — 2026-08-26
 
 ### Added

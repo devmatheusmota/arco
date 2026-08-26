@@ -18,6 +18,7 @@ const paths = require('./commands/paths.cjs')
 const { collectFromArgv } = require('./pending-open.cjs')
 const { applyLoginEnv } = require('./login-env.cjs')
 const { explainHostFailure } = require('./pty-host-failure.cjs')
+const { unpackedPath } = require('./unpacked-path.cjs')
 const { handleCli } = require('./cli.cjs')
 
 // `arco todo` / `arco session` are answered here and the process exits. They
@@ -102,7 +103,7 @@ function startPtyHost(send) {
   // targets Node's ABI — packaging does not rebuild it for Electron.
   // Inside a package the file lives in app.asar.unpacked, which is a real path
   // on disk; system Node cannot read the archive itself.
-  const hostPath = path.join(__dirname, 'pty-host.cjs').replace('app.asar', 'app.asar.unpacked')
+  const hostPath = unpackedPath(path.join(__dirname, 'pty-host.cjs'))
   const nodeBinary = resolveNode()
   if (!nodeBinary) {
     console.error('[arco] no Node runtime found; terminals cannot start')

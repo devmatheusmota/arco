@@ -765,6 +765,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2131.note1':
+    'Terminals start on macOS \u2014 this time for the reason that was actually breaking them. Quarantine, which the last fix cleared, was never it: the terminal engine finds the helper it starts a shell through by rewriting `app.asar` into `app.asar.unpacked` inside its own path, and Arco already loads it from the unpacked directory, so the suffix was written twice. Every terminal died with \u201cposix_spawnp failed.\u201d while looking under `app.asar.unpacked.unpacked`, where nothing exists, and clearing the flag the message blamed changed nothing. The rewrite now happens at most once, and a test refuses to package an installer without it. Nothing to do on Linux or Windows.',
   'whatsNew.v2130.note1':
     'macOS installs through Homebrew. `brew tap devmatheusmota/arco` then `brew install --cask arco`, and `brew upgrade` carries new versions from then on \u2014 the tap is updated the moment a release finishes building. It installs Node for you, which terminals need, and clears the flag macOS puts on every file inside an unsigned download, which is what kept terminals from starting there. Nothing changes for Linux or Windows.',
   'whatsNew.v2130.note2':

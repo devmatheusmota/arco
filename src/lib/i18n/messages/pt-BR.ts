@@ -777,6 +777,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2131.note1':
+    'Os terminais abrem no macOS \u2014 desta vez pelo motivo que realmente os quebrava. A quarentena, que a correção anterior limpava, nunca foi a causa: o motor de terminal acha o binário auxiliar por onde inicia o shell reescrevendo `app.asar` como `app.asar.unpacked` dentro do próprio caminho, e o Arco já o carrega da pasta desempacotada, então o sufixo era escrito duas vezes. Todo terminal morria com “posix_spawnp failed.” procurando em `app.asar.unpacked.unpacked`, onde não existe nada, e limpar a marca que a mensagem acusava não mudava coisa alguma. Agora a reescrita acontece no máximo uma vez, e um teste recusa empacotar um instalador sem ela. No Linux e no Windows não muda nada.',
   'whatsNew.v2130.note1':
     'O macOS instala por Homebrew. `brew tap devmatheusmota/arco` e depois `brew install --cask arco`; da\u00ed em diante o `brew upgrade` traz as vers\u00f5es novas \u2014 o tap \u00e9 atualizado assim que a release termina de construir. Ele instala o Node junto, de que os terminais precisam, e limpa a marca que o macOS p\u00f5e em todo arquivo vindo de download sem assinatura, que era o que impedia os terminais de abrir l\u00e1. No Linux e no Windows n\u00e3o muda nada.',
   'whatsNew.v2130.note2':

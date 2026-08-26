@@ -9,6 +9,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
+const { unpackedPath } = require('../unpacked-path.cjs')
 
 /** Same reasoning as the PTY host: a desktop launch has a different PATH. */
 function resolveNodeBinary() {
@@ -46,9 +47,7 @@ const pending = new Map()
 
 function ensureHost() {
   if (host) return host
-  const hostPath = path
-    .join(__dirname, '..', 'speech-host.cjs')
-    .replace('app.asar', 'app.asar.unpacked')
+  const hostPath = unpackedPath(path.join(__dirname, '..', 'speech-host.cjs'))
   const child = spawn(process.env.ARCO_NODE || resolveNodeBinary(), [hostPath], {
     stdio: ['pipe', 'pipe', 'inherit'],
   })

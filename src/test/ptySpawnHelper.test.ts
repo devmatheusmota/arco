@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 
@@ -6,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 const require = createRequire(import.meta.url)
 const helper = require(join(process.cwd(), 'electron', 'pty-spawn-helper.cjs'))
 const { explainHostFailure } = require(join(process.cwd(), 'electron', 'pty-host-failure.cjs'))
+const { unpackedPath } = require(join(process.cwd(), 'electron', 'unpacked-path.cjs'))
 
 /**
  * Two failures that only ever show up on someone else's machine: a terminal
@@ -53,6 +55,50 @@ describe('macOS spawn helper', () => {
       quarantined: false,
     })
     expect(error.message).toContain('missing')
+  })
+})
+
+/**
+ * The macOS build shipped three releases where no terminal started at all:
+ * node-pty rewrites `app.asar` to `app.asar.unpacked` unconditionally, and the
+ * PTY host already loads it from the unpacked directory, so the helper was
+ * looked for under `app.asar.unpacked.unpacked` and never found.
+ */
+describe('unpacked asar paths', () => {
+  it('follows an archive path to the file on disk', () => {
+    expect(unpackedPath('/Applications/Arco.app/Contents/Resources/app.asar/electron/x.cjs')).toBe(
+      '/Applications/Arco.app/Contents/Resources/app.asar.unpacked/electron/x.cjs',
+    )
+  })
+
+  it('leaves a path that is already unpacked alone', () => {
+    const file = '/Applications/Arco.app/Contents/Resources/app.asar.unpacked/node_modules/pty'
+    expect(unpackedPath(file)).toBe(file)
+  })
+
+  it('leaves a development path alone', () => {
+    expect(unpackedPath('/home/me/arco/electron/pty-host.cjs')).toBe(
+      '/home/me/arco/electron/pty-host.cjs',
+    )
+  })
+
+  it('keeps node-pty patched, because the packaged app depends on it', () => {
+    // `scripts/patch-node-pty-helper.mjs` runs on postinstall and only reports
+    // when it cannot apply — this is the check that turns that into a red build
+    // before an installer ships with dead terminals.
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'node_modules',
+        '@homebridge',
+        'node-pty-prebuilt-multiarch',
+        'lib',
+        'unixTerminal.js',
+      ),
+      'utf8',
+    )
+    expect(source).toContain("helperPath.replace(/app\\.asar(?!\\.unpacked)/, 'app.asar.unpacked')")
+    expect(source).not.toContain("helperPath.replace('app.asar', 'app.asar.unpacked')")
   })
 })
 

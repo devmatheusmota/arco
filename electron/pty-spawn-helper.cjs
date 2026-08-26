@@ -13,15 +13,13 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { execFileSync } = require('node:child_process')
+const { unpackedPath } = require('./unpacked-path.cjs')
 
 /** Where node-pty looks for the helper, including the unpacked-asar rewrite. */
 function spawnHelperPath() {
   try {
     const pkg = require.resolve('@homebridge/node-pty-prebuilt-multiarch/package.json')
-    return path
-      .join(path.dirname(pkg), 'build', 'Release', 'spawn-helper')
-      .replace('app.asar', 'app.asar.unpacked')
-      .replace('node_modules.asar', 'node_modules.asar.unpacked')
+    return unpackedPath(path.join(path.dirname(pkg), 'build', 'Release', 'spawn-helper'))
   } catch {
     return null
   }
