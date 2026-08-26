@@ -142,12 +142,26 @@ sudo apt install ./Arco_1.5.1_amd64.deb    # or: sudo dnf install ./Arco-1.5.1-1
 The AppImage needs no installation — mark it executable and run it. None of these
 three update themselves; the apt repository above is what gives you upgrades.
 
-### Windows and macOS
+### macOS — Homebrew (recommended)
+
+```sh
+brew tap devmatheusmota/arco
+brew install --cask arco
+```
+
+`brew upgrade` picks up new versions from there: the tap is updated by the release
+workflow as soon as the macOS installers are attached. The cask installs Node as
+well — terminals and dictation run in their own Node processes — and clears the
+quarantine flag macOS puts on every file inside an unsigned download, without
+which a terminal fails to start with `posix_spawnp failed.`
+
+### Windows and macOS — single file
 
 Download the installer from [Releases](https://github.com/devmatheusmota/arco/releases):
 `.exe` or `.msi` for Windows, and the `.dmg` matching your chip for macOS
-(`aarch64` for Apple Silicon, `x64` for Intel). Both platforms update themselves
-from inside the app.
+(`arm64` for Apple Silicon, `x64` for Intel). A `.dmg` installed by hand needs
+Node on the machine, and needs to be let through Gatekeeper on first launch:
+**System Settings ▸ Privacy & Security ▸ Open anyway**.
 
 Read the signing warnings below before the first launch — the builds are unsigned,
 and both systems will say so.

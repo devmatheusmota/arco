@@ -149,6 +149,33 @@ export function normalizeTodoSessionOwner(value: unknown): TodoSessionOwner | nu
 }
 
 /**
+ * Every session a task points at, newest first.
+ *
+ * A task can be tied to a session two ways, and only one of them was ever
+ * drawn: `sessions`, written when the session is started from the task, and
+ * `session`, written by `arco todo --session current` from inside a pane. A
+ * task linked from the command line therefore showed no session at all, while
+ * the task next to it — same pane — showed one. To a reader they mean the same
+ * thing, so they are merged here and the row draws whatever comes out.
+ *
+ * The owner link is the newer of the two when both name the same pane: it is
+ * the one carrying a name and a working directory.
+ */
+export function todoSessionLinks(todo: TodoItem): TodoSessionLink[] {
+  const links = [...(todo.sessions ?? [])]
+  const owner = todo.session
+  if (owner?.id && !links.some((link) => link.terminalId === owner.id)) {
+    links.push({
+      terminalId: owner.id,
+      projectId: owner.projectId ?? '',
+      agent: (owner.agent ?? 'claude') as TodoSessionLink['agent'],
+      startedAt: owner.linkedAt,
+    })
+  }
+  return links.sort((a, b) => b.startedAt - a.startedAt)
+}
+
+/**
  * Whether a task belongs to the session the user is in.
  *
  * Two links can say so: the one the command line writes (`session`) and the

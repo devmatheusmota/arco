@@ -103,6 +103,18 @@ and macOS attach themselves to the same release as each one finishes.
 The publish job starts the apt workflow itself; it does not wait for the whole
 run to complete.
 
+The Homebrew tap is the one thing that waits for every macOS build: a cask
+published with one architecture missing fails to install on the other. It is
+updated by `scripts/update-homebrew-tap.mjs`, which rewrites `Casks/arco.rb` in
+[`devmatheusmota/homebrew-arco`](https://github.com/devmatheusmota/homebrew-arco)
+from the digests GitHub already computed for the release assets — no download.
+
+That push crosses repositories, which `GITHUB_TOKEN` cannot do: it needs a
+`HOMEBREW_TAP_TOKEN` secret holding a PAT with `contents: write` on the tap.
+Without it the step says what is missing and passes — a tap one version behind
+must not fail a release that already shipped everywhere else — so check the job's
+log when `brew upgrade` stops seeing new versions.
+
 ## 7. Confirm it reached the user
 
 ```bash

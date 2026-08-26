@@ -504,6 +504,7 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.sessionOpen': 'Ir para a sessão',
   'todo.sessionUnlink': 'Desvincular sessão',
   'todo.sessionCount': '{count} sessão(ões)',
+  'todo.goToSession': 'Ir para a sessão ({count})',
   'todo.sessionGone': 'Sessão encerrada',
   'todo.runningCount': '{count} rodando',
   'todo.metaCreated': 'Criada em {date}',
@@ -776,6 +777,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2130.note1':
+    'O macOS instala por Homebrew. `brew tap devmatheusmota/arco` e depois `brew install --cask arco`; da\u00ed em diante o `brew upgrade` traz as vers\u00f5es novas \u2014 o tap \u00e9 atualizado assim que a release termina de construir. Ele instala o Node junto, de que os terminais precisam, e limpa a marca que o macOS p\u00f5e em todo arquivo vindo de download sem assinatura, que era o que impedia os terminais de abrir l\u00e1. No Linux e no Windows n\u00e3o muda nada.',
+  'whatsNew.v2130.note2':
+    'Tarefa ligada a uma sess\u00e3o pela linha de comando enfim aparece com ela. O `arco todo --session current` e o bot\u00e3o \u25b6 gravavam o v\u00ednculo em lugares diferentes e a linha desenhava s\u00f3 um deles, ent\u00e3o duas tarefas na mesma sess\u00e3o mostravam uma sess\u00e3o entre as duas. O selo de sess\u00e3o na linha virou bot\u00e3o tamb\u00e9m: um clique traz aquele painel para a frente, em vez de expandir a tarefa e clicar no v\u00ednculo l\u00e1 embaixo.',
   'whatsNew.v2121.note1':
     'Os terminais abrem no macOS. A build de Mac não é assinada, então o macOS deixava em quarentena o binário auxiliar por onde todo terminal é iniciado, e o painel mostrava “Failed to start PTY: posix_spawnp failed.” e mais nada. Agora o Arco tira essa marca sozinho antes do primeiro terminal e tenta de novo; se ainda assim não conseguir, ele diz qual é o motivo e mostra o comando que resolve. No Linux e no Windows não muda nada.',
   'whatsNew.v2121.note2':

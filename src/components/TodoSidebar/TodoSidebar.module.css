@@ -648,6 +648,26 @@
   color: var(--status-working);
 }
 
+/* The badge as a control: same shape, now the way into the session. */
+.sessionJump {
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: var(--radius-1);
+  padding: 2px var(--space-1);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sessionJump:hover,
+.sessionJump:focus-visible {
+  border-color: var(--border);
+  color: var(--fg);
+}
+
+.sessionJump:hover .sessionDot {
+  background: var(--accent);
+}
+
 .sessionDot {
   width: 5px;
   height: 5px;

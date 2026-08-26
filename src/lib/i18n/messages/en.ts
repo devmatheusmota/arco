@@ -500,6 +500,7 @@ export const en = {
   'todo.sessionOpen': 'Go to session',
   'todo.sessionUnlink': 'Unlink session',
   'todo.sessionCount': '{count} session(s)',
+  'todo.goToSession': 'Go to the session ({count})',
   'todo.sessionGone': 'Session closed',
   'todo.runningCount': '{count} running',
   'todo.metaCreated': 'Created {date}',
@@ -764,6 +765,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2130.note1':
+    'macOS installs through Homebrew. `brew tap devmatheusmota/arco` then `brew install --cask arco`, and `brew upgrade` carries new versions from then on \u2014 the tap is updated the moment a release finishes building. It installs Node for you, which terminals need, and clears the flag macOS puts on every file inside an unsigned download, which is what kept terminals from starting there. Nothing changes for Linux or Windows.',
+  'whatsNew.v2130.note2':
+    'A task linked to a session from the command line finally shows it. `arco todo --session current` and the \u25b6 button recorded the link in different places and the row drew only one of them, so two tasks in the same session showed one between them. The session badge on the row is also a button now: one click brings that pane to the front, instead of expanding the task and clicking the link at the bottom.',
   'whatsNew.v2121.note1':
     'Terminals start on macOS. The Mac build is unsigned, so macOS quarantines the small helper binary every terminal is started through, and the pane showed “Failed to start PTY: posix_spawnp failed.” and nothing more. Arco now clears that flag itself before the first terminal and tries again; when it still cannot start the helper it says which reason applies and prints the command that fixes it. Nothing to do on Linux or Windows.',
   'whatsNew.v2121.note2':

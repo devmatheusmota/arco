@@ -13,6 +13,7 @@ import {
   reorderTodoItems,
   sortTodosByPriority,
   TODO_SESSIONS_MAX,
+  todoSessionLinks,
 } from './todos'
 import type { TodoItem } from './types'
 
@@ -187,5 +188,41 @@ describe('isCurrentSessionTodo', () => {
     expect(isCurrentSessionTodo({ ...base, session: { id: 'term-1', linkedAt: 0 } }, [])).toBe(
       false,
     )
+  })
+})
+
+describe('todoSessionLinks', () => {
+  const base: TodoItem = { id: 't1', title: 'x', completed: false, tags: [] }
+
+  it('draws the link the command line writes, which the row used to ignore', () => {
+    const todo = {
+      ...base,
+      session: { id: 'term-1', projectId: 'p1', agent: 'claude' as const, linkedAt: 10 },
+    }
+    expect(todoSessionLinks(todo)).toEqual([
+      { terminalId: 'term-1', projectId: 'p1', agent: 'claude', startedAt: 10 },
+    ])
+  })
+
+  it('keeps one entry when both links name the same pane', () => {
+    const todo = {
+      ...base,
+      sessions: [{ projectId: 'p1', terminalId: 'term-1', agent: 'claude' as const, startedAt: 5 }],
+      session: { id: 'term-1', projectId: 'p1', agent: 'claude' as const, linkedAt: 10 },
+    }
+    expect(todoSessionLinks(todo)).toHaveLength(1)
+  })
+
+  it('puts the most recent session first', () => {
+    const todo = {
+      ...base,
+      sessions: [{ projectId: 'p1', terminalId: 'term-2', agent: 'codex' as const, startedAt: 1 }],
+      session: { id: 'term-9', projectId: 'p1', agent: 'claude' as const, linkedAt: 99 },
+    }
+    expect(todoSessionLinks(todo).map((link) => link.terminalId)).toEqual(['term-9', 'term-2'])
+  })
+
+  it('has nothing to draw for a task tied to no session', () => {
+    expect(todoSessionLinks(base)).toEqual([])
   })
 })

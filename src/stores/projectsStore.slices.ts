@@ -203,6 +203,10 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
           const next = { ...item }
           if (sessions.length > 0) next.sessions = sessions
           else delete next.sessions
+          // The row draws both kinds of link as one session, so unlinking has
+          // to reach both: leaving the command-line one behind put the entry
+          // straight back where the user had just removed it.
+          if (next.session?.id === terminalId) delete next.session
           return next
         }),
       })),

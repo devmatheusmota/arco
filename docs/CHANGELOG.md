@@ -10,6 +10,27 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.13.0] — 2026-08-26
+
+### Added
+
+- macOS installs through Homebrew: `brew tap devmatheusmota/arco` then
+  `brew install --cask arco`, and `brew upgrade` carries new versions from then on. The release
+  workflow updates the tap as soon as both macOS installers are attached, reading the checksums
+  from the digests GitHub already computed rather than downloading anything. The cask installs
+  Node — terminals need it — and clears the quarantine flag macOS puts on every file inside an
+  unsigned download, which is what stopped terminals from starting there.
+
+### Fixed
+
+- A task linked to a session from the command line shows that session on the row. `arco todo
+  --session current` and the ▶ button write the link in different places, and only the second one
+  was ever drawn — two tasks pointing at the same pane showed one session between them. Both are
+  now read as the same thing, the newest first, and unlinking removes whichever one the row was
+  drawing.
+- The session badge on a task row is a button: one click brings that pane to the front. Reaching a
+  session meant expanding the task and clicking the link at the bottom of it.
+
 ## [2.12.1] — 2026-08-26
 
 ### Fixed

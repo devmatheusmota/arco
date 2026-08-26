@@ -30,6 +30,7 @@ import {
   sortTodosByPriority,
   TODO_NOTES_MAX_LENGTH,
   TODO_TITLE_MAX_LENGTH,
+  todoSessionLinks,
 } from '../../lib/todos'
 import {
   AGENT_TYPE_LABELS,
@@ -57,8 +58,15 @@ type ResolvedSession = {
 }
 
 function resolveSessions(todo: TodoItem, projects: Project[]): ResolvedSession[] {
-  return (todo.sessions ?? []).map((link) => {
-    const project = projects.find((item) => item.id === link.projectId) ?? null
+  return todoSessionLinks(todo).map((link) => {
+    // A link written from the command line inside a pane whose project the app
+    // could not name carries no project id. The pane is still findable — there
+    // is only one terminal with that id — and finding it is what decides
+    // whether the row can offer to jump there.
+    const project =
+      (link.projectId ? projects.find((item) => item.id === link.projectId) : null) ??
+      projects.find((item) => item.terminals.some((term) => term.id === link.terminalId)) ??
+      null
     const terminal = project?.terminals.find((item) => item.id === link.terminalId) ?? null
     return { link, project, terminal }
   })
@@ -379,29 +387,40 @@ function TodoRow({
                   <StickyNote size={12} />
                 </span>
               ) : null}
-              {liveSessions.length > 0 ? (
-                <span
-                  className={styles.sessionBadge}
-                  data-working={workingCount > 0 ? 'true' : 'false'}
-                  title={t('todo.sessionCount', { count: liveSessions.length })}
-                >
-                  {workingCount > 0 ? (
-                    <DotmCircular2
-                      size={12}
-                      dotSize={2}
-                      cellPadding={1}
-                      speed={1.2}
-                      ariaLabel={t('todo.sessionWorking')}
-                    />
-                  ) : (
-                    <span className={styles.sessionDot} />
-                  )}
-                  {liveSessions.length}
-                </span>
-              ) : null}
             </span>
           </button>
         )}
+
+        {/* Reaching a task's session meant expanding the row and clicking the
+            link at the bottom of it. The badge that already said a session
+            exists is the natural place to send the user there, so it is the
+            button — outside the title, which is a button of its own. */}
+        {!editing && liveSessions.length > 0 ? (
+          <button
+            type="button"
+            className={`${styles.sessionBadge} ${styles.sessionJump}`}
+            data-working={workingCount > 0 ? 'true' : 'false'}
+            title={t('todo.goToSession', { count: liveSessions.length })}
+            aria-label={t('todo.goToSession', { count: liveSessions.length })}
+            onClick={() => {
+              const target = liveSessions[0]
+              if (target.project) focusSession(target.project.id, target.link.terminalId)
+            }}
+          >
+            {workingCount > 0 ? (
+              <DotmCircular2
+                size={12}
+                dotSize={2}
+                cellPadding={1}
+                speed={1.2}
+                ariaLabel={t('todo.sessionWorking')}
+              />
+            ) : (
+              <span className={styles.sessionDot} />
+            )}
+            {liveSessions.length}
+          </button>
+        ) : null}
 
         <div className={styles.rowActions}>
           {editing ? (
@@ -541,7 +560,12 @@ function TodoRow({
                     key={session.link.terminalId}
                     session={session}
                     t={t}
-                    onOpen={() => focusSession(session.link.projectId, session.link.terminalId)}
+                    onOpen={() =>
+                      focusSession(
+                        session.project?.id ?? session.link.projectId,
+                        session.link.terminalId,
+                      )
+                    }
                     onUnlink={() => unlinkTodoSession(todo.id, session.link.terminalId)}
                   />
                 ))}

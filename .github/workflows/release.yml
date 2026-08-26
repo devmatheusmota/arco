@@ -194,8 +194,10 @@ jobs:
           **Windows** — `.exe` installer. It is unsigned, so SmartScreen warns on first
           run: More info → Run anyway.
 
-          **macOS** — `.dmg` (or `.zip`), arm64 and x64 separately. Unsigned as well, so
-          the first launch needs System Settings → Privacy & Security → Open anyway.
+          **macOS** — `brew tap devmatheusmota/arco && brew install --cask arco` installs
+          it and keeps it updated. The `.dmg` (or `.zip`), arm64 and x64 separately, is
+          the manual route: unsigned, so the first launch needs System Settings →
+          Privacy & Security → Open anyway.
 
           Windows and macOS builds are attached a few minutes after the Linux ones, and
           have not been exercised the way the Linux build has — the terminal and speech
@@ -228,3 +230,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run apt-repo.yml --ref "${GITHUB_REF_NAME}"
+
+  homebrew:
+    name: Update the Homebrew tap
+    # Both macOS builds, because a cask published with one architecture missing
+    # fails to install on the other — and `publish`, because the cask points at
+    # a release that has to exist. The Intel runner is the slow one here; the
+    # apt repository and every direct download are already out by the time this
+    # starts, so only Homebrew waits on it.
+    needs: [build-desktop, publish]
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+
+      - name: Point the cask at this release
+        # A token scoped to this repository cannot push to the tap, so this one
+        # is a PAT. Without the secret the script says what is missing and the
+        # step passes: a tap that is one version behind must not fail a release
+        # that already shipped everywhere else.
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: node scripts/update-homebrew-tap.mjs "${GITHUB_REF_NAME}"
