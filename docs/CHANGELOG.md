@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.13.7] — 2026-08-31
+
+### Fixed
+
+- A mistyped flag is answered instead of ignored. `arco --hlep` named no subcommand and no
+  directory, so it fell through to "open what was asked for", found nothing to open, and
+  exited 0 having done nothing — while the window layer it started on the way printed
+  libX11's `Authorization required` over that empty answer. It now says which option it does
+  not know and exits 2, without touching a display. Chromium's own switches still pass
+  through, and a launch that carries a directory still opens it.
+
 ## [2.13.6] — 2026-08-31
 
 ### Fixed

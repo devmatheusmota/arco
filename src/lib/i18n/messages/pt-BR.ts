@@ -777,6 +777,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2137.note1':
+    'Errar o nome de uma op\u00e7\u00e3o agora tem resposta. O `arco --hlep` saía calado sem fazer nada \u2014 era lido como pasta a abrir, pasta nenhuma com esse nome existia, e a \u00fanica coisa impressa era um aviso do X11 sem rela\u00e7\u00e3o, vindo da camada gr\u00e1fica que ele subia no caminho. Agora ele diz qual op\u00e7\u00e3o n\u00e3o conhece e sai com erro. Abrir uma pasta, e os switches que o app passa sozinho, continuam iguais.',
   'whatsNew.v2136.note1':
     'O `arco --version` volta a dizer a vers\u00e3o. Desde a 2.13.5 os subcomandos de terminal respondem sem subir a camada gr\u00e1fica do app, e a vers\u00e3o era a \u00fanica coisa que ainda vinha de l\u00e1 \u2014 ent\u00e3o o comando respondia \u201carco desconhecida\u201d sobre si mesmo, enquanto a linha de baixo, com a vers\u00e3o do app aberto, continuava certa. Nada mais foi afetado.',
   'whatsNew.v2135.note1':

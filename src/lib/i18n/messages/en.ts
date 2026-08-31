@@ -765,6 +765,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2137.note1':
+    'Mistyping an option now gets you an answer. `arco --hlep` used to exit quietly having done nothing at all \u2014 it was read as a folder to open, no folder by that name existed, and the only thing printed was an unrelated X11 warning from the window layer it had started on the way. It now names the option it does not know and exits with an error. Opening a folder, and the switches the app passes itself, are unchanged.',
   'whatsNew.v2136.note1':
     '`arco --version` tells you the version again. Since 2.13.5 the terminal subcommands answer without starting the app\u2019s window layer, and the version was the one thing still being read from it \u2014 so the command answered \u201carco desconhecida\u201d about itself, while the line below it, naming the version of the app you have open, stayed correct. Nothing else was affected.',
   'whatsNew.v2135.note1':
