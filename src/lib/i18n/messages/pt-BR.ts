@@ -574,7 +574,7 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.nativeTerminalMacosEnable': 'Habilitar terminal nativo (macOS)',
   'prefs.resourcePolicy': 'Monitoramento de memória',
   'prefs.resourcePolicyDesc':
-    'Mostra o consumo real do app e do Windows sem fechar nem estacionar runtimes automaticamente.',
+    'Mostra o consumo real do app e do sistema sem fechar nem estacionar runtimes automaticamente.',
   'prefs.resourcePolicySmart': 'LRU inteligente',
   'prefs.resourcePolicyManual': 'Só monitorar',
   'prefs.resourceBudget': 'Limite rígido (MB)',
@@ -1279,8 +1279,8 @@ export const ptBR: Record<MessageKey, string> = {
   'mod.bucketWebview': 'WebView',
   'mod.bucketPtys': 'Terminais',
   'mod.noDataYet': 'Sem dados suficientes ainda.',
-  'mod.diagSystemCritical': 'A memória disponível do Windows está criticamente baixa.',
-  'mod.diagSystemWarning': 'A memória disponível do Windows está ficando baixa.',
+  'mod.diagSystemCritical': 'A memória disponível do sistema está criticamente baixa.',
+  'mod.diagSystemWarning': 'A memória disponível do sistema está ficando baixa.',
   'mod.diagOver2gb':
     'Uso total acima de 2 GB. Vale suspender grupos ociosos ou reiniciar panes antigos.',
   'mod.diagOver1gb':
@@ -1297,13 +1297,13 @@ export const ptBR: Record<MessageKey, string> = {
   'mod.memoryAnalyticsTitle': 'Analytics de memória',
   'mod.health.normal.title': 'A memória está saudável',
   'mod.health.normal.body':
-    'O Windows tem {available} disponíveis de {total}. O Arco não fechará abas automaticamente.',
+    'A máquina tem {available} disponíveis de {total}. O Arco não fechará abas automaticamente.',
   'mod.health.warning.title': 'A memória disponível está ficando baixa',
   'mod.health.warning.body':
-    'O Windows tem {available} disponíveis de {total}. Confira abaixo o runtime mais pesado antes de abrir muitos outros.',
-  'mod.health.critical.title': 'A memória do Windows está criticamente baixa',
+    'A máquina tem {available} disponíveis de {total}. Confira abaixo o runtime mais pesado antes de abrir muitos outros.',
+  'mod.health.critical.title': 'A memória do sistema está criticamente baixa',
   'mod.health.critical.body':
-    'O Windows tem apenas {available} disponíveis de {total}. O Arco avisará, mas qualquer encerramento de sessão continuará sendo sua decisão.',
+    'A máquina tem apenas {available} disponíveis de {total}. O Arco avisará, mas qualquer encerramento de sessão continuará sendo sua decisão.',
   'mod.clearHistory': 'Limpar histórico',
   'mod.now': 'Agora',
   'mod.peak': 'Pico',

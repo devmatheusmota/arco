@@ -569,7 +569,7 @@ export const en = {
   'prefs.nativeTerminalMacosEnable': 'Enable native terminal (macOS)',
   'prefs.resourcePolicy': 'Memory monitoring',
   'prefs.resourcePolicyDesc':
-    'Inspect real app and Windows memory without automatically closing or parking runtimes.',
+    'Inspect real app and system memory without automatically closing or parking runtimes.',
   'prefs.resourcePolicySmart': 'Smart LRU',
   'prefs.resourcePolicyManual': 'Monitor only',
   'prefs.resourceBudget': 'Hard budget (MB)',
@@ -1263,8 +1263,8 @@ export const en = {
   'mod.bucketWebview': 'WebView',
   'mod.bucketPtys': 'Terminals',
   'mod.noDataYet': 'Not enough data yet.',
-  'mod.diagSystemCritical': 'Windows available memory is critically low.',
-  'mod.diagSystemWarning': 'Windows available memory is getting low.',
+  'mod.diagSystemCritical': 'Available system memory is critically low.',
+  'mod.diagSystemWarning': 'Available system memory is getting low.',
   'mod.diagOver2gb':
     'Total usage above 2 GB. Consider suspending idle groups or restarting old panes.',
   'mod.diagOver1gb': 'Total usage above 1 GB. Track growth before opening more terminals.',
@@ -1280,13 +1280,13 @@ export const en = {
   'mod.memoryAnalyticsTitle': 'Memory analytics',
   'mod.health.normal.title': 'Memory is healthy',
   'mod.health.normal.body':
-    'Windows has {available} available out of {total}. Arco will not close tabs automatically.',
+    'The machine has {available} available out of {total}. Arco will not close tabs automatically.',
   'mod.health.warning.title': 'Available memory is getting low',
   'mod.health.warning.body':
-    'Windows has {available} available out of {total}. Review the largest runtime below before opening many more.',
-  'mod.health.critical.title': 'Windows memory is critically low',
+    'The machine has {available} available out of {total}. Review the largest runtime below before opening many more.',
+  'mod.health.critical.title': 'System memory is critically low',
   'mod.health.critical.body':
-    'Windows has only {available} available out of {total}. Arco will warn, but any session closure remains your decision.',
+    'The machine has only {available} available out of {total}. Arco will warn, but any session closure remains your decision.',
   'mod.clearHistory': 'Clear history',
   'mod.now': 'Now',
   'mod.peak': 'Peak',

@@ -29,6 +29,11 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   the same minute spend one minute of the day and two of agent time. The ticks still on disk are
   folded in on first read, so today and yesterday come back rather than being discarded with the
   format.
+- Memory analytics stops telling a Mac or a Linux machine about its Windows memory. Seven strings
+  in that dialog were written when Arco only shipped for Windows and still named it — the
+  critical-memory banner, the two diagnostics and the three health bodies. They name the machine
+  now. The one line that still says Windows is the orphan-process guard, which really is a
+  Windows Job Object.
 - The dashboard no longer freezes the terminals while it refreshes. Reading a quarter of a year
   of transcripts took about three seconds, and it ran in one blocking pass in the process that
   also carries every keystroke and every byte of terminal output. The scan now yields as it goes:
