@@ -7,7 +7,7 @@
 
 const { app, BrowserWindow, ipcMain, protocol, net } = require('electron')
 const path = require('node:path')
-const { spawn } = require('node:child_process')
+const { spawn, spawnSync } = require('node:child_process')
 const fs = require('node:fs')
 const { pathToFileURL } = require('node:url')
 
@@ -21,20 +21,52 @@ const { explainHostFailure } = require('./pty-host-failure.cjs')
 const { unpackedPath } = require('./unpacked-path.cjs')
 const { handleCli, handlesCli } = require('./cli.cjs')
 
-// `arco todo` / `arco session` are answered here and the process exits. They
-// used to live only in the shell shim, so when that file was missing the
-// subcommand reached the binary, matched nothing, and fell through to opening a
-// window — the command hung instead of answering.
+/**
+ * The subcommand entry the app binary runs as Node.
+ *
+ * `electron/**` is listed in `asarUnpack`, so the file exists on disk next to
+ * the archive; the path has to follow it there.
+ */
+function cliEntry() {
+  return unpackedPath(path.join(__dirname, 'cli-entry.cjs'))
+}
+
+// `arco todo` / `arco session` are answered without a browser and the process
+// exits. They used to live only in the shell shim, so when that file was missing
+// the subcommand reached the binary, matched nothing, and fell through to
+// opening a window — the command hung instead of answering.
 //
-// Those subcommands share the app binary, so Chromium's browser process is
-// already up by the time this file runs and cannot be opted out of from here.
-// What can is the GPU process it launches a moment later: that one opens a
-// connection to the display, and on a Wayland session whose xauth cookie has
-// been recycled libX11 writes "Authorization required, but no authorization
-// protocol specified" straight to the stderr we inherited — so a `arco todo
-// list` that answered correctly and exited 0 reads as a failure to anything
-// capturing 2>&1. Nothing on this path draws, so the GPU process has no work to
-// do; refusing it is what keeps the output clean.
+// They share the app binary, so Chromium's browser process is already up by the
+// time this file runs, and the graphical layer cannot be turned off from inside
+// it: the platform is initialized when the event loop reaches "ready", and a
+// switch appended here arrives after that decision is made. Answering a
+// subcommand means an HTTP call to the running app, which needs the event loop
+// — so the process always got as far as looking for a display. With a recycled
+// xauth cookie libX11 wrote "Authorization required, but no authorization
+// protocol specified" over the command's own stderr; with no display at all
+// (cron, a systemd unit, ssh without forwarding) Chromium exited on "The
+// platform failed to initialize" and the subcommand died on a signal having
+// printed nothing.
+//
+// Re-executing the same binary under ELECTRON_RUN_AS_NODE answers from a plain
+// Node process, which has no window layer to initialize. `spawnSync` holds the
+// event loop, so this process never reaches "ready": it exits with the child's
+// status before Chromium looks for a display at all.
+if (handlesCli(process.argv)) {
+  const child = spawnSync(process.execPath, [cliEntry(), ...process.argv.slice(1)], {
+    stdio: 'inherit',
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+  })
+  // `process.exit` rather than `app.exit`, which the fallback below needs:
+  // leaving this way orphans Chromium's helpers, and here there are none to
+  // orphan — the event loop never ran, so nothing past the browser process was
+  // ever started.
+  //
+  // A build that cannot spawn its own binary still has to answer. Falling back
+  // to running the subcommand here costs the display connection this exists to
+  // avoid, which beats a command that prints nothing at all.
+  if (!child.error) process.exit(child.status ?? 1)
+}
 if (handlesCli(process.argv)) app.disableHardwareAcceleration()
 if (handleCli(process.argv, (code) => app.exit(code))) return
 

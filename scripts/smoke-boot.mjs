@@ -12,7 +12,8 @@
  *   1. `arco-agent-hooks.json`  — the main process reached the listener bind
  *   2. `projects.hydrate`       — the window loaded and the frontend invoked back
  *   3. `POST /cli/todo/list`    — the surface the `arco` command talks to answers
- *   4. `arco todo list`         — and the binary itself answers, shim or no shim
+ *   4. `arco todo list`         — and the binary itself answers with no display,
+ *                                 cleanly, shim or no shim
  *
  * Run under a display: `xvfb-run -a node scripts/smoke-boot.mjs`.
  */
@@ -144,20 +145,47 @@ async function cliAnswers() {
  * The same call through the binary, which is what a user without the shell shim
  * on PATH actually runs. It has its own ways to fail: argv parsing that misses
  * the subcommand, and output lost when `process.exit` beats an async stdout.
+ *
+ * Run with no display on purpose. A subcommand answers over HTTP and draws
+ * nothing, so it must not depend on the window layer — and it used to: Chromium
+ * initialized the platform on the way to answering, which printed libX11's
+ * "Authorization required" over the command's stderr when the session's xauth
+ * cookie had been recycled, and killed the process outright when there was no
+ * display at all. Hence stderr has to come back empty, not just exit 0.
  */
 function binaryAnswers() {
   return new Promise((resolve, reject) => {
+    // Every variable Chromium reads to pick a display backend, not just
+    // DISPLAY: with GDK_BACKEND or XDG_SESSION_TYPE still naming wayland it
+    // finds a compositor anyway and the check passes on a developer's machine
+    // while the same code dies under cron.
+    const env = { ...process.env, TMPDIR: dirs.tmp }
+    for (const name of [
+      'DISPLAY',
+      'WAYLAND_DISPLAY',
+      'GDK_BACKEND',
+      'XDG_SESSION_TYPE',
+      'ELECTRON_OZONE_PLATFORM_HINT',
+    ]) {
+      delete env[name]
+    }
     // `--json` or the binary prints the human table, which is not parseable and
     // reads as a failure the moment the list is empty.
     const proc = spawn(ELECTRON, ['electron/main.cjs', '--no-sandbox', 'todo', 'list', '--json'], {
-      env: { ...process.env, TMPDIR: dirs.tmp },
-      stdio: ['ignore', 'pipe', 'ignore'],
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
     })
     let out = ''
+    let err = ''
     proc.stdout.on('data', (chunk) => (out += chunk))
+    proc.stderr.on('data', (chunk) => (err += chunk))
     proc.on('error', reject)
-    proc.on('exit', (code) => {
+    proc.on('exit', (code, signal) => {
+      if (signal) return reject(new Error(`died on ${signal} with no display`))
       if (code !== 0) return reject(new Error(`exited with code ${code}`))
+      if (err.trim()) {
+        return reject(new Error(`wrote to stderr: "${err.trim().split('\n')[0].slice(0, 80)}"`))
+      }
       try {
         if (!Array.isArray(JSON.parse(out.trim()))) throw new Error('not a list')
         resolve()
@@ -191,7 +219,7 @@ while (Date.now() - started < TIMEOUT_MS) {
     } catch (error) {
       fail(`the binary's own subcommands are broken: ${error.message}`)
     }
-    step('the binary answers subcommands directly (arco todo list)')
+    step('the binary answers subcommands with no display (arco todo list)')
     console.log('\n✓ boot smoke passed\n')
     cleanup()
     process.exit(0)

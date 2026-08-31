@@ -274,9 +274,11 @@ describe('--session', () => {
 })
 
 describe('handlesCli', () => {
-  // The shell reads this answer before Electron reaches the display: a terminal
-  // subcommand runs with the GPU process off, so libX11 never gets the chance
-  // to print an authorization warning over the command's own output.
+  // `main.cjs` reads this answer before Electron reaches the display, and a
+  // claimed argv is re-run as a plain Node process instead. Anything missing
+  // from this list boots the window layer to answer a question that draws
+  // nothing — which prints libX11's authorization warning over the command's
+  // own output, or kills it outright where there is no display at all.
   it('claims every subcommand the binary answers by itself', () => {
     for (const argv of [
       ['/opt/Arco/arco', 'todo', 'list'],
