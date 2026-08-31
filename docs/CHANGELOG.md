@@ -10,6 +10,30 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- The activity heatmap counts messages again, instead of reading `NaN` and painting every day
+  as a peak. The graph asks for a message count per day; the backend answered with a session
+  and token tally under different names, so every cell divided `undefined` by `undefined` — and
+  because no comparison against `NaN` is ever true, the intensity fell through to the darkest
+  shade. The header read `NaN messages`, `NaN%` and `0d streak` over a solid orange grid. Days
+  are counted from each message's own timestamp, so a conversation resumed today no longer moves
+  its whole history onto today, the window is zero-filled so a quiet day is a gap in the graph
+  rather than a shifted column, and Codex and OpenCode are counted alongside Claude as the
+  widget always claimed.
+- Time & focus reports the day instead of zeros. Every tick of the tracker was being appended to
+  disk raw and never aggregated, so the dashboard asked for totals and got a shape it did not
+  recognize: `0m` across active focus, agent wall time, background work and focused idle, with
+  "No time recorded in this period" under both breakdowns. Ticks are folded into daily totals as
+  they arrive — wall-clock time kept apart from summed agent time, so two agents working through
+  the same minute spend one minute of the day and two of agent time. The ticks still on disk are
+  folded in on first read, so today and yesterday come back rather than being discarded with the
+  format.
+- The dashboard no longer freezes the terminals while it refreshes. Reading a quarter of a year
+  of transcripts took about three seconds, and it ran in one blocking pass in the process that
+  also carries every keystroke and every byte of terminal output. The scan now yields as it goes:
+  the longest uninterrupted block it holds went from 2.6s to 43ms.
+
 ## [2.13.2] — 2026-08-31
 
 ### Fixed

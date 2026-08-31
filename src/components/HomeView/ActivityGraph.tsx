@@ -27,6 +27,10 @@ function buildGrid(days: ActivityDay[]): (ActivityDay | null)[][] {
 }
 
 function intensityClass(count: number, max: number): string {
+  // A count the backend could not supply used to arrive as `undefined`, and
+  // every `ratio` comparison below is false against NaN — so the grid fell
+  // through to the darkest cell and read as a solid block of peak days.
+  if (!Number.isFinite(count) || !Number.isFinite(max)) return styles.cell0
   if (count === 0 || max === 0) return styles.cell0
   const ratio = count / max
   if (ratio < 0.25) return styles.cell1
