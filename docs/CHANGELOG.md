@@ -23,6 +23,11 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   chats came up empty for Codex, a reopened pane could not resume the conversation it had, and a
   new one never learned its own session id. The listing now walks the tree, keeps the sessions
   started in the project's directory, and reads each conversation's id from its own header.
+- The Codex usage widget shows real numbers again. Codex renamed every field of the answer it
+  gives to `account/rateLimits/read` and started dating a window in seconds, so Arco read nothing
+  it recognized and drew a flat 0% with no reset time — while `/status` inside Codex reported the
+  quota correctly. Both spellings are now read, so the widget also keeps working against an older
+  Codex on the machine.
 - Terminal subcommands no longer print an X11 warning over their own output. `arco todo`,
   `arco session`, `arco help` and `arco --version` share the app binary, so Chromium comes up
   before Arco reads the arguments, and a moment later it launched a GPU process that opened a

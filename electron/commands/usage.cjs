@@ -47,6 +47,38 @@ async function claudeUsage() {
   }
 }
 
+/**
+ * One quota window as the widget reads it.
+ *
+ * `account/rateLimits/read` answers in camelCase and dates a window in epoch
+ * seconds; the snake_case names are what older Codex builds replied with, and
+ * reading both keeps a machine that has not updated its CLI reporting numbers
+ * instead of a flat zero.
+ */
+function codexWindow(source) {
+  const resetsAt = Number(source?.resetsAt ?? 0)
+  return {
+    used_percent: Number(source?.usedPercent ?? source?.used_percent ?? 0),
+    window_minutes: Number(source?.windowDurationMins ?? source?.window_minutes ?? 0),
+    resets_at_ms: resetsAt > 0 ? resetsAt * 1000 : Number(source?.resets_at_ms ?? 0),
+  }
+}
+
+/** Quota, plan and reset credits out of one `account/rateLimits/read` result. */
+function codexLimits(result) {
+  const limits = result?.rateLimits ?? result ?? {}
+  const credits = result?.rateLimitResetCredits
+  return {
+    primary: codexWindow(limits.primary),
+    secondary: codexWindow(limits.secondary),
+    plan: String(limits.planType ?? limits.plan ?? ''),
+    rate_limited: Boolean(
+      limits.rateLimitReachedType ?? limits.spendControlReached ?? limits.rate_limited ?? false,
+    ),
+    reset_credits: Number(credits?.availableCount ?? result?.reset_credits ?? 0),
+  }
+}
+
 /** Drives `codex app-server` over stdio, which is how Codex reports its limits. */
 function codexUsage() {
   return new Promise((resolve, reject) => {
@@ -83,19 +115,7 @@ function codexUsage() {
         }
         if (message.id !== 2) continue
         clearTimeout(timer)
-        const limits = message.result ?? {}
-        const window = (source) => ({
-          used_percent: Number(source?.used_percent ?? 0),
-          window_minutes: Number(source?.window_minutes ?? 0),
-          resets_at_ms: Number(source?.resets_at_ms ?? 0),
-        })
-        finish(null, {
-          primary: window(limits.primary),
-          secondary: window(limits.secondary),
-          plan: String(limits.plan ?? ''),
-          rate_limited: Boolean(limits.rate_limited),
-          reset_credits: Number(limits.reset_credits ?? 0),
-        })
+        finish(null, codexLimits(message.result))
       }
     })
 
@@ -494,4 +514,4 @@ function buildUsageCommands() {
   }
 }
 
-module.exports = { buildUsageCommands }
+module.exports = { buildUsageCommands, codexLimits }
