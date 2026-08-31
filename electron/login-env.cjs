@@ -18,6 +18,7 @@ const os = require('node:os')
 const fs = require('node:fs')
 const path = require('node:path')
 const { execFileSync } = require('node:child_process')
+const { clearInheritedAgentSession, stripAppImageEnv } = require('./pty-env.cjs')
 
 const CACHE_FILE = path.join(os.homedir(), '.cache', 'arco', 'login-env.json')
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -39,7 +40,11 @@ function readCache() {
     const stat = fs.statSync(CACHE_FILE)
     if (Date.now() - stat.mtimeMs > CACHE_TTL_MS) return null
     const parsed = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'))
-    return parsed && typeof parsed === 'object' ? parsed : null
+    // A cache written before the markers were filtered keeps poisoning launches
+    // for a day. Strip on read too, so the fix does not wait for expiry — and an
+    // AppImage run leaves mount paths behind that outlive the mount itself.
+    if (!parsed || typeof parsed !== 'object') return null
+    return stripAppImageEnv(clearInheritedAgentSession(parsed))
   } catch {
     return null
   }
@@ -69,7 +74,10 @@ function dumpFromShell() {
       if (VOLATILE.has(key)) continue
       env[key] = entry.slice(split + 1)
     }
-    return env
+    // The dump inherits this process's environment, so an app started from an
+    // agent pane would write that session's markers into a cache read for a day,
+    // and an AppImage run would write paths into a mount that no longer exists.
+    return stripAppImageEnv(clearInheritedAgentSession(env))
   } catch {
     return {}
   } finally {

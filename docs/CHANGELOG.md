@@ -10,6 +10,27 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- Terminals no longer inherit the agent session that started the app. Launching Arco from a
+  pane that was already running Claude Code leaked that session's markers into every terminal
+  it opened afterwards, so each new session announced `Transcript saving is off — inherited
+  CLAUDE_CODE_CHILD_SESSION marker` and reused the parent's session id instead of recording
+  its own. Nothing on disk meant nothing to read a name from either, so every pane in the
+  sidebar stayed labelled `claude` instead of taking the conversation's title. A pane is a
+  new session, not a child, so those markers are dropped on spawn. Only
+  parentage goes: the install path, the plugin data directory and the entrypoint tag stay,
+  because they say where the CLI lives, not who started it. The login-shell environment Arco
+  caches for a day is scrubbed the same way, on write and on read, so a cache captured before
+  this fix stops poisoning launches without waiting to expire.
+- Terminals in the AppImage build no longer inherit the bundle's own runtime. `AppRun` exports
+  `PYTHONHOME`, `LD_LIBRARY_PATH` and a prepended `PATH` so the packaged app finds the libraries
+  inside its mount; every terminal opened from it inherited them, and `PYTHONHOME` alone is enough
+  to make any `python3` in a pane die with `Fatal Python error: Failed to import encodings module`.
+  A variable that points into the mount is restored to the value `AppRun` stashed before the
+  launch, or trimmed to the entries that live outside it, and the mount's own bookkeeping is
+  dropped. The `.deb` and Windows builds are unaffected.
+
 ## [2.13.3] — 2026-08-31
 
 ### Fixed

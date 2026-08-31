@@ -10,6 +10,7 @@ const os = require('node:os')
 const fs = require('node:fs')
 const path = require('node:path')
 const { loginEnv, mergePath } = require('./login-env.cjs')
+const { clearInheritedAgentSession, stripAppImageEnv } = require('./pty-env.cjs')
 const {
   inspectSpawnHelper,
   prepareSpawnHelper,
@@ -156,7 +157,16 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
     cols: cols ?? 80,
     rows: rows ?? 24,
     cwd: spawnCwd,
-    env: { ...process.env, ...LOGIN_ENV, ...(env ?? {}), PATH: SPAWN_PATH, TERM: 'xterm-256color' },
+    // Both inherited layers are scrubbed: the app's own environment when it was
+    // started from an agent pane, and the login-shell dump, which is captured
+    // from that same environment and cached on disk for a day. What the caller
+    // asks for explicitly still wins.
+    env: {
+      ...stripAppImageEnv(clearInheritedAgentSession({ ...process.env, ...LOGIN_ENV })),
+      ...(env ?? {}),
+      PATH: SPAWN_PATH,
+      TERM: 'xterm-256color',
+    },
   }
   let child
   try {
