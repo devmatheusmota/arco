@@ -765,6 +765,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2132.note1':
+    'A Codex pane takes the name of its conversation, the way a Claude pane already did. Until now it sat under the placeholder it was created with — “codex” — for the whole session, however far the work went, because the sidebar only ever asked Claude what a conversation was called. It now reads the name Codex gives the thread and follows it as Codex renames it, showing the first thing you typed while the thread is still unnamed.',
+  'whatsNew.v2132.note2':
+    'Codex history and resume work again. Codex files each conversation in a folder by date, and Arco was looking only at the top of that folder, where there is nothing but the year — so it concluded you had no Codex sessions at all. Recent chats came up empty, and a pane reopened after a restart started a new conversation instead of coming back to the one it had. Sessions already on disk are found from now on; conversations you had before this update are back in the list.',
+  'whatsNew.v2132.note3':
+    'The Codex usage widget shows real numbers again. Codex renamed the fields it reports quota through, so Arco read nothing it recognized and drew a flat 0% with no reset time — while `/status` inside Codex reported the quota correctly. Both spellings are read now, so the widget also keeps working if the Codex on your machine is older.',
   'whatsNew.v2131.note1':
     'Terminals start on macOS \u2014 this time for the reason that was actually breaking them. Quarantine, which the last fix cleared, was never it: the terminal engine finds the helper it starts a shell through by rewriting `app.asar` into `app.asar.unpacked` inside its own path, and Arco already loads it from the unpacked directory, so the suffix was written twice. Every terminal died with \u201cposix_spawnp failed.\u201d while looking under `app.asar.unpacked.unpacked`, where nothing exists, and clearing the flag the message blamed changed nothing. The rewrite now happens at most once, and a test refuses to package an installer without it. Nothing to do on Linux or Windows.',
   'whatsNew.v2130.note1':

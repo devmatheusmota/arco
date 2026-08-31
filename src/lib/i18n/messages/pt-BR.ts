@@ -777,6 +777,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2132.note1':
+    'O painel do Codex passa a levar o nome da conversa, como o do Claude já levava. Até agora ele ficava com o rótulo com que foi criado — “codex” — a sessão inteira, por mais longe que o trabalho fosse, porque a barra lateral só perguntava ao Claude como uma conversa se chamava. Agora ela lê o nome que o Codex dá à thread e acompanha os renomes; enquanto a thread não tem nome, mostra a primeira coisa que você digitou.',
+  'whatsNew.v2132.note2':
+    'O histórico e a retomada de sessões do Codex voltaram a funcionar. O Codex guarda cada conversa numa pasta por data, e o Arco olhava só o topo dessa pasta, onde não há nada além do ano — e concluía que você não tinha sessão nenhuma do Codex. As conversas recentes apareciam vazias, e um painel reaberto depois de reiniciar começava uma conversa nova em vez de voltar para a que tinha. As sessões que já estão no disco passam a ser encontradas; as conversas anteriores a esta atualização voltam para a lista.',
+  'whatsNew.v2132.note3':
+    'O widget de uso do Codex volta a mostrar números reais. O Codex renomeou os campos por onde informa a cota, então o Arco não reconhecia nada e desenhava 0% sem horário de reset — enquanto o `/status` dentro do Codex mostrava a cota certa. Agora as duas grafias são lidas, então o widget continua funcionando também se o Codex da sua máquina for mais antigo.',
   'whatsNew.v2131.note1':
     'Os terminais abrem no macOS \u2014 desta vez pelo motivo que realmente os quebrava. A quarentena, que a correção anterior limpava, nunca foi a causa: o motor de terminal acha o binário auxiliar por onde inicia o shell reescrevendo `app.asar` como `app.asar.unpacked` dentro do próprio caminho, e o Arco já o carrega da pasta desempacotada, então o sufixo era escrito duas vezes. Todo terminal morria com “posix_spawnp failed.” procurando em `app.asar.unpacked.unpacked`, onde não existe nada, e limpar a marca que a mensagem acusava não mudava coisa alguma. Agora a reescrita acontece no máximo uma vez, e um teste recusa empacotar um instalador sem ela. No Linux e no Windows não muda nada.',
   'whatsNew.v2130.note1':

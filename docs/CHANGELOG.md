@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.13.2] — 2026-08-31
+
 ### Fixed
 
 - Codex panes take the name of the conversation, the way Claude panes already did. A Codex pane
