@@ -765,6 +765,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2133.note1':
+    'The activity graph works again. It was reading a number the backend never sent, so the card said “NaN messages” over a grid where every single day was painted as a peak. Days are counted from each message’s own timestamp now — a conversation you pick up today no longer drags its whole history onto today — quiet days show as gaps instead of shifting the whole grid sideways, and Codex and OpenCode are counted next to Claude, which the card always claimed to do.',
+  'whatsNew.v2133.note2':
+    'Time & focus shows your day instead of zeros. Every tick of the tracker was being written to disk raw and never added up, so a full day of work reported 0m across active focus, agent wall time, background work and focused idle. It adds up as it goes now, keeping wall-clock time apart from agent time — two agents working through the same minute spend one minute of your day and two of theirs. The ticks still on disk are folded in, so today and yesterday come back; days older than that were already lost to the old file’s size cap.',
+  'whatsNew.v2133.note3':
+    'Memory analytics stops crying wolf on a Mac. It announced that “Windows memory is critically low” — wrong on the name, and wrong on the alarm: available memory was read as pages nothing had touched, which on macOS is near zero by design, so a healthy 16 GB machine looked like it had 419 MB left. Both are fixed, and terminals report their real memory there too, instead of 0.0 MB each with the app appearing to hold everything.',
   'whatsNew.v2132.note1':
     'A Codex pane takes the name of its conversation, the way a Claude pane already did. Until now it sat under the placeholder it was created with — “codex” — for the whole session, however far the work went, because the sidebar only ever asked Claude what a conversation was called. It now reads the name Codex gives the thread and follows it as Codex renames it, showing the first thing you typed while the thread is still unnamed.',
   'whatsNew.v2132.note2':

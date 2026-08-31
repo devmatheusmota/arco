@@ -777,6 +777,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2133.note1':
+    'O gráfico de atividade voltou a funcionar. Ele lia um número que o backend nunca mandava, então o card dizia “NaN mensagens” sobre uma grade em que todo dia aparecia como pico. Agora os dias são contados pelo horário de cada mensagem — conversa que você retoma hoje não arrasta mais o histórico inteiro para hoje — dia parado aparece como vazio em vez de deslocar a grade toda, e Codex e OpenCode entram na conta junto com o Claude, como o card sempre prometeu.',
+  'whatsNew.v2133.note2':
+    'O tempo & foco mostra o seu dia em vez de zeros. Cada leitura do medidor era gravada crua em disco e nunca somada, então um dia inteiro de trabalho aparecia como 0m em foco ativo, tempo de agente, trabalho em segundo plano e ociosidade. Agora a soma acontece na hora, mantendo o tempo de relógio separado do tempo de agente — dois agentes trabalhando no mesmo minuto gastam um minuto do seu dia e dois do deles. As leituras que ainda estavam no disco entraram na conta, então hoje e ontem voltam; dias mais antigos já haviam se perdido no limite de tamanho do arquivo antigo.',
+  'whatsNew.v2133.note3':
+    'O analytics de memória para de dar alarme falso no Mac. Ele anunciava que “a memória do Windows está criticamente baixa” — errado no nome e errado no alarme: a memória disponível era lida como as páginas que ninguém tocou, o que no macOS é quase zero por natureza, e aí uma máquina saudável de 16 GB parecia estar com 419 MB. Os dois foram corrigidos, e os terminais também passam a informar a memória real por lá, em vez de 0.0 MB cada um com o app parecendo segurar tudo.',
   'whatsNew.v2132.note1':
     'O painel do Codex passa a levar o nome da conversa, como o do Claude já levava. Até agora ele ficava com o rótulo com que foi criado — “codex” — a sessão inteira, por mais longe que o trabalho fosse, porque a barra lateral só perguntava ao Claude como uma conversa se chamava. Agora ela lê o nome que o Codex dá à thread e acompanha os renomes; enquanto a thread não tem nome, mostra a primeira coisa que você digitou.',
   'whatsNew.v2132.note2':

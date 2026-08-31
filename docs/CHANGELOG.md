@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.13.3] — 2026-08-31
+
 ### Fixed
 
 - The activity heatmap counts messages again, instead of reading `NaN` and painting every day
