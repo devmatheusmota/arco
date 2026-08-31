@@ -19,7 +19,22 @@ const { collectFromArgv } = require('./pending-open.cjs')
 const { applyLoginEnv } = require('./login-env.cjs')
 const { explainHostFailure } = require('./pty-host-failure.cjs')
 const { unpackedPath } = require('./unpacked-path.cjs')
-const { handleCli, handlesCli } = require('./cli.cjs')
+const { handleCli, handlesCli, mistypedFlag } = require('./cli.cjs')
+
+// A mistyped flag — `arco --hlep` — named no subcommand and no directory, so it
+// fell through to "open what was asked for", found nothing, and exited 0 having
+// done nothing at all. The window layer it started on the way is what wrote
+// libX11's authorization warning over that empty answer. Saying what is wrong
+// costs no display: this runs before the event loop, so the platform is never
+// initialized, the same reason the subcommand path below can exit cleanly.
+const mistyped = mistypedFlag(process.argv)
+if (mistyped) {
+  fs.writeSync(
+    2,
+    `arco: opcao desconhecida: ${mistyped}\nUse "arco --help" para ver os comandos.\n`,
+  )
+  process.exit(2)
+}
 
 /**
  * The subcommand entry the app binary runs as Node.

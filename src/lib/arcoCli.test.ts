@@ -14,6 +14,7 @@ const {
   statusOf,
   handlesCli,
   manifestCandidates,
+  mistypedFlag,
 } = require('../../electron/cli.cjs') as {
   parseTodo: (args: string[]) => Record<string, unknown>
   parseTodoImplicit: (args: string[]) => Record<string, unknown>
@@ -25,6 +26,7 @@ const {
   statusOf: (todo: unknown) => string
   handlesCli: (argv: string[]) => boolean
   manifestCandidates: (dir: string) => string[]
+  mistypedFlag: (argv: string[]) => string | null
 }
 
 describe('parseTodo', () => {
@@ -324,5 +326,48 @@ describe('manifestCandidates', () => {
     expect(manifestCandidates('/home/mota/projetos/apps/arco/electron')).toEqual([
       '/home/mota/projetos/apps/arco/package.json',
     ])
+  })
+})
+
+describe('mistypedFlag', () => {
+  // `arco --hlep` exited 0 having done nothing, after starting the window layer
+  // to look for a directory named after the typo — which is where libX11's
+  // authorization warning came from. Naming the flag never touches a display.
+  it('names a flag the CLI does not know', () => {
+    expect(mistypedFlag(['/opt/Arco/arco', '--hlep'])).toBe('--hlep')
+    expect(mistypedFlag(['/opt/Arco/arco', '-x'])).toBe('-x')
+  })
+
+  it('leaves the flags the CLI does know', () => {
+    expect(mistypedFlag(['/opt/Arco/arco', '--help'])).toBeNull()
+    expect(mistypedFlag(['/opt/Arco/arco', '-v'])).toBeNull()
+    expect(mistypedFlag(['/opt/Arco/arco', '--open-path', '/tmp'])).toBeNull()
+  })
+
+  // Chromium's switch surface is too large to list, so they pass by shape. The
+  // two `npm run app` sends must never read as a typo.
+  it("lets Chromium's own switches through", () => {
+    expect(
+      mistypedFlag(['electron', '--no-sandbox', '--disable-gpu-sandbox', 'electron/main.cjs']),
+    ).toBeNull()
+    expect(mistypedFlag(['/opt/Arco/arco', '--ozone-platform=wayland'])).toBeNull()
+  })
+
+  // The boot smoke caught this: `todo list --json` read as a typo on `--json`
+  // and exited 2. A subcommand owns its own options and refuses the ones it
+  // does not know itself, naming the command they belong to.
+  it("leaves a subcommand's own options to the subcommand", () => {
+    expect(mistypedFlag(['/opt/Arco/arco', 'todo', 'list', '--json'])).toBeNull()
+    expect(
+      mistypedFlag(['electron', 'electron/main.cjs', '--no-sandbox', 'todo', 'list', '--json']),
+    ).toBeNull()
+    expect(mistypedFlag(['/opt/Arco/arco', 'session', '--agent', 'claude'])).toBeNull()
+    expect(mistypedFlag(['/opt/Arco/arco', 'todo', 'add', 'x', '--taag', 'y'])).toBeNull()
+  })
+
+  it('stays out of the way when there is a directory to open', () => {
+    expect(mistypedFlag(['/opt/Arco/arco'])).toBeNull()
+    expect(mistypedFlag(['/opt/Arco/arco', '/tmp'])).toBeNull()
+    expect(mistypedFlag(['/opt/Arco/arco', '--hlep', '/tmp'])).toBeNull()
   })
 })

@@ -625,6 +625,75 @@ function handlesCli(rawArgv) {
 }
 
 /**
+ * Switches that belong to Chromium or to how the app is launched, rather than to
+ * the command line a person types. Matched by prefix: Chromium's surface is far
+ * too large to list, and everything in it is shaped like one of these.
+ */
+const PASSTHROUGH_PREFIXES = [
+  '--open-path',
+  '--enable-',
+  '--disable-',
+  '--no-',
+  '--ozone-',
+  '--use-',
+  '--force-',
+  '--in-process-',
+  '--user-data-dir',
+  '--remote-',
+  '--proxy-',
+  '--headless',
+  '--inspect',
+  '--lang',
+  '--log-',
+  '--trace-',
+  '--class',
+  '--gtk-',
+  '--v=',
+  '--vmodule=',
+]
+
+/**
+ * The mistyped flag this argv carries, if there is one and nothing to open.
+ *
+ * `arco --hlep` used to fall through to "open what was asked for", find nothing
+ * to open, and exit 0 having done nothing — after starting the window layer on
+ * the way, which is what wrote libX11's authorization warning over that empty
+ * answer. A typo is a usage error, and naming it costs no display at all.
+ *
+ * Deciding on the outcome rather than on the position of the arguments is what
+ * makes this hold in both layouts: packaged, argv is the binary and the user's
+ * words; from a checkout, Electron's own path and the script sit in front. A
+ * launch with a directory to open is the app starting normally whatever else
+ * rides along, and Chromium's switches are let through by shape — `npm run app`
+ * passes two of them.
+ */
+function mistypedFlag(rawArgv) {
+  // A subcommand owns its own options — `todo list --json`, `session --agent` —
+  // and refuses the ones it does not know with a message that can name the
+  // command it belongs to. Reading those here called `--json` a typo and turned
+  // every `arco todo list --json` into exit 2.
+  if (handlesCli(rawArgv)) return null
+  const args = rawArgv.slice(1)
+  const unknown = args.find(
+    (argument) =>
+      argument.startsWith('-') &&
+      !HELP.has(argument) &&
+      !VERSION.has(argument) &&
+      !PASSTHROUGH_PREFIXES.some((prefix) => argument.startsWith(prefix)),
+  )
+  if (!unknown) return null
+  const opens = args.some((argument) => {
+    if (argument.startsWith('-')) return false
+    try {
+      return fs.statSync(path.resolve(argument)).isDirectory()
+    } catch {
+      return false
+    }
+  })
+  return opens ? null : unknown
+}
+
+/**
  * Runs a subcommand and exits, or returns false so the caller starts the app.
  *
  * `exit` comes from the caller because leaving through `process.exit` kills the
@@ -663,6 +732,7 @@ module.exports = {
   handleCli,
   handlesCli,
   manifestCandidates,
+  mistypedFlag,
   USAGE,
   parseSession,
   parseTodo,
