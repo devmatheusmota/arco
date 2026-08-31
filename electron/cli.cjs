@@ -542,16 +542,31 @@ const HANDLED = new Set(['todo', 'session'])
 const HELP = new Set(['--help', '-h', 'help'])
 const VERSION = new Set(['--version', '-v', 'version'])
 
+/**
+ * Where the manifest can be, in the order worth trying.
+ *
+ * Running as plain Node there is no `app` to ask the version, and this file sits
+ * in `app.asar.unpacked/electron/` — a directory that holds the unpacked files
+ * and nothing else. The manifest never leaves the archive, so the packed path
+ * has to be tried too, or `arco --version` answers "desconhecida" about itself.
+ */
+function manifestCandidates(dir) {
+  const unpacked = path.join(dir, '..', 'package.json')
+  const packed = unpacked.replace(/app\.asar\.unpacked/, 'app.asar')
+  return packed === unpacked ? [unpacked] : [unpacked, packed]
+}
+
 /** The packaged version, read from Electron when it is up and from the manifest otherwise. */
 function appVersion() {
   try {
     return require('electron').app.getVersion()
   } catch {}
-  try {
-    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version
-  } catch {
-    return 'desconhecida'
+  for (const candidate of manifestCandidates(__dirname)) {
+    try {
+      return JSON.parse(fs.readFileSync(candidate, 'utf8')).version
+    } catch {}
   }
+  return 'desconhecida'
 }
 
 /**
@@ -647,6 +662,7 @@ function handleCli(rawArgv, exit = process.exit) {
 module.exports = {
   handleCli,
   handlesCli,
+  manifestCandidates,
   USAGE,
   parseSession,
   parseTodo,

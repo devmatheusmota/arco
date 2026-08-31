@@ -13,6 +13,7 @@ const {
   formatTodoDetail,
   statusOf,
   handlesCli,
+  manifestCandidates,
 } = require('../../electron/cli.cjs') as {
   parseTodo: (args: string[]) => Record<string, unknown>
   parseTodoImplicit: (args: string[]) => Record<string, unknown>
@@ -23,6 +24,7 @@ const {
   formatTodoDetail: (todo: unknown, projectName?: string | null) => string
   statusOf: (todo: unknown) => string
   handlesCli: (argv: string[]) => boolean
+  manifestCandidates: (dir: string) => string[]
 }
 
 describe('parseTodo', () => {
@@ -304,5 +306,23 @@ describe('handlesCli', () => {
     ]) {
       expect(handlesCli(argv), argv.join(' ')).toBe(false)
     }
+  })
+})
+
+describe('manifestCandidates', () => {
+  // `arco --version` answered "desconhecida" about itself in 2.13.5: run as
+  // plain Node there is no `app` to ask, and the only path tried was the
+  // unpacked directory, which carries the electron/ files and no manifest.
+  it('also looks inside the archive when running from the unpacked directory', () => {
+    expect(manifestCandidates('/opt/Arco/resources/app.asar.unpacked/electron')).toEqual([
+      '/opt/Arco/resources/app.asar.unpacked/package.json',
+      '/opt/Arco/resources/app.asar/package.json',
+    ])
+  })
+
+  it('offers the one path there is when nothing is packed', () => {
+    expect(manifestCandidates('/home/mota/projetos/apps/arco/electron')).toEqual([
+      '/home/mota/projetos/apps/arco/package.json',
+    ])
   })
 })
