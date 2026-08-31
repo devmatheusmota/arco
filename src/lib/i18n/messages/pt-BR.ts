@@ -777,6 +777,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2136.note1':
+    'O `arco --version` volta a dizer a vers\u00e3o. Desde a 2.13.5 os subcomandos de terminal respondem sem subir a camada gr\u00e1fica do app, e a vers\u00e3o era a \u00fanica coisa que ainda vinha de l\u00e1 \u2014 ent\u00e3o o comando respondia \u201carco desconhecida\u201d sobre si mesmo, enquanto a linha de baixo, com a vers\u00e3o do app aberto, continuava certa. Nada mais foi afetado.',
   'whatsNew.v2135.note1':
     'O comando `arco` n\u00e3o sobe mais a camada gr\u00e1fica do app s\u00f3 para responder. `arco todo`, `arco session`, `arco help` e `arco --version` compartilham o bin\u00e1rio do app, ent\u00e3o cada invoca\u00e7\u00e3o subia o motor do navegador a caminho de uma pergunta que n\u00e3o desenha nada. Num desktop Wayland cujo cookie de autoriza\u00e7\u00e3o do X foi reciclado \u2014 o estado normal de uma sess\u00e3o GNOME depois de um tempo \u2014 isso imprimia \u201cAuthorization required, but no authorization protocol specified\u201d por cima da sa\u00edda do pr\u00f3prio comando, e qualquer agente ou script que capturasse a sa\u00edda lia como falha um comando que tinha funcionado. Onde n\u00e3o h\u00e1 desktop nenhum, como num cron ou numa sess\u00e3o ssh, o comando morria sem imprimir nada. Os subcomandos agora rodam sem a camada gr\u00e1fica: sa\u00edda limpa, e um pouco mais r\u00e1pidos. Abrir uma pasta e iniciar uma sess\u00e3o continuam iguais.',
   'whatsNew.v2134.note1':

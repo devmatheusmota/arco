@@ -765,6 +765,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2136.note1':
+    '`arco --version` tells you the version again. Since 2.13.5 the terminal subcommands answer without starting the app\u2019s window layer, and the version was the one thing still being read from it \u2014 so the command answered \u201carco desconhecida\u201d about itself, while the line below it, naming the version of the app you have open, stayed correct. Nothing else was affected.',
   'whatsNew.v2135.note1':
     'The `arco` command no longer starts the app\u2019s window layer just to answer. `arco todo`, `arco session`, `arco help` and `arco --version` share the app binary, so each one used to bring up the browser engine on its way to a question that draws nothing. On a Wayland desktop whose X authorization cookie had been recycled \u2014 the normal state of a GNOME session after a while \u2014 that printed \u201cAuthorization required, but no authorization protocol specified\u201d on top of the command\u2019s own output, so an agent or script capturing it read a command that had worked as a failure. Where there is no desktop at all, such as a cron job or an ssh session, the command died without printing anything. Subcommands now run without the window layer: clean output, and slightly faster. Opening a folder and starting a session are unchanged.',
   'whatsNew.v2134.note1':

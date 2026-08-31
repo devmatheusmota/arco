@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.13.6] — 2026-08-31
+
+### Fixed
+
+- `arco --version` reports the version again instead of `desconhecida`. Answering a
+  subcommand no longer starts Electron, so there is no `app` object to ask, and the fallback
+  looked for the manifest next to the file it was running from — which inside a package is
+  `app.asar.unpacked/`, a directory holding the unpacked files and nothing else. The manifest
+  never leaves the archive, so the packed path is tried too. The line below it, naming the
+  version of the app that is actually open, was always right; only the binary's own number
+  was missing.
+
 ## [2.13.5] — 2026-08-31
 
 ### Fixed
