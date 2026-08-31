@@ -10,6 +10,24 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.13.5] — 2026-08-31
+
+### Fixed
+
+- `arco todo`, `arco session`, `arco help` and `arco --version` no longer start the window
+  layer to answer. They share the app binary, so every invocation used to bring up Chromium
+  on the way to a question that draws nothing. On a Wayland session whose xauth cookie had
+  been recycled that printed `Authorization required, but no authorization protocol
+  specified` over the command's own stderr, so a subcommand that answered correctly and
+  exited 0 read as a failure to any agent or script capturing `2>&1`. Worse, where there is
+  no display at all — cron, a systemd unit, ssh without forwarding — Chromium exited on
+  `The platform failed to initialize` and the subcommand died on a signal having printed
+  nothing. Turning the graphical parts off from inside the process was too late to help: the
+  display backend is chosen when the event loop first runs, which is exactly what answering
+  over HTTP needs. The subcommand now runs in a plain Node process, which has no window layer
+  to initialize, and comes back marginally faster than before. Opening a directory and
+  starting a session are unchanged.
+
 ## [2.13.4] — 2026-08-31
 
 ### Fixed

@@ -765,6 +765,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2135.note1':
+    'The `arco` command no longer starts the app\u2019s window layer just to answer. `arco todo`, `arco session`, `arco help` and `arco --version` share the app binary, so each one used to bring up the browser engine on its way to a question that draws nothing. On a Wayland desktop whose X authorization cookie had been recycled \u2014 the normal state of a GNOME session after a while \u2014 that printed \u201cAuthorization required, but no authorization protocol specified\u201d on top of the command\u2019s own output, so an agent or script capturing it read a command that had worked as a failure. Where there is no desktop at all, such as a cron job or an ssh session, the command died without printing anything. Subcommands now run without the window layer: clean output, and slightly faster. Opening a folder and starting a session are unchanged.',
   'whatsNew.v2134.note1':
     'Sessions started after opening Arco from a terminal that was already running an agent are their own sessions again. Arco passed on the markers the agent CLI sets for its own children, so every new pane read them as parentage: it announced that transcript saving was off, reused the session id of the conversation that launched the app, and \u2014 with nothing written to disk to read a name from \u2014 sat in the sidebar as \u201cclaude\u201d instead of taking the name of what it was doing. Panes are new sessions, not children, so those markers stay behind. Sessions you already opened this way cannot be recovered, since nothing was recorded; new ones are fine.',
   'whatsNew.v2134.note2':
