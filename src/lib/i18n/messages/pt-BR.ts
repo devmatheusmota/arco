@@ -777,6 +777,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2134.note1':
+    'Sess\u00f5es abertas depois de iniciar o Arco por um terminal que j\u00e1 rodava um agente voltam a ser sess\u00f5es pr\u00f3prias. O Arco repassava os marcadores que a CLI do agente usa para os filhos dela, e cada aba nova lia aquilo como paternidade: avisava que o transcript estava desligado, reaproveitava o id da conversa que abriu o app e \u2014 sem nada gravado em disco de onde tirar um nome \u2014 ficava na barra lateral como \u201cclaude\u201d em vez de assumir o nome do que estava fazendo. Aba \u00e9 sess\u00e3o nova, n\u00e3o filha, ent\u00e3o esses marcadores ficam para tr\u00e1s. As sess\u00f5es que voc\u00ea j\u00e1 abriu assim n\u00e3o t\u00eam como ser recuperadas, porque nada foi gravado; as novas ficam certas.',
+  'whatsNew.v2134.note2':
+    'Terminais do build AppImage voltam a rodar `python3`. O pacote aponta as vari\u00e1veis do pr\u00f3prio runtime para dentro do ponto de montagem que ele descompacta, e todo terminal aberto a partir dele herdava isso \u2014 o bastante para qualquer Python morrer no in\u00edcio com \u201cFailed to import encodings module\u201d e para outras ferramentas carregarem as bibliotecas do pacote em vez das suas. Agora o terminal come\u00e7a do seu ambiente, n\u00e3o do ambiente do pacote. Os builds .deb e Windows nunca foram afetados.',
   'whatsNew.v2133.note1':
     'O gráfico de atividade voltou a funcionar. Ele lia um número que o backend nunca mandava, então o card dizia “NaN mensagens” sobre uma grade em que todo dia aparecia como pico. Agora os dias são contados pelo horário de cada mensagem — conversa que você retoma hoje não arrasta mais o histórico inteiro para hoje — dia parado aparece como vazio em vez de deslocar a grade toda, e Codex e OpenCode entram na conta junto com o Claude, como o card sempre prometeu.',
   'whatsNew.v2133.note2':

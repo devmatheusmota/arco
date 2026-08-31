@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.13.4] — 2026-08-31
+
 ### Fixed
 
 - Terminals no longer inherit the agent session that started the app. Launching Arco from a

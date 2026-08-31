@@ -765,6 +765,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2134.note1':
+    'Sessions started after opening Arco from a terminal that was already running an agent are their own sessions again. Arco passed on the markers the agent CLI sets for its own children, so every new pane read them as parentage: it announced that transcript saving was off, reused the session id of the conversation that launched the app, and \u2014 with nothing written to disk to read a name from \u2014 sat in the sidebar as \u201cclaude\u201d instead of taking the name of what it was doing. Panes are new sessions, not children, so those markers stay behind. Sessions you already opened this way cannot be recovered, since nothing was recorded; new ones are fine.',
+  'whatsNew.v2134.note2':
+    'Terminals in the AppImage build can run `python3` again. The bundle points its own runtime variables inside the mount it unpacks itself into, and every terminal opened from it inherited them \u2014 enough for any Python to die on startup with \u201cFailed to import encodings module\u201d, and for other tools to load the bundle\u2019s libraries instead of yours. A terminal now starts from your environment, not the bundle\u2019s. The .deb and Windows builds were never affected.',
   'whatsNew.v2133.note1':
     'The activity graph works again. It was reading a number the backend never sent, so the card said “NaN messages” over a grid where every single day was painted as a peak. Days are counted from each message’s own timestamp now — a conversation you pick up today no longer drags its whole history onto today — quiet days show as gaps instead of shifting the whole grid sideways, and Codex and OpenCode are counted next to Claude, which the card always claimed to do.',
   'whatsNew.v2133.note2':
