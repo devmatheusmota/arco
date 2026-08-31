@@ -19,12 +19,23 @@ const { collectFromArgv } = require('./pending-open.cjs')
 const { applyLoginEnv } = require('./login-env.cjs')
 const { explainHostFailure } = require('./pty-host-failure.cjs')
 const { unpackedPath } = require('./unpacked-path.cjs')
-const { handleCli } = require('./cli.cjs')
+const { handleCli, handlesCli } = require('./cli.cjs')
 
 // `arco todo` / `arco session` are answered here and the process exits. They
 // used to live only in the shell shim, so when that file was missing the
 // subcommand reached the binary, matched nothing, and fell through to opening a
 // window — the command hung instead of answering.
+//
+// Those subcommands share the app binary, so Chromium's browser process is
+// already up by the time this file runs and cannot be opted out of from here.
+// What can is the GPU process it launches a moment later: that one opens a
+// connection to the display, and on a Wayland session whose xauth cookie has
+// been recycled libX11 writes "Authorization required, but no authorization
+// protocol specified" straight to the stderr we inherited — so a `arco todo
+// list` that answered correctly and exited 0 reads as a failure to anything
+// capturing 2>&1. Nothing on this path draws, so the GPU process has no work to
+// do; refusing it is what keeps the output clean.
+if (handlesCli(process.argv)) app.disableHardwareAcceleration()
 if (handleCli(process.argv, (code) => app.exit(code))) return
 
 // Launched from the desktop entry, the app inherits a bare environment: agent

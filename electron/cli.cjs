@@ -598,6 +598,18 @@ function userArgs(argv) {
 }
 
 /**
+ * Whether this argv names a terminal subcommand rather than a window to open.
+ *
+ * The caller needs the answer before `handleCli` runs: these subcommands share
+ * the app binary, so Chromium is already coming up, and the parts of it that
+ * reach the display have to be turned off before they get there.
+ */
+function handlesCli(rawArgv) {
+  const [command] = userArgs(rawArgv)
+  return HELP.has(command) || VERSION.has(command) || HANDLED.has(command)
+}
+
+/**
  * Runs a subcommand and exits, or returns false so the caller starts the app.
  *
  * `exit` comes from the caller because leaving through `process.exit` kills the
@@ -634,6 +646,7 @@ function handleCli(rawArgv, exit = process.exit) {
 
 module.exports = {
   handleCli,
+  handlesCli,
   USAGE,
   parseSession,
   parseTodo,

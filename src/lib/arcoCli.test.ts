@@ -12,6 +12,7 @@ const {
   formatTodoReceipt,
   formatTodoDetail,
   statusOf,
+  handlesCli,
 } = require('../../electron/cli.cjs') as {
   parseTodo: (args: string[]) => Record<string, unknown>
   parseTodoImplicit: (args: string[]) => Record<string, unknown>
@@ -21,6 +22,7 @@ const {
   formatTodoReceipt: (verb: string, todo: unknown) => string
   formatTodoDetail: (todo: unknown, projectName?: string | null) => string
   statusOf: (todo: unknown) => string
+  handlesCli: (argv: string[]) => boolean
 }
 
 describe('parseTodo', () => {
@@ -268,5 +270,37 @@ describe('--session', () => {
     expect(detail).toContain('sessao')
     expect(detail).toContain('bbbbbbbb claude (claude)')
     expect(formatTodoDetail({ id: 'x', title: 'sem', tags: [] })).toMatch(/sessao\s+-/)
+  })
+})
+
+describe('handlesCli', () => {
+  // The shell reads this answer before Electron reaches the display: a terminal
+  // subcommand runs with the GPU process off, so libX11 never gets the chance
+  // to print an authorization warning over the command's own output.
+  it('claims every subcommand the binary answers by itself', () => {
+    for (const argv of [
+      ['/opt/Arco/arco', 'todo', 'list'],
+      ['/opt/Arco/arco', 'session', '--agent', 'claude'],
+      ['/opt/Arco/arco', '--version'],
+      ['/opt/Arco/arco', '-v'],
+      ['/opt/Arco/arco', 'version'],
+      ['/opt/Arco/arco', 'help'],
+      ['/opt/Arco/arco', '--help'],
+      ['/opt/Arco/arco', '-h'],
+      ['electron', '.', 'todo', 'show', 'abc'],
+    ]) {
+      expect(handlesCli(argv), argv.join(' ')).toBe(true)
+    }
+  })
+
+  it('leaves the launches that open a window to the app', () => {
+    for (const argv of [
+      ['/opt/Arco/arco'],
+      ['/opt/Arco/arco', '.'],
+      ['/opt/Arco/arco', '/home/mota/projetos'],
+      ['/opt/Arco/arco', '--no-sandbox', '/tmp'],
+    ]) {
+      expect(handlesCli(argv), argv.join(' ')).toBe(false)
+    }
   })
 })

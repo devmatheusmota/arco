@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- Terminal subcommands no longer print an X11 warning over their own output. `arco todo`,
+  `arco session`, `arco help` and `arco --version` share the app binary, so Chromium comes up
+  before Arco reads the arguments, and a moment later it launched a GPU process that opened a
+  connection to the display. On a Wayland session whose xauth cookie has been recycled — the
+  normal state of a GNOME desktop after a while — libX11 answered with `Authorization required,
+  but no authorization protocol specified` on the command's stderr, so a successful `arco todo
+  list` looked like a failure to any script or agent capturing `2>&1`. Nothing on that path
+  draws, so the GPU process is now refused when the binary was started to answer a subcommand,
+  and stderr carries only what the command itself has to say.
+
 ## [2.13.1] — 2026-08-26
 
 ### Fixed
