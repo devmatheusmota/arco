@@ -33,6 +33,67 @@ const state = {
   lastSuspendedId: null,
 }
 
+/**
+ * Memory the machine can still hand out, in MB.
+ *
+ * `os.freemem()` answers a different question — how much is completely
+ * untouched — and that is the wrong one on both platforms this ships to. Linux
+ * counts page cache as used, and macOS keeps almost nothing free at all, so a
+ * healthy 16 GB Mac reported 419 MB and the dialog called it critically low.
+ * Linux has the right number already computed in `MemAvailable`; on macOS it is
+ * the pages the kernel can reclaim on demand — free, inactive, speculative and
+ * purgeable — which is what `vm_stat` breaks out. Anything else keeps the old
+ * reading, which is at least a lower bound.
+ */
+function systemAvailableMb() {
+  if (process.platform === 'linux') {
+    try {
+      const match = /^MemAvailable:\s+(\d+) kB$/m.exec(fs.readFileSync('/proc/meminfo', 'utf8'))
+      if (match) return Number(match[1]) / 1024
+    } catch {
+      // A kernel without MemAvailable, or a container hiding /proc.
+    }
+  }
+  if (process.platform === 'darwin') {
+    const pages = machVmPages()
+    if (pages) {
+      const reclaimable = pages.free + pages.inactive + pages.speculative + pages.purgeable
+      return Math.min((reclaimable * pages.pageSize) / 1048576, os.totalmem() / 1048576)
+    }
+  }
+  return os.freemem() / 1048576
+}
+
+const VM_STAT_TTL_MS = 5_000
+let vmStatCache = { at: 0, pages: null }
+
+/** Page counts from `vm_stat`, cached for a sampling cycle. */
+function machVmPages() {
+  const now = Date.now()
+  if (vmStatCache.pages && now - vmStatCache.at < VM_STAT_TTL_MS) return vmStatCache.pages
+  let output
+  try {
+    output = require('node:child_process').execFileSync('/usr/bin/vm_stat', {
+      encoding: 'utf8',
+      timeout: 2_000,
+    })
+  } catch {
+    return null
+  }
+  const pageSize = Number(/page size of (\d+) bytes/.exec(output)?.[1] ?? 4096)
+  const count = (label) => Number(new RegExp(`^${label}:\\s+(\\d+)\\.`, 'm').exec(output)?.[1] ?? 0)
+  const pages = {
+    pageSize,
+    free: count('Pages free'),
+    inactive: count('Pages inactive'),
+    speculative: count('Pages speculative'),
+    purgeable: count('Pages purgeable'),
+  }
+  if (!pages.free && !pages.inactive) return null
+  vmStatCache = { at: now, pages }
+  return pages
+}
+
 function readProc(pid, file) {
   try {
     return fs.readFileSync(`/proc/${pid}/${file}`, 'utf8')
@@ -41,8 +102,60 @@ function readProc(pid, file) {
   }
 }
 
+const PS_TTL_MS = 2_000
+let psCache = { at: 0, table: null }
+
+/**
+ * The process table on a system without `/proc`.
+ *
+ * Everything below reads `/proc`, which only Linux has — so on macOS every
+ * lookup failed, each terminal reported zero processes and zero megabytes, and
+ * the dashboard concluded the app held 100% of the memory it could see. `ps`
+ * carries the same four facts in one call, so it is read once per sampling
+ * cycle and shared, rather than spawned per process.
+ */
+function parsePsTable(output) {
+  const table = new Map()
+  for (const line of output.split('\n')) {
+    const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\S.*)$/.exec(line)
+    if (!match) continue
+    // `comm` is the executable path on macOS and the bare name on Linux.
+    const command = match[5].trim()
+    table.set(Number(match[1]), {
+      parentPid: Number(match[2]) || null,
+      // `ps` reports resident size in kilobytes.
+      workingSetMb: Number(match[3]) / 1024,
+      cpuPercent: Number(match[4]) || 0,
+      name: command.split('/').pop() || command,
+    })
+  }
+  return table
+}
+
+function psTable() {
+  const now = Date.now()
+  if (psCache.table && now - psCache.at < PS_TTL_MS) return psCache.table
+  let output
+  try {
+    output = require('node:child_process').execFileSync(
+      '/bin/ps',
+      ['-axo', 'pid=,ppid=,rss=,pcpu=,comm='],
+      { encoding: 'utf8', timeout: 4_000, maxBuffer: 8 * 1024 * 1024 },
+    )
+  } catch {
+    // Keep the last table rather than reporting an empty machine.
+    return psCache.table ?? new Map()
+  }
+  const table = parsePsTable(output)
+  psCache = { at: now, table }
+  return table
+}
+
+const USES_PROC = process.platform === 'linux'
+
 /** Resident size in MB, from statm — two numbers, no parsing cost. */
 function workingSetMb(pid) {
+  if (!USES_PROC) return psTable().get(Number(pid))?.workingSetMb ?? 0
   const statm = readProc(pid, 'statm')
   if (!statm) return 0
   const resident = Number(statm.split(' ')[1])
@@ -55,6 +168,10 @@ function workingSetMb(pid) {
  * refreshed per sample.
  */
 function privateCommitMb(pid, budget) {
+  // Only Linux breaks a process's memory into shared and private cheaply.
+  // Elsewhere the resident size is the honest answer, and `effectiveMemoryMb`
+  // takes the larger of the two anyway.
+  if (!USES_PROC) return workingSetMb(pid)
   const cached = privateCache.get(pid)
   const now = Date.now()
   if (cached && now - cached.at < PRIVATE_TTL_MS) return cached.value
@@ -79,6 +196,11 @@ function privateCommitMb(pid, budget) {
 
 /** Process name and parent, straight out of /proc/<pid>/stat. */
 function processInfo(pid) {
+  if (!USES_PROC) {
+    const entry = psTable().get(Number(pid))
+    // `ps` measures CPU itself, so there are no ticks to difference here.
+    return entry ? { name: entry.name, parentPid: entry.parentPid, cpuTicks: null } : null
+  }
   const stat = readProc(pid, 'stat')
   if (!stat) return null
   const open = stat.indexOf('(')
@@ -96,6 +218,7 @@ function processInfo(pid) {
 
 /** CPU share since the previous sample of this same process. */
 function cpuPercent(pid, ticks) {
+  if (ticks === null) return psTable().get(Number(pid))?.cpuPercent ?? 0
   const now = Date.now()
   const previous = cpuCache.get(pid)
   cpuCache.set(pid, { ticks, at: now })
@@ -108,18 +231,25 @@ function cpuPercent(pid, ticks) {
 /** Every pid in the tree rooted at `pid`, itself included. */
 function processTree(pid) {
   const children = new Map()
-  let entries
-  try {
-    entries = fs.readdirSync('/proc')
-  } catch {
-    return []
+  const link = (parentPid, child) => {
+    if (!parentPid) return
+    if (!children.has(parentPid)) children.set(parentPid, [])
+    children.get(parentPid).push(child)
   }
-  for (const entry of entries) {
-    if (!/^\d+$/.test(entry)) continue
-    const info = processInfo(entry)
-    if (!info?.parentPid) continue
-    if (!children.has(info.parentPid)) children.set(info.parentPid, [])
-    children.get(info.parentPid).push(Number(entry))
+
+  if (!USES_PROC) {
+    for (const [child, entry] of psTable()) link(entry.parentPid, child)
+  } else {
+    let entries
+    try {
+      entries = fs.readdirSync('/proc')
+    } catch {
+      return []
+    }
+    for (const entry of entries) {
+      if (!/^\d+$/.test(entry)) continue
+      link(processInfo(entry)?.parentPid, Number(entry))
+    }
   }
   const tree = [pid]
   const queue = [pid]
@@ -196,7 +326,7 @@ function buildResourceCommands({ ptyHost }) {
       ptys_mb: ptysMb,
       process_count: chromium.count + ptys.reduce((total, e) => total + e.processCount, 0),
       system_total_mb: os.totalmem() / 1048576,
-      system_available_mb: os.freemem() / 1048576,
+      system_available_mb: systemAvailableMb(),
     }
     return { memory, ptys, ptysMb, chromium }
   }
@@ -309,4 +439,4 @@ function buildResourceCommands({ ptyHost }) {
   }
 }
 
-module.exports = { buildResourceCommands }
+module.exports = { buildResourceCommands, parsePsTable, systemAvailableMb }

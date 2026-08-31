@@ -34,6 +34,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   critical-memory banner, the two diagnostics and the three health bodies. They name the machine
   now. The one line that still says Windows is the orphan-process guard, which really is a
   Windows Job Object.
+- The low-memory warning stops firing on a machine that has plenty. Available memory was read
+  from `os.freemem()`, which counts only pages nothing has touched — on macOS that is close to
+  zero by design, so a healthy 16 GB Mac was reported as having 419 MB left and the dialog called
+  it critical. Linux answers with `MemAvailable` and macOS adds up the pages the kernel can
+  reclaim, which is what both systems mean by available.
+- Terminals report their real memory on macOS. Every per-process number came from `/proc`, which
+  only Linux has, so each terminal showed zero processes and 0.0 MB, and the breakdown concluded
+  the app itself held 100% of the memory in use. The process table is read from `ps` where there
+  is no `/proc` — one call per sampling cycle, shared across every terminal.
 - The dashboard no longer freezes the terminals while it refreshes. Reading a quarter of a year
   of transcripts took about three seconds, and it ran in one blocking pass in the process that
   also carries every keystroke and every byte of terminal output. The scan now yields as it goes:
