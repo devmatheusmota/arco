@@ -12,6 +12,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Fixed
 
+- Codex panes take the name of the conversation, the way Claude panes already did. A Codex pane
+  sat under the placeholder it was created with — `codex` — for the life of the session, because
+  the sidebar only ever asked Claude for a title. It now reads the thread name Codex writes in
+  `session_index.jsonl`, updating as Codex renames the thread, and falls back to the first prompt
+  someone typed while the thread is still unnamed.
+- Codex history, resume and pane naming find the sessions on disk again. Codex files a
+  conversation under `sessions/<year>/<month>/<day>`, and Arco was listing only the top of that
+  directory, where there is nothing but the year — so every lookup answered "no sessions". Recent
+  chats came up empty for Codex, a reopened pane could not resume the conversation it had, and a
+  new one never learned its own session id. The listing now walks the tree, keeps the sessions
+  started in the project's directory, and reads each conversation's id from its own header.
 - Terminal subcommands no longer print an X11 warning over their own output. `arco todo`,
   `arco session`, `arco help` and `arco --version` share the app binary, so Chromium comes up
   before Arco reads the arguments, and a moment later it launched a GPU process that opened a

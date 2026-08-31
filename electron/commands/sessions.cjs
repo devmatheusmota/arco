@@ -150,6 +150,193 @@ function sessionTitle(cwd, sessionId) {
   return meta.title ?? meta.first_user_prompt
 }
 
+// ── Codex transcripts ─────────────────────────────────────────────────────
+
+function codexSessionsDir() {
+  return path.join(os.homedir(), '.codex', 'sessions')
+}
+
+/** Codex nests a rollout under `sessions/<year>/<month>/<day>`, so the walk recurses. */
+function collectJsonlFiles(dir, out = [], depth = 0) {
+  if (depth > 6) return out
+  let entries
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return out
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) collectJsonlFiles(full, out, depth + 1)
+    else if (entry.name.endsWith('.jsonl')) out.push(full)
+  }
+  return out
+}
+
+/** Reads the head of a file, up to the first newline. */
+function readFirstLine(file, maxBytes = 64 * 1024) {
+  let fd
+  try {
+    fd = fs.openSync(file, 'r')
+  } catch {
+    return null
+  }
+  try {
+    const chunk = Buffer.allocUnsafe(maxBytes)
+    const read = fs.readSync(fd, chunk, 0, maxBytes, 0)
+    if (read <= 0) return null
+    const text = chunk.toString('utf8', 0, read)
+    const index = text.indexOf('\n')
+    return index === -1 ? text : text.slice(0, index)
+  } catch {
+    return null
+  } finally {
+    fs.closeSync(fd)
+  }
+}
+
+/**
+ * The id and working directory a rollout opens with, memoized by path.
+ *
+ * The snapshot runs on every spawn and again on the timer that waits for a new
+ * session to appear, while Codex keeps every project's rollouts in one tree —
+ * re-reading all of them each pass is what that costs. A rollout never changes
+ * its own header, so the first read is the only one a file needs.
+ */
+const codexMetaByFile = new Map()
+
+function codexSessionMeta(file) {
+  const cached = codexMetaByFile.get(file)
+  if (cached !== undefined) return cached
+  const line = readFirstLine(file)
+  let meta = null
+  if (line) {
+    try {
+      const entry = JSON.parse(line)
+      const payload = entry?.type === 'session_meta' ? entry.payload : null
+      const id = payload?.id ?? payload?.session_id
+      if (typeof id === 'string' && typeof payload?.cwd === 'string') {
+        meta = { id, cwd: payload.cwd }
+      }
+    } catch {
+      // A rollout truncated mid-write has no header to read yet.
+    }
+  }
+  // Only a header that parsed is worth keeping. Caching its absence would pin a
+  // session created moments before this pass as unreadable for the rest of the
+  // run, which is exactly the session the discovery timer is waiting for.
+  if (meta) codexMetaByFile.set(file, meta)
+  return meta
+}
+
+/** Compares two working directories the way the platform compares paths. */
+function normalizeCwd(cwd) {
+  const trimmed = (cwd ?? '').trim().replace(/[\\/]+$/, '')
+  return process.platform === 'win32' ? trimmed.replace(/\//g, '\\').toLowerCase() : trimmed
+}
+
+/** Every Codex session started in `cwd`, newest first. */
+function snapshotCodexSessions(cwd) {
+  const target = normalizeCwd(cwd)
+  if (!target) return []
+
+  const files = collectJsonlFiles(codexSessionsDir())
+    .map((file) => {
+      let stats
+      try {
+        stats = fs.statSync(file)
+      } catch {
+        return null
+      }
+      return { file, modified_at_ms: stats.mtimeMs, size_bytes: stats.size }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.modified_at_ms - a.modified_at_ms)
+
+  const seen = new Set()
+  const sessions = []
+  for (const entry of files) {
+    const meta = codexSessionMeta(entry.file)
+    if (!meta || normalizeCwd(meta.cwd) !== target || seen.has(meta.id)) continue
+    seen.add(meta.id)
+    sessions.push({
+      id: meta.id,
+      cwd: meta.cwd,
+      modified_at_ms: entry.modified_at_ms,
+      size_bytes: entry.size_bytes,
+    })
+  }
+  return sessions
+}
+
+/** The rollout of one session, found by the id its file name carries. */
+function codexSessionFile(sessionId) {
+  const files = collectJsonlFiles(codexSessionsDir())
+  const named = files.filter((file) => path.basename(file).includes(sessionId))
+  for (const file of named.length > 0 ? named : files) {
+    if (codexSessionMeta(file)?.id === sessionId) return file
+  }
+  return null
+}
+
+/**
+ * `# AGENTS.md instructions`, `<skill>` and `<environment_context>` reach the
+ * model as user messages but are injected by the CLI, and naming a session
+ * after one of them says nothing about the conversation.
+ */
+function isTypedCodexPrompt(text) {
+  return !text.startsWith('<') && !text.startsWith('# AGENTS.md')
+}
+
+/** The earliest thing someone typed into a rollout. */
+function codexFirstPrompt(file) {
+  let prompt = null
+  forEachLine(file, (line, truncated) => {
+    if (prompt !== null || truncated || !line.includes('"role":"user"')) return
+    let entry
+    try {
+      entry = JSON.parse(line)
+    } catch {
+      return
+    }
+    const payload = entry?.payload
+    if (payload?.type !== 'message' || payload.role !== 'user') return
+    const content = Array.isArray(payload.content) ? payload.content : []
+    const text = content.find((part) => typeof part?.text === 'string')?.text?.trim()
+    if (text && isTypedCodexPrompt(text)) prompt = text.slice(0, 240)
+  })
+  return prompt
+}
+
+/**
+ * The name a Codex session shows in the sidebar.
+ *
+ * Codex names a thread in `session_index.jsonl` and appends a line every time
+ * it renames one, so the last entry for an id is the current name. Before the
+ * first one the earliest typed prompt is the best label there is — the same
+ * order `sessionTitle` follows for Claude.
+ */
+function codexSessionTitle(sessionId) {
+  if (!sessionId || /[/\\]/.test(sessionId)) return null
+
+  let title = null
+  forEachLine(path.join(os.homedir(), '.codex', 'session_index.jsonl'), (line, truncated) => {
+    if (truncated || !line.includes(sessionId)) return
+    try {
+      const entry = JSON.parse(line)
+      if (entry?.id !== sessionId) return
+      const value = String(entry.thread_name ?? '').trim()
+      if (value) title = value
+    } catch {
+      // A line written while the index is read is skipped, not fatal.
+    }
+  })
+  if (title) return title
+
+  const file = codexSessionFile(sessionId)
+  return file ? codexFirstPrompt(file) : null
+}
+
 function readJsonl(file, limit = 40) {
   try {
     const lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean)
@@ -276,15 +463,23 @@ function buildSessionCommands() {
   const empty = () => []
   return {
     snapshot_claude_sessions: ({ cwd }) => snapshotDir(claudeProjectDir(cwd ?? os.homedir())),
-    snapshot_codex_sessions: () => snapshotDir(path.join(os.homedir(), '.codex', 'sessions')),
+    snapshot_codex_sessions: ({ cwd }) => snapshotCodexSessions(cwd ?? os.homedir()),
     snapshot_opencode_sessions: empty,
     snapshot_antigravity_sessions: empty,
     list_claude_sessions: ({ cwd }) => listClaudeSessions(claudeProjectDir(cwd ?? os.homedir())),
     get_claude_session_title: ({ cwd, sessionId }) => sessionTitle(cwd, sessionId),
+    get_codex_session_title: ({ sessionId }) => codexSessionTitle(sessionId),
 
     // Usage and cost reporting are read-only dashboards; report "no data"
     // rather than failing, until they are ported.
   }
 }
 
-module.exports = { buildSessionCommands, isInteractive, listClaudeSessions, readSessionMeta }
+module.exports = {
+  buildSessionCommands,
+  codexSessionTitle,
+  isInteractive,
+  listClaudeSessions,
+  readSessionMeta,
+  snapshotCodexSessions,
+}

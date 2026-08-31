@@ -92,6 +92,11 @@ export async function getClaudeSessionTitle(
   return invoke<string | null>('get_claude_session_title', { cwd, sessionId })
 }
 
+/** Codex keeps every project's rollouts in one tree, so the id alone finds it. */
+export async function getCodexSessionTitle(sessionId: string): Promise<string | null> {
+  return invoke<string | null>('get_codex_session_title', { sessionId })
+}
+
 // --- OpenCode Sessions ---
 
 export type OpenCodeSessionSnapshot = {
