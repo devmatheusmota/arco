@@ -171,6 +171,7 @@ export function createTerminalsSlice({
             )
             return get().createTerminal(projectId, {
               name: args.name,
+              nameSource: args.nameSource,
               cwd: info.path,
               firstTab: { ...args.firstTab, cwd: info.path },
               worktreeAgentId: agentId,
@@ -241,8 +242,11 @@ export function createTerminalsSlice({
       return pane
     },
 
+    // `nameSource` is what makes the rename visible: the sidebar prefers a name
+    // someone typed over the title the agent generated, and without the marker
+    // it cannot tell one from the other.
     renameTerminal: (projectId, terminalId, name) =>
-      updateTerminal(projectId, terminalId, (t) => ({ ...t, name })),
+      updateTerminal(projectId, terminalId, (t) => ({ ...t, name, nameSource: 'user' })),
 
     markGsdSyncViewer: (projectId, terminalId) =>
       updateTerminal(projectId, terminalId, (t) =>

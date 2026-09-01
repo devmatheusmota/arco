@@ -202,6 +202,15 @@ export type BrowserPaneOptions = BrowserPaneConfig & {
 export type Terminal = {
   id: string
   name: string
+  /**
+   * Where `name` came from, which is what lets the sidebar decide whether to
+   * trust it over the title the agent generated for the conversation.
+   *
+   * `'auto'` is a placeholder the app picked (the agent's own label); `'task'`
+   * is the title of the task the session was started for; `'user'` is a name
+   * someone typed. Absent means a file written before this was recorded.
+   */
+  nameSource?: 'user' | 'task' | 'auto'
   cwd: string
   tabs: SubTab[]
   activeTabId: string

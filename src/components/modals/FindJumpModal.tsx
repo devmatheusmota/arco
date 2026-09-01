@@ -1,12 +1,14 @@
-import { Bot, Boxes, Code2, Gift, Sparkles, Terminal, type LucideIcon } from 'lucide-react'
+import { Bot, Boxes, Code2, Gift, type LucideIcon, Sparkles, Terminal } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { peekCachedChatTitle } from '../../hooks/useSidebarChatTitle'
+import { useT } from '../../lib/i18n'
+import { sessionDisplayLabel } from '../../lib/sessionLabel'
+import type { AgentType } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
-import type { AgentType } from '../../lib/types'
-import { useT } from '../../lib/i18n'
-import { Modal } from './Modal'
 import controls from './controls.module.css'
+import { Modal } from './Modal'
 
 const ICONS: Record<AgentType, LucideIcon> = {
   shell: Terminal,
@@ -23,7 +25,10 @@ type Hit = {
   projectId: string
   projectName: string
   terminalId: string
+  /** What the sidebar shows for this pane. */
   terminalName: string
+  /** The stored name, still searchable so a rename finds its pane either way. */
+  rawName: string
   type: AgentType
   cwd: string
 }
@@ -56,7 +61,11 @@ export function FindJumpModal() {
           projectId: p.id,
           projectName: p.name,
           terminalId: term.id,
-          terminalName: term.name,
+          // The same name the sidebar draws. Searching `term.name` while the
+          // sidebar showed the conversation title meant reading a name on
+          // screen, typing it here, and finding nothing.
+          terminalName: sessionDisplayLabel(term, peekCachedChatTitle(active)) || term.name,
+          rawName: term.name,
           type: active?.type ?? 'shell',
           cwd: active?.cwd ?? term.cwd,
         }
@@ -65,7 +74,9 @@ export function FindJumpModal() {
     const q = query.trim().toLowerCase()
     if (!q) return all.slice(0, 50)
     return all
-      .filter((h) => `${h.projectName} ${h.terminalName} ${h.cwd}`.toLowerCase().includes(q))
+      .filter((h) =>
+        `${h.projectName} ${h.terminalName} ${h.rawName} ${h.cwd}`.toLowerCase().includes(q),
+      )
       .slice(0, 50)
   }, [projects, query])
 

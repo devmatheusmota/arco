@@ -119,6 +119,7 @@ export function TaskSessionModal() {
 
       const terminal = await store.createAgentTerminal(project.id, {
         name: sessionName(todo.title),
+        nameSource: 'task',
         cwd: finalCwd,
         worktree,
         firstTab: {

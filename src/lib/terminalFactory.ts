@@ -52,6 +52,7 @@ export function rememberWorkspaceTab(
 
 export function makeDefaultTerminal(args: {
   name: string
+  nameSource?: Terminal['nameSource']
   cwd: string
   firstTab: {
     type: AgentType
@@ -69,6 +70,7 @@ export function makeDefaultTerminal(args: {
   return {
     id: nanoid(),
     name: args.name,
+    nameSource: args.nameSource ?? 'auto',
     cwd: args.cwd,
     activeTabId: tabId,
     disabled: false,

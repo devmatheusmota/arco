@@ -3,6 +3,7 @@ import { FileText, MoreHorizontal } from 'lucide-react'
 
 import { useSidebarChatTitle } from '../../hooks/useSidebarChatTitle'
 import { useT } from '../../lib/i18n'
+import { sessionDisplayLabel } from '../../lib/sessionLabel'
 import { type AgentType, type Project, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
@@ -40,7 +41,7 @@ export function NormalTerminalNode({
 
   const activeTab = terminal.tabs.find((tab) => tab.id === terminal.activeTabId) ?? terminal.tabs[0]
   const chatTitle = useSidebarChatTitle(activeTab)
-  const displayName = chatTitle ?? activeTab?.name ?? terminal.name
+  const displayName = sessionDisplayLabel(terminal, chatTitle)
   const uniqueTypes = Array.from(new Set(terminal.tabs.map((tab) => tab.type))) as AgentType[]
   const orderedTypes =
     activeTab && uniqueTypes.length > 1

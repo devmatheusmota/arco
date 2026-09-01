@@ -336,8 +336,15 @@ async function handleSession(request: SessionRequest): Promise<CliResult> {
     }
   }
 
+  // `--name` is somebody typing a name; without it the pane takes the task's
+  // title when there is one, and falls back to the agent's own label.
+  const requestedName = request.name?.trim()
+  const paneName = requestedName || target?.title?.trim() || agent
+  const paneNameSource = requestedName ? 'user' : target ? 'task' : 'auto'
+
   const terminal = await store.createAgentTerminal(projectId, {
-    name: request.name?.trim() || agent,
+    name: paneName,
+    nameSource: paneNameSource,
     cwd,
     worktree: normalizeWorktree(request.worktree),
     firstTab: {

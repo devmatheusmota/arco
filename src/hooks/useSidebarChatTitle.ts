@@ -28,6 +28,22 @@ function cacheKey(agent: TitledAgent, cwd: string, sessionId: string): string {
   return `${agent} ${cwd.trim().toLowerCase()} ${sessionId}`
 }
 
+/**
+ * The title already in the cache, without subscribing to it.
+ *
+ * Find/Jump lists every pane at once, so it cannot call the hook per row — but
+ * it has to show the name the sidebar shows, or a name read on screen cannot be
+ * found by typing it. The sidebar has almost always populated this cache by the
+ * time the palette opens; when it has not, the caller falls back to the pane's
+ * own name, which is what it used to show anyway.
+ */
+export function peekCachedChatTitle(tab: SubTab | undefined): string | null {
+  const type = tab?.type
+  const agent = type === 'claude' || type === 'codex' ? type : null
+  if (!agent || !tab?.sessionId || !tab.cwd) return null
+  return titlesByKey.get(cacheKey(agent, tab.cwd, tab.sessionId))?.title ?? null
+}
+
 function compactTitle(value: string | null | undefined): string | null {
   const title = value?.replace(/\s+/g, ' ').trim()
   return title || null

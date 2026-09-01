@@ -3,6 +3,7 @@ import { Columns2, Plus, X } from 'lucide-react'
 
 import { useSidebarChatTitle } from '../../hooks/useSidebarChatTitle'
 import { useT } from '../../lib/i18n'
+import { sessionDisplayLabel } from '../../lib/sessionLabel'
 import { completeAgentHandoff } from '../../lib/tauri'
 import type { Project, SubTab, Terminal, Theme, WorkspaceContainer } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
@@ -54,7 +55,7 @@ function PaneTab({
   // bar reads the same source, or every Claude session of a project reads
   // "claude" and nothing tells them apart.
   const chatTitle = useSidebarChatTitle(entry.tab)
-  const label = chatTitle ?? entry.label
+  const label = sessionDisplayLabel(entry.pane, chatTitle) || entry.label
   const draggable = useDraggable({ id: `pane:${entry.pane.id}` })
   const droppable = useDroppable({ id: `pane:${entry.pane.id}` })
   const setRefs = (node: HTMLElement | null) => {

@@ -12,6 +12,16 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Fixed
 
+- Sessions are named after what they are for. The sidebar showed the title the agent wrote
+  for the conversation and, failing that, the literal word `claude` — so a session started
+  from a task threw away the task's own title, and renaming a pane appeared to do nothing
+  at all, because the rename wrote the one field the sidebar reached last. A pane now
+  records where its name came from and prefers, in order: the name you typed, the task it
+  was started for, the conversation's title, and only then the agent's label. Find/Jump and
+  the tab bar read the same name, so a name you see on screen is a name you can search for.
+  Titles that are only the context the agent echoed back — `Base directory for this
+  skill: …` — no longer take the row, and a path is shortened from the front, keeping the
+  part that says which one it is.
 - The "response ready" mark on a session stops piling up. It survived a restart — the mark
   is saved with the project file while the agent that raised it dies with the session — so
   every launch restored a wall of badges for panes that had nothing left to read. And

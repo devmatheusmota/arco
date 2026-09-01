@@ -180,6 +180,7 @@ export type ProjectsState = ProjectsFile & {
     projectId: string,
     args: {
       name: string
+      nameSource?: Terminal['nameSource']
       cwd: string
       firstTab: {
         type: AgentType
@@ -198,6 +199,7 @@ export type ProjectsState = ProjectsFile & {
     projectId: string,
     args: {
       name: string
+      nameSource?: Terminal['nameSource']
       cwd: string
       /**
        * Isolation for this session alone. `inherit` follows the project's

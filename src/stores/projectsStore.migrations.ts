@@ -487,6 +487,13 @@ function migrateToV9(parsed: any): ProjectsFile {
  * that had died with the last session, and the sidebar showed them for panes
  * that could not have anything to read. The mark only means something while the
  * process that raised it is still around.
+ *
+ * It also records where each pane's name came from. Until now nothing did, so
+ * the sidebar could not tell a name someone typed from the placeholder the app
+ * picked, and preferred the agent's generated title over both. Existing panes
+ * are backfilled as `'auto'`: the file does not say who named them, and
+ * assuming a deliberate name would pin a placeholder like "Claude Code" to the
+ * top of the precedence for good.
  */
 function migrateToV10(parsed: any): ProjectsFile {
   const v9 = migrateToV9(parsed)
@@ -499,6 +506,7 @@ function migrateToV10(parsed: any): ProjectsFile {
       ...project,
       terminals: (project.terminals ?? []).map((terminal) => ({
         ...terminal,
+        nameSource: terminal.nameSource ?? 'auto',
         tabs: (terminal.tabs ?? []).map(({ completionUnread, ...tab }) => tab),
       })),
     })),
