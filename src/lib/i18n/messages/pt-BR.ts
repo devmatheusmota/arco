@@ -786,6 +786,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2143.note1':
+    'O quadro agora mostra quais tarefas j\u00e1 t\u00eam sess\u00e3o rodando, e um clique duplo leva at\u00e9 ela. A coluna sozinha n\u00e3o dizia \u2014 uma tarefa fica em Em andamento tendo ou n\u00e3o algo rodando \u2014 ent\u00e3o o cart\u00e3o com sess\u00e3o viva ganha um marcador e uma borda acesa, cheia enquanto o agente trabalha e apagada enquanto espera. Clique duas vezes no cart\u00e3o e voc\u00ea cai no pane; um clique s\u00f3 continua iniciando o arrasto, e o Enter faz o mesmo pelo teclado.',
   'whatsNew.v2142.note1':
     'As linhas de tarefa voltaram ao lugar. A seta adicionada na 2.14.0 ocupou um espa\u00e7o que a linha n\u00e3o tinha, e tudo depois dela andou uma casa: a caixa de marcar foi parar no lugar do t\u00edtulo e a contagem de sess\u00f5es caiu para uma linha pr\u00f3pria, virando um n\u00famero solto embaixo de cada tarefa.',
   'whatsNew.v2141.note1':

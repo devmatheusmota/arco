@@ -774,6 +774,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2143.note1':
+    'The board now shows which tasks already have a session running, and a double click takes you to it. The column alone could not tell you \u2014 a task sits in In progress whether or not anything is running for it \u2014 so a card with a live session carries a marker and a lit edge, filled while the agent is working and dim while it waits. Double-click that card and you land in the pane; a single click still starts a drag, and Enter does the same from the keyboard.',
   'whatsNew.v2142.note1':
     'Task rows line up again. The arrow added in 2.14.0 took a place the row had no room for, so everything after it shifted one slot: the checkbox sat in the title\u2019s space and the session count dropped onto a line of its own, showing up as a stray number under each task.',
   'whatsNew.v2141.note1':

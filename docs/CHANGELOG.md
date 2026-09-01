@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.14.3] — 2026-09-01
+
+### Added
+
+- Cards on the board show whether a session is already running for the task, and a double
+  click opens it. Which work is already underway was the question the board could not
+  answer — a task sits in "In progress" whether or not anything is running for it — so a
+  card with a live session now carries a marker and a lit edge, filled while the agent is
+  working and dim while it waits. Double-clicking that card goes straight to the pane; a
+  single click still starts a drag, and Enter does the same thing from the keyboard.
+
 ## [2.14.2] — 2026-09-01
 
 ### Fixed
