@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.14.0] — 2026-09-01
+
 ### Added
 
 - A board view for tasks, next to Home in the sidebar. Four columns — to do, in progress,

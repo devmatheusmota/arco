@@ -770,6 +770,14 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2140.note1':
+    'Sessions in the sidebar tell each other apart. The row used to show the title the agent wrote for its conversation and, when there was none, the literal word \u201cclaude\u201d \u2014 so a session you started from a task threw away the task\u2019s own name, and renaming a pane looked like it did nothing at all. A pane now keeps the name you gave it above everything else, then the task it was started for, then the conversation. Titles that were only the context an agent repeated back (\u201cBase directory for this skill\u2026\u201d) no longer take the row, and a folder path is shortened from the front so you keep the part that says which one it is. Find/Jump and the tab bar show the same name, so what you read on screen is what you can search for.',
+  'whatsNew.v2140.note2':
+    'Each session row says when it was last active, and the agent is marked with two letters instead of a logo that was unreadable at that size. The time follows the agent\u2019s own output, so a session working on its own no longer looks untouched. The list deliberately keeps its order \u2014 something that moves while you work is something you have to find again \u2014 so Find/Jump is what lists the most recent first.',
+  'whatsNew.v2140.note3':
+    'The \u201cresponse ready\u201d mark stops piling up. It survived restarts, pointing at agents that had died with the previous session, and visiting a pane only cleared one of its tabs while the row lit up for any of them. Reaching a pane now clears it, from any route \u2014 the keyboard, Find/Jump and jumping from a task cleared nothing before.',
+  'whatsNew.v2140.note4':
+    'New: a board for your tasks, next to Home in the sidebar. Four columns over the tasks you already have, and dragging a card moves it \u2014 the list in the side panel is the same tasks, not a copy. Drop one into In progress and Arco offers a session for it, with the dialog already filled in from the task, so it is one key away. Nothing starts behind an accidental drag, and a task that already has a session takes you to it instead.',
   'whatsNew.v2137.note1':
     'Mistyping an option now gets you an answer. `arco --hlep` used to exit quietly having done nothing at all \u2014 it was read as a folder to open, no folder by that name existed, and the only thing printed was an unrelated X11 warning from the window layer it had started on the way. It now names the option it does not know and exits with an error. Opening a folder, and the switches the app passes itself, are unchanged.',
   'whatsNew.v2136.note1':
