@@ -492,6 +492,9 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.priorityMarker': 'Prioridade: {priority}',
   'todo.status': 'Status',
   'board.title': 'Quadro',
+  'board.openSession': 'Clique duas vezes para abrir a sessao',
+  'board.sessionWorking': 'Sessao trabalhando',
+  'board.sessionIdle': 'Sessao aberta, parada',
   'board.showMore': 'Mostrar mais {count}',
   'board.subtitle':
     'Arraste uma tarefa para move-la. Soltar em Em andamento oferece uma sessao para ela.',

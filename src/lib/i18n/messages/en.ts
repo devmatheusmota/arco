@@ -488,6 +488,9 @@ export const en = {
   'todo.priorityMarker': 'Priority: {priority}',
   'todo.status': 'Status',
   'board.title': 'Board',
+  'board.openSession': 'Double-click to open the session',
+  'board.sessionWorking': 'Session working',
+  'board.sessionIdle': 'Session open, idle',
   'board.showMore': 'Show {count} more',
   'board.subtitle':
     'Drag a task to move it. Dropping one into In progress offers a session for it.',

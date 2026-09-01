@@ -153,6 +153,46 @@
   background: transparent;
 }
 
+/* Title and session marker share the top line; the marker never wraps under it. */
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* A card with a session gets a visible edge, so the answer to "what is already
+   being worked on" survives a glance across four columns. */
+.card[data-session='true'] {
+  border-color: color-mix(in srgb, var(--status-working) 35%, var(--border));
+}
+
+.cardSession {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--status-working);
+}
+.cardSessionDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-working);
+  opacity: 0.55;
+}
+.cardSession[data-working='true'] .cardSessionDot {
+  opacity: 1;
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 1px;
+}
+
 .cardTitle {
   margin: 0;
   font-size: var(--font-size-2);

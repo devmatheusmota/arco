@@ -11,12 +11,14 @@ import {
 import { useMemo, useState } from 'react'
 
 import { useSessionFocus } from '../../hooks/useSessionFocus'
-import { resolveBoardDrop } from '../../lib/boardDrop'
+import { liveSessionOf, resolveBoardDrop } from '../../lib/boardDrop'
 import { useT } from '../../lib/i18n'
 import { normalizeTodoPriority, normalizeTodoStatus } from '../../lib/todos'
 import { TODO_STATUSES, type TodoItem, type TodoStatus } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
+import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
+import { DotmCircular2 } from '../ui/dotm-circular-2'
 import styles from './BoardView.module.css'
 
 // The task board.
@@ -28,7 +30,20 @@ import styles from './BoardView.module.css'
 const CARD = 'card:'
 const COLUMN = 'col:'
 
-function Card({ todo, projectName }: { todo: TodoItem; projectName: string | null }) {
+function Card({
+  todo,
+  projectName,
+  session,
+  working,
+  onOpen,
+}: {
+  todo: TodoItem
+  projectName: string | null
+  session: { projectId: string; terminalId: string } | null
+  working: boolean
+  onOpen: (() => void) | undefined
+}) {
+  const t = useT()
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `${CARD}${todo.id}`,
   })
@@ -41,9 +56,40 @@ function Card({ todo, projectName }: { todo: TodoItem; projectName: string | nul
       {...listeners}
       className={`${styles.card} ${isDragging ? styles.cardDragging : ''}`}
       data-priority={priority}
+      data-session={session ? 'true' : undefined}
+      // A single click is the start of a drag, so opening the session takes two
+      // — the same bargain a file manager makes. The keyboard gets Enter, since
+      // a double click is not something a keyboard can express.
+      onDoubleClick={onOpen}
+      onKeyDown={(event) => {
+        if (!onOpen || event.key !== 'Enter') return
+        event.preventDefault()
+        onOpen()
+      }}
+      tabIndex={onOpen ? 0 : undefined}
+      title={onOpen ? t('board.openSession') : undefined}
     >
       <span className={styles.cardPriority} data-priority={priority} aria-hidden="true" />
-      <p className={styles.cardTitle}>{todo.title}</p>
+      <div className={styles.cardHead}>
+        <p className={styles.cardTitle}>{todo.title}</p>
+        {/* Which tasks are already being worked on is the question the board is
+            asked most, and the status column cannot answer it: a task sits in
+            "in progress" whether or not anything is running for it. */}
+        {session ? (
+          <span
+            className={styles.cardSession}
+            data-working={working ? 'true' : 'false'}
+            title={working ? t('board.sessionWorking') : t('board.sessionIdle')}
+            aria-label={working ? t('board.sessionWorking') : t('board.sessionIdle')}
+          >
+            {working ? (
+              <DotmCircular2 size={12} dotSize={2} cellPadding={1} speed={1.2} />
+            ) : (
+              <span className={styles.cardSessionDot} />
+            )}
+          </span>
+        ) : null}
+      </div>
       {projectName || todo.tags.length > 0 ? (
         <div className={styles.cardMeta}>
           {projectName ? <span className={styles.cardProject}>{projectName}</span> : null}
@@ -67,14 +113,22 @@ function Card({ todo, projectName }: { todo: TodoItem; projectName: string | nul
  */
 const VISIBLE_CARDS = 25
 
+type CardState = {
+  projectName: string | null
+  session: { projectId: string; terminalId: string } | null
+  working: boolean
+}
+
 function Column({
   status,
   todos,
-  projectNameOf,
+  stateOf,
+  onOpen,
 }: {
   status: TodoStatus
   todos: TodoItem[]
-  projectNameOf: (todo: TodoItem) => string | null
+  stateOf: (todo: TodoItem) => CardState
+  onOpen: (session: { projectId: string; terminalId: string }) => void
 }) {
   const t = useT()
   const [showAll, setShowAll] = useState(false)
@@ -93,9 +147,19 @@ function Column({
         <span className={styles.columnCount}>{todos.length}</span>
       </header>
       <div className={styles.columnBody}>
-        {visible.map((todo) => (
-          <Card key={todo.id} todo={todo} projectName={projectNameOf(todo)} />
-        ))}
+        {visible.map((todo) => {
+          const state = stateOf(todo)
+          return (
+            <Card
+              key={todo.id}
+              todo={todo}
+              projectName={state.projectName}
+              session={state.session}
+              working={state.working}
+              onOpen={state.session ? () => onOpen(state.session!) : undefined}
+            />
+          )
+        })}
         {hidden > 0 ? (
           <button type="button" className={styles.columnMore} onClick={() => setShowAll(true)}>
             {t('board.showMore', { count: hidden })}
@@ -128,8 +192,30 @@ export function BoardView() {
     return grouped
   }, [todos])
 
-  const projectNameOf = (todo: TodoItem) =>
-    projects.find((project) => project.id === todo.projectId)?.name ?? null
+  // One pass over the runtime map for the whole board rather than a store
+  // subscription per card: a hundred cards each watching `byPtyId` would
+  // repaint the board on every chunk of PTY output.
+  const workingPanes = useTerminalsStore((state) => {
+    const alive = new Set<string>()
+    for (const project of projects) {
+      for (const terminal of project.terminals) {
+        if (
+          terminal.tabs.some((tab) => tab.ptyId && state.byPtyId[tab.ptyId]?.status === 'working')
+        )
+          alive.add(terminal.id)
+      }
+    }
+    return alive.size ? [...alive].sort().join(' ') : ''
+  })
+
+  const stateOf = (todo: TodoItem): CardState => {
+    const session = liveSessionOf(todo, projects)
+    return {
+      projectName: projects.find((project) => project.id === todo.projectId)?.name ?? null,
+      session,
+      working: Boolean(session && workingPanes.split(' ').includes(session.terminalId)),
+    }
+  }
 
   function onDragEnd(event: DragEndEvent) {
     setDragging(null)
@@ -168,7 +254,8 @@ export function BoardView() {
               key={status}
               status={status}
               todos={byStatus.get(status) ?? []}
-              projectNameOf={projectNameOf}
+              stateOf={stateOf}
+              onOpen={(session) => focusSession(session.projectId, session.terminalId)}
             />
           ))}
         </div>
