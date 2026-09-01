@@ -492,7 +492,11 @@
 .todoRow {
   min-height: var(--size-row);
   display: grid;
-  grid-template-columns: 3px 14px 20px minmax(0, 1fr) auto;
+  /* marker | drag | chevron | check | title | session badge | actions.
+     The badge is conditional; when it is absent the actions take its track and
+     the trailing one collapses. Adding a child without a track here is what
+     pushed the badge onto a second row. */
+  grid-template-columns: 3px 14px 20px 20px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-2) var(--space-1) 0;
