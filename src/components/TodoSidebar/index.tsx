@@ -1,6 +1,7 @@
 import {
   Check,
   ChevronDown,
+  ChevronRight,
   FolderKanban,
   GripVertical,
   ListTodo,
@@ -17,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { type GsdSyncSession, useGsdSyncSessions } from '../../hooks/useGsdSyncSessions'
+import { useSessionFocus } from '../../hooks/useSessionFocus'
 import { pullRequestUrl, workItemUrl } from '../../lib/adoRef'
 import { formatRelativeTimestamp } from '../../lib/greeting'
 import { type TFunction, useT } from '../../lib/i18n'
@@ -77,21 +79,6 @@ function isTerminalWorking(
   byPtyId: Record<string, { status: string }>,
 ): boolean {
   return terminal.tabs.some((tab) => tab.ptyId && byPtyId[tab.ptyId]?.status === 'working')
-}
-
-/** Brings a linked pane to the front, wherever the user currently is. */
-function useSessionFocus() {
-  const setActiveView = useUiStore((state) => state.setActiveView)
-  const setActiveTerminal = useUiStore((state) => state.setActiveTerminal)
-  const requestPaneFocus = useUiStore((state) => state.requestPaneFocus)
-  return (projectId: string, terminalId: string) => {
-    const store = useProjectsStore.getState()
-    store.setActiveProjectOnly(projectId)
-    store.focusWorkspaceTerminal(projectId, terminalId)
-    setActiveTerminal(projectId, terminalId)
-    requestPaneFocus(terminalId)
-    setActiveView('workspace')
-  }
 }
 
 function GsdSyncSection() {
@@ -259,6 +246,16 @@ function TodoRow({
   const priority = normalizeTodoPriority(todo.priority)
   const status = normalizeTodoStatus(todo.status, todo.completed)
 
+  // Where the row goes when clicked. `resolveSessions` already finds the pane by
+  // scanning every project when the link carries no project id — a link written
+  // from the command line often does not — so the resolved project is the one to
+  // trust, not the one the link named. The badge used to do nothing at all in
+  // that case.
+  const jumpTarget = liveSessions.find((session) => session.project) ?? null
+  const goToSession = jumpTarget?.project
+    ? () => focusSession(jumpTarget.project!.id, jumpTarget.link.terminalId)
+    : undefined
+
   const finishEditing = () => {
     if (editTitle.trim()) renameTodo(todo.id, editTitle)
     setEditing(false)
@@ -331,6 +328,19 @@ function TodoRow({
         >
           <GripVertical size={14} />
         </button>
+        {/* Expanding used to be the job of the title, which left the jump to a
+            16px badge on the edge — the small target for the frequent action.
+            The chevron owns the disclosure now, and with it `aria-expanded`. */}
+        <button
+          type="button"
+          className={styles.expandToggle}
+          onClick={onToggleExpanded}
+          aria-expanded={expanded}
+          title={expanded ? t('todo.collapse') : t('todo.expand')}
+          aria-label={expanded ? t('todo.collapse') : t('todo.expand')}
+        >
+          <ChevronRight size={14} className={expanded ? styles.expandToggleOpen : undefined} />
+        </button>
         <button
           type="button"
           className={styles.checkButton}
@@ -362,9 +372,14 @@ function TodoRow({
           <button
             type="button"
             className={styles.titleButton}
-            onClick={onToggleExpanded}
-            aria-expanded={expanded}
-            title={expanded ? t('todo.collapse') : t('todo.expand')}
+            onClick={goToSession ?? onToggleExpanded}
+            title={
+              goToSession
+                ? t('todo.goToSession', { count: liveSessions.length })
+                : expanded
+                  ? t('todo.collapse')
+                  : t('todo.expand')
+            }
           >
             <span className={styles.todoTitleText}>{todo.title}</span>
             <span className={styles.metaRow}>
@@ -402,10 +417,7 @@ function TodoRow({
             data-working={workingCount > 0 ? 'true' : 'false'}
             title={t('todo.goToSession', { count: liveSessions.length })}
             aria-label={t('todo.goToSession', { count: liveSessions.length })}
-            onClick={() => {
-              const target = liveSessions[0]
-              if (target.project) focusSession(target.project.id, target.link.terminalId)
-            }}
+            onClick={goToSession}
           >
             {workingCount > 0 ? (
               <DotmCircular2

@@ -541,6 +541,39 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
+/* The disclosure control. It owns expanding so the row itself can carry the
+   frequent action — reaching the session — instead of the 16px badge. */
+.expandToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  flex: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.expandToggle:hover {
+  background: var(--state-hover);
+  color: var(--fg);
+}
+.expandToggle svg {
+  transition: transform 120ms ease;
+}
+.expandToggleOpen {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expandToggle svg {
+    transition: none;
+  }
+}
+
 .dragHandle {
   width: 13px;
   height: 24px;

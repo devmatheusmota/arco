@@ -12,6 +12,12 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Fixed
 
+- Clicking a task goes to its session. The title expanded the row and the only way to
+  reach the session was a badge on the far edge, so the action you take most often had the
+  smallest target. The row now opens the session when there is one, a chevron of its own
+  expands the details, and a task whose session was started from the command line — where
+  the link often carries no project — is no longer a button that does nothing. Starting a
+  session for a task also moves it to "in progress", which is what starting work means.
 - A session row says when it was last active, and the sidebar keeps its order. Choosing
   between fifteen sessions is mostly a question of which one you were just in, and the row
   had no way to answer it. The time comes from the agent's own output, not only from when

@@ -1,6 +1,7 @@
 import { CircleCheck, Folder, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { useSessionFocus } from '../../hooks/useSessionFocus'
 import { buildCliContextInitialInput } from '../../lib/cliContext'
 import { pickDirectory } from '../../lib/dialog'
 import { useT } from '../../lib/i18n'
@@ -39,9 +40,7 @@ export function TaskSessionModal() {
   const open = useUiStore((state) => state.openModal === 'taskSession')
   const context = useUiStore((state) => state.modalContext) as { todoId?: string } | null
   const closeModal = useUiStore((state) => state.closeModal)
-  const setActiveView = useUiStore((state) => state.setActiveView)
-  const requestPaneFocus = useUiStore((state) => state.requestPaneFocus)
-  const setActiveTerminal = useUiStore((state) => state.setActiveTerminal)
+  const focusSession = useSessionFocus()
   const pushToast = useUiStore((state) => state.pushToast)
 
   const todo = useProjectsStore((state) =>
@@ -136,11 +135,11 @@ export function TaskSessionModal() {
         startedAt: Date.now(),
       })
       if (!todo.projectId) store.setTodoProject(todo.id, project.id)
-      store.setActiveProjectOnly(project.id)
-      store.focusWorkspaceTerminal(project.id, terminal.id)
-      setActiveTerminal(project.id, terminal.id)
-      requestPaneFocus(terminal.id)
-      setActiveView('workspace')
+      // Starting work is what "in progress" means. Without this the board and
+      // the list both keep saying the task has not been picked up, while a
+      // session for it is already running.
+      store.setTodoStatus(todo.id, 'in_progress')
+      focusSession(project.id, terminal.id)
       closeModal()
     } catch (error) {
       pushToast({
