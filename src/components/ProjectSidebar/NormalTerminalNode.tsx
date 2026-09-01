@@ -7,10 +7,11 @@ import { formatRelativeTimestamp } from '../../lib/greeting'
 import { useT } from '../../lib/i18n'
 import { sessionDisplayLabel } from '../../lib/sessionLabel'
 import { type AgentType, type Project, type Terminal } from '../../lib/types'
+import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { Favicon } from '../Favicon'
+import { AgentIcon } from '../icons/AgentIcons'
 import { DotmCircular2 } from '../ui/dotm-circular-2'
-import { AgentMonogram } from './AgentMonogram'
 import styles from './NormalProjectSidebar.module.css'
 
 export type NormalTerminalNodeProps = {
@@ -33,6 +34,9 @@ export function NormalTerminalNode({
   onMenu,
 }: NormalTerminalNodeProps) {
   const t = useT()
+  const terminalTheme = useProjectsStore(
+    (s) => s.preferences.terminalTheme ?? s.preferences.uiTheme,
+  )
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `term:${project.id}:${terminal.id}`,
   })
@@ -107,7 +111,7 @@ export function NormalTerminalNode({
               className={styles.agentIcon}
               style={{ marginLeft: i === 0 ? 0 : 2, zIndex: orderedTypes.length - i }}
             >
-              <AgentMonogram type={type} />
+              <AgentIcon type={type} size={14} theme={terminalTheme} />
             </span>
           ))
         )}

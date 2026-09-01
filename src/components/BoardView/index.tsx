@@ -58,6 +58,15 @@ function Card({ todo, projectName }: { todo: TodoItem; projectName: string | nul
   )
 }
 
+/**
+ * How many cards a column draws before asking.
+ *
+ * The done column holds every task ever finished — ninety-odd here — and
+ * rendering all of them costs a scroll nobody reads and a repaint on every
+ * board update. The rest are one click away.
+ */
+const VISIBLE_CARDS = 25
+
 function Column({
   status,
   todos,
@@ -68,7 +77,10 @@ function Column({
   projectNameOf: (todo: TodoItem) => string | null
 }) {
   const t = useT()
+  const [showAll, setShowAll] = useState(false)
   const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN}${status}` })
+  const visible = showAll ? todos : todos.slice(0, VISIBLE_CARDS)
+  const hidden = todos.length - visible.length
 
   return (
     <section
@@ -81,9 +93,14 @@ function Column({
         <span className={styles.columnCount}>{todos.length}</span>
       </header>
       <div className={styles.columnBody}>
-        {todos.map((todo) => (
+        {visible.map((todo) => (
           <Card key={todo.id} todo={todo} projectName={projectNameOf(todo)} />
         ))}
+        {hidden > 0 ? (
+          <button type="button" className={styles.columnMore} onClick={() => setShowAll(true)}>
+            {t('board.showMore', { count: hidden })}
+          </button>
+        ) : null}
         {todos.length === 0 ? <p className={styles.columnEmpty}>{t('board.emptyColumn')}</p> : null}
       </div>
     </section>

@@ -424,50 +424,7 @@
 }
 
 .terminalHidden .agentIcon,
-.terminalDisabled /* Colour comes from the agent token; the letters carry the identity on their
-   own, so a viewer who cannot separate the hues still reads the pair. */
-.agentMonogram {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 15px;
-  height: 15px;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  border-radius: 3px;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  color: var(--agent-claude);
-  background: var(--agent-claude-soft);
-  flex: none;
-}
-.agentMonogram[data-agent='codex'] {
-  color: var(--agent-codex);
-  background: var(--agent-codex-soft);
-}
-.agentMonogram[data-agent='opencode'] {
-  color: var(--agent-opencode);
-  background: var(--agent-opencode-soft);
-}
-.agentMonogram[data-agent='shell'] {
-  color: var(--agent-shell);
-  background: var(--agent-shell-soft);
-}
-.agentMonogram[data-agent='freebuff'] {
-  color: var(--agent-freebuff);
-  background: var(--agent-freebuff-soft);
-}
-.agentMonogram[data-agent='mimo'] {
-  color: var(--agent-mimo);
-  background: var(--agent-mimo-soft);
-}
-.agentMonogram[data-agent='antigravity'] {
-  color: var(--agent-antigravity);
-  background: var(--agent-antigravity-soft);
-}
-
-.agentIcon {
+.terminalDisabled .agentIcon {
   filter: grayscale(1);
   opacity: 0.6;
 }

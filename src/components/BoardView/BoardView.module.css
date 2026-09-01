@@ -31,8 +31,7 @@
 /* Four columns of equal width. The board scrolls sideways only when the window
    is too narrow to hold them, never because a card is wide. */
 .columns {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(240px, 1fr));
+  display: flex;
   gap: var(--space-5);
   flex: 1;
   min-height: 0;
@@ -40,7 +39,11 @@
   overflow-y: hidden;
 }
 
+/* Equal share of the width, never below a readable card. Below that the board
+   scrolls sideways instead of squeezing the columns. */
 .column {
+  flex: 1 1 0;
+  min-width: 240px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -86,6 +89,21 @@
   min-height: 0;
 }
 
+.columnMore {
+  flex: none;
+  padding: var(--space-3);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-1);
+  cursor: pointer;
+}
+.columnMore:hover {
+  border-color: var(--border-strong);
+  color: var(--fg);
+}
+
 .columnEmpty {
   margin: 0;
   padding: var(--space-5) var(--space-3);
@@ -96,6 +114,10 @@
 
 .card {
   position: relative;
+  /* Without this the column's flex layout squeezes every card when there are
+     many of them — the done column has hundreds, and they collapsed into
+     unreadable strips with the title clipped. */
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

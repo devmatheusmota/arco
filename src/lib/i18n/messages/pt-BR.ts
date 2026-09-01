@@ -492,6 +492,7 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.priorityMarker': 'Prioridade: {priority}',
   'todo.status': 'Status',
   'board.title': 'Quadro',
+  'board.showMore': 'Mostrar mais {count}',
   'board.subtitle':
     'Arraste uma tarefa para move-la. Soltar em Em andamento oferece uma sessao para ela.',
   'board.emptyColumn': 'Nada aqui',
