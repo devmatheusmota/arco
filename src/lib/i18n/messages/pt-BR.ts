@@ -783,6 +783,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2141.note1':
+    'Corre\u00e7\u00f5es do quadro e da barra lateral de ontem. Os cart\u00f5es de uma coluna cheia ficavam espremidos at\u00e9 o t\u00edtulo virar uma tira ileg\u00edvel \u2014 a coluna Conclu\u00edda guarda tudo que voc\u00ea j\u00e1 terminou \u2014 e a primeira coluna aparecia cortada na borda esquerda. Agora as colunas dividem a largura e uma coluna longa para em vinte e cinco cart\u00f5es, com um bot\u00e3o para o resto. O \u00edcone do agente tamb\u00e9m voltou na barra lateral: a marca de duas letras que o substituiu sumia em toda sess\u00e3o n\u00e3o aberta, onde as linhas s\u00e3o desenhadas sem cor. O tempo desde a \u00faltima atividade continua.',
   'whatsNew.v2140.note1':
     'As sess\u00f5es na barra lateral finalmente se distinguem. A linha mostrava o t\u00edtulo que o agente escreveu para a conversa e, na falta dele, a palavra \u201cclaude\u201d \u2014 ent\u00e3o uma sess\u00e3o iniciada a partir de uma tarefa jogava fora o nome da pr\u00f3pria tarefa, e renomear um pane parecia n\u00e3o fazer nada. Agora o pane mant\u00e9m acima de tudo o nome que voc\u00ea deu, depois a tarefa que o originou, depois a conversa. T\u00edtulos que eram s\u00f3 o contexto repetido pelo agente (\u201cBase directory for this skill\u2026\u201d) n\u00e3o ocupam mais a linha, e um caminho de pasta \u00e9 encurtado pela frente, preservando a parte que diz qual \u00e9. O Find/Jump e a barra de abas mostram o mesmo nome, ent\u00e3o o que voc\u00ea l\u00ea na tela \u00e9 o que voc\u00ea consegue buscar.',
   'whatsNew.v2140.note2':

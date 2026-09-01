@@ -10,6 +10,21 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.14.1] — 2026-09-01
+
+### Fixed
+
+- Cards on the board are readable again. A column holding many of them — done holds every
+  task ever finished — squeezed every card until the titles were clipped to a single
+  unreadable strip, and the first column was cut off at the left edge with its heading out
+  of view. Columns now share the width evenly and scroll sideways only when the window is
+  genuinely too narrow, and a column stops after twenty-five cards with a button for the
+  rest, so the done pile no longer costs a repaint nobody reads.
+- The agent icon is back in the sidebar. It had been replaced with a two-letter mark, which
+  looked fine in isolation and washed out in place: sessions that are not open in the
+  workspace are drawn desaturated, and two grey letters carry nothing once the colour is
+  gone. The time since last activity stays.
+
 ## [2.14.0] — 2026-09-01
 
 ### Added

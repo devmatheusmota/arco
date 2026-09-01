@@ -771,6 +771,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2141.note1':
+    'Fixes for yesterday\u2019s board and sidebar. Cards in a busy column were squeezed until their titles were unreadable \u2014 the done column holds every task you ever finished \u2014 and the first column was cut off at the left edge. Columns now share the width and a long one stops after twenty-five cards, with a button for the rest. The agent icon is also back in the sidebar: the two-letter mark that replaced it washed out on every session that is not open, where rows are drawn desaturated. The time since last activity stays.',
   'whatsNew.v2140.note1':
     'Sessions in the sidebar tell each other apart. The row used to show the title the agent wrote for its conversation and, when there was none, the literal word \u201cclaude\u201d \u2014 so a session you started from a task threw away the task\u2019s own name, and renaming a pane looked like it did nothing at all. A pane now keeps the name you gave it above everything else, then the task it was started for, then the conversation. Titles that were only the context an agent repeated back (\u201cBase directory for this skill\u2026\u201d) no longer take the row, and a folder path is shortened from the front so you keep the part that says which one it is. Find/Jump and the tab bar show the same name, so what you read on screen is what you can search for.',
   'whatsNew.v2140.note2':
