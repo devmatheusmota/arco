@@ -424,7 +424,50 @@
 }
 
 .terminalHidden .agentIcon,
-.terminalDisabled .agentIcon {
+.terminalDisabled /* Colour comes from the agent token; the letters carry the identity on their
+   own, so a viewer who cannot separate the hues still reads the pair. */
+.agentMonogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  border-radius: 3px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--agent-claude);
+  background: var(--agent-claude-soft);
+  flex: none;
+}
+.agentMonogram[data-agent='codex'] {
+  color: var(--agent-codex);
+  background: var(--agent-codex-soft);
+}
+.agentMonogram[data-agent='opencode'] {
+  color: var(--agent-opencode);
+  background: var(--agent-opencode-soft);
+}
+.agentMonogram[data-agent='shell'] {
+  color: var(--agent-shell);
+  background: var(--agent-shell-soft);
+}
+.agentMonogram[data-agent='freebuff'] {
+  color: var(--agent-freebuff);
+  background: var(--agent-freebuff-soft);
+}
+.agentMonogram[data-agent='mimo'] {
+  color: var(--agent-mimo);
+  background: var(--agent-mimo-soft);
+}
+.agentMonogram[data-agent='antigravity'] {
+  color: var(--agent-antigravity);
+  background: var(--agent-antigravity-soft);
+}
+
+.agentIcon {
   filter: grayscale(1);
   opacity: 0.6;
 }
@@ -587,6 +630,26 @@
   background: var(--panel-hover);
   color: var(--fg);
   box-shadow: var(--shadow-sm);
+}
+
+/* Relative time sits between the name and the end slot. It is fixed-width and
+   tabular so the column does not jitter as "9 min" becomes "10 min", and it
+   yields the row to the name rather than the other way around: `.terminalName`
+   is the only elastic element here. */
+.rowTime {
+  font-size: var(--font-size-1);
+  line-height: 1;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex: none;
+}
+.terminalRow:hover .rowTime {
+  color: var(--text-secondary);
+}
+.terminalDisabled .rowTime,
+.terminalHidden .rowTime {
+  color: var(--text-quaternary);
 }
 
 .tabCount {

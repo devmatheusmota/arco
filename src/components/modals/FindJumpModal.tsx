@@ -29,6 +29,7 @@ type Hit = {
   terminalName: string
   /** The stored name, still searchable so a rename finds its pane either way. */
   rawName: string
+  lastUsedAt: number
   type: AgentType
   cwd: string
 }
@@ -66,11 +67,17 @@ export function FindJumpModal() {
           // screen, typing it here, and finding nothing.
           terminalName: sessionDisplayLabel(term, peekCachedChatTitle(active)) || term.name,
           rawName: term.name,
+          lastUsedAt: term.lastUsedAt ?? 0,
           type: active?.type ?? 'shell',
           cwd: active?.cwd ?? term.cwd,
         }
       }),
     )
+    // Most recent first. The sidebar deliberately keeps its own order — a tree
+    // that reshuffles as you work destroys the memory of where things were —
+    // so this is where "the one I was just in" belongs.
+    all.sort((a, b) => b.lastUsedAt - a.lastUsedAt)
+
     const q = query.trim().toLowerCase()
     if (!q) return all.slice(0, 50)
     return all

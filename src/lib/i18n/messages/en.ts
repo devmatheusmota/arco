@@ -1082,6 +1082,7 @@ export const en = {
   'time.minutes': '{n}min',
   'time.yesterday': 'yesterday {time}',
   'time.daysAgo': '{n} days',
+  'time.dayAgo': '{n} day',
 
   /* ---- migrated (long tail) ---- */
   'widget.resetting': 'resetting…',
@@ -1445,6 +1446,7 @@ export const en = {
   'ui.terminal.focusMode': 'Focus mode',
   'ui.terminal.showLess': 'Show less',
   'ui.terminal.showMoreActions': 'Show more actions',
+  'ui.terminal.lastActivity': 'Last activity',
   'ui.terminal.moreActions': 'More actions',
   'ui.terminal.processEnded': 'Process ended',
   'ui.terminal.restart': 'Restart',

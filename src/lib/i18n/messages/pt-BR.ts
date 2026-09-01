@@ -1095,6 +1095,7 @@ export const ptBR: Record<MessageKey, string> = {
   'time.minutes': '{n}min',
   'time.yesterday': 'ontem {time}',
   'time.daysAgo': '{n} dias',
+  'time.dayAgo': '{n} dia',
 
   /* ---- migrated (long tail) ---- */
   'widget.resetting': 'resetando…',
@@ -1464,6 +1465,7 @@ export const ptBR: Record<MessageKey, string> = {
   'ui.terminal.focusMode': 'Focus mode',
   'ui.terminal.showLess': 'Mostrar menos',
   'ui.terminal.showMoreActions': 'Mostrar mais ações',
+  'ui.terminal.lastActivity': 'Ultima atividade',
   'ui.terminal.moreActions': 'Mais ações',
   'ui.terminal.processEnded': 'Processo encerrado',
   'ui.terminal.restart': 'Reiniciar',

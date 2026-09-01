@@ -55,3 +55,13 @@ describe('getGreeting', () => {
     expect(getGreeting(new Date('2026-08-08T18:00:00'), 'en')).toBe('Good evening')
   })
 })
+
+describe('formatRelativeTimestamp — a single day', () => {
+  // Two days back reads "2 days"; one used to read "1 days".
+  it('uses the singular for exactly one day', () => {
+    const now = new Date('2026-07-03T09:00:00').getTime()
+    const ts = new Date('2026-07-01T22:00:00').getTime()
+
+    expect(formatRelativeTimestamp(ts, now, 'en')).toBe('1 day')
+  })
+})

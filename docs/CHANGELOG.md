@@ -12,6 +12,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Fixed
 
+- A session row says when it was last active, and the sidebar keeps its order. Choosing
+  between fifteen sessions is mostly a question of which one you were just in, and the row
+  had no way to answer it. The time comes from the agent's own output, not only from when
+  you last clicked — a session working on its own for an hour used to look untouched. The
+  tree deliberately does not reshuffle: an item that moves as you work is an item you have
+  to find again. Find/Jump lists the most recent first instead, which is where that order
+  belongs.
+- Agents are told apart at a glance. The row drew a detailed logo at 14 pixels, where
+  Claude, Codex and Antigravity all reduced to the same smudge; it now carries a two-letter
+  mark in the agent's colour, which stays readable at that size and does not depend on
+  telling the colours apart.
 - Sessions are named after what they are for. The sidebar showed the title the agent wrote
   for the conversation and, failing that, the literal word `claude` — so a session started
   from a task threw away the task's own title, and renaming a pane appeared to do nothing

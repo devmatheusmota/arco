@@ -65,6 +65,8 @@ export function formatRelativeTimestamp(
     return translate(locale, 'time.yesterday', { time: `${h}:${m}` })
   }
   const diffDays = Math.floor(diffMs / 86_400_000)
-  if (diffDays < 30) return translate(locale, 'time.daysAgo', { n: diffDays })
+  if (diffDays < 30) {
+    return translate(locale, diffDays === 1 ? 'time.dayAgo' : 'time.daysAgo', { n: diffDays })
+  }
   return `${date.getDate()} ${monthShort(date, locale)}`
 }
