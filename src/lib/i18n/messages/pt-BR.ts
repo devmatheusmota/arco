@@ -783,6 +783,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2142.note1':
+    'As linhas de tarefa voltaram ao lugar. A seta adicionada na 2.14.0 ocupou um espa\u00e7o que a linha n\u00e3o tinha, e tudo depois dela andou uma casa: a caixa de marcar foi parar no lugar do t\u00edtulo e a contagem de sess\u00f5es caiu para uma linha pr\u00f3pria, virando um n\u00famero solto embaixo de cada tarefa.',
   'whatsNew.v2141.note1':
     'Corre\u00e7\u00f5es do quadro e da barra lateral de ontem. Os cart\u00f5es de uma coluna cheia ficavam espremidos at\u00e9 o t\u00edtulo virar uma tira ileg\u00edvel \u2014 a coluna Conclu\u00edda guarda tudo que voc\u00ea j\u00e1 terminou \u2014 e a primeira coluna aparecia cortada na borda esquerda. Agora as colunas dividem a largura e uma coluna longa para em vinte e cinco cart\u00f5es, com um bot\u00e3o para o resto. O \u00edcone do agente tamb\u00e9m voltou na barra lateral: a marca de duas letras que o substituiu sumia em toda sess\u00e3o n\u00e3o aberta, onde as linhas s\u00e3o desenhadas sem cor. O tempo desde a \u00faltima atividade continua.',
   'whatsNew.v2140.note1':

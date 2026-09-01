@@ -771,6 +771,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2142.note1':
+    'Task rows line up again. The arrow added in 2.14.0 took a place the row had no room for, so everything after it shifted one slot: the checkbox sat in the title\u2019s space and the session count dropped onto a line of its own, showing up as a stray number under each task.',
   'whatsNew.v2141.note1':
     'Fixes for yesterday\u2019s board and sidebar. Cards in a busy column were squeezed until their titles were unreadable \u2014 the done column holds every task you ever finished \u2014 and the first column was cut off at the left edge. Columns now share the width and a long one stops after twenty-five cards, with a button for the rest. The agent icon is also back in the sidebar: the two-letter mark that replaced it washed out on every session that is not open, where rows are drawn desaturated. The time since last activity stays.',
   'whatsNew.v2140.note1':

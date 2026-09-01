@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.14.2] — 2026-09-01
+
+### Fixed
+
+- Task rows are laid out correctly again. The chevron added in 2.14.0 took a place the row
+  had no column for, which pushed everything after it one slot along: the checkbox landed
+  in the title's space and the session badge fell onto a second line, showing up as a
+  stray number under each task. The row declares the space it needs now.
+
 ## [2.14.1] — 2026-09-01
 
 ### Fixed
