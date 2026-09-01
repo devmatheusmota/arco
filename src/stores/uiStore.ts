@@ -46,7 +46,7 @@ type ModalKind =
   | 'mcpIntro'
   | null
 
-export type ActiveView = 'home' | 'workspace' | 'agentCanvas' | 'agentSandbox'
+export type ActiveView = 'home' | 'workspace' | 'board' | 'agentCanvas' | 'agentSandbox'
 export type RightSidebarMode = 'todo' | 'markdown' | 'git' | 'mcp'
 export type MarkdownSidebarTab = { path: string; title: string }
 

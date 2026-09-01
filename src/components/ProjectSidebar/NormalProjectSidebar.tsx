@@ -15,6 +15,7 @@ import {
   GitBranch,
   Grid3x3,
   Home,
+  KanbanSquare,
   MoreHorizontal,
   Plus,
   RefreshCw,
@@ -334,6 +335,24 @@ export function NormalProjectSidebar() {
           <Home size={14} />
           <span>{t('ui.sidebar.home')}</span>
         </button>
+        {/* The board is a view of the tasks, so it follows the same feature
+            switch the task panel does. */}
+        {preferences.enabledFeatures.todos ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeView === 'board'}
+            className={`${styles.sidebarTab} ${activeView === 'board' ? styles.sidebarTabActive : ''}`}
+            onClick={() => {
+              if (activeView !== 'board') setActiveView('board')
+            }}
+            title={t('board.open')}
+            aria-label={t('board.open')}
+          >
+            <KanbanSquare size={14} />
+            <span>{t('board.open')}</span>
+          </button>
+        ) : null}
         <button
           type="button"
           role="tab"

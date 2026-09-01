@@ -487,6 +487,11 @@ export const en = {
   'todo.priority.low': 'Low',
   'todo.priorityMarker': 'Priority: {priority}',
   'todo.status': 'Status',
+  'board.title': 'Board',
+  'board.subtitle':
+    'Drag a task to move it. Dropping one into In progress offers a session for it.',
+  'board.emptyColumn': 'Nothing here',
+  'board.open': 'Board',
   'todo.statusValue.todo': 'To do',
   'todo.statusValue.in_progress': 'In progress',
   'todo.statusValue.review': 'In review',

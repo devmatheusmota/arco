@@ -1,0 +1,176 @@
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  height: 100%;
+  min-height: 0;
+  padding: var(--space-7);
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+.title {
+  margin: 0;
+  font-size: var(--font-size-5);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.subtitle {
+  margin: 0;
+  font-size: var(--font-size-2);
+  color: var(--text-tertiary);
+}
+
+/* Four columns of equal width. The board scrolls sideways only when the window
+   is too narrow to hold them, never because a card is wide. */
+.columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(240px, 1fr));
+  gap: var(--space-5);
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  transition: border-color 120ms ease;
+}
+.columnOver {
+  border-color: var(--accent-border);
+  background: var(--accent-bg-soft);
+}
+
+.columnHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.columnName {
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.columnCount {
+  font-size: var(--font-size-1);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.columnBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.columnEmpty {
+  margin: 0;
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+  font-size: var(--font-size-1);
+  color: var(--text-quaternary);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  cursor: grab;
+  overflow: hidden;
+}
+.card:hover {
+  border-color: var(--border-strong);
+}
+.cardDragging {
+  opacity: 0.4;
+}
+
+/* The priority stripe is the only colour on a card, so urgency reads without
+   competing with the tags. */
+.cardPriority {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+}
+.cardPriority[data-priority='high'] {
+  background: var(--status-error, #ef4444);
+}
+.cardPriority[data-priority='normal'] {
+  background: var(--border-strong);
+}
+.cardPriority[data-priority='low'] {
+  background: transparent;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--font-size-2);
+  line-height: 1.4;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.cardProject,
+.cardTag {
+  font-size: var(--font-size-1);
+  line-height: 1;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 5px;
+  color: var(--text-tertiary);
+  background: color-mix(in srgb, var(--panel-hover) 60%, transparent);
+}
+.cardProject {
+  color: var(--text-secondary);
+}
+
+.dragGhost {
+  padding: var(--space-4);
+  max-width: 280px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--fg);
+  font-size: var(--font-size-2);
+  box-shadow: var(--shadow-2, 0 8px 24px rgba(0, 0, 0, 0.3));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .column {
+    transition: none;
+  }
+}

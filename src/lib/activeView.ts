@@ -10,7 +10,7 @@ import { AGENT_SANDBOX_ENABLED } from './featureFlags'
  * a workspace blank while the workspace itself was the thing being shown.
  */
 export function rendersWorkspace(view: ActiveView): boolean {
-  if (view === 'home' || view === 'agentCanvas') return false
+  if (view === 'home' || view === 'agentCanvas' || view === 'board') return false
   if (view === 'agentSandbox') return !AGENT_SANDBOX_ENABLED
   return true
 }

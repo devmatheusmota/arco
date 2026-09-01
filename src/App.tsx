@@ -67,6 +67,9 @@ import { type InAppToast, useUiStore } from './stores/uiStore'
 const AgentCanvasPOC = lazy(() =>
   import('./components/AgentCanvasPOC').then((module) => ({ default: module.AgentCanvasPOC })),
 )
+const BoardView = lazy(() =>
+  import('./components/BoardView').then((module) => ({ default: module.BoardView })),
+)
 const HomeView = lazy(() =>
   import('./components/HomeView').then((module) => ({ default: module.HomeView })),
 )
@@ -521,6 +524,8 @@ export default function App() {
                       `rendersWorkspace` is the same rule the panes read. */}
                   {rendersWorkspace(activeView) ? (
                     <WorkspaceView />
+                  ) : activeView === 'board' ? (
+                    <BoardView />
                   ) : activeView === 'agentSandbox' ? (
                     <AgentSandbox />
                   ) : activeView === 'agentCanvas' ? (

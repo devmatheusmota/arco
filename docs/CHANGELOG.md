@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- A board view for tasks, next to Home in the sidebar. Four columns — to do, in progress,
+  in review, done — over the tasks you already have; dragging a card moves it, and the list
+  in the side panel is the same tasks seen another way, not a second copy. Dropping a task
+  into In progress offers a session for it: the new-session dialog opens already filled in
+  from the task, so it is one key away, and nothing is ever started behind an accidental
+  drag. A task that already has a live session takes you to it instead.
+
 ### Fixed
 
 - Clicking a task goes to its session. The title expanded the row and the only way to
