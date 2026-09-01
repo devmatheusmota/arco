@@ -43,7 +43,7 @@
    scrolls sideways instead of squeezing the columns. */
 .column {
   flex: 1 1 0;
-  min-width: 240px;
+  min-width: 210px;
   display: flex;
   flex-direction: column;
   min-height: 0;
