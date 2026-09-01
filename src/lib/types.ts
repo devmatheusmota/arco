@@ -496,7 +496,7 @@ export type ResourcePolicyPreferences = {
 }
 
 export type ProjectsFile = {
-  version: 9
+  version: 10
   /** Project order in the sidebar. */
   projectOrder: string[]
   projects: Project[]
@@ -602,7 +602,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 export const EMPTY_PROJECTS_FILE: ProjectsFile = {
-  version: 9,
+  version: 10,
   projectOrder: [],
   projects: [],
   todos: [],

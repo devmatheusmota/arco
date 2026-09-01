@@ -270,6 +270,7 @@ type SubTabsSlice = Pick<
   | 'setSubTabPtyId'
   | 'setSubTabCwd'
   | 'setSubTabCompletionUnread'
+  | 'clearTerminalCompletionUnread'
   | 'setSubTabSessionId'
   | 'setSubTabInitialInput'
   | 'setSubTabHandoff'
@@ -349,6 +350,24 @@ export function createSubTabsSlice({ updateTerminal, updateSubTab }: SliceCtx): 
         ...s,
         completionUnread: unread,
       })),
+
+    // The sidebar row lights up when *any* tab of the pane has an unread
+    // completion, so visiting the pane has to clear all of them. Clearing only
+    // the active tab left the row lit forever: nothing else ever visited the
+    // sibling that finished while the user was reading another one.
+    //
+    // Returning the terminal untouched when there is nothing to clear keeps the
+    // debounced save from firing on every pane visit.
+    clearTerminalCompletionUnread: (projectId, terminalId) =>
+      updateTerminal(projectId, terminalId, (t) => {
+        if (!t.tabs.some((tab) => tab.completionUnread)) return t
+        return {
+          ...t,
+          tabs: t.tabs.map((tab) =>
+            tab.completionUnread ? { ...tab, completionUnread: false } : tab,
+          ),
+        }
+      }),
 
     setSubTabSessionId: (projectId, terminalId, tabId, sessionId) =>
       updateSubTab(projectId, terminalId, tabId, (s) => ({ ...s, sessionId })),

@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- The "response ready" mark on a session stops piling up. It survived a restart — the mark
+  is saved with the project file while the agent that raised it dies with the session — so
+  every launch restored a wall of badges for panes that had nothing left to read. And
+  visiting a pane only ever cleared its active tab, while the row in the sidebar lights up
+  for any tab of the pane, so a sibling that finished while you were reading another one
+  kept the row marked with nowhere to go. Reaching a pane now clears the whole pane, from
+  any route — the keyboard, Find/Jump, a task jumping to its session and the home view
+  cleared nothing at all before — and stale marks are dropped when the app loads.
+
 ## [2.13.7] — 2026-08-31
 
 ### Fixed

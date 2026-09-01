@@ -478,12 +478,40 @@ function migrateToV9(parsed: any): ProjectsFile {
   })
 }
 
+/**
+ * v9 -> v10: drops the unread marks left over from a previous run.
+ *
+ * `completionUnread` lives in `projects.json` and comes back on load, while the
+ * PTY runtime that produced it does not — `useTerminalsStore` is in-memory. So
+ * every restart restored a wall of "response ready" badges pointing at agents
+ * that had died with the last session, and the sidebar showed them for panes
+ * that could not have anything to read. The mark only means something while the
+ * process that raised it is still around.
+ */
+function migrateToV10(parsed: any): ProjectsFile {
+  const v9 = migrateToV9(parsed)
+  return {
+    ...v9,
+    version: 10,
+    // Defensive on both levels: an older file can carry a project with no
+    // `terminals` array at all, and a pane with no `tabs`.
+    projects: v9.projects.map((project) => ({
+      ...project,
+      terminals: (project.terminals ?? []).map((terminal) => ({
+        ...terminal,
+        tabs: (terminal.tabs ?? []).map(({ completionUnread, ...tab }) => tab),
+      })),
+    })),
+  }
+}
+
 /** Migrates older files and normalizes restorable snapshots. */
 export function migrate(parsed: any): ProjectsFile {
-  if (parsed.version === 9) return migrateToV9(parsed)
-  if (parsed.version === 8) return migrateToV9(parsed)
-  if (parsed.version === 7) return migrateToV9(parsed)
-  if (parsed.version === 6) return migrateToV9(parsed)
+  if (parsed.version === 10) return migrateToV10(parsed)
+  if (parsed.version === 9) return migrateToV10(parsed)
+  if (parsed.version === 8) return migrateToV10(parsed)
+  if (parsed.version === 7) return migrateToV10(parsed)
+  if (parsed.version === 6) return migrateToV10(parsed)
 
   const v5Result = parsed.version === 5 ? parsed : migrateToV5(parsed)
 
@@ -493,7 +521,7 @@ export function migrate(parsed: any): ProjectsFile {
     orphanWorktrees: p.orphanWorktrees ?? [],
   }))
 
-  return migrateToV9({
+  return migrateToV10({
     ...v5Result,
     version: 6,
     projects: v6Projects,

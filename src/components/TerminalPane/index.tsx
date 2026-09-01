@@ -85,6 +85,7 @@ export const TerminalPane = memo(function TerminalPane({
   const setSubTabInitialInput = useProjectsStore((s) => s.setSubTabInitialInput)
   const setSubTabHandoff = useProjectsStore((s) => s.setSubTabHandoff)
   const setSubTabCompletionUnread = useProjectsStore((s) => s.setSubTabCompletionUnread)
+  const clearTerminalCompletionUnread = useProjectsStore((s) => s.clearTerminalCompletionUnread)
   const deleteTerminalWithWorktreeCleanup = useProjectsStore(
     (s) => s.deleteTerminalWithWorktreeCleanup,
   )
@@ -251,6 +252,11 @@ export const TerminalPane = memo(function TerminalPane({
       onPointerDown={() => {
         markTerminalUsed(projectId, terminal.id)
         setActiveTerminal(projectId, terminal.id)
+        // Reaching the pane at all is what "you have seen it" means. The row in
+        // the sidebar lights up for any tab, and only a handful of the paths
+        // that focus a pane used to clear anything — the keyboard, Find/Jump, a
+        // task jumping to its session and the home view cleared nothing at all.
+        clearTerminalCompletionUnread(projectId, terminal.id)
       }}
       className={`${styles.pane} ${isFocusMode ? styles.paneFocus : ''} ${terminal.disabled ? styles.disabled : ''}`}
     >

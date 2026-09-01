@@ -293,6 +293,8 @@ export type ProjectsState = ProjectsFile & {
     tabId: string,
     unread: boolean,
   ) => void
+  /** Clears the unread mark on every tab of a pane, the way visiting it should. */
+  clearTerminalCompletionUnread: (projectId: string, terminalId: string) => void
   setSubTabSessionId: (
     projectId: string,
     terminalId: string,
@@ -336,7 +338,7 @@ function nextWriteSequence(): number {
 
 function projectsPayload(state: ProjectsState): ProjectsFile {
   return {
-    version: 9,
+    version: 10,
     projectOrder: state.projectOrder,
     projects: state.projects,
     todos: state.todos,

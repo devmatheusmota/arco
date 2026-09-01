@@ -122,7 +122,7 @@ export function NormalProjectSidebar() {
       togglePane: s.togglePane,
       openPane: s.openPane,
       setTerminalRemoteExcluded: s.setTerminalRemoteExcluded,
-      setSubTabCompletionUnread: s.setSubTabCompletionUnread,
+      clearTerminalCompletionUnread: s.clearTerminalCompletionUnread,
       createFilePane: s.createFilePane,
       createGraphifyPane: s.createGraphifyPane,
     })),
@@ -279,10 +279,9 @@ export function NormalProjectSidebar() {
         }
         actions.focusWorkspaceTerminal(p.id, t.id)
         setActiveTerminal(p.id, t.id)
-        const activeTab = t.tabs.find((tab) => tab.id === t.activeTabId) ?? t.tabs[0]
-        if (activeTab?.completionUnread) {
-          actions.setSubTabCompletionUnread(p.id, t.id, activeTab.id, false)
-        }
+        // The whole pane, not just its active tab: the row lights up for any
+        // tab, so clearing one left it lit with nothing left to visit.
+        actions.clearTerminalCompletionUnread(p.id, t.id)
         requestPaneFocus(t.id)
         setActiveView(p.mode === 'agentSandbox' ? 'agentSandbox' : 'workspace')
       }}

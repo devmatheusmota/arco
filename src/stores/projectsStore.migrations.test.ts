@@ -56,7 +56,7 @@ describe('projects file migration', () => {
       preferences: { ...DEFAULT_PREFERENCES, isolatedPaneId: 'a' },
     })
 
-    expect(migrated.version).toBe(9)
+    expect(migrated.version).toBe(10)
     expect(migrated.projects[0]).not.toHaveProperty('layoutMode')
     expect(migrated.projects[0]).not.toHaveProperty('gridLayout')
     expect(migrated.projects[0]).not.toHaveProperty('gridLayoutHistory')
@@ -221,5 +221,69 @@ describe('projects file migration', () => {
     expect(migrated.workspace.containers.map((container) => container.projectId)).toEqual([
       'project-a',
     ])
+  })
+})
+
+describe('v10 — stale completion badges', () => {
+  const fileWithUnread = (completionUnread: boolean | undefined) => ({
+    ...EMPTY_PROJECTS_FILE,
+    version: 9,
+    projects: [
+      {
+        id: 'p1',
+        name: 'SOA',
+        defaultCwd: '/repo',
+        terminals: [
+          {
+            id: 't1',
+            name: 'Claude Code',
+            cwd: '/repo',
+            activeTabId: 'tab1',
+            disabled: false,
+            tabs: [
+              { id: 'tab1', type: 'claude', name: 'claude', cwd: '/repo', ptyId: null },
+              {
+                id: 'tab2',
+                type: 'codex',
+                name: 'codex',
+                cwd: '/repo',
+                ptyId: null,
+                completionUnread,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  })
+
+  // The mark is persisted, the PTY runtime that raised it is not — so every
+  // restart used to restore a wall of "response ready" badges for agents that
+  // had died with the previous session.
+  it('drops the unread mark left over from a previous run', () => {
+    const migrated = migrate(fileWithUnread(true))
+    const tabs = migrated.projects[0].terminals[0].tabs
+
+    expect(tabs.map((tab) => tab.completionUnread)).toEqual([undefined, undefined])
+    expect(tabs.map((tab) => tab.id)).toEqual(['tab1', 'tab2'])
+    expect(migrated.version).toBe(10)
+  })
+
+  it('keeps everything else about the tab it clears', () => {
+    const migrated = migrate(fileWithUnread(true))
+
+    expect(migrated.projects[0].terminals[0].tabs[1]).toMatchObject({
+      id: 'tab2',
+      type: 'codex',
+      name: 'codex',
+      cwd: '/repo',
+    })
+  })
+
+  it('leaves a file that never carried the mark alone', () => {
+    const migrated = migrate(fileWithUnread(undefined))
+
+    expect(migrated.projects[0].terminals[0].tabs).toHaveLength(2)
+    expect(migrated.version).toBe(10)
   })
 })
