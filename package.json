@@ -1,6 +1,6 @@
 {
   "name": "arco",
-  "version": "2.14.3",
+  "version": "2.14.4",
   "description": "Organizes, operates and resumes multiple coding agents and shells in parallel, inside a persistent workspace with real terminals.",
   "author": {
     "name": "Matheus Mota",
