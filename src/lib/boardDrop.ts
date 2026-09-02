@@ -4,10 +4,7 @@ import type { Project, TodoItem, TodoStatus } from './types'
 // What a drop on the board does, kept out of the component so it can be tested
 // without a DOM.
 
-export type BoardDrop =
-  | { move: TodoStatus; then: 'nothing' }
-  | { move: TodoStatus; then: 'focus'; projectId: string; terminalId: string }
-  | { move: TodoStatus; then: 'offer' }
+export type BoardDrop = { move: TodoStatus; then: 'nothing' | 'offer' }
 
 /**
  * The pane a task can jump to, or null when none of its links is still alive.
@@ -38,15 +35,17 @@ export function liveSessionOf(
  * spawns one: a drag is a cheap gesture to make by accident and starting an
  * agent is expensive and visible. An offer is a filled-in modal one key away.
  *
- * Coming back from review or done only moves the card. The work already
- * started once, and proposing a second session there would be noise.
+ * A drop never navigates. Sorting the board is a batch gesture — several cards
+ * in a row — and being thrown into a terminal after the first one ends it.
+ * Opening a session is a separate, deliberate gesture: double-click the card.
+ *
+ * A task that already has a live pane only moves; the work started once, and
+ * proposing a second session for it would be noise. So does coming back from
+ * review or done.
  */
 export function resolveBoardDrop(todo: TodoItem, projects: Project[], to: TodoStatus): BoardDrop {
   const from = normalizeTodoStatus(todo.status, todo.completed)
   if (to !== 'in_progress' || from === 'in_progress') return { move: to, then: 'nothing' }
-
-  const live = liveSessionOf(todo, projects)
-  if (live) return { move: to, then: 'focus', ...live }
-  if (from === 'todo') return { move: to, then: 'offer' }
-  return { move: to, then: 'nothing' }
+  if (liveSessionOf(todo, projects)) return { move: to, then: 'nothing' }
+  return { move: to, then: from === 'todo' ? 'offer' : 'nothing' }
 }

@@ -536,6 +536,9 @@ export const ptBR: Record<MessageKey, string> = {
   'taskSession.isolate': 'Rodar em um worktree isolado',
   'taskSession.unrestricted': 'Pular pedidos de permissão',
   'taskSession.start': 'Iniciar sessão',
+  'taskSession.startedTitle': 'Sessão iniciada',
+  'taskSession.startedBody': '{task} — rodando em {project}.',
+  'taskSession.openStarted': 'Abrir sessão',
   'taskSession.failedTitle': 'Não foi possível iniciar a sessão',
   'prefs.limitResetNotify': 'Avisos de reset de limite',
   'prefs.limitResetNotifyDesc':
@@ -786,6 +789,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2144.note1':
+    'Arrastar um cart\u00e3o para Em andamento n\u00e3o joga mais voc\u00ea dentro do terminal. Organizar o quadro \u00e9 coisa que se faz com v\u00e1rios cart\u00f5es seguidos, e cair numa sess\u00e3o depois do primeiro acabava com isso. A sess\u00e3o continua come\u00e7ando pelo mesmo di\u00e1logo j\u00e1 preenchido e roda em segundo plano; uma notifica\u00e7\u00e3o confirma e leva o clique \u00fanico que abre o pane. Cart\u00e3o que j\u00e1 tem sess\u00e3o viva apenas muda de coluna. Para abrir a sess\u00e3o de prop\u00f3sito, clique duas vezes no cart\u00e3o.',
   'whatsNew.v2143.note1':
     'O quadro agora mostra quais tarefas j\u00e1 t\u00eam sess\u00e3o rodando, e um clique duplo leva at\u00e9 ela. A coluna sozinha n\u00e3o dizia \u2014 uma tarefa fica em Em andamento tendo ou n\u00e3o algo rodando \u2014 ent\u00e3o o cart\u00e3o com sess\u00e3o viva ganha um marcador e uma borda acesa, cheia enquanto o agente trabalha e apagada enquanto espera. Clique duas vezes no cart\u00e3o e voc\u00ea cai no pane; um clique s\u00f3 continua iniciando o arrasto, e o Enter faz o mesmo pelo teclado.',
   'whatsNew.v2142.note1':

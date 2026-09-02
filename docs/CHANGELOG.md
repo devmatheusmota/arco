@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.14.4] — 2026-09-02
+
+### Changed
+
+- Dragging a card into "In progress" no longer takes you to the terminal. Sorting the board
+  is a batch gesture — several cards in a row — and being thrown into a session after the
+  first one ended it. The session still starts from the same filled-in dialog and runs in
+  the background; a toast confirms it and carries the one click that opens the pane. A card
+  that already has a live session just moves. Opening a session stays a deliberate gesture:
+  double-click the card.
+
 ## [2.14.3] — 2026-09-01
 
 ### Added

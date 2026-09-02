@@ -532,6 +532,9 @@ export const en = {
   'taskSession.isolate': 'Run in an isolated worktree',
   'taskSession.unrestricted': 'Skip permission prompts',
   'taskSession.start': 'Start session',
+  'taskSession.startedTitle': 'Session started',
+  'taskSession.startedBody': '{task} — running in {project}.',
+  'taskSession.openStarted': 'Open session',
   'taskSession.failedTitle': 'Could not start the session',
   'prefs.limitResetNotify': 'Limit reset alerts',
   'prefs.limitResetNotifyDesc':
@@ -774,6 +777,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2144.note1':
+    'Dragging a card into In progress no longer throws you into the terminal. Sorting the board is something you do to several cards in a row, and landing in a session after the first one ended that. The session still starts from the same filled-in dialog and runs in the background; a notification confirms it and carries the one click that opens the pane. A card that already has a live session just moves. To open a session on purpose, double-click the card.',
   'whatsNew.v2143.note1':
     'The board now shows which tasks already have a session running, and a double click takes you to it. The column alone could not tell you \u2014 a task sits in In progress whether or not anything is running for it \u2014 so a card with a live session carries a marker and a lit edge, filled while the agent is working and dim while it waits. Double-click that card and you land in the pane; a single click still starts a drag, and Enter does the same from the keyboard.',
   'whatsNew.v2142.note1':

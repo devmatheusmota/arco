@@ -228,8 +228,9 @@ export function BoardView() {
 
     const drop = resolveBoardDrop(todo, projects, overId.slice(COLUMN.length) as TodoStatus)
     setTodoStatus(todo.id, drop.move)
-    if (drop.then === 'focus') focusSession(drop.projectId, drop.terminalId)
-    if (drop.then === 'offer') openModal('taskSession', { todoId: todo.id })
+    // `stay` keeps the board on screen once the session is running: sorting the
+    // board is a batch gesture, and jumping to a terminal after one card ends it.
+    if (drop.then === 'offer') openModal('taskSession', { todoId: todo.id, stay: true })
   }
 
   return (

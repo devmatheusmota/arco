@@ -32,7 +32,9 @@ describe('resolveBoardDrop', () => {
     })
   })
 
-  it('goes to the session the task already has instead of offering a second', () => {
+  // The task already has a pane, so there is nothing to offer — and the drop
+  // does not jump to it either: the board keeps the screen.
+  it('only moves a task that already has a session', () => {
     const todo = task({
       status: 'todo',
       sessions: [{ projectId: 'p1', terminalId: 'pane1', agent: 'claude', startedAt: 1 }],
@@ -40,9 +42,7 @@ describe('resolveBoardDrop', () => {
 
     expect(resolveBoardDrop(todo, [projectWithPane('pane1')], 'in_progress')).toEqual({
       move: 'in_progress',
-      then: 'focus',
-      projectId: 'p1',
-      terminalId: 'pane1',
+      then: 'nothing',
     })
   })
 

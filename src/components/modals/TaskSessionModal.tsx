@@ -38,7 +38,11 @@ function sessionName(title: string): string {
 export function TaskSessionModal() {
   const t = useT()
   const open = useUiStore((state) => state.openModal === 'taskSession')
-  const context = useUiStore((state) => state.modalContext) as { todoId?: string } | null
+  const context = useUiStore((state) => state.modalContext) as {
+    todoId?: string
+    /** Opened from a view that must survive the start — the board. */
+    stay?: boolean
+  } | null
   const closeModal = useUiStore((state) => state.closeModal)
   const focusSession = useSessionFocus()
   const pushToast = useUiStore((state) => state.pushToast)
@@ -139,7 +143,21 @@ export function TaskSessionModal() {
       // the list both keep saying the task has not been picked up, while a
       // session for it is already running.
       store.setTodoStatus(todo.id, 'in_progress')
-      focusSession(project.id, terminal.id)
+      // The board asks to stay put: the session runs, the columns keep the
+      // screen, and the toast carries the one click that goes there.
+      if (context?.stay) {
+        pushToast({
+          title: t('taskSession.startedTitle'),
+          body: t('taskSession.startedBody', { task: todo.title, project: project.name }),
+          agent,
+          action: {
+            label: t('taskSession.openStarted'),
+            run: () => focusSession(project.id, terminal.id),
+          },
+        })
+      } else {
+        focusSession(project.id, terminal.id)
+      }
       closeModal()
     } catch (error) {
       pushToast({
