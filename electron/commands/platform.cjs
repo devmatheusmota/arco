@@ -134,6 +134,8 @@ ${SHIM_MARKER}
 #     --no-worktree           forca a mesma arvore
 #                             sem nenhum dos dois, segue o padrao do projeto
 #
+# arco session rename <nome> [--session <id>]  -> renomeia a sessao
+#
 # arco todo list [--json]     -> lista as tarefas
 # arco todo show <ref>        -> mostra uma tarefa inteira
 # arco todo add <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]

@@ -70,6 +70,9 @@ type TodoRequest = {
   adoRefInput?: string
 } & SessionScope
 
+/** `arco session rename` — the new name plus how the session was named. */
+type SessionRenameRequest = { name?: string } & SessionScope
+
 /** `arco todo show` and `arco todo delete` — a reference and nothing else. */
 type TodoRefRequest = { ref?: string }
 
@@ -192,24 +195,33 @@ const NO_SESSION_HERE =
   'Sem sessão do Arco neste terminal: rode o comando dentro de uma sessão, ou passe --session <id>.'
 
 /**
- * Resolves `--session <id|current>` into the session that gets recorded.
+ * What `--session <id|current>` points at.
+ *
+ * `orphanId` is a session the store no longer has a pane for: still a truthful
+ * name for a task that outlives it, and nothing a command that has to act on
+ * the pane can work with.
+ */
+type SessionMatch = { entry: SessionEntry } | { orphanId: string } | { error: CliResult }
+
+/**
+ * Resolves `--session <id|current>` to the pane it names.
  *
  * `current` is answered from the pane's own `ARCO_SESSION_ID` when it has one,
  * and from the working directory otherwise. The directory is a good enough
  * answer for a pane with its own worktree and no answer at all for two sessions
  * sharing a tree — which is why that case asks for an explicit id instead of
- * picking one, since linking the wrong session is worse than not linking.
+ * picking one, since acting on the wrong session is worse than doing nothing.
  */
-function resolveSession(request: SessionScope): { owner: TodoSessionOwner } | { error: CliResult } {
+function matchSession(request: SessionScope): SessionMatch {
   const wanted = request.session?.trim() ?? ''
   const cwd = request.sessionCwd?.trim() ?? ''
   const entries = sessionEntries()
 
   if (wanted && wanted.toLowerCase() !== 'current' && wanted.toLowerCase() !== 'atual') {
     const exact = entries.find((entry) => entry.terminal.id === wanted)
-    if (exact) return { owner: sessionOwner(exact) }
+    if (exact) return { entry: exact }
     const byPrefix = entries.filter((entry) => entry.terminal.id.startsWith(wanted))
-    if (byPrefix.length === 1) return { owner: sessionOwner(byPrefix[0]) }
+    if (byPrefix.length === 1) return { entry: byPrefix[0] }
     if (byPrefix.length > 1) {
       return {
         error: failure(
@@ -226,10 +238,7 @@ function resolveSession(request: SessionScope): { owner: TodoSessionOwner } | { 
   const declared = request.sessionId?.trim()
   if (declared) {
     const entry = entries.find((item) => item.terminal.id === declared)
-    if (entry) return { owner: sessionOwner(entry) }
-    // The pane is gone, or belongs to another profile. The id still names the
-    // session honestly, which is the whole point of keeping the link.
-    return { owner: { id: declared, ...(cwd ? { cwd } : {}), linkedAt: Date.now() } }
+    return entry ? { entry } : { orphanId: declared }
   }
 
   if (!cwd) return { error: failure(NO_SESSION_HERE) }
@@ -249,7 +258,18 @@ function resolveSession(request: SessionScope): { owner: TodoSessionOwner } | { 
       ),
     }
   }
-  return { owner: sessionOwner(finalists[0].entry) }
+  return { entry: finalists[0].entry }
+}
+
+/** The session a task gets tied to — an id it can keep even after the pane closes. */
+function resolveSession(request: SessionScope): { owner: TodoSessionOwner } | { error: CliResult } {
+  const match = matchSession(request)
+  if ('error' in match) return { error: match.error }
+  if ('entry' in match) return { owner: sessionOwner(match.entry) }
+  // The pane is gone, or belongs to another profile. The id still names the
+  // session honestly, which is the whole point of keeping the link.
+  const cwd = request.sessionCwd?.trim() ?? ''
+  return { owner: { id: match.orphanId, ...(cwd ? { cwd } : {}), linkedAt: Date.now() } }
 }
 
 /** Refuses to move a task another session already holds, unless told to. */
@@ -376,6 +396,32 @@ async function handleSession(request: SessionRequest): Promise<CliResult> {
     ok: true,
     message: `Sessão ${agent} criada e ligada a ${target.id.slice(0, 8)} ${target.title}.`,
     data: { todo: todoSnapshot(target.id), sessionId: terminal.id },
+  }
+}
+
+/**
+ * `arco session rename` — the same write the sidebar's Rename does.
+ *
+ * `nameSource: 'user'` is what makes it stick: without the marker the name the
+ * agent generates for the conversation wins on screen, and the rename looks
+ * like it did nothing.
+ */
+function handleSessionRename(request: SessionRenameRequest): CliResult {
+  const name = request.name?.trim() ?? ''
+  if (!name) return failure('Informe o nome novo da sessão.')
+
+  const match = matchSession(request)
+  if ('error' in match) return match.error
+  if ('orphanId' in match) {
+    return failure(`A sessão ${match.orphanId.slice(0, 8)} não está aberta neste perfil.`)
+  }
+
+  const { terminal, projectId } = match.entry
+  useProjectsStore.getState().renameTerminal(projectId, terminal.id, name)
+  return {
+    ok: true,
+    message: `Sessão ${terminal.id.slice(0, 8)} renomeada para "${name}".`,
+    data: { sessionId: terminal.id, name },
   }
 }
 
@@ -568,6 +614,10 @@ export async function startCliBridge(): Promise<UnlistenFn> {
     listen<SessionRequest & CliRequest>(
       'cli://session-new',
       answer<SessionRequest & CliRequest>(handleSession),
+    ),
+    listen<SessionRenameRequest & CliRequest>(
+      'cli://session-rename',
+      answer<SessionRenameRequest & CliRequest>(handleSessionRename),
     ),
     listen<TodoRequest & CliRequest>(
       'cli://todo-add',

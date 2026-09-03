@@ -70,6 +70,7 @@ const state = {
     state.todos = state.todos.filter((item) => item.id !== id)
   }),
   renameTodo: vi.fn(),
+  renameTerminal: vi.fn(),
   updateTodoNotes: vi.fn(),
   appendTodoNotes: vi.fn(),
   setTodoPriority: vi.fn(),
@@ -108,6 +109,7 @@ beforeEach(async () => {
   state.projects[0].terminals = []
   replies.length = 0
   toasts.length = 0
+  state.renameTerminal.mockClear()
   handlers.clear()
   await startCliBridge()
 })
@@ -217,6 +219,61 @@ describe('cli://todo-list', () => {
     await request('cli://todo-add', { title: 'recém-criada' })
     const result = await request('cli://todo-list', {})
     expect((result.data as { todos: TodoItem[] }).todos).toHaveLength(1)
+  })
+})
+
+describe('cli://session-rename', () => {
+  it('renames the pane the command ran inside, marking the name as typed', async () => {
+    state.projects[0].terminals = [pane('term-1', '/tmp/arco/wt/a', 'claude')]
+    const result = await request('cli://session-rename', {
+      name: 'revisao do PR 11132',
+      session: 'current',
+      sessionId: 'term-1',
+    })
+    expect(result.ok).toBe(true)
+    expect(state.renameTerminal).toHaveBeenCalledWith('p1', 'term-1', 'revisao do PR 11132')
+  })
+
+  it('accepts a prefix of the session id from outside the pane', async () => {
+    state.projects[0].terminals = [pane('term-1', '/tmp/arco/wt/a', 'claude')]
+    const result = await request('cli://session-rename', { name: 'nova', session: 'term-' })
+    expect(result.ok).toBe(true)
+    expect(state.renameTerminal).toHaveBeenCalledWith('p1', 'term-1', 'nova')
+  })
+
+  it('refuses to guess when two sessions share the tree', async () => {
+    state.projects[0].terminals = [pane('term-1', '/tmp/arco'), pane('term-2', '/tmp/arco')]
+    const result = await request('cli://session-rename', {
+      name: 'nova',
+      session: 'current',
+      sessionCwd: '/tmp/arco/src',
+    })
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('--session <id>')
+    expect(state.renameTerminal).not.toHaveBeenCalled()
+  })
+
+  it('says the pane is gone instead of renaming nothing', async () => {
+    const result = await request('cli://session-rename', {
+      name: 'nova',
+      session: 'current',
+      sessionId: 'term-morto',
+      sessionCwd: '/tmp/arco/wt/a',
+    })
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('não está aberta')
+    expect(state.renameTerminal).not.toHaveBeenCalled()
+  })
+
+  it('refuses an empty name', async () => {
+    state.projects[0].terminals = [pane('term-1', '/tmp/arco/wt/a')]
+    const result = await request('cli://session-rename', {
+      name: '   ',
+      session: 'current',
+      sessionId: 'term-1',
+    })
+    expect(result.ok).toBe(false)
+    expect(state.renameTerminal).not.toHaveBeenCalled()
   })
 })
 

@@ -48,6 +48,9 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --todo <ref>            ja nasce amarrada a essa tarefa
       --force                 tira a tarefa da sessao que a segura hoje
 
+  arco session rename <nome> [--session <id|current>]
+      renomeia a sessao; sem --session, a que roda neste terminal
+
   arco todo list [--json] [--status <status>]
       lista as tarefas; sem --json sai em tabela com id curto
 
@@ -413,6 +416,28 @@ function parseSession(args) {
   return payload
 }
 
+/**
+ * `arco session rename <nome> [--session <id>]`.
+ *
+ * The name is everything that is not an option, joined — a session is called
+ * "revisao do PR 11132" far more often than it is called one word, and quoting
+ * it should not be the only way to say so.
+ */
+function parseSessionRename(args) {
+  const words = []
+  let session = null
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+    if (arg === '--session') session = args[++index]
+    else if (arg.startsWith('--'))
+      throw new Error(`arco session rename: opcao desconhecida: ${arg}`)
+    else words.push(arg)
+  }
+  const name = words.join(' ').trim()
+  if (!name) throw new Error('arco session rename: informe o nome novo')
+  return { name, ...(session ? { session } : {}), ...sessionScope() }
+}
+
 /** Confirms a delete. Non-interactive callers pass `--yes`; there is no prompt to answer. */
 async function confirmDelete(todoLine) {
   if (!process.stdin.isTTY) {
@@ -530,6 +555,12 @@ async function run(argv) {
   }
 
   if (command === 'session') {
+    const [subcommand, ...args] = rest
+    if (subcommand === 'rename' || subcommand === 'name') {
+      const result = await post('session/rename', parseSessionRename(args))
+      writeOut(`${result.message || 'sessao renomeada'}\n`)
+      return
+    }
     const result = await post('session', parseSession(rest))
     writeOut(`${result.message || 'sessao criada'}\n`)
     return

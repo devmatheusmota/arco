@@ -791,7 +791,9 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
-  'whatsNew.v2145.note1':
+  'whatsNew.v2150.note1':
+    'Dá para renomear uma sessão pelo terminal: `arco session rename "revisao do PR 11132"`. Rodando dentro de uma sessão, renomeia ela; de fora, `--session <id>` diz qual. O nome vale como um que você digitou, então ele fica — não é trocado pelo título que o agente gera.',
+  'whatsNew.v2150.note2':
     'Renomear voltou a funcionar — sessão, projeto, arquivo no explorador e as tags de uma tarefa. Os quatro pediam o texto novo por uma caixa que o aplicativo nunca conseguia abrir, então nada aparecia e a renomeação simplesmente não acontecia. Agora abrem o diálogo do próprio Arco, com o nome atual já selecionado: digite por cima e aperte Enter.',
   'whatsNew.v2144.note1':
     'Arrastar um cart\u00e3o para Em andamento n\u00e3o joga mais voc\u00ea dentro do terminal. Organizar o quadro \u00e9 coisa que se faz com v\u00e1rios cart\u00f5es seguidos, e cair numa sess\u00e3o depois do primeiro acabava com isso. A sess\u00e3o continua come\u00e7ando pelo mesmo di\u00e1logo j\u00e1 preenchido e roda em segundo plano; uma notifica\u00e7\u00e3o confirma e leva o clique \u00fanico que abre o pane. Cart\u00e3o que j\u00e1 tem sess\u00e3o viva apenas muda de coluna. Para abrir a sess\u00e3o de prop\u00f3sito, clique duas vezes no cart\u00e3o.',

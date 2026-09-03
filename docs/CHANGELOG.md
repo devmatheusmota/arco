@@ -10,7 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
-## [2.14.5] — 2026-09-03
+## [2.15.0] — 2026-09-03
+
+### Added
+
+- `arco session rename <nome>` renames the session from the terminal. Run inside a session
+  it renames that one; from anywhere else, `--session <id>` names which — the same
+  resolution `arco todo add --session current` already used, including refusing to guess
+  when two sessions share a directory. The name is marked as typed, so it wins over the
+  title the agent generates, exactly like renaming from the sidebar.
 
 ### Fixed
 
