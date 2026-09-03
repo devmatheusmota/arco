@@ -10,6 +10,16 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.14.5] — 2026-09-03
+
+### Fixed
+
+- Renaming works again — a session, a project, a file in the explorer, and the tags on a
+  task. All four asked for the new text through the browser's own prompt, which Electron
+  never implemented: the dialog never appeared, the call answered nothing, and the rename
+  quietly did not happen. They now open Arco's own dialog, with the current value selected
+  so typing replaces it and Enter confirms.
+
 ## [2.14.4] — 2026-09-02
 
 ### Changed

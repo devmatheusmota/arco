@@ -29,7 +29,7 @@ import {
   renameFilesystemEntry,
 } from '../../lib/tauri'
 import { useProjectsStore } from '../../stores/projectsStore'
-import { useUiStore } from '../../stores/uiStore'
+import { promptText, useUiStore } from '../../stores/uiStore'
 import { Modal } from '../modals/Modal'
 import styles from './FileExplorer.module.css'
 
@@ -130,9 +130,12 @@ export function FileExplorer({ projectId, cwd, ptyId, terminalName }: FileExplor
 
   const renameEntry = async (entry: DirectoryEntry) => {
     setMenu(null)
-    const nextName = window
-      .prompt(t('files.renamePrompt', { name: entry.name }), entry.name)
-      ?.trim()
+    const nextName = await promptText({
+      title: t('files.renamePrompt', { name: entry.name }),
+      label: t('ui.sidebar.newNamePrompt'),
+      initialValue: entry.name,
+      confirmLabel: t('files.rename'),
+    })
     if (!nextName || nextName === entry.name) return
     try {
       await renameFilesystemEntry(entry.path, nextName)

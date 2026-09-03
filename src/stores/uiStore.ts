@@ -50,6 +50,26 @@ export type ActiveView = 'home' | 'workspace' | 'board' | 'agentCanvas' | 'agent
 export type RightSidebarMode = 'todo' | 'markdown' | 'git' | 'mcp'
 export type MarkdownSidebarTab = { path: string; title: string }
 
+/**
+ * A text question the app asks in its own dialog.
+ *
+ * Electron never implemented `window.prompt`: the call returns nothing and the
+ * action behind it silently does not happen, which is how renaming a session
+ * looked broken. Everything that used to reach for it goes through this.
+ */
+export type PromptRequest = {
+  id: number
+  title: string
+  label?: string
+  initialValue: string
+  placeholder?: string
+  confirmLabel?: string
+  /** Accept a blank answer, for fields whose empty value means something. */
+  allowEmpty?: boolean
+}
+
+type PendingPrompt = PromptRequest & { resolve: (value: string | null) => void }
+
 export type MemorySample = MemoryStats & {
   ts: number
 }
@@ -73,6 +93,9 @@ export type InAppToast = {
 const MAX_MEMORY_HISTORY = 720
 const MAX_TOASTS = 4
 const MAX_NOTIFICATIONS = 12
+
+/** Identifies each question so the dialog remounts its input between prompts. */
+let promptSeq = 0
 
 type UiState = {
   openModal: ModalKind
@@ -118,6 +141,8 @@ type UiState = {
   updateInfo: UpdateInfo | null
   /** URL aberta no visualizador in-app (overlay com iframe). null = fechado. */
   linkViewerUrl: string | null
+  /** Text question waiting on an answer, or `null` when no dialog is open. */
+  promptRequest: PendingPrompt | null
 
   openModal_: (kind: Exclude<ModalKind, null>, context?: Record<string, unknown>) => void
   closeModal: () => void
@@ -159,9 +184,11 @@ type UiState = {
   setUpdateInfo: (info: UpdateInfo | null) => void
   openLinkViewer: (url: string) => void
   closeLinkViewer: () => void
+  requestPrompt: (options: Omit<PromptRequest, 'id'>) => Promise<string | null>
+  resolvePrompt: (value: string | null) => void
 }
 
-export const useUiStore = create<UiState>((set) => ({
+export const useUiStore = create<UiState>((set, get) => ({
   openModal: null,
   modalContext: null,
   showMainMenu: false,
@@ -187,6 +214,7 @@ export const useUiStore = create<UiState>((set) => ({
   notifications: [],
   updateInfo: null,
   linkViewerUrl: null,
+  promptRequest: null,
 
   openModal_: (kind, context) =>
     set({ openModal: kind, modalContext: context ?? null, showMainMenu: false }),
@@ -288,4 +316,27 @@ export const useUiStore = create<UiState>((set) => ({
   setUpdateInfo: (info) => set({ updateInfo: info }),
   openLinkViewer: (url) => set({ linkViewerUrl: url }),
   closeLinkViewer: () => set({ linkViewerUrl: null }),
+
+  requestPrompt: (options) =>
+    new Promise((resolve) => {
+      // A second question cancels the first rather than stacking: only one
+      // dialog is on screen, so the earlier caller would wait forever.
+      get().promptRequest?.resolve(null)
+      set({ promptRequest: { ...options, id: promptSeq++, resolve } })
+    }),
+  resolvePrompt: (value) => {
+    const pending = get().promptRequest
+    if (!pending) return
+    set({ promptRequest: null })
+    pending.resolve(value)
+  },
 }))
+
+/**
+ * Ask the user for a line of text, from anywhere — the replacement for
+ * `window.prompt`, which Electron does not implement. Resolves to `null` when
+ * the dialog is dismissed or the answer is empty.
+ */
+export function promptText(options: Omit<PromptRequest, 'id'>): Promise<string | null> {
+  return useUiStore.getState().requestPrompt(options)
+}

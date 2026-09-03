@@ -20,7 +20,7 @@ import { getPtyCwd, openInFileExplorer, openInVscode, restartPty } from '../../l
 import { agentCliCommand, type Project, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
-import { useUiStore } from '../../stores/uiStore'
+import { promptText, useUiStore } from '../../stores/uiStore'
 import { type MenuItem } from './ContextMenu'
 
 type ProjectsState = ReturnType<typeof useProjectsStore.getState>
@@ -101,8 +101,14 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
       label: t('ui.sidebar.quickRename'),
       icon: <Pencil size={14} />,
       onClick: () => {
-        const name = window.prompt(t('ui.sidebar.newNamePrompt'), project.name)?.trim()
-        if (name) actions.renameProject(project.id, name)
+        void promptText({
+          title: t('ui.sidebar.quickRename'),
+          label: t('ui.sidebar.newNamePrompt'),
+          initialValue: project.name,
+          confirmLabel: t('common.save'),
+        }).then((name) => {
+          if (name) actions.renameProject(project.id, name)
+        })
       },
     },
     {
@@ -312,8 +318,14 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
         label: t('ui.sidebar.rename'),
         icon: <Pencil size={14} />,
         onClick: () => {
-          const name = window.prompt(t('ui.sidebar.newNamePrompt'), term.name)?.trim()
-          if (name) actions.renameTerminal(projectId, term.id, name)
+          void promptText({
+            title: t('ui.sidebar.rename'),
+            label: t('ui.sidebar.newNamePrompt'),
+            initialValue: term.name,
+            confirmLabel: t('common.save'),
+          }).then((name) => {
+            if (name) actions.renameTerminal(projectId, term.id, name)
+          })
         },
       },
       {

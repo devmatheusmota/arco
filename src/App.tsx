@@ -27,6 +27,7 @@ import { NewTerminalModal } from './components/modals/NewTerminalModal'
 import { OnboardingModal } from './components/modals/OnboardingModal'
 import { PreferencesModal } from './components/modals/PreferencesModal'
 import { ProfilesModal } from './components/modals/ProfilesModal'
+import { PromptModal } from './components/modals/PromptModal'
 import { RecentChatsModal } from './components/modals/RecentChatsModal'
 import { RemoteControlModal } from './components/modals/RemoteControlModal'
 import { SyncModal } from './components/modals/SyncModal'
@@ -645,6 +646,7 @@ export default function App() {
         <McpManagerModal />
         <McpIntroModal />
         <RemoteControlModal />
+        <PromptModal />
       </ErrorBoundary>
       <InAppNotifications />
       {activeView === 'agentCanvas' ? <TokenHud /> : null}

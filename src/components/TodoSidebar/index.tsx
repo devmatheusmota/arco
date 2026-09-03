@@ -48,7 +48,7 @@ import {
 } from '../../lib/types'
 import { selectActiveProject, useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
-import { useUiStore } from '../../stores/uiStore'
+import { promptText, useUiStore } from '../../stores/uiStore'
 import { DotmCircular2 } from '../ui/dotm-circular-2'
 import styles from './TodoSidebar.module.css'
 
@@ -266,8 +266,15 @@ function TodoRow({
     setEditing(true)
   }
 
-  const editTags = () => {
-    const value = window.prompt(t('todo.tagsPrompt'), todo.tags.join(', '))
+  const editTags = async () => {
+    const value = await promptText({
+      title: t('todo.tagsTitle'),
+      label: t('todo.tagsPrompt'),
+      placeholder: t('todo.tagsPlaceholder'),
+      initialValue: todo.tags.join(', '),
+      confirmLabel: t('common.save'),
+      allowEmpty: true,
+    })
     if (value === null) return
     updateTodoTags(todo.id, parseTags(value))
   }
@@ -440,7 +447,7 @@ function TodoRow({
               <button
                 type="button"
                 className={styles.rowAction}
-                onClick={editTags}
+                onClick={() => void editTags()}
                 title={t('todo.editTags')}
                 aria-label={t('todo.editTags')}
               >

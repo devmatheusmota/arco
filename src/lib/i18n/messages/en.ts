@@ -9,6 +9,7 @@ export const en = {
   'common.skip': 'Skip',
   'common.close': 'Close',
   'common.cancel': 'Cancel',
+  'common.confirm': 'Confirm',
   'common.save': 'Save',
   'common.create': 'Create',
   'common.remove': 'Remove',
@@ -756,6 +757,7 @@ export const en = {
   'todo.noProject': 'No project',
   'todo.editTags': 'Edit tags',
   'todo.tagsPrompt': 'Tags separated by comma',
+  'todo.tagsTitle': 'Edit tags',
   'todo.defaultLabel': 'Reference list',
   'todo.resetDefault': 'Reset to Arco default Todo',
   'todo.resetDefaultConfirm': 'Replace your current Todo list with the Arco default list?',
@@ -777,6 +779,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2145.note1':
+    'Renaming works again — a session, a project, a file in the explorer, and the tags on a task. All four asked for the new text through a dialog the app could never open, so nothing appeared and the rename quietly did not happen. They now open Arco\u2019s own dialog, with the current name already selected: type over it and press Enter.',
   'whatsNew.v2144.note1':
     'Dragging a card into In progress no longer throws you into the terminal. Sorting the board is something you do to several cards in a row, and landing in a session after the first one ended that. The session still starts from the same filled-in dialog and runs in the background; a notification confirms it and carries the one click that opens the pane. A card that already has a live session just moves. To open a session on purpose, double-click the card.',
   'whatsNew.v2143.note1':
@@ -1580,7 +1584,7 @@ export const en = {
   'ui.sidebar.emptyAction': 'Create project',
   'ui.sidebar.editNameColor': 'Edit (name and color)…',
   'ui.sidebar.quickRename': 'Quick rename',
-  'ui.sidebar.newNamePrompt': 'New name:',
+  'ui.sidebar.newNamePrompt': 'New name',
   'ui.sidebar.newTerminalHere': 'New terminal here',
   'ui.sidebar.newAgent': 'New Agent',
   'ui.sidebar.reactivateProject': 'Reactivate project',
