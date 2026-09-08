@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildTaskSessionPrompt,
+  buildTodoSearchText,
   collectTodoTags,
   isCurrentSessionTodo,
+  matchesTodoSearch,
   normalizeTodoNotes,
-  normalizeTodoSessionOwner,
   normalizeTodoPriority,
+  normalizeTodoSessionOwner,
   normalizeTodoSessions,
   normalizeTodoTitle,
+  parseSearchTerms,
   pruneTodoSessions,
   reorderTodoItems,
   sortTodosByPriority,
@@ -224,5 +227,61 @@ describe('todoSessionLinks', () => {
 
   it('has nothing to draw for a task tied to no session', () => {
     expect(todoSessionLinks(base)).toEqual([])
+  })
+})
+
+describe('task search', () => {
+  const todo: TodoItem = {
+    id: 'x1',
+    title: 'Revisão do cronograma',
+    completed: false,
+    tags: ['review', 'b2b'],
+    notes: 'Conferir a régua de elegibilidade',
+    status: 'in_progress',
+    priority: 'high',
+    adoRef: {
+      org: 'EuMedicoResidente',
+      project: 'Plataforma EMR',
+      workItemId: 22674,
+      prs: [
+        { id: 10900, repository: 'SOA' },
+        { id: 10931, repository: 'EGA' },
+      ],
+    },
+  }
+  const text = buildTodoSearchText(todo, {
+    projectName: 'Arco',
+    statusLabel: 'In progress',
+    priorityLabel: 'High',
+  })
+
+  it('reaches every field of a task, not just its title', () => {
+    for (const query of [
+      'cronograma',
+      'elegibilidade',
+      '#review',
+      'in progress',
+      'high',
+      'arco',
+      '#22674',
+      '!10931',
+      'ega',
+    ]) {
+      expect(matchesTodoSearch(text, parseSearchTerms(query))).toBe(true)
+    }
+  })
+
+  it('ignores accents and case, so "revisao" finds "Revisão"', () => {
+    expect(matchesTodoSearch(text, parseSearchTerms('REVISAO'))).toBe(true)
+  })
+
+  it('requires every term of the query to match', () => {
+    expect(matchesTodoSearch(text, parseSearchTerms('cronograma b2b'))).toBe(true)
+    expect(matchesTodoSearch(text, parseSearchTerms('cronograma medtrack'))).toBe(false)
+  })
+
+  it('matches everything when the query is blank', () => {
+    expect(parseSearchTerms('   ')).toEqual([])
+    expect(matchesTodoSearch(text, [])).toBe(true)
   })
 })

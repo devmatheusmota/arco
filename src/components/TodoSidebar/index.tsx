@@ -8,6 +8,7 @@ import {
   Pencil,
   Play,
   Plus,
+  Search,
   StickyNote,
   Tag,
   Trash2,
@@ -19,16 +20,18 @@ import { createPortal } from 'react-dom'
 
 import { type GsdSyncSession, useGsdSyncSessions } from '../../hooks/useGsdSyncSessions'
 import { useSessionFocus } from '../../hooks/useSessionFocus'
-import { pullRequestUrl, workItemUrl } from '../../lib/adoRef'
+import { adoPullRequests, pullRequestUrl, workItemUrl } from '../../lib/adoRef'
 import { formatRelativeTimestamp } from '../../lib/greeting'
-import { type TFunction, useT } from '../../lib/i18n'
+import { type TFunction, translate, useT } from '../../lib/i18n'
 import { formatShortcut } from '../../lib/platform'
 import { openInBrowser, type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
 import {
-  collectTodoTags,
+  buildTodoSearchText,
   isCurrentSessionTodo,
+  matchesTodoSearch,
   normalizeTodoPriority,
   normalizeTodoStatus,
+  parseSearchTerms,
   sortTodosByPriority,
   TODO_NOTES_MAX_LENGTH,
   TODO_TITLE_MAX_LENGTH,
@@ -669,6 +672,7 @@ export function TodoSidebar() {
   const t = useT()
   const todos = useProjectsStore((state) => state.todos)
   const projects = useProjectsStore((state) => state.projects)
+  const language = useProjectsStore((state) => state.preferences.language)
   const createTodo = useProjectsStore((state) => state.createTodo)
   const reorderTodo = useProjectsStore((state) => state.reorderTodo)
   // Read once here rather than per row: an answer that is the same for every
@@ -694,22 +698,45 @@ export function TodoSidebar() {
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
-  const [tagFilter, setTagFilter] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
   const [composerExpanded, setComposerExpanded] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     () => new Set(['completed']),
   )
   const addInputRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const availableTags = useMemo(() => collectTodoTags(todos), [todos])
-  useEffect(() => {
-    if (tagFilter && !availableTags.includes(tagFilter)) setTagFilter(null)
-  }, [availableTags, tagFilter])
+  // One string per task, rebuilt only when the tasks themselves change: typing a
+  // query then costs a substring scan, not a walk over every field of every task.
+  const searchIndex = useMemo(() => {
+    const projectNames = new Map(projects.map((project) => [project.id, project.name]))
+    return new Map(
+      todos.map((todo) => [
+        todo.id,
+        buildTodoSearchText(todo, {
+          projectName: todo.projectId ? projectNames.get(todo.projectId) : undefined,
+          statusLabel: translate(
+            language,
+            `todo.statusValue.${normalizeTodoStatus(todo.status, todo.completed)}`,
+          ),
+          priorityLabel: translate(
+            language,
+            `todo.priority.${normalizeTodoPriority(todo.priority)}`,
+          ),
+        }),
+      ]),
+    )
+  }, [language, projects, todos])
+  const searchTerms = useMemo(() => parseSearchTerms(query), [query])
+  const searching = searchTerms.length > 0
 
   const visible = useMemo(
-    () => (tagFilter ? todos.filter((todo) => todo.tags.includes(tagFilter)) : todos),
-    [tagFilter, todos],
+    () =>
+      searching
+        ? todos.filter((todo) => matchesTodoSearch(searchIndex.get(todo.id) ?? '', searchTerms))
+        : todos,
+    [searchIndex, searchTerms, searching, todos],
   )
   const active = visible.filter((todo) => !todo.completed)
   const completed = visible.filter((todo) => todo.completed)
@@ -825,7 +852,9 @@ export function TodoSidebar() {
     projectId?: string
     iconUrl?: string
   }) => {
-    const collapsed = collapsedSections.has(key)
+    // A search that hides its own hits inside a collapsed section reads as no
+    // results at all, so searching forces every section open.
+    const collapsed = !searching && collapsedSections.has(key)
     return (
       <section key={key} className={styles.section}>
         <div className={styles.sectionHeader}>
@@ -952,27 +981,42 @@ export function TodoSidebar() {
             {t('todo.completed')}
           </button>
         </div>
-        {availableTags.length > 0 ? (
-          <div className={styles.tagFilters} aria-label={t('todo.tagFilterLabel')}>
-            <button
-              type="button"
-              className={`${styles.tagFilter} ${!tagFilter ? styles.tagFilterActive : ''}`}
-              onClick={() => setTagFilter(null)}
-            >
-              {t('todo.tagFilterAll')}
-            </button>
-            {availableTags.map((tag) => (
+        <div className={styles.search}>
+          <Search size={13} className={styles.searchIcon} aria-hidden="true" />
+          <input
+            ref={searchInputRef}
+            className={styles.searchInput}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Escape' || !query) return
+              event.preventDefault()
+              event.stopPropagation()
+              setQuery('')
+            }}
+            placeholder={t('todo.searchPlaceholder')}
+            aria-label={t('todo.search')}
+          />
+          {query ? (
+            <>
+              <span className={styles.searchCount} aria-live="polite">
+                {visible.length}
+              </span>
               <button
-                key={tag}
                 type="button"
-                className={`${styles.tagFilter} ${tagFilter === tag ? styles.tagFilterActive : ''}`}
-                onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                className={styles.searchClear}
+                onClick={() => {
+                  setQuery('')
+                  searchInputRef.current?.focus()
+                }}
+                title={t('todo.searchClear')}
+                aria-label={t('todo.searchClear')}
               >
-                #{tag}
+                <X size={12} />
               </button>
-            ))}
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </header>
 
       <form
@@ -1031,14 +1075,18 @@ export function TodoSidebar() {
       </form>
 
       <div className={styles.content}>
-        {filter !== 'completed' ? <GsdSyncSection /> : null}
+        {filter !== 'completed' && !searching ? <GsdSyncSection /> : null}
         {visible.length === 0 ? (
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>
-              <ListTodo size={20} />
+              {searching ? <Search size={20} /> : <ListTodo size={20} />}
             </div>
-            <strong>{t('todo.emptyTitle')}</strong>
-            <span>{t('todo.emptyDescription')}</span>
+            <strong>{searching ? t('todo.searchEmptyTitle') : t('todo.emptyTitle')}</strong>
+            <span>
+              {searching
+                ? t('todo.searchEmptyDescription', { query: query.trim() })
+                : t('todo.emptyDescription')}
+            </span>
           </div>
         ) : (
           <>
@@ -1223,7 +1271,12 @@ function AdoRefChips({ ref_, t }: { ref_: TodoAdoRef; t: TFunction }) {
   }
 
   const workItemHref = ref_.workItemId > 0 ? workItemUrl(ref_) : null
-  const prHref = pullRequestUrl(ref_)
+  // Every linked pull request gets its own chip. A task under review routinely
+  // has more than one, and rendering only the first hid the rest of the work.
+  const pullRequests = adoPullRequests(ref_).flatMap((pr) => {
+    const href = pullRequestUrl(ref_, pr)
+    return href ? [{ pr, href }] : []
+  })
 
   return (
     <>
@@ -1239,18 +1292,19 @@ function AdoRefChips({ ref_, t }: { ref_: TodoAdoRef; t: TFunction }) {
           #{ref_.workItemId}
         </button>
       ) : null}
-      {prHref && ref_.prId ? (
+      {pullRequests.map(({ pr, href }) => (
         <button
+          key={pr.id}
           type="button"
           className={styles.adoChip}
           data-kind="pr"
-          onClick={(event) => open(event, prHref)}
-          title={t('todo.adoPullRequest', { id: ref_.prId })}
-          aria-label={t('todo.adoPullRequest', { id: ref_.prId })}
+          onClick={(event) => open(event, href)}
+          title={t('todo.adoPullRequest', { id: pr.id })}
+          aria-label={t('todo.adoPullRequest', { id: pr.id })}
         >
-          !{ref_.prId}
+          !{pr.id}
         </button>
-      ) : null}
+      ))}
     </>
   )
 }

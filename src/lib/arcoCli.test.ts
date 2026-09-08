@@ -218,12 +218,31 @@ describe('formatTodoDetail', () => {
         org: 'EuMedicoResidente',
         project: 'SOA',
         workItemId: 22674,
-        prId: 10900,
-        repository: 'SOA',
+        prs: [{ id: 10900, repository: 'SOA' }],
       },
     })
     expect(detail).toContain('!10900')
     expect(detail).toContain('(SOA)')
+  })
+
+  it('shows every pull request a task carries, not just the first', () => {
+    const detail = formatTodoDetail({
+      id: 'abcdefgh1234',
+      title: 'PR',
+      tags: [],
+      adoRef: {
+        org: 'EuMedicoResidente',
+        project: 'SOA',
+        workItemId: 22674,
+        prs: [
+          { id: 10900, repository: 'SOA' },
+          { id: 10931, repository: 'EGA' },
+        ],
+      },
+    })
+    expect(detail).toContain('!10900')
+    expect(detail).toContain('!10931')
+    expect(detail).toContain('(EGA)')
   })
 })
 

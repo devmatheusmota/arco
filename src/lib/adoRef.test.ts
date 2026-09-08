@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { mergeAdoRef, normalizeAdoRef, parseAdoRef, pullRequestUrl, workItemUrl } from './adoRef'
+import {
+  adoPullRequests,
+  mergeAdoRef,
+  normalizeAdoRef,
+  parseAdoRef,
+  pullRequestUrl,
+  workItemUrl,
+} from './adoRef'
 
 describe('parseAdoRef', () => {
   it('reads a work-item URL and decodes the project name', () => {
@@ -21,9 +28,8 @@ describe('parseAdoRef', () => {
     ).toEqual({
       org: 'EuMedicoResidente',
       project: 'Plataforma EMR',
-      repository: 'SOA',
       workItemId: 0,
-      prId: 10681,
+      prs: [{ id: 10681, repository: 'SOA', project: 'Plataforma EMR' }],
     })
   })
 
@@ -36,7 +42,7 @@ describe('parseAdoRef', () => {
     expect(parseAdoRef('EuMedicoResidente/Plataforma EMR!10681')).toMatchObject({
       org: 'EuMedicoResidente',
       project: 'Plataforma EMR',
-      prId: 10681,
+      prs: [{ id: 10681 }],
     })
   })
 
@@ -52,7 +58,7 @@ describe('parseAdoRef', () => {
         project: 'Plataforma EMR',
         repository: 'SOA',
       }),
-    ).toMatchObject({ prId: 10681, repository: 'SOA' })
+    ).toMatchObject({ prs: [{ id: 10681, repository: 'SOA' }] })
   })
 
   it('refuses a short id when no defaults are configured, instead of guessing', () => {
@@ -72,11 +78,42 @@ describe('normalizeAdoRef', () => {
     expect(normalizeAdoRef(null)).toBeNull()
     expect(normalizeAdoRef({})).toBeNull()
     expect(normalizeAdoRef({ org: 'x', project: 'y' })).toBeNull()
-    expect(normalizeAdoRef({ org: 'x', project: 'y', workItemId: 0, prId: 42 })).toMatchObject({
+    expect(
+      normalizeAdoRef({ org: 'x', project: 'y', workItemId: 0, prs: [{ id: 42 }] }),
+    ).toMatchObject({
       org: 'x',
       project: 'y',
-      prId: 42,
+      prs: [{ id: 42 }],
     })
+  })
+
+  it('reads a file written before a task could carry more than one PR', () => {
+    expect(
+      normalizeAdoRef({
+        org: 'EuMedicoResidente',
+        project: 'Plataforma EMR',
+        workItemId: 22312,
+        prId: 10928,
+        repository: 'EGA',
+        prProject: 'Eduardo',
+      }),
+    ).toEqual({
+      org: 'EuMedicoResidente',
+      project: 'Plataforma EMR',
+      workItemId: 22312,
+      prs: [{ id: 10928, repository: 'EGA', project: 'Eduardo' }],
+    })
+  })
+
+  it('drops repeated and malformed pull requests', () => {
+    expect(
+      normalizeAdoRef({
+        org: 'o',
+        project: 'p',
+        workItemId: 1,
+        prs: [{ id: 42 }, { id: 42, repository: 'SOA' }, { id: 0 }, null, 'nope'],
+      })?.prs,
+    ).toEqual([{ id: 42 }])
   })
 })
 
@@ -84,12 +121,41 @@ describe('mergeAdoRef', () => {
   it('adds a PR to an existing work-item reference', () => {
     const base = { org: 'o', project: 'p', workItemId: 22447 }
     expect(
-      mergeAdoRef(base, { org: 'o', project: 'p', workItemId: 0, prId: 10681, repository: 'SOA' }),
+      mergeAdoRef(base, {
+        org: 'o',
+        project: 'p',
+        workItemId: 0,
+        prs: [{ id: 10681, repository: 'SOA' }],
+      }),
     ).toMatchObject({
       workItemId: 22447,
-      prId: 10681,
-      repository: 'SOA',
+      prs: [{ id: 10681, repository: 'SOA' }],
     })
+  })
+
+  it('keeps every pull request linked to the same task', () => {
+    const withFirst = mergeAdoRef(
+      { org: 'o', project: 'p', workItemId: 22447 },
+      { org: 'o', project: 'p', workItemId: 0, prs: [{ id: 10681, repository: 'SOA' }] },
+    )
+    const withSecond = mergeAdoRef(withFirst, {
+      org: 'o',
+      project: 'p',
+      workItemId: 0,
+      prs: [{ id: 10700, repository: 'EGA' }],
+    })
+    expect(withSecond.prs).toEqual([
+      { id: 10681, repository: 'SOA' },
+      { id: 10700, repository: 'EGA' },
+    ])
+  })
+
+  it('refines a pull request already linked instead of listing it twice', () => {
+    const merged = mergeAdoRef(
+      { org: 'o', project: 'p', workItemId: 1, prs: [{ id: 10681 }] },
+      { org: 'o', project: 'p', workItemId: 0, prs: [{ id: 10681, repository: 'SOA' }] },
+    )
+    expect(merged.prs).toEqual([{ id: 10681, repository: 'SOA' }])
   })
 })
 
@@ -101,10 +167,11 @@ describe('urls', () => {
   })
 
   it('returns null for a PR url when the repository is unknown', () => {
-    expect(pullRequestUrl({ org: 'o', project: 'p', workItemId: 0, prId: 10681 })).toBeNull()
-    expect(
-      pullRequestUrl({ org: 'o', project: 'p', workItemId: 0, prId: 10681, repository: 'SOA' }),
-    ).toContain('/_git/SOA/pullrequest/10681')
+    const ref = { org: 'o', project: 'p', workItemId: 0, prs: [{ id: 10681 }] }
+    expect(pullRequestUrl(ref, { id: 10681 })).toBeNull()
+    expect(pullRequestUrl(ref, { id: 10681, repository: 'SOA' })).toContain(
+      '/_git/SOA/pullrequest/10681',
+    )
   })
 })
 
@@ -113,18 +180,17 @@ describe('pullRequestUrl across projects', () => {
     org: 'EuMedicoResidente',
     project: 'Plataforma EMR',
     workItemId: 19394,
-    prId: 10398,
-    repository: 'EGA',
+    prs: [{ id: 10398, repository: 'EGA' }],
   }
 
   it('builds the URL in the pull request own project, not the work item one', () => {
-    expect(pullRequestUrl({ ...base, prProject: 'Eduardo' })).toBe(
+    expect(pullRequestUrl(base, { id: 10398, repository: 'EGA', project: 'Eduardo' })).toBe(
       'https://dev.azure.com/EuMedicoResidente/Eduardo/_git/EGA/pullrequest/10398',
     )
   })
 
   it('falls back to the work item project when both share one', () => {
-    expect(pullRequestUrl(base)).toBe(
+    expect(pullRequestUrl(base, base.prs[0])).toBe(
       'https://dev.azure.com/EuMedicoResidente/Plataforma%20EMR/_git/EGA/pullrequest/10398',
     )
   })
@@ -138,43 +204,44 @@ describe('pullRequestUrl across projects', () => {
     const merged = mergeAdoRef(workItem, {
       org: 'EuMedicoResidente',
       project: 'agentic-product-os',
-      repository: 'emr-agent-skills',
       workItemId: 0,
-      prId: 10949,
+      prs: [{ id: 10949, repository: 'emr-agent-skills', project: 'agentic-product-os' }],
     })
     expect(merged).toMatchObject({
       project: 'Plataforma EMR',
-      prProject: 'agentic-product-os',
       workItemId: 22734,
-      prId: 10949,
+      prs: [{ id: 10949, project: 'agentic-product-os' }],
     })
     expect(workItemUrl(merged)).toContain('/Plataforma%20EMR/_workitems/edit/22734')
-    expect(pullRequestUrl(merged)).toBe(
+    expect(pullRequestUrl(merged, adoPullRequests(merged)[0])).toBe(
       'https://dev.azure.com/EuMedicoResidente/agentic-product-os/_git/emr-agent-skills/pullrequest/10949',
     )
   })
 
-  it('leaves prProject off when the two sides share a project', () => {
+  it('leaves the pull request project off when the two sides share a project', () => {
     const merged = mergeAdoRef(
       { org: 'EuMedicoResidente', project: 'SOA', workItemId: 22672 },
       {
         org: 'EuMedicoResidente',
         project: 'SOA',
-        repository: 'SOA',
         workItemId: 0,
-        prId: 10899,
+        prs: [{ id: 10899, repository: 'SOA', project: 'SOA' }],
       },
     )
-    expect(merged.prProject).toBeUndefined()
+    expect(merged.prs?.[0].project).toBeUndefined()
     expect(merged.project).toBe('SOA')
   })
 
-  it('keeps prProject through normalize and merge', () => {
-    expect(normalizeAdoRef({ ...base, prProject: 'Eduardo' })).toMatchObject({
-      prProject: 'Eduardo',
-    })
-    expect(
-      mergeAdoRef({ org: 'o', project: 'p', workItemId: 1 }, { ...base, prProject: 'Eduardo' }),
-    ).toMatchObject({ prProject: 'Eduardo' })
+  it('keeps the pull request project through normalize and merge', () => {
+    const across = {
+      ...base,
+      prs: [{ id: 10398, repository: 'EGA', project: 'Eduardo' }],
+    }
+    expect(normalizeAdoRef(across)?.prs).toEqual([
+      { id: 10398, repository: 'EGA', project: 'Eduardo' },
+    ])
+    expect(mergeAdoRef({ org: 'o', project: 'p', workItemId: 1 }, across).prs).toEqual([
+      { id: 10398, repository: 'EGA', project: 'Eduardo' },
+    ])
   })
 })

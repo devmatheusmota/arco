@@ -94,20 +94,27 @@ export type TodoSessionOwner = {
   linkedAt: number
 }
 
-/** Structured link to an Azure DevOps work item and, optionally, its pull request. */
-export type TodoAdoRef = {
-  org: string
-  project: string
-  workItemId: number
-  prId?: number
+/** One pull request linked to a task. A task can carry several. */
+export type TodoAdoPullRequest = {
+  id: number
+  /** Repository slug for `_git/<repo>/pullrequest/<id>` URLs. Without it the chip cannot link. */
   repository?: string
   /**
    * The ADO project the pull request lives in, when it is not the work item's.
    * Boards and code routinely sit in different projects — a work item in
-   * "Plataforma EMR" pointing at a pull request in "SOA" — and a single
-   * `project` cannot address both. Absent means the two share a project.
+   * "Plataforma EMR" pointing at a pull request in "SOA" — and the reference's
+   * own `project` addresses the board. Absent means the two share a project.
    */
-  prProject?: string
+  project?: string
+}
+
+/** Structured link to an Azure DevOps work item and the pull requests under it. */
+export type TodoAdoRef = {
+  org: string
+  project: string
+  workItemId: number
+  /** Pull requests linked to the task, in the order they were linked. */
+  prs?: TodoAdoPullRequest[]
 }
 
 export type TodoItem = {

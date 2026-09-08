@@ -505,8 +505,11 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.statusValue.in_progress': 'Em andamento',
   'todo.statusValue.review': 'Em revisão',
   'todo.statusValue.done': 'Concluída',
-  'todo.tagFilterAll': 'Todas as tags',
-  'todo.tagFilterLabel': 'Filtrar por tag',
+  'todo.search': 'Buscar tarefas',
+  'todo.searchPlaceholder': 'Buscar título, notas, tags, status…',
+  'todo.searchClear': 'Limpar busca',
+  'todo.searchEmptyTitle': 'Nenhuma tarefa encontrada',
+  'todo.searchEmptyDescription': 'Nada corresponde a “{query}”.',
   'todo.startSession': 'Iniciar uma sessão para esta tarefa',
   'todo.sessionsTitle': 'Sessões',
   'todo.sessionWorking': 'Trabalhando',
@@ -791,6 +794,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2160.note1':
+    'A barra de tarefas agora é filtrada por busca. A fileira de tags crescia com cada tag em uso e tinha tomado o topo do painel; um campo só entra no lugar e olha a tarefa inteira — título, notas, tags, status, prioridade, projeto, números de work item e de PR, e a sessão que está nela. As palavras se somam, então `cronograma b2b` deixa só as tarefas que têm as duas, e acento e maiúscula não importam: `revisao` acha “Revisão”. Enquanto você busca, todas as seções abrem, para nenhum resultado ficar escondido numa seção fechada.',
+  'whatsNew.v2160.note2':
+    'Tarefa com mais de um PR ligado mostra todos eles. Só cabia um por tarefa, então ligar o segundo apagava o primeiro e a linha desenhava um chip só. Agora cada PR tem o seu chip, e o `arco todo show` lista todos com o repositório de cada um. As tarefas que você já tem continuam com o PR que tinham.',
   'whatsNew.v2150.note1':
     'Dá para renomear uma sessão pelo terminal: `arco session rename "revisao do PR 11132"`. Rodando dentro de uma sessão, renomeia ela; de fora, `--session <id>` diz qual. O nome vale como um que você digitou, então ele fica — não é trocado pelo título que o agente gera.',
   'whatsNew.v2150.note2':

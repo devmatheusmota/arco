@@ -276,6 +276,57 @@ export function collectTodoTags(items: TodoItem[]): string[] {
     .map(([tag]) => tag)
 }
 
+/** Folds case and accents, so "revisão" and "revisao" are the same needle. */
+export function normalizeSearchText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+/** Splits a query into terms. Every term has to match, in any field. */
+export function parseSearchTerms(query: string): string[] {
+  return normalizeSearchText(query).split(/\s+/).filter(Boolean)
+}
+
+/** Labels the search cannot derive from the task alone, resolved by the caller. */
+export type TodoSearchContext = {
+  projectName?: string
+  statusLabel?: string
+  priorityLabel?: string
+}
+
+/**
+ * Everything about a task a search can hit, folded into one normalized string:
+ * title, notes, tags, status, priority, project, work item, and the session that
+ * claimed it. Built once per task list so typing only scans strings.
+ */
+export function buildTodoSearchText(todo: TodoItem, context: TodoSearchContext = {}): string {
+  const parts: Array<string | number | undefined> = [
+    todo.title,
+    todo.notes,
+    ...todo.tags.map((tag) => `#${tag}`),
+    normalizeTodoStatus(todo.status, todo.completed),
+    context.statusLabel,
+    normalizeTodoPriority(todo.priority),
+    context.priorityLabel,
+    context.projectName,
+  ]
+  const ado = todo.adoRef
+  if (ado) {
+    parts.push(`#${ado.workItemId}`, ado.project)
+    for (const pr of ado.prs ?? []) parts.push(`!${pr.id}`, pr.repository, pr.project)
+  }
+  if (todo.session) parts.push(todo.session.name, todo.session.cwd)
+  for (const link of todoSessionLinks(todo)) parts.push(link.agent)
+  return normalizeSearchText(parts.filter(Boolean).join(' '))
+}
+
+/** True when every term of the query appears somewhere in the task's search text. */
+export function matchesTodoSearch(searchText: string, terms: string[]): boolean {
+  return terms.every((term) => searchText.includes(term))
+}
+
 /**
  * Drops the session links a predicate rejects — used when the panes they point at are
  * gone. Returns the original array untouched when nothing matched, so a delete that

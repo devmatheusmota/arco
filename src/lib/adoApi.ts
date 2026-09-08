@@ -1,4 +1,4 @@
-import type { TodoAdoRef } from './types'
+import type { TodoAdoPullRequest, TodoAdoRef } from './types'
 
 /**
  * The one Azure DevOps call Arco makes: where does this pull request live?
@@ -35,14 +35,15 @@ function authHeader(pat: string): string {
 
 export async function fetchPullRequestLocation(
   ref: TodoAdoRef,
+  pr: TodoAdoPullRequest,
   pat: string,
 ): Promise<AdoPullRequestLocation | null> {
-  if (!ref.prId) return null
+  if (!pr.id) return null
   // Asked at the organization level on purpose: a pull request id is unique
   // across the org, while the project the task carries is the work item's, which
   // is routinely not the code's. Scoping the call to it answers 404 for every
   // pull request that lives somewhere else — the exact case worth repairing.
-  const url = `https://dev.azure.com/${encodeURIComponent(ref.org)}/_apis/git/pullrequests/${ref.prId}?api-version=7.0`
+  const url = `https://dev.azure.com/${encodeURIComponent(ref.org)}/_apis/git/pullrequests/${pr.id}?api-version=7.0`
   const response = await fetch(url, {
     headers: { Accept: 'application/json', Authorization: authHeader(pat) },
   })
@@ -57,24 +58,32 @@ export async function fetchPullRequestLocation(
 }
 
 /**
- * The reference a task should carry, or null when the stored one is already
- * right. Kept apart from the request so the decision is testable without a
- * network, and so a repair never writes a reference identical to the old one.
+ * The reference a task should carry once one of its pull requests is placed, or
+ * null when the stored one is already right. Kept apart from the request so the
+ * decision is testable without a network, and so a repair never writes a
+ * reference identical to the old one.
+ *
+ * Only the pull request asked about is rewritten: a task carries several, and a
+ * repair that reshaped the whole list would undo what the other calls found.
  */
 export function realignedRef(
   ref: TodoAdoRef,
+  pr: TodoAdoPullRequest,
   location: AdoPullRequestLocation | null,
 ): TodoAdoRef | null {
   if (!location) return null
-  const projectMatches = (ref.prProject?.trim() || ref.project) === location.projectName
-  if (ref.repository === location.repositoryName && projectMatches) return null
+  const projectMatches = (pr.project?.trim() || ref.project) === location.projectName
+  if (pr.repository === location.repositoryName && projectMatches) return null
+  const realigned: TodoAdoPullRequest = {
+    ...pr,
+    repository: location.repositoryName,
+    // Dropped rather than stored when the two sides agree: a pull request
+    // project equal to the work item's is noise the URL builder would ignore.
+    ...(location.projectName === ref.project ? {} : { project: location.projectName }),
+  }
+  if (location.projectName === ref.project) delete realigned.project
   return {
     ...ref,
-    repository: location.repositoryName,
-    // Dropped rather than stored when the two sides agree: a `prProject` equal
-    // to `project` is noise that the URL builder would ignore anyway.
-    ...(location.projectName === ref.project
-      ? { prProject: undefined }
-      : { prProject: location.projectName }),
+    prs: (ref.prs ?? []).map((item) => (item.id === pr.id ? realigned : item)),
   }
 }

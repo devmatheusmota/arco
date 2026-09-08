@@ -10,6 +10,24 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.16.0] — 2026-09-08
+
+### Changed
+
+- The Todo sidebar filters by search instead of by tag. The grid of tag pills grew with
+  every tag in use and had taken over the top of the panel; a single field now matches
+  title, notes, tags, status, priority, project, work item and pull request ids, and the
+  session that claimed the task. Terms combine — `cronograma b2b` keeps only tasks carrying
+  both — accents and case are ignored, and searching opens every section so a hit cannot
+  hide inside a collapsed one.
+
+### Fixed
+
+- A task linked to more than one pull request shows all of them. The reference kept a
+  single pull request, so linking a second one replaced the first and the row drew one
+  chip; each linked pull request is now its own chip, with the repository it lives in.
+  Existing tasks keep the pull request they already had.
+
 ## [2.15.0] — 2026-09-03
 
 ### Added

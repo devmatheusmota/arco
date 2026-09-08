@@ -375,8 +375,10 @@ function formatAdoRef(ref) {
   if (!ref) return null
   const parts = [`${ref.org}/${ref.project}`]
   if (ref.workItemId) parts.push(`#${ref.workItemId}`)
-  if (ref.prId) parts.push(` !${ref.prId}`)
-  if (ref.repository) parts.push(` (${ref.repository})`)
+  for (const pr of ref.prs ?? []) {
+    parts.push(` !${pr.id}`)
+    if (pr.repository) parts.push(` (${pr.repository})`)
+  }
   return parts.join('')
 }
 

@@ -501,8 +501,11 @@ export const en = {
   'todo.statusValue.in_progress': 'In progress',
   'todo.statusValue.review': 'In review',
   'todo.statusValue.done': 'Done',
-  'todo.tagFilterAll': 'All tags',
-  'todo.tagFilterLabel': 'Filter by tag',
+  'todo.search': 'Search tasks',
+  'todo.searchPlaceholder': 'Search title, notes, tags, status…',
+  'todo.searchClear': 'Clear search',
+  'todo.searchEmptyTitle': 'No matching task',
+  'todo.searchEmptyDescription': 'Nothing matches “{query}”.',
   'todo.startSession': 'Start a session for this task',
   'todo.sessionsTitle': 'Sessions',
   'todo.sessionWorking': 'Working',
@@ -779,6 +782,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2160.note1':
+    'The Todo sidebar is filtered by searching now. The row of tag pills grew with every tag in use and had taken over the top of the panel; one field replaces it and looks at the whole task — title, notes, tags, status, priority, project, work item and pull request numbers, and the session working on it. Words add up, so `cronograma b2b` keeps only the tasks carrying both, and accents and capitals are ignored: `revisao` finds “Revisão”. While you search, every section opens, so a match cannot hide inside a collapsed one.',
+  'whatsNew.v2160.note2':
+    'A task linked to more than one pull request finally shows all of them. Only one fit in the task, so linking a second replaced the first and the row drew a single chip. Each pull request is now its own chip, and `arco todo show` lists them with the repository each one lives in. Tasks you already have keep the pull request they had.',
   'whatsNew.v2150.note1':
     'Sessions can be renamed from the terminal: `arco session rename "revisao do PR 11132"`. Run inside a session it renames that one; from anywhere else, `--session <id>` says which. The name counts as one you typed, so it stays put instead of being replaced by the title the agent generates.',
   'whatsNew.v2150.note2':

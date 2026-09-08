@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { AdoApiError, fetchPullRequestLocation, realignedRef } from '../lib/adoApi'
+import { adoPullRequests } from '../lib/adoRef'
 import { getLocale, translate } from '../lib/i18n'
 import type { TodoItem } from '../lib/types'
 import { useProjectsStore } from '../stores/projectsStore'
@@ -26,13 +27,21 @@ export function useAdoRefRepair(hydrated: boolean): void {
     if (!hydrated) return
     let cancelled = false
 
+    // Pull requests of the same task are repaired in series, each against the
+    // reference as it stands after the previous one: they share a list, and two
+    // rewrites built from the same stale copy would drop one another's fix.
     async function repair(todo: TodoItem, pat: string): Promise<void> {
-      const ref = todo.adoRef
-      if (!ref) return
       try {
-        const next = realignedRef(ref, await fetchPullRequestLocation(ref, pat))
-        if (!next || cancelled) return
-        useProjectsStore.getState().setTodoAdoRef(todo.id, next)
+        for (const pr of adoPullRequests(todo.adoRef)) {
+          const ref = useProjectsStore.getState().todos.find((item) => item.id === todo.id)?.adoRef
+          const current = adoPullRequests(ref).find((item) => item.id === pr.id)
+          if (!ref || !current) continue
+          const location = await fetchPullRequestLocation(ref, current, pat)
+          if (cancelled) return
+          const next = realignedRef(ref, current, location)
+          if (!next) continue
+          useProjectsStore.getState().setTodoAdoRef(todo.id, next)
+        }
       } catch (error) {
         // One notice per run: a token that is refused is refused for every task,
         // and a toast per linked task would bury the window.
@@ -51,7 +60,7 @@ export function useAdoRefRepair(hydrated: boolean): void {
     if (!pat) return
 
     const pending = state.todos.filter(
-      (todo) => todo.adoRef?.prId && !repaired.current.has(todo.id),
+      (todo) => adoPullRequests(todo.adoRef).length > 0 && !repaired.current.has(todo.id),
     )
     if (pending.length === 0) return
     for (const todo of pending) repaired.current.add(todo.id)
