@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildTaskSessionPrompt,
-  buildTodoSearchText,
+  buildTodoSearchIndex,
   collectTodoTags,
   isCurrentSessionTodo,
   matchesTodoSearch,
@@ -236,7 +236,7 @@ describe('task search', () => {
     title: 'Revisão do cronograma',
     completed: false,
     tags: ['review', 'b2b'],
-    notes: 'Conferir a régua de elegibilidade',
+    notes: 'Conferir a régua de elegibilidade. Meu papel: revisar o corte.',
     status: 'in_progress',
     priority: 'high',
     adoRef: {
@@ -249,16 +249,17 @@ describe('task search', () => {
       ],
     },
   }
-  const text = buildTodoSearchText(todo, {
+  const index = buildTodoSearchIndex(todo, {
     projectName: 'Arco',
     statusLabel: 'In progress',
     priorityLabel: 'High',
   })
+  const matches = (query: string, includeNotes = false) =>
+    matchesTodoSearch(index, parseSearchTerms(query), { includeNotes })
 
   it('reaches every field of a task, not just its title', () => {
     for (const query of [
       'cronograma',
-      'elegibilidade',
       '#review',
       'in progress',
       'high',
@@ -267,21 +268,38 @@ describe('task search', () => {
       '!10931',
       'ega',
     ]) {
-      expect(matchesTodoSearch(text, parseSearchTerms(query))).toBe(true)
+      expect(matches(query)).toBe(true)
     }
   })
 
   it('ignores accents and case, so "revisao" finds "Revisão"', () => {
-    expect(matchesTodoSearch(text, parseSearchTerms('REVISAO'))).toBe(true)
+    expect(matches('REVISAO')).toBe(true)
   })
 
   it('requires every term of the query to match', () => {
-    expect(matchesTodoSearch(text, parseSearchTerms('cronograma b2b'))).toBe(true)
-    expect(matchesTodoSearch(text, parseSearchTerms('cronograma medtrack'))).toBe(false)
+    expect(matches('cronograma b2b')).toBe(true)
+    expect(matches('cronograma medtrack')).toBe(false)
+  })
+
+  it('keeps a short term to whole words, so "pr" is not "progress"', () => {
+    expect(matchesTodoSearch(buildTodoSearchIndex({ ...todo, tags: ['pr'] }), ['pr'])).toBe(true)
+    expect(matches('pr')).toBe(false)
+  })
+
+  it('matches a longer term from the start of a word', () => {
+    expect(matches('cronog')).toBe(true)
+    expect(matches('nograma')).toBe(false)
+  })
+
+  it('leaves the notes out until a search is told to read them', () => {
+    expect(matches('elegibilidade')).toBe(false)
+    expect(matches('elegibilidade', true)).toBe(true)
+    // The reason notes are held back: prose answers a query it has nothing to do with.
+    expect(matches('meu pr')).toBe(false)
   })
 
   it('matches everything when the query is blank', () => {
     expect(parseSearchTerms('   ')).toEqual([])
-    expect(matchesTodoSearch(text, [])).toBe(true)
+    expect(matchesTodoSearch(index, [])).toBe(true)
   })
 })

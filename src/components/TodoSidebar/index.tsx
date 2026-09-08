@@ -26,7 +26,7 @@ import { type TFunction, translate, useT } from '../../lib/i18n'
 import { formatShortcut } from '../../lib/platform'
 import { openInBrowser, type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
 import {
-  buildTodoSearchText,
+  buildTodoSearchIndex,
   isCurrentSessionTodo,
   matchesTodoSearch,
   normalizeTodoPriority,
@@ -707,14 +707,14 @@ export function TodoSidebar() {
   const addInputRef = useRef<HTMLInputElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // One string per task, rebuilt only when the tasks themselves change: typing a
-  // query then costs a substring scan, not a walk over every field of every task.
+  // One word list per task, rebuilt only when the tasks themselves change: typing
+  // a query then compares words already split, instead of walking every field.
   const searchIndex = useMemo(() => {
     const projectNames = new Map(projects.map((project) => [project.id, project.name]))
     return new Map(
       todos.map((todo) => [
         todo.id,
-        buildTodoSearchText(todo, {
+        buildTodoSearchIndex(todo, {
           projectName: todo.projectId ? projectNames.get(todo.projectId) : undefined,
           statusLabel: translate(
             language,
@@ -731,13 +731,23 @@ export function TodoSidebar() {
   const searchTerms = useMemo(() => parseSearchTerms(query), [query])
   const searching = searchTerms.length > 0
 
-  const visible = useMemo(
-    () =>
-      searching
-        ? todos.filter((todo) => matchesTodoSearch(searchIndex.get(todo.id) ?? '', searchTerms))
-        : todos,
-    [searchIndex, searchTerms, searching, todos],
-  )
+  // Notes are searched only when nothing else answered. They are prose, and a
+  // task whose note says "meu papel" is not an answer to `MEU PR` while a task
+  // actually titled "[MEU PR]" exists — but a note is still the only place some
+  // things are written, so a search that finds nothing keeps looking there.
+  const search = useMemo(() => {
+    if (!searching) return { items: todos, fromNotes: false }
+    const match = (todo: TodoItem, includeNotes: boolean) => {
+      const index = searchIndex.get(todo.id)
+      return index ? matchesTodoSearch(index, searchTerms, { includeNotes }) : false
+    }
+    const fields = todos.filter((todo) => match(todo, false))
+    if (fields.length > 0) return { items: fields, fromNotes: false }
+    const withNotes = todos.filter((todo) => match(todo, true))
+    return { items: withNotes, fromNotes: withNotes.length > 0 }
+  }, [searchIndex, searchTerms, searching, todos])
+  const visible = search.items
+
   const active = visible.filter((todo) => !todo.completed)
   const completed = visible.filter((todo) => todo.completed)
   const progress = visible.length > 0 ? Math.round((completed.length / visible.length) * 100) : 0
@@ -1000,7 +1010,9 @@ export function TodoSidebar() {
           {query ? (
             <>
               <span className={styles.searchCount} aria-live="polite">
-                {visible.length}
+                {search.fromNotes
+                  ? t('todo.searchInNotes', { count: visible.length })
+                  : visible.length}
               </span>
               <button
                 type="button"

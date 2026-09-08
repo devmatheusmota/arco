@@ -10,6 +10,17 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.16.1] — 2026-09-08
+
+### Fixed
+
+- Searching the Todo sidebar answers with the tasks you meant. A term matched anywhere
+  inside any word, and notes counted like a title, so `MEU PR` returned 43 of 136 tasks —
+  `meu` landing on "meu papel" in some note, `pr` inside "progress" and "prova". A term of
+  up to three characters now has to be a whole word and a longer one matches from the start
+  of a word, and notes are read only when nothing else answered, with the count saying so.
+  The same search now returns the 22 tasks actually titled `[MEU PR]`.
+
 ## [2.16.0] — 2026-09-08
 
 ### Changed

@@ -507,6 +507,7 @@ export const ptBR: Record<MessageKey, string> = {
   'todo.statusValue.done': 'Concluída',
   'todo.search': 'Buscar tarefas',
   'todo.searchPlaceholder': 'Buscar título, notas, tags, status…',
+  'todo.searchInNotes': '{count} nas notas',
   'todo.searchClear': 'Limpar busca',
   'todo.searchEmptyTitle': 'Nenhuma tarefa encontrada',
   'todo.searchEmptyDescription': 'Nada corresponde a “{query}”.',
@@ -794,6 +795,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2161.note1':
+    'A busca de tarefas responde com o que você quis dizer. Um termo casava dentro de qualquer palavra, e as notas contavam igual a um título: buscar `MEU PR` devolvia 43 de 136 tarefas — `meu` caindo num “meu papel” perdido numa nota, `pr` dentro de “progress” e “prova”. Agora um termo de até três letras precisa ser a palavra inteira, um mais longo casa do começo da palavra, e as notas só entram quando mais nada respondeu — e aí o contador avisa. A mesma busca devolve as 22 tarefas que realmente se chamam `[MEU PR]`.',
   'whatsNew.v2160.note1':
     'A barra de tarefas agora é filtrada por busca. A fileira de tags crescia com cada tag em uso e tinha tomado o topo do painel; um campo só entra no lugar e olha a tarefa inteira — título, notas, tags, status, prioridade, projeto, números de work item e de PR, e a sessão que está nela. As palavras se somam, então `cronograma b2b` deixa só as tarefas que têm as duas, e acento e maiúscula não importam: `revisao` acha “Revisão”. Enquanto você busca, todas as seções abrem, para nenhum resultado ficar escondido numa seção fechada.',
   'whatsNew.v2160.note2':

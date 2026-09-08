@@ -284,9 +284,19 @@ export function normalizeSearchText(value: string): string {
     .toLowerCase()
 }
 
+/**
+ * The words a search matches against. Punctuation only separates: `#review`,
+ * `!11181` and `in_progress` are stored as the words a person would type.
+ */
+function searchWords(value: string): string[] {
+  return normalizeSearchText(value)
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+}
+
 /** Splits a query into terms. Every term has to match, in any field. */
 export function parseSearchTerms(query: string): string[] {
-  return normalizeSearchText(query).split(/\s+/).filter(Boolean)
+  return searchWords(query)
 }
 
 /** Labels the search cannot derive from the task alone, resolved by the caller. */
@@ -297,15 +307,27 @@ export type TodoSearchContext = {
 }
 
 /**
- * Everything about a task a search can hit, folded into one normalized string:
- * title, notes, tags, status, priority, project, work item, and the session that
- * claimed it. Built once per task list so typing only scans strings.
+ * The words a task is found by, split in two.
+ *
+ * `fields` is what a search looks at by default — title, tags, status,
+ * priority, project, work item and pull request ids, the session on it. `notes`
+ * is held apart because it is prose: a task whose note says "meu papel" is not
+ * an answer to `MEU PR`, and matching notes by default turned a search into the
+ * whole list again.
  */
-export function buildTodoSearchText(todo: TodoItem, context: TodoSearchContext = {}): string {
+export type TodoSearchIndex = {
+  fields: string[]
+  notes: string[]
+}
+
+/** Built once per task list, so typing only compares words already split. */
+export function buildTodoSearchIndex(
+  todo: TodoItem,
+  context: TodoSearchContext = {},
+): TodoSearchIndex {
   const parts: Array<string | number | undefined> = [
     todo.title,
-    todo.notes,
-    ...todo.tags.map((tag) => `#${tag}`),
+    ...todo.tags,
     normalizeTodoStatus(todo.status, todo.completed),
     context.statusLabel,
     normalizeTodoPriority(todo.priority),
@@ -314,17 +336,35 @@ export function buildTodoSearchText(todo: TodoItem, context: TodoSearchContext =
   ]
   const ado = todo.adoRef
   if (ado) {
-    parts.push(`#${ado.workItemId}`, ado.project)
-    for (const pr of ado.prs ?? []) parts.push(`!${pr.id}`, pr.repository, pr.project)
+    parts.push(ado.workItemId, ado.project)
+    for (const pr of ado.prs ?? []) parts.push(pr.id, pr.repository, pr.project)
   }
   if (todo.session) parts.push(todo.session.name, todo.session.cwd)
   for (const link of todoSessionLinks(todo)) parts.push(link.agent)
-  return normalizeSearchText(parts.filter(Boolean).join(' '))
+  return {
+    fields: searchWords(parts.filter((part) => part !== undefined && part !== '').join(' ')),
+    notes: searchWords(todo.notes ?? ''),
+  }
 }
 
-/** True when every term of the query appears somewhere in the task's search text. */
-export function matchesTodoSearch(searchText: string, terms: string[]): boolean {
-  return terms.every((term) => searchText.includes(term))
+/**
+ * A term of three characters or fewer has to be a whole word: `pr` means the
+ * tag, the chip or the `[MEU PR]` in a title, never the middle of "progress" or
+ * "prova". A longer term matches from the start of a word, so `cronog` still
+ * finds "cronograma".
+ */
+function wordMatches(words: string[], term: string): boolean {
+  return term.length <= 3 ? words.includes(term) : words.some((word) => word.startsWith(term))
+}
+
+/** True when every term of the query matches a word of the task. */
+export function matchesTodoSearch(
+  index: TodoSearchIndex,
+  terms: string[],
+  options: { includeNotes?: boolean } = {},
+): boolean {
+  const words = options.includeNotes ? [...index.fields, ...index.notes] : index.fields
+  return terms.every((term) => wordMatches(words, term))
 }
 
 /**

@@ -503,6 +503,7 @@ export const en = {
   'todo.statusValue.done': 'Done',
   'todo.search': 'Search tasks',
   'todo.searchPlaceholder': 'Search title, notes, tags, status…',
+  'todo.searchInNotes': '{count} in notes',
   'todo.searchClear': 'Clear search',
   'todo.searchEmptyTitle': 'No matching task',
   'todo.searchEmptyDescription': 'Nothing matches “{query}”.',
@@ -782,6 +783,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2161.note1':
+    'Searching your tasks answers with what you meant. A term matched inside any word and notes counted like a title, so `MEU PR` returned 43 of 136 tasks — `meu` landing on a stray “meu papel” in some note, `pr` inside “progress” and “prova”. A term of up to three letters now has to be the whole word, a longer one matches from the start of a word, and notes are read only when nothing else answered — the counter says so when they are. The same search returns the 22 tasks actually named `[MEU PR]`.',
   'whatsNew.v2160.note1':
     'The Todo sidebar is filtered by searching now. The row of tag pills grew with every tag in use and had taken over the top of the panel; one field replaces it and looks at the whole task — title, notes, tags, status, priority, project, work item and pull request numbers, and the session working on it. Words add up, so `cronograma b2b` keeps only the tasks carrying both, and accents and capitals are ignored: `revisao` finds “Revisão”. While you search, every section opens, so a match cannot hide inside a collapsed one.',
   'whatsNew.v2160.note2':
