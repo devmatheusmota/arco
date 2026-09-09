@@ -10,6 +10,14 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- `arco todo` prints its whole answer when the shell captures output with `2>&1`. Both
+  descriptors then share one pipe, and the command wrote to it once: everything past the
+  64 KB the pipe holds was dropped, silently and with a successful exit code, so
+  `arco todo list --json 2>&1` came back as 65536 bytes of JSON cut mid-string. The write
+  now continues until the text is out, and waits for the reader when the pipe is full.
+
 ## [2.16.1] — 2026-09-08
 
 ### Fixed

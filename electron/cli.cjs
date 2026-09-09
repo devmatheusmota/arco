@@ -16,20 +16,50 @@ const path = require('node:path')
 const SETTINGS_FILE =
   process.env.ARCO_HOOKS_SETTINGS_FILE || path.join(os.tmpdir(), 'arco-agent-hooks.json')
 
+/** Scratch word to sleep on while a full pipe drains. Never signalled. */
+const DRAIN_SLOT = new Int32Array(new SharedArrayBuffer(4))
+
 /**
- * Writes and exits without losing the output.
+ * Writes the whole text to a descriptor, synchronously.
  *
  * `process.stdout.write` is asynchronous when stdout is a pipe, and
  * `process.exit` drops whatever is still buffered — so the command printed
  * nothing at all when its output was captured, while looking fine in a
  * terminal. Writing straight to the file descriptor is synchronous either way.
+ *
+ * One `writeSync` is not enough, though: it writes as much as fits and reports
+ * how much that was. With `2>&1` both descriptors share one pipe, which Node
+ * leaves in non-blocking mode, so the write stopped at the pipe buffer — 64 KB
+ * of a 200 KB listing, valid exit code, JSON cut mid-string. Looping over the
+ * offset is what makes the output whole; `EAGAIN` means the buffer is full and
+ * the reader has not drained it yet, and `Atomics.wait` yields the CPU it needs
+ * instead of spinning on it.
  */
+function writeTo(fd, text) {
+  const buffer = Buffer.from(text, 'utf8')
+  let offset = 0
+  while (offset < buffer.length) {
+    try {
+      offset += fs.writeSync(fd, buffer, offset, buffer.length - offset)
+    } catch (error) {
+      if (error.code === 'EAGAIN') {
+        Atomics.wait(DRAIN_SLOT, 0, 0, 1)
+        continue
+      }
+      // The reader went away — `arco todo list | head`. Stop quietly, the way
+      // the default SIGPIPE would have, instead of dying on a broken pipe.
+      if (error.code === 'EPIPE') return
+      throw error
+    }
+  }
+}
+
 function writeOut(text) {
-  fs.writeSync(1, text)
+  writeTo(1, text)
 }
 
 function writeErr(text) {
-  fs.writeSync(2, text)
+  writeTo(2, text)
 }
 
 const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
