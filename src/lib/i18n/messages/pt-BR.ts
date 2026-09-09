@@ -795,6 +795,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2162.note1':
+    'O comando `arco` parou de perder metade de uma resposta longa. Capturar a saída com o stderr no mesmo pipe — `arco todo list --json 2>&1`, que é como um script ou outro agente lê — cortava a resposta em exatos 64 KB e ainda dizia que tinha dado certo, então o JSON chegava quebrado no meio de uma string. Agora o comando escreve tudo que tem antes de sair.',
   'whatsNew.v2161.note1':
     'A busca de tarefas responde com o que você quis dizer. Um termo casava dentro de qualquer palavra, e as notas contavam igual a um título: buscar `MEU PR` devolvia 43 de 136 tarefas — `meu` caindo num “meu papel” perdido numa nota, `pr` dentro de “progress” e “prova”. Agora um termo de até três letras precisa ser a palavra inteira, um mais longo casa do começo da palavra, e as notas só entram quando mais nada respondeu — e aí o contador avisa. A mesma busca devolve as 22 tarefas que realmente se chamam `[MEU PR]`.',
   'whatsNew.v2160.note1':

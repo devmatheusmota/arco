@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [2.16.2] — 2026-09-09
+
 ### Fixed
 
 - `arco todo` prints its whole answer when the shell captures output with `2>&1`. Both

@@ -783,6 +783,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v2162.note1':
+    'The `arco` command stopped losing half of a long answer. Capturing its output with stderr on the same pipe — `arco todo list --json 2>&1`, which is how a script or another agent reads it — cut the answer at exactly 64 KB and still reported success, so the JSON arrived broken in the middle of a string. The command now writes everything it has before it exits.',
   'whatsNew.v2161.note1':
     'Searching your tasks answers with what you meant. A term matched inside any word and notes counted like a title, so `MEU PR` returned 43 of 136 tasks — `meu` landing on a stray “meu papel” in some note, `pr` inside “progress” and “prova”. A term of up to three letters now has to be the whole word, a longer one matches from the start of a word, and notes are read only when nothing else answered — the counter says so when they are. The same search returns the 22 tasks actually named `[MEU PR]`.',
   'whatsNew.v2160.note1':
