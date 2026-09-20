@@ -211,6 +211,29 @@ export const en = {
   'ui.terminal.paneRef': 'Pane reference',
   'ui.terminal.copyRef': 'Copy the pane reference ({ref})',
   'ui.terminal.refCopied': 'Reference copied',
+  'ui.group.new': 'New front of work',
+  'ui.group.addPane': 'Add a session to this front',
+  'ui.group.rename': 'Rename front',
+  'ui.group.close': 'Close front',
+  'ui.group.closeWithWorktree': 'Close front and delete its worktree',
+  'ui.group.confirmClose': 'Close "{name}" and its {count} session(s)?',
+  'ui.group.creating': 'Opening…',
+  'ui.group.nameLabel': 'What is this front of work?',
+  'ui.group.namePlaceholder': 'cpf opcional no cadastro',
+  'ui.group.isolate': 'Give it its own worktree',
+  'ui.group.isolate.desc':
+    'Everything in this front edits a checkout of its own, and closing the front deletes it. Without this it works on the project tree, shared with everything else.',
+  'ui.group.orchestratorHint':
+    'It opens with one Claude session, the one you speak from. Add more from the front itself.',
+  'ui.group.orchestrator': 'Orchestrator — closes with its front of work',
+  'ui.group.unknownOnClose':
+    'Git could not read the state of {path}, so there is no telling what is uncommitted there. Closing "{name}" deletes that worktree with --force. Close anyway?',
+  'ui.group.untitled': 'New front',
+  'ui.group.dirtyOnClose':
+    'This front has {count} uncommitted change(s) in its worktree. Closing "{name}" deletes them for good. Close anyway?',
+  'ui.group.worktreeLeftTitle': 'Worktree left on disk',
+  'ui.group.worktreeLeftBody':
+    'The front closed, but git would not release {path}. It is in the list of leftovers to clean up.',
   'ui.terminal.recentChats': 'Recent chats',
   'ui.terminal.handoff': 'Continue in the other agent',
   'ui.terminal.handoffSuggested': 'Usage limit reached — continue in the other agent',
@@ -697,6 +720,8 @@ export const en = {
   'prefs.cliInstalledAt': 'Installed at {path}',
   'prefs.cliStale':
     'The installed command points to an older copy of Arco. Reinstall it to update the path.',
+  'prefs.cliShadowed':
+    'Another arco at {other} comes first on your PATH, so that is the one running — not this app\u2019s. It is a different build and answers to different subcommands. Put {dir} ahead of it, or remove the other one.',
   'prefs.cliNotOnPath':
     '{dir} is not in your PATH. Add it to your shell profile: export PATH="{dir}:$PATH"',
   'prefs.cliContext': 'Tell agents about the terminal command',
@@ -1264,6 +1289,8 @@ export const en = {
   'term.worktree': 'Worktree',
   'term.worktreeDirtyOnClose':
     'The worktree for "{name}" has {count} uncommitted change(s). Deleting the session removes the worktree and that work for good. Cancel to keep the session and the worktree exactly as they are.',
+  'term.worktreeUnknownOnClose':
+    'Git could not read the state of {path}, so there is no telling what is uncommitted there. Deleting the session for "{name}" removes that worktree with --force. Delete anyway?',
   'term.worktree.inherit': 'Project default',
   'term.worktree.inherit.desc': "Follows the project's isolation setting.",
   'term.worktree.new': 'New worktree',

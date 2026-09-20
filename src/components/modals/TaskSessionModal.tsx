@@ -120,8 +120,13 @@ export function TaskSessionModal() {
             ? `${cliContextPreamble}\n\n${prompt.trim()}`.trim() || undefined
             : prompt.trim() || undefined
 
+      // A task is a piece of work, which is what a front is. Starting one opens
+      // its own front rather than dropping a loose pane into whatever front was
+      // on screen — that pane took the screen from work the user was in the
+      // middle of, and had nowhere of its own to grow.
+      const group = store.createGroup(project.id, { name: sessionName(todo.title) })
       const terminal = await store.createAgentTerminal(project.id, {
-        name: sessionName(todo.title),
+        name: AGENT_TYPE_LABELS[agent],
         nameSource: 'task',
         cwd: finalCwd,
         worktree,
@@ -131,7 +136,17 @@ export function TaskSessionModal() {
           extraArgs: unrestricted && flag ? [flag] : undefined,
           initialInput: finalPrompt,
         },
+        groupId: group.id,
+        pinned: true,
       })
+      // The worktree is provisioned by the pane; the front takes it over, so
+      // closing the front is what removes it.
+      if (terminal.worktreeAgentId) {
+        store.adoptGroupWorktree(project.id, group.id, {
+          worktreeAgentId: terminal.worktreeAgentId,
+          cwd: terminal.cwd,
+        })
+      }
       store.linkTodoSession(todo.id, {
         projectId: project.id,
         terminalId: terminal.id,

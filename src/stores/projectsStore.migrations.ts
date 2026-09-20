@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { normalizeAdoRef } from '../lib/adoRef'
 import { normalizeEnabledFeatures } from '../lib/features'
 import { generatePaneShortId, isPaneShortId } from '../lib/paneShortId'
+import { isGenericSessionName } from '../lib/sessionLabel'
 import {
   normalizeTodoNotes,
   normalizeTodoPriority,
@@ -18,6 +19,7 @@ import {
   type Preferences,
   type Project,
   type ProjectsFile,
+  type Terminal,
   type TodoItem,
   type WorkspaceContainer,
   type WorkspaceRecentTab,
@@ -533,7 +535,7 @@ function migrateToV10(parsed: any): PartiallyMigratedFile {
  * duplicated one is replaced. Running this over its own output changes nothing,
  * which matters because `migrate()` runs on every load, not once.
  */
-function migrateToV11(parsed: any): ProjectsFile {
+function migrateToV11(parsed: any): PartiallyMigratedFile {
   const v10 = migrateToV10(parsed)
   const taken = new Set<string>()
   return {
@@ -555,14 +557,126 @@ function migrateToV11(parsed: any): ProjectsFile {
   }
 }
 
+/** Whether a name says which work a pane is doing, or is the agent's own placeholder. */
+function namesTheWork(name: unknown): name is string {
+  const value = typeof name === 'string' ? name.trim() : ''
+  if (!value) return false
+  return !isGenericSessionName(value)
+}
+
+/**
+ * What a group formed out of existing panes gets called.
+ *
+ * The most recently used pane that carries a real name wins: those are the ones
+ * the user or a task named, and they say which work this is. When every pane in
+ * the group is called after its agent — which is most of them — the worktree id
+ * is the only thing left that tells one group from another. It is a poor name
+ * and it is meant to be replaced; a group is renameable precisely for this.
+ */
+function nameForGroup(panes: Terminal[], worktreeAgentId: string | undefined): string {
+  const byRecency = [...panes].sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0))
+  const named = byRecency.find((pane) => namesTheWork(pane.name))
+  return named?.name.trim() ?? worktreeAgentId ?? ''
+}
+
+/**
+ * v11 -> v12: a project is a list of fronts of work, not a flat list of panes.
+ *
+ * Groups are formed from what the file already says: panes that share a
+ * worktree were one piece of work, so they become one group that owns it.
+ * Everything running on the project's own tree lands in a single group named
+ * after the project, which is the group a project has when it has no isolated
+ * work at all.
+ *
+ * Idempotent by adoption rather than by skipping: a group already in the file
+ * is kept as it is, and only a pane with no group — or one pointing at a group
+ * that no longer exists — is placed. That is what makes this safe to run on
+ * every load, and what picks up a pane created by a build that did not know
+ * about groups yet.
+ *
+ * The worktree is copied to the group and left on the pane. Nothing reads it
+ * from the group yet, and the code that provisions and removes worktrees still
+ * reads `Terminal.worktreeAgentId`; moving that is its own change.
+ */
+function migrateToV12(parsed: any): ProjectsFile {
+  const v11 = migrateToV11(parsed)
+  return {
+    ...v11,
+    version: 12,
+    projects: v11.projects.map((project) => {
+      const terminals = project.terminals ?? []
+      const groups = [...(project.groups ?? [])]
+      const byId = new Map(groups.map((group) => [group.id, group]))
+      const byWorktree = new Map(
+        groups
+          .filter((group) => group.worktreeAgentId)
+          .map((group) => [group.worktreeAgentId as string, group]),
+      )
+      // Formed lazily: a project with no loose pane must not gain an empty
+      // group, and one with no group at all must not stay without any.
+      let loose = groups.find((group) => !group.worktreeAgentId) ?? null
+      const createdAt = project.createdAt ?? Date.now()
+
+      // A pane pointing at a group that is no longer in the file counts as an
+      // orphan: leaving the stale id would put it in a group nothing renders.
+      const pending = terminals.filter(
+        (terminal) => !terminal.groupId || !byId.has(terminal.groupId),
+      )
+      if (pending.length === 0) return project
+
+      const assignment = new Map<string, string>()
+      const worktreeMembers = new Map<string, Terminal[]>()
+      for (const terminal of pending) {
+        const worktree = terminal.worktreeAgentId
+        if (!worktree) continue
+        worktreeMembers.set(worktree, [...(worktreeMembers.get(worktree) ?? []), terminal])
+      }
+      for (const [worktree, members] of worktreeMembers) {
+        let group = byWorktree.get(worktree)
+        if (!group) {
+          group = {
+            id: nanoid(),
+            name: nameForGroup(members, worktree),
+            worktreeAgentId: worktree,
+            ...(members[0]?.cwd ? { cwd: members[0].cwd } : {}),
+            createdAt,
+          }
+          groups.push(group)
+          byWorktree.set(worktree, group)
+        }
+        for (const member of members) assignment.set(member.id, group.id)
+      }
+
+      const orphans = pending.filter((terminal) => !terminal.worktreeAgentId)
+      if (orphans.length > 0) {
+        if (!loose) {
+          loose = { id: nanoid(), name: project.name, createdAt }
+          groups.push(loose)
+        }
+        for (const orphan of orphans) assignment.set(orphan.id, loose.id)
+      }
+
+      return {
+        ...project,
+        groups,
+        terminals: terminals.map((terminal) => {
+          const groupId = assignment.get(terminal.id)
+          return groupId ? { ...terminal, groupId } : terminal
+        }),
+      }
+    }),
+  }
+}
+
 /** Migrates older files and normalizes restorable snapshots. */
 export function migrate(parsed: any): ProjectsFile {
-  if (parsed.version === 11) return migrateToV11(parsed)
-  if (parsed.version === 10) return migrateToV11(parsed)
-  if (parsed.version === 9) return migrateToV11(parsed)
-  if (parsed.version === 8) return migrateToV11(parsed)
-  if (parsed.version === 7) return migrateToV11(parsed)
-  if (parsed.version === 6) return migrateToV11(parsed)
+  if (parsed.version === 12) return migrateToV12(parsed)
+  if (parsed.version === 11) return migrateToV12(parsed)
+  if (parsed.version === 10) return migrateToV12(parsed)
+  if (parsed.version === 9) return migrateToV12(parsed)
+  if (parsed.version === 8) return migrateToV12(parsed)
+  if (parsed.version === 7) return migrateToV12(parsed)
+  if (parsed.version === 6) return migrateToV12(parsed)
 
   const v5Result = parsed.version === 5 ? parsed : migrateToV5(parsed)
 
@@ -572,7 +686,7 @@ export function migrate(parsed: any): ProjectsFile {
     orphanWorktrees: p.orphanWorktrees ?? [],
   }))
 
-  return migrateToV11({
+  return migrateToV12({
     ...v5Result,
     version: 6,
     projects: v6Projects,

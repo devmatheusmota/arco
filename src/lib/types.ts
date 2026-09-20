@@ -219,6 +219,17 @@ export type Terminal = {
    */
   nameSource?: 'user' | 'task' | 'auto'
   /**
+   * The group's orchestrator: the session it is born with and the one you speak
+   * from. It cannot be closed on its own — closing the front closes it — and it
+   * goes away with the group.
+   */
+  pinned?: boolean
+  /**
+   * The front of work this pane runs in, by `PaneGroup.id`. Absent only in a
+   * file written before v12; the migration adopts every orphan into a group.
+   */
+  groupId?: string
+  /**
    * Short reference a person can type or read out loud — `pa-3576`. `id` stays
    * the internal key; this is the name the pane answers to in the CLI and in a
    * sentence. Optional in the type because files written before v11 have none;
@@ -262,6 +273,31 @@ export type OrphanWorktree = {
   adminLockReason?: string
 }
 
+/**
+ * A front of work inside a project: a name, the worktree it owns, and the panes
+ * running in it.
+ *
+ * A project used to be a flat list of sessions, which is why nine of them all
+ * read "Claude Code" and nothing said which belonged to which task. The group
+ * is the unit that has a name worth reading, and the one that can be closed as
+ * a whole — taking its panes and its worktree with it.
+ */
+export type PaneGroup = {
+  id: string
+  /** What the user calls this front of work. Editable; never generated again. */
+  name: string
+  /**
+   * Agent id of the worktree this group owns, as `worktree_provision` named it.
+   * Absent when the group works on the project's own tree, in which case
+   * closing it must not remove anything from disk.
+   */
+  worktreeAgentId?: string
+  /** Where that worktree lives. Absent together with `worktreeAgentId`. */
+  cwd?: string
+  createdAt: number
+  collapsed?: boolean
+}
+
 export type Project = {
   id: string
   name: string
@@ -273,6 +309,12 @@ export type Project = {
 
   defaultCwd?: string
   terminals: Terminal[]
+  /**
+   * The fronts of work this project is split into. Optional in the type because
+   * files written before v12 have none; the v12 migration gives every project
+   * at least one, and every pane a group to belong to.
+   */
+  groups?: PaneGroup[]
 
   markdownComments?: MarkdownComment[]
   collapsed: boolean
@@ -519,7 +561,7 @@ export type ResourcePolicyPreferences = {
 }
 
 export type ProjectsFile = {
-  version: 11
+  version: 12
   /** Project order in the sidebar. */
   projectOrder: string[]
   projects: Project[]
@@ -625,7 +667,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 export const EMPTY_PROJECTS_FILE: ProjectsFile = {
-  version: 11,
+  version: 12,
   projectOrder: [],
   projects: [],
   todos: [],

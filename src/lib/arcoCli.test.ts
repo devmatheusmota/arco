@@ -9,7 +9,9 @@ const {
   parseTodoEdit,
   parseSession,
   formatSessionTable,
+  formatGroupTable,
   parseSessionSend,
+  parseSessionClose,
   assertSendText,
   SEND_TEXT_MAX,
   formatTodoTable,
@@ -25,6 +27,7 @@ const {
   parseTodoEdit: (args: string[]) => Record<string, unknown>
   parseSession: (args: string[]) => Record<string, unknown>
   formatSessionTable: (sessions: unknown[]) => string
+  formatGroupTable: (groups: unknown[]) => string
   parseSessionSend: (args: string[]) => { target: string; text: string | null; file: string | null }
   assertSendText: (raw: unknown) => string
   SEND_TEXT_MAX: number
@@ -362,6 +365,35 @@ describe('formatSessionTable', () => {
   it('says so when there is nothing to list', () => {
     expect(formatSessionTable([])).toBe('nenhuma sessao\n')
   })
+
+  // The reference is copied out of this table and pasted into the next command,
+  // so the marker gets a column of its own rather than a prefix.
+  it('marks the session the command was run from without touching its reference', () => {
+    const lines = formatSessionTable([
+      {
+        ref: 'pa-0387',
+        current: true,
+        agent: 'claude',
+        status: 'waiting',
+        project: 'SOA',
+        name: 'eu',
+      },
+      { ref: 'pa-2825', agent: 'claude', status: 'waiting', project: 'SOA', name: 'outro' },
+    ])
+      .trim()
+      .split('\n')
+
+    expect(lines[0]).toMatch(/^\* pa-0387 /)
+    expect(lines[1]).toMatch(/^ {2}pa-2825 /)
+  })
+
+  it('drops the marker column when the command came from outside a pane', () => {
+    const table = formatSessionTable([
+      { ref: 'pa-0387', agent: 'claude', status: 'waiting', project: 'SOA', name: 'eu' },
+    ])
+
+    expect(table.startsWith('pa-0387')).toBe(true)
+  })
 })
 
 describe('parseSessionSend', () => {
@@ -370,6 +402,16 @@ describe('parseSessionSend', () => {
       target: 'pa-3576',
       text: 'roda os testes',
       file: null,
+      raw: false,
+    })
+  })
+
+  // The sender line is the default because a bare message has no reply address;
+  // `--raw` is for text meant to be run exactly as written.
+  it('takes --raw as a request to drop the line naming the sender', () => {
+    expect(parseSessionSend(['pa-3576', '--raw', '/compact'])).toMatchObject({
+      text: '/compact',
+      raw: true,
     })
   })
 
@@ -404,6 +446,22 @@ describe('parseSessionSend', () => {
   })
 })
 
+describe('parseSessionClose', () => {
+  it('takes the pane and nothing else', () => {
+    expect(parseSessionClose(['pa-3576'])).toEqual({ target: 'pa-3576' })
+    expect(() => parseSessionClose([])).toThrow(/informe o pane/)
+    expect(() => parseSessionClose(['pa-3576', 'pa-1111'])).toThrow(/argumento a mais/)
+    expect(() => parseSessionClose(['pa-3576', '--nope'])).toThrow(/opcao desconhecida: --nope/)
+  })
+
+  // The app refuses a pane that owns a worktree until this flag answers for it,
+  // because the dialog it would raise blocks the window nobody is looking at.
+  it('carries --yes as the answer to the question the window cannot ask', () => {
+    expect(parseSessionClose(['pa-3576', '--yes'])).toEqual({ target: 'pa-3576', confirmed: true })
+    expect(parseSessionClose(['-y', 'pa-3576'])).toEqual({ target: 'pa-3576', confirmed: true })
+  })
+})
+
 describe('assertSendText', () => {
   it('trims and keeps a message that fits', () => {
     expect(assertSendText('  roda os testes\n')).toBe('roda os testes')
@@ -420,6 +478,42 @@ describe('assertSendText', () => {
     expect(() => assertSendText('a'.repeat(SEND_TEXT_MAX + 1))).toThrow(/passam do limite/)
     expect(() => assertSendText('a'.repeat(SEND_TEXT_MAX + 1))).toThrow(/--file/)
     expect(assertSendText('a'.repeat(SEND_TEXT_MAX))).toHaveLength(SEND_TEXT_MAX)
+  })
+})
+
+describe('formatGroupTable', () => {
+  const groups = [
+    {
+      name: 'cpf opcional no cadastro',
+      project: 'SOA',
+      panes: 3,
+      refs: ['pa-1293', 'pa-0189'],
+      worktree: 'cl-662OYX',
+    },
+    { name: 'SOA', project: 'SOA', panes: 1, refs: ['pa-5369'] },
+  ]
+
+  // The references are what `arco session send` and `arco group close` take, so
+  // a listing has to be actionable without a second lookup.
+  it('prints the references the other commands take', () => {
+    const table = formatGroupTable(groups)
+    expect(table).toContain('pa-1293 pa-0189')
+    expect(table).toContain('pa-5369')
+  })
+
+  it('marks only the front that owns a worktree', () => {
+    const lines = formatGroupTable(groups).trim().split('\n')
+    expect(lines[0]).toContain('[cl-662OYX]')
+    expect(lines[1]).not.toContain('[')
+  })
+
+  it('pads the names so the columns after them line up', () => {
+    const lines = formatGroupTable(groups).trim().split('\n')
+    expect(lines[0].indexOf('3 pane(s)')).toBe(lines[1].indexOf('1 pane(s)'))
+  })
+
+  it('says so when there is nothing to list', () => {
+    expect(formatGroupTable([])).toBe('nenhuma frente de trabalho\n')
   })
 })
 

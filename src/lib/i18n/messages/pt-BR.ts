@@ -212,6 +212,29 @@ export const ptBR: Record<MessageKey, string> = {
   'ui.terminal.paneRef': 'Referência do pane',
   'ui.terminal.copyRef': 'Copiar a referência do pane ({ref})',
   'ui.terminal.refCopied': 'Referência copiada',
+  'ui.group.new': 'Nova frente de trabalho',
+  'ui.group.addPane': 'Adicionar sessão a esta frente',
+  'ui.group.rename': 'Renomear frente',
+  'ui.group.close': 'Fechar frente',
+  'ui.group.closeWithWorktree': 'Fechar frente e apagar a worktree dela',
+  'ui.group.confirmClose': 'Fechar "{name}" e as {count} sessão(ões) dela?',
+  'ui.group.creating': 'Abrindo…',
+  'ui.group.nameLabel': 'Qual é esta frente de trabalho?',
+  'ui.group.namePlaceholder': 'cpf opcional no cadastro',
+  'ui.group.isolate': 'Dar uma worktree própria a ela',
+  'ui.group.isolate.desc':
+    'Tudo nesta frente edita um checkout só dela, e fechar a frente apaga esse checkout. Sem isso, ela trabalha na árvore do projeto, dividida com todo o resto.',
+  'ui.group.orchestratorHint':
+    'Ela abre com uma sessão do Claude, a de onde você fala. Adicione outras pela própria frente.',
+  'ui.group.orchestrator': 'Orquestrador — fecha junto com a frente de trabalho',
+  'ui.group.unknownOnClose':
+    'O git não conseguiu ler o estado de {path}, então não dá para saber o que há de não commitado ali. Fechar "{name}" apaga essa worktree com --force. Fechar mesmo assim?',
+  'ui.group.untitled': 'Nova frente',
+  'ui.group.dirtyOnClose':
+    'Esta frente tem {count} alteração(ões) não commitada(s) na worktree dela. Fechar "{name}" apaga tudo. Fechar mesmo assim?',
+  'ui.group.worktreeLeftTitle': 'Worktree ficou no disco',
+  'ui.group.worktreeLeftBody':
+    'A frente fechou, mas o git não liberou {path}. Ela está na lista de sobras para limpar.',
   'ui.terminal.recentChats': 'Chats recentes',
   'ui.terminal.handoff': 'Continuar no outro agente',
   'ui.terminal.handoffSuggested': 'Limite atingido — continuar no outro agente',
@@ -707,6 +730,8 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.cliInstalledAt': 'Instalado em {path}',
   'prefs.cliStale':
     'O comando instalado aponta pra uma cópia antiga do Arco. Reinstale pra atualizar o caminho.',
+  'prefs.cliShadowed':
+    'Outro arco em {other} vem antes no seu PATH, então é ele que roda — não o deste app. É outra vers\u00e3o e responde a outros subcomandos. Ponha {dir} na frente dele, ou remova o outro.',
   'prefs.cliNotOnPath':
     '{dir} não está no seu PATH. Adicione no perfil do shell: export PATH="{dir}:$PATH"',
   'prefs.cliContext': 'Contar aos agentes sobre o comando de terminal',
@@ -1279,6 +1304,8 @@ export const ptBR: Record<MessageKey, string> = {
   'term.worktree': 'Worktree',
   'term.worktreeDirtyOnClose':
     'A worktree de "{name}" tem {count} alteração(ões) não commitada(s). Excluir a sessão apaga a worktree e esse trabalho de vez. Cancele para manter a sessão e a worktree como estão.',
+  'term.worktreeUnknownOnClose':
+    'O git não conseguiu ler o estado de {path}, então não dá para saber o que há de não commitado ali. Excluir a sessão de "{name}" apaga essa worktree com --force. Excluir mesmo assim?',
   'term.worktree.inherit': 'Padrão do projeto',
   'term.worktree.inherit.desc': 'Segue a configuração de isolamento do projeto.',
   'term.worktree.new': 'Nova worktree',

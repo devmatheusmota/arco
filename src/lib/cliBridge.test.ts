@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CliResult } from './tauri/cli'
 import type { TodoAdoRef, TodoItem, TodoSessionOwner } from './types'
@@ -35,6 +35,7 @@ const state = {
       name: 'Arco',
       defaultCwd: '/tmp/arco',
       terminals: [] as Array<Record<string, unknown>>,
+      groups: [] as Array<Record<string, unknown>>,
     },
   ],
   activeProjectId: 'p1',
@@ -71,6 +72,22 @@ const state = {
   }),
   renameTodo: vi.fn(),
   renameTerminal: vi.fn(),
+  closeGroupWithWorktree: vi.fn(async () => undefined),
+  deleteTerminalWithWorktreeCleanup: vi.fn(async () => undefined),
+  createAgentTerminal: vi.fn(async (projectId: string, args: Record<string, unknown>) => {
+    const pane = {
+      id: `novo-${state.projects[0].terminals.length}`,
+      name: String(args.name ?? ''),
+      cwd: String(args.cwd ?? ''),
+      kind: 'terminal',
+      shortId: 'pa-7777',
+      activeTabId: 'novo-tab',
+      tabs: [{ id: 'novo-tab', type: 'claude', cwd: args.cwd, ptyId: null }],
+      ...(args.groupId ? { groupId: args.groupId } : {}),
+    }
+    state.projects[0].terminals = [...state.projects[0].terminals, pane]
+    return pane
+  }),
   updateTodoNotes: vi.fn(),
   appendTodoNotes: vi.fn(),
   setTodoPriority: vi.fn(),
@@ -130,6 +147,10 @@ function pane(id: string, cwd: string, name = id, extra: Record<string, unknown>
 beforeEach(async () => {
   state.todos = []
   state.projects[0].terminals = []
+  state.projects[0].groups = []
+  state.closeGroupWithWorktree.mockClear()
+  state.deleteTerminalWithWorktreeCleanup.mockClear()
+  state.createAgentTerminal.mockClear()
   for (const key of Object.keys(runtimes)) delete runtimes[key]
   for (const key of Object.keys(inbox)) delete inbox[key]
   replies.length = 0
@@ -455,6 +476,8 @@ describe('cli://session-list', () => {
         cwd: '/tmp/arco',
         status: 'working',
         parked: false,
+        pinned: false,
+        current: false,
         queued: 0,
       },
     ])
@@ -630,6 +653,125 @@ describe('cli://session-send', () => {
   })
 })
 
+describe('the line that says where a message came from', () => {
+  const send = (payload: Record<string, unknown>) => request('cli://session-send', payload)
+
+  beforeEach(() => {
+    state.projects[0].terminals = [
+      pane('alvo', '/tmp/arco', 'mesa'),
+      pane('remetente', '/tmp/arco'),
+    ]
+    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
+  })
+
+  // Text arriving bare reads like something the user typed: the agent answers
+  // into its own pane and the reply goes nowhere. The header names the sender
+  // and the exact command that reaches it back.
+  it('names the sender, and how to answer it', async () => {
+    await send({ target: 'pa-1004', text: 'roda os testes', sessionId: 'remetente' })
+
+    expect(inbox['alvo'][0].text).toBe(
+      '[de pa-1009 · responda com: arco session send pa-1009 <texto>] roda os testes',
+    )
+  })
+
+  // A header glued to the first line of a block reads as part of it.
+  it('keeps its own line when the text has more than one', async () => {
+    await send({ target: 'pa-1004', text: 'primeira\nsegunda', sessionId: 'remetente' })
+
+    expect(inbox['alvo'][0].text).toBe(
+      '[de pa-1009 · responda com: arco session send pa-1009 <texto>]\nprimeira\nsegunda',
+    )
+  })
+
+  // `--raw` exists for text that is a command the receiving side will run: a
+  // prefix in front of it changes what gets executed.
+  it('delivers the text alone when asked for raw', async () => {
+    await send({ target: 'pa-1004', text: '/compact', sessionId: 'remetente', raw: true })
+
+    expect(inbox['alvo'][0].text).toBe('/compact')
+  })
+
+  // Called from a plain shell there is no pane to answer, so a header would
+  // promise a reply address that does not exist.
+  it('says nothing when the sender is not a pane of this workspace', async () => {
+    await send({ target: 'pa-1004', text: 'de fora' })
+    await send({ target: 'pa-1004', text: 'de um pane fechado', sessionId: 'sumiu' })
+
+    expect(inbox['alvo'].map((item) => item.text)).toEqual(['de fora', 'de um pane fechado'])
+  })
+})
+
+describe('cli://session-close', () => {
+  const close = (payload: Record<string, unknown>) => request('cli://session-close', payload)
+
+  beforeEach(() => {
+    state.projects[0].terminals = [
+      pane('orq', '/tmp/arco', 'orquestrador', { pinned: true }),
+      pane('outro', '/tmp/arco'),
+      pane('proprio', '/tmp/arco'),
+    ]
+  })
+
+  // The whole point: one pane goes, the front and its other panes stay.
+  it('closes the pane it was given and says the front stays', async () => {
+    const result = await close({ target: 'pa-1005' })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/A frente segue aberta/)
+    expect(state.deleteTerminalWithWorktreeCleanup).toHaveBeenCalledWith('p1', 'outro', {
+      assumeConfirmed: undefined,
+    })
+  })
+
+  // The orchestrator is the front's own pane: `deleteTerminal` refuses it, and a
+  // silent no-op would read like a bug in the command.
+  it('refuses the orchestrator, and names the command that does close it', async () => {
+    const result = await close({ target: 'pa-1003' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/arco group close/)
+    expect(state.deleteTerminalWithWorktreeCleanup).not.toHaveBeenCalled()
+  })
+
+  // Closing the caller kills the process still waiting to print the answer.
+  it('refuses to close the pane the command is running in', async () => {
+    const result = await close({ target: 'pa-1007', sessionId: 'proprio' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/é este pane/)
+    expect(state.deleteTerminalWithWorktreeCleanup).not.toHaveBeenCalled()
+  })
+
+  // Removal runs `git worktree remove --force`. The window would ask, but
+  // `window.confirm` blocks the renderer with nobody there to answer it, so the
+  // question goes back to the terminal.
+  it('refuses a pane that owns a worktree until --yes says so', async () => {
+    state.projects[0].terminals = [
+      pane('isolado', '/tmp/wt', 'isolado', { worktreeAgentId: 'cl-9' }),
+    ]
+
+    const refused = await close({ target: 'pa-1007' })
+    expect(refused.ok).toBe(false)
+    expect(refused.message).toMatch(/--yes/)
+    expect(state.deleteTerminalWithWorktreeCleanup).not.toHaveBeenCalled()
+
+    const done = await close({ target: 'pa-1007', confirmed: true })
+    expect(done.ok).toBe(true)
+    expect(done.message).toMatch(/worktree cl-9/)
+    expect(state.deleteTerminalWithWorktreeCleanup).toHaveBeenCalledWith('p1', 'isolado', {
+      assumeConfirmed: true,
+    })
+  })
+
+  it('names the reference when nothing answers to it', async () => {
+    const result = await close({ target: 'pa-9999' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/referência pa-9999/)
+  })
+})
+
 describe('the queue in cli://session-list', () => {
   it('reports how many messages a session has waiting', async () => {
     state.projects[0].terminals = [pane('alvo', '/tmp/arco')]
@@ -639,5 +781,339 @@ describe('the queue in cli://session-list', () => {
     const result = await request('cli://session-list', {})
     const [session] = (result.data as { sessions: Array<{ queued: number }> }).sessions
     expect(session.queued).toBe(2)
+  })
+})
+
+describe('cli://group-list and cli://group-close', () => {
+  const front = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    name,
+    createdAt: 1,
+    ...extra,
+  })
+
+  beforeEach(() => {
+    state.projects[0].groups = [
+      front('g-wt', 'cpf opcional', { worktreeAgentId: 'cl-1', cwd: '/wt/1' }),
+      front('g-plain', 'Arco'),
+    ]
+    state.projects[0].terminals = [
+      { ...pane('orq', '/wt/1', 'Claude Code'), groupId: 'g-wt', pinned: true },
+      { ...pane('lado', '/wt/1', 'testes'), groupId: 'g-wt' },
+      { ...pane('solto', '/tmp/arco', 'shell'), groupId: 'g-plain' },
+    ]
+  })
+
+  it('lists each front with the references its sessions answer to', async () => {
+    const result = await request('cli://group-list', {})
+    const groups = (result.data as { groups: Array<Record<string, unknown>> }).groups
+
+    expect(groups).toHaveLength(2)
+    expect(groups[0]).toMatchObject({
+      name: 'cpf opcional',
+      project: 'Arco',
+      panes: 2,
+      worktree: 'cl-1',
+    })
+    expect(groups[0].refs).toEqual(['pa-1003', 'pa-1004'])
+    expect(groups[1]).toMatchObject({ name: 'Arco', panes: 1 })
+    expect(groups[1].worktree).toBeUndefined()
+  })
+
+  // A group id is a nanoid nobody reads; the reference is the id a person has.
+  it('closes the front a session belongs to, named by that session', async () => {
+    const result = await request('cli://group-close', { target: 'pa-1004' })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/cpf opcional/)
+    expect(result.message).toMatch(/cl-1/)
+    expect(result.data).toMatchObject({ groupId: 'g-wt', panes: 2 })
+  })
+
+  it('says nothing leaves the disk for a front with no worktree', async () => {
+    const result = await request('cli://group-close', { target: 'pa-1005' })
+
+    expect(result.message).toMatch(/Nada sai do disco/)
+  })
+
+  it('refuses a reference that answers to nothing', async () => {
+    const result = await request('cli://group-close', { target: 'pa-9999' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/referência pa-9999/)
+  })
+
+  it('refuses a session that is in no front at all', async () => {
+    state.projects[0].terminals = [pane('orfao', '/tmp/arco')]
+
+    const result = await request('cli://group-close', { target: 'pa-1005' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/não está em nenhuma frente/)
+  })
+
+  it('reports the front each session belongs to in the session listing', async () => {
+    const result = await request('cli://session-list', {})
+    const sessions = (result.data as { sessions: Array<Record<string, unknown>> }).sessions
+
+    expect(sessions.map((s) => s.group)).toEqual(['cpf opcional', 'cpf opcional', 'Arco'])
+    expect(sessions.map((s) => s.pinned)).toEqual([true, false, false])
+  })
+})
+
+describe('cli://session-new lands in a front of work', () => {
+  beforeEach(() => {
+    state.projects[0].groups = [
+      { id: 'g-wt', name: 'cpf opcional', createdAt: 1, worktreeAgentId: 'cl-1', cwd: '/wt/1' },
+      { id: 'g-plain', name: 'Arco', createdAt: 1 },
+    ]
+    state.projects[0].terminals = [
+      { ...pane('orq', '/wt/1', 'Claude Code'), groupId: 'g-wt', pinned: true },
+      { ...pane('solto', '/tmp/arco', 'shell'), groupId: 'g-plain' },
+    ]
+  })
+
+  const created = () => state.createAgentTerminal.mock.calls.at(-1)?.[1]
+
+  // Asking for a session from inside a pane means asking for one *here*. A
+  // session that lands outside the front shows up as a loose tab beside the
+  // fronts instead of beside its siblings.
+  it('inherits the front of the pane the command was run in', async () => {
+    const result = await request('cli://session-new', { agent: 'claude', sessionId: 'orq' })
+
+    expect(result.ok).toBe(true)
+    expect(created()).toMatchObject({ groupId: 'g-wt' })
+    expect(result.message).toMatch(/frente "cpf opcional"/)
+  })
+
+  // A second session in a front with a worktree shares it; one with a checkout
+  // of its own would not be in the same piece of work at all.
+  it('shares the front worktree instead of provisioning another', async () => {
+    await request('cli://session-new', { agent: 'claude', sessionId: 'orq', worktree: 'new' })
+
+    expect(created()).toMatchObject({ worktree: 'none', cwd: '/wt/1' })
+  })
+
+  it('still isolates when the front has no worktree of its own', async () => {
+    await request('cli://session-new', { agent: 'claude', sessionId: 'solto', worktree: 'new' })
+
+    expect(created()).toMatchObject({ groupId: 'g-plain', worktree: 'new' })
+  })
+
+  it('takes another front by name', async () => {
+    await request('cli://session-new', {
+      agent: 'claude',
+      sessionId: 'solto',
+      group: 'cpf opcional',
+    })
+
+    expect(created()).toMatchObject({ groupId: 'g-wt' })
+  })
+
+  it('takes another front by the reference of a session in it', async () => {
+    await request('cli://session-new', { agent: 'claude', sessionId: 'solto', group: 'pa-1003' })
+
+    expect(created()).toMatchObject({ groupId: 'g-wt' })
+  })
+
+  it('leaves the session without a front when there is no pane to inherit from', async () => {
+    const result = await request('cli://session-new', { agent: 'claude', cwd: '/nowhere' })
+
+    expect(result.ok).toBe(true)
+    expect(created()?.groupId).toBeUndefined()
+  })
+})
+
+describe('the worktree a session reports', () => {
+  beforeEach(() => {
+    state.projects[0].groups = [
+      { id: 'g-wt', name: 'cpf opcional', createdAt: 1, worktreeAgentId: 'cl-1', cwd: '/wt/1' },
+    ]
+  })
+
+  const worktreeOf = async () => {
+    const result = await request('cli://session-list', {})
+    return (result.data as { sessions: Array<{ worktree?: string }> }).sessions[0].worktree
+  }
+
+  // A session opened inside a front runs in its worktree without owning it.
+  // Reporting only what the pane owns makes it read as loose when it is not.
+  it('names the front worktree for a session that does not own one', async () => {
+    state.projects[0].terminals = [{ ...pane('dentro', '/wt/1'), groupId: 'g-wt' }]
+
+    expect(await worktreeOf()).toBe('cl-1')
+  })
+
+  it('prefers the one the pane owns when it has one', async () => {
+    state.projects[0].terminals = [
+      { ...pane('dono', '/wt/9'), groupId: 'g-wt', worktreeAgentId: 'cl-9' },
+    ]
+
+    expect(await worktreeOf()).toBe('cl-9')
+  })
+
+  it('reports none for a session on the project tree', async () => {
+    state.projects[0].terminals = [pane('solto', '/tmp/arco')]
+
+    expect(await worktreeOf()).toBeUndefined()
+  })
+})
+
+describe('a session opened by an older arco binary', () => {
+  // The `arco` on PATH is whatever build is installed. 2.16.2 sends no session
+  // scope at all, so inheriting the front cannot depend on it — which is how a
+  // pane asked for from inside a front still came back as a loose tab.
+  beforeEach(() => {
+    state.projects[0].groups = [
+      {
+        id: 'g-wt',
+        name: 'cpf opcional',
+        createdAt: 1,
+        worktreeAgentId: 'cl-1',
+        cwd: '/repo/.arco/worktrees/cl-1',
+      },
+      { id: 'g-plain', name: 'Arco', createdAt: 1 },
+    ]
+    state.projects[0].terminals = [
+      { ...pane('orq', '/repo/.arco/worktrees/cl-1'), groupId: 'g-wt' },
+      { ...pane('raiz', '/repo'), groupId: 'g-plain' },
+    ]
+  })
+
+  const created = () => state.createAgentTerminal.mock.calls.at(-1)?.[1]
+
+  it('falls back to the working directory the old binary does send', async () => {
+    await request('cli://session-new', { agent: 'claude', cwd: '/repo/.arco/worktrees/cl-1' })
+
+    expect(created()).toMatchObject({ groupId: 'g-wt' })
+  })
+
+  it('matches a directory below the worktree too', async () => {
+    await request('cli://session-new', { agent: 'claude', cwd: '/repo/.arco/worktrees/cl-1/src' })
+
+    expect(created()).toMatchObject({ groupId: 'g-wt' })
+  })
+
+  // The worktree lives under the project root, so a prefix match against the
+  // root would claim every isolated session for the project's own front.
+  it('does not let the project root claim a session inside a worktree', async () => {
+    await request('cli://session-new', { agent: 'claude', cwd: '/repo/.arco/worktrees/cl-1' })
+
+    expect(created()?.groupId).not.toBe('g-plain')
+  })
+
+  it('still finds the front of a pane that has no worktree', async () => {
+    await request('cli://session-new', { agent: 'claude', cwd: '/repo' })
+
+    expect(created()).toMatchObject({ groupId: 'g-plain' })
+  })
+
+  it('leaves it without a front when the directory belongs to none', async () => {
+    await request('cli://session-new', { agent: 'claude', cwd: '/outro/lugar' })
+
+    expect(created()?.groupId).toBeUndefined()
+  })
+})
+
+describe('which project a session belongs to', () => {
+  // These replace the whole project list, so it goes back afterwards or every
+  // test declared later runs against the wrong workspace.
+  const original = state.projects
+  const twoProjects = () => {
+    state.projects = [
+      { id: 'home', name: 'mota', defaultCwd: '/home/mota', terminals: [], groups: [] },
+      {
+        id: 'soa',
+        name: 'SOA',
+        defaultCwd: '/home/mota/projetos/emr/SOA',
+        terminals: [],
+        groups: [],
+      },
+    ] as never
+  }
+  afterEach(() => {
+    state.projects = original
+  })
+
+  // A project rooted at the home directory is a prefix of every other one.
+  // Taking the first match hands it every session opened anywhere below it —
+  // which is how a pane asked for inside a SOA worktree landed in "mota".
+  it('picks the deepest root, not the first that matches', async () => {
+    twoProjects()
+
+    await request('cli://session-new', {
+      agent: 'claude',
+      cwd: '/home/mota/projetos/emr/SOA/.arco/worktrees/cl-1',
+    })
+
+    expect(state.createAgentTerminal.mock.calls.at(-1)?.[0]).toBe('soa')
+  })
+
+  it('still falls back to the home project for a directory only it covers', async () => {
+    twoProjects()
+
+    await request('cli://session-new', { agent: 'claude', cwd: '/home/mota/documentos' })
+
+    expect(state.createAgentTerminal.mock.calls.at(-1)?.[0]).toBe('home')
+  })
+})
+
+describe('a reference that names a pane, typed where a task was expected', () => {
+  // Told "send this to pa-2825", an agent reaches for the reference it knows:
+  // the task one. "No task found" sends it grepping the filesystem for what the
+  // reference means — which is what it actually did.
+  beforeEach(() => {
+    state.projects[0].terminals = [pane('alvo', '/tmp/arco', 'mesa')]
+  })
+
+  it('says it is a pane and gives the command that sends to one', async () => {
+    const result = await request('cli://todo-show', { ref: 'pa-1004' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/é um pane, não uma tarefa/)
+    expect(result.message).toMatch(/arco session send pa-1004/)
+  })
+
+  it('points at the listing when no pane answers to it either', async () => {
+    const result = await request('cli://todo-show', { ref: 'pa-9999' })
+
+    expect(result.message).toMatch(/arco session list/)
+    expect(result.message).not.toMatch(/é um pane, não uma tarefa/)
+  })
+
+  it('leaves an ordinary task reference alone', async () => {
+    await request('cli://todo-add', { title: 'uma tarefa' })
+
+    const result = await request('cli://todo-show', { ref: 'id-0' })
+    expect(result.ok).toBe(true)
+  })
+
+  it('still reports a plain miss as a plain miss', async () => {
+    const result = await request('cli://todo-show', { ref: 'abacaxi' })
+
+    expect(result.message).toMatch(/Nenhuma tarefa encontrada/)
+  })
+})
+
+describe('finding yourself in the listing', () => {
+  // An agent exports its own id; without the listing saying which row that is,
+  // it cannot tell itself apart from the panes it is supposed to talk to.
+  it('marks the session the command was run from', async () => {
+    state.projects[0].terminals = [pane('eu', '/tmp/arco'), pane('outro', '/tmp/arco')]
+
+    const result = await request('cli://session-list', { sessionId: 'eu' })
+    const sessions = (result.data as { sessions: Array<{ id: string; current: boolean }> }).sessions
+
+    expect(sessions.find((s) => s.id === 'eu')?.current).toBe(true)
+    expect(sessions.find((s) => s.id === 'outro')?.current).toBe(false)
+  })
+
+  it('marks nobody when the command came from outside a pane', async () => {
+    state.projects[0].terminals = [pane('eu', '/tmp/arco')]
+
+    const result = await request('cli://session-list', {})
+    const sessions = (result.data as { sessions: Array<{ current: boolean }> }).sessions
+
+    expect(sessions.every((s) => !s.current)).toBe(true)
   })
 })

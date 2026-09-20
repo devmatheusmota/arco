@@ -1,5 +1,5 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
-import { Columns2, Plus, X } from 'lucide-react'
+import { Columns2, FolderGit2, GitBranch, Plus, X } from 'lucide-react'
 
 import { useSidebarChatTitle } from '../../hooks/useSidebarChatTitle'
 import { useT } from '../../lib/i18n'
@@ -129,10 +129,16 @@ export function PaneTabsLane({ project, container, panes }: PaneTabsLaneProps) {
   const sidePane = container.sidePaneId
     ? (panes.find((pane) => pane.id === container.sidePaneId) ?? null)
     : null
-  const tabs = flattenTabs(
-    panes.filter((pane) => pane.id !== container.sidePaneId),
-    container,
+  // Fronts, not sessions: a project with a dozen sessions used to put a dozen
+  // tabs up here, which is the row this whole thing exists to shrink. The
+  // sessions of a front are on screen together, so they need no tab of their own.
+  const groups = project.groups ?? []
+  const activeGroupId =
+    panes.find((pane) => pane.id === container.activePaneId)?.groupId ?? groups[0]?.id ?? null
+  const ungrouped = panes.filter(
+    (pane) => pane.id !== container.sidePaneId && !groups.some((g) => g.id === pane.groupId),
   )
+  const tabs = flattenTabs(ungrouped, container)
   const activePane = panes.find((pane) => pane.id === container.activePaneId)
   // Only a terminal can take the space beside a session.
   const canOpenSide =
@@ -169,6 +175,29 @@ export function PaneTabsLane({ project, container, panes }: PaneTabsLaneProps) {
   return (
     <div className={styles.lane}>
       <div className={styles.tabs}>
+        {groups.map((group) => {
+          const members = panes.filter((pane) => pane.groupId === group.id)
+          const isActive = group.id === activeGroupId
+          return (
+            <button
+              key={group.id}
+              type="button"
+              className={`${styles.group} ${isActive ? styles.groupActive : ''}`}
+              onClick={() => {
+                const target =
+                  members.find((pane) => pane.id === container.activePaneId) ?? members[0]
+                if (target) setActivePane(project.id, target.id)
+              }}
+              title={group.cwd || group.name}
+            >
+              {group.worktreeAgentId ? <GitBranch size={11} /> : <FolderGit2 size={11} />}
+              <span className={styles.groupLabel}>{group.name}</span>
+              {members.length > 1 ? (
+                <span className={styles.groupCount}>{members.length}</span>
+              ) : null}
+            </button>
+          )
+        })}
         {tabs.map((entry) => (
           <PaneTab
             key={entry.key}
@@ -181,7 +210,14 @@ export function PaneTabsLane({ project, container, panes }: PaneTabsLaneProps) {
         <button
           type="button"
           className={styles.add}
-          onClick={() => openModal('newTerminal', { projectId: project.id })}
+          onClick={() =>
+            // Into the front on screen: a pane with no front lands beside the
+            // fronts as a loose tab, which is the row this replaced.
+            openModal('newTerminal', {
+              projectId: project.id,
+              ...(activeGroupId ? { groupId: activeGroupId } : {}),
+            })
+          }
           title={t('ws.addPaneHere')}
           aria-label={t('ws.addPaneHere')}
         >

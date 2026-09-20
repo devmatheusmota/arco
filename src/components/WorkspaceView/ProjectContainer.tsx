@@ -61,6 +61,15 @@ export const ProjectContainer = memo(function ProjectContainer({
 
   const activePane =
     terminals.find((terminal) => terminal.id === container.activePaneId) ?? terminals[0] ?? null
+  // The front of work on screen is the one the active session belongs to, so
+  // the two never disagree and nothing has to be stored to keep them in step.
+  const activeGroupId = activePane?.groupId ?? null
+  const visibleIds = (
+    activeGroupId
+      ? terminals.filter((terminal) => terminal.groupId === activeGroupId)
+      : // A pane with no group is on its own until the next load adopts it.
+        terminals.filter((terminal) => terminal.id === activePane?.id)
+  ).map((terminal) => terminal.id)
   const sidePane =
     container.sidePaneId && container.sidePaneId !== activePane?.id
       ? (terminals.find((terminal) => terminal.id === container.sidePaneId) ?? null)
@@ -131,7 +140,10 @@ export const ProjectContainer = memo(function ProjectContainer({
               className={styles.tagBtn}
               onClick={(e) => {
                 e.stopPropagation()
-                openModal('newTerminal', { projectId: project.id })
+                openModal('newTerminal', {
+                  projectId: project.id,
+                  ...(activeGroupId ? { groupId: activeGroupId } : {}),
+                })
               }}
               title={t('ws.addPaneHere')}
               aria-label={t('ws.addPaneHere')}
@@ -217,7 +229,7 @@ export const ProjectContainer = memo(function ProjectContainer({
               projectId={project.id}
               idPrefix={`c-${project.id}`}
               panes={terminals}
-              activeId={activePane.id}
+              visibleIds={visibleIds}
               side={sidePane}
             />
           </>

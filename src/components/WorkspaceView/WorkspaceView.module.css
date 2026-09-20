@@ -333,3 +333,15 @@
   padding: 0 12px;
   color: var(--fg-muted);
 }
+
+/* Placeholder while a lazily loaded pane arrives. Same box as the pane it
+   stands in for, so nothing jumps when the real one takes over. */
+.paneLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--fg-faint);
+  font-size: var(--font-size-1);
+}

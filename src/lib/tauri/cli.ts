@@ -20,6 +20,8 @@ export type CliShimStatus = {
   binDir: string | null
 
   onPath: boolean
+  /** Another `arco` PATH reaches first, which is the one that actually runs. */
+  shadowedBy: string | null
 }
 
 /** O Rust serializa em snake_case; normalizamos na fronteira do IPC. */
@@ -30,6 +32,7 @@ type RawCliShimStatus = {
   path: string | null
   bin_dir: string | null
   on_path: boolean
+  shadowed_by?: string | null
 }
 
 function toCliShimStatus(raw: RawCliShimStatus): CliShimStatus {
@@ -40,6 +43,7 @@ function toCliShimStatus(raw: RawCliShimStatus): CliShimStatus {
     path: raw.path,
     binDir: raw.bin_dir,
     onPath: raw.on_path,
+    shadowedBy: raw.shadowed_by ?? null,
   }
 }
 

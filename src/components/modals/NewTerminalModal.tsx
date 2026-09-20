@@ -27,7 +27,10 @@ const AGENTS: { type: AgentType; label: string }[] = ALL_AGENT_TYPES.map((type) 
 export function NewTerminalModal() {
   const t = useT()
   const open = useUiStore((s) => s.openModal === 'newTerminal')
-  const context = useUiStore((s) => s.modalContext) as { projectId?: string } | null
+  const context = useUiStore((s) => s.modalContext) as {
+    projectId?: string
+    groupId?: string
+  } | null
   const closeModal = useUiStore((s) => s.closeModal)
   const createAgentTerminal = useProjectsStore((s) => s.createAgentTerminal)
   const alwaysStartUnrestricted = useProjectsStore((s) => s.preferences.alwaysStartUnrestricted)
@@ -140,6 +143,8 @@ export function NewTerminalModal() {
       cwd: finalCwd,
       worktree,
       firstTab: { type, cwd: finalCwd, extraArgs, runtimeProfile },
+      // Opened from a front of work, the session belongs to it.
+      ...(context.groupId ? { groupId: context.groupId } : {}),
     }
     // Creating the session is slow enough to look stuck, and a second press
     // starts a second session. The modal stays open on failure so the choices

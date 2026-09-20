@@ -3,12 +3,15 @@
 import { nanoid } from 'nanoid'
 
 import { getLocale, translate } from '../lib/i18n'
+import { homeGroupId } from '../lib/paneHoming'
+import { removePanesFromWorkspace } from '../lib/paneRemoval'
 import { collectPaneShortIds, generatePaneShortId } from '../lib/paneShortId'
 import {
   clearTerminalPtyIds,
   collectTerminalPtyIds,
   getProjectDefaultCwd,
   getProjectRepoRoot,
+  isInsideArcoWorktree,
   makeDefaultTerminal,
   makeDiffPane,
   makeFilePane,
@@ -19,9 +22,7 @@ import {
   touchTerminalUsage,
 } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
-import { pruneTodoSessions } from '../lib/todos'
-import type { Terminal } from '../lib/types'
-import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
+import type { PaneGroup, Terminal } from '../lib/types'
 import { dropPaneInbox } from './paneInboxStore'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
@@ -63,7 +64,7 @@ async function countPendingChanges(
     conflicts: unknown[]
   }>,
   path: string,
-): Promise<number> {
+): Promise<number | null> {
   try {
     const status = await gitStatus(path)
     return (
@@ -73,7 +74,9 @@ async function countPendingChanges(
       status.conflicts.length
     )
   } catch {
-    return 0
+    // Not zero: removal runs with `--force`, so reading "I could not tell" as
+    // "there is nothing there" is how a day's work goes without a question.
+    return null
   }
 }
 
@@ -124,8 +127,28 @@ export function createTerminalsSlice({
         const sourceProject = state.projects.find((p) => p.id === projectId)
         const inheritedCwd = getProjectDefaultCwd(sourceProject)
         const finalCwd = args.cwd.trim() || inheritedCwd
+        // Every pane belongs to a front. Most routes in — a keybinding, the home
+        // screen, a handoff, the scheduler — have no front to pass, and a pane
+        // without one is invisible in the sidebar and steals the screen from the
+        // front that was open.
+        const home = homeGroupId({
+          requested: args.groupId,
+          ownsWorktree: Boolean(args.worktreeAgentId),
+          project: sourceProject,
+          workspace: state.workspace,
+          projectId,
+        })
+        const bornGroup: PaneGroup | null = home
+          ? null
+          : {
+              id: nanoid(),
+              name: args.name?.trim() || translate(getLocale(), 'ui.group.untitled'),
+              createdAt: Date.now(),
+            }
+        const groupId = home ?? bornGroup!.id
         terminal = makeDefaultTerminal({
           ...args,
+          groupId,
           cwd: finalCwd,
           shortId: freshShortId(state),
           firstTab: {
@@ -137,7 +160,14 @@ export function createTerminalsSlice({
           p.id === projectId
             ? {
                 ...p,
-                ...(!args.worktreeAgentId && finalCwd ? { defaultCwd: finalCwd } : {}),
+                ...(bornGroup ? { groups: [...(p.groups ?? []), bornGroup] } : {}),
+                // A worktree is never the project's home. The old guard asked
+                // whether the pane owned one, which a session opened inside a
+                // front's worktree does not — so the project's root quietly
+                // became a directory that gets deleted with that front.
+                ...(!args.worktreeAgentId && finalCwd && !isInsideArcoWorktree(finalCwd)
+                  ? { defaultCwd: finalCwd }
+                  : {}),
                 terminals: [...p.terminals, terminal],
               }
             : p,
@@ -186,6 +216,8 @@ export function createTerminalsSlice({
               cwd: info.path,
               firstTab: { ...args.firstTab, cwd: info.path },
               worktreeAgentId: agentId,
+              ...(args.groupId ? { groupId: args.groupId } : {}),
+              ...(args.pinned ? { pinned: true } : {}),
             })
           } catch (error) {
             console.warn('[projectsStore] autoWorktree falhou; terminal normal:', error)
@@ -272,73 +304,42 @@ export function createTerminalsSlice({
       update((state) => {
         const project = state.projects.find((p) => p.id === projectId)
         const terminal = project?.terminals.find((t) => t.id === terminalId)
+        // The orchestrator goes when its front goes, never on its own. The
+        // interface hides the delete for it; this is the backstop for every
+        // other route in.
+        if (terminal?.pinned) return
         // teardown da worktree inteira — arrasta junto o terminal "viewer" GSD
 
         const idsToRemove = new Set([terminalId])
         if (terminal?.worktreeAgentId && terminal.cwd) {
           for (const sibling of project?.terminals ?? []) {
+            // A pinned sibling is not collateral: this sweep is the one route
+            // by which an orchestrator would go without anybody asking.
+            if (sibling.pinned) continue
             if (sibling.gsdSyncViewer && sibling.cwd === terminal.cwd) idsToRemove.add(sibling.id)
           }
         }
         const terminalsToClean = (project?.terminals ?? []).filter((t) => idsToRemove.has(t.id))
         if (terminalsToClean.length > 0) cleanupPtys(collectTerminalPtyIds(terminalsToClean))
-        const projects = state.projects.map((p) =>
-          p.id === projectId
-            ? { ...p, terminals: p.terminals.filter((t) => !idsToRemove.has(t.id)) }
-            : p,
-        )
-        // remove pane do container; se container ficou vazio, remove container
-        const containers = state.workspace.containers
-          .map((c) => {
-            if (c.projectId !== projectId) return c
-            return { ...c, paneIds: c.paneIds.filter((id) => !idsToRemove.has(id)) }
-          })
-          .filter((c) => c.paneIds.length > 0)
-        const tabs = state.workspace.tabs
-          .filter(
-            (tab) =>
-              !(
-                tab.kind === 'terminal' &&
-                tab.projectId === projectId &&
-                idsToRemove.has(tab.terminalId ?? '')
-              ),
-          )
-          .map((tab) => ({
-            ...tab,
-            snapshot: sanitizeWorkspaceSnapshot(tab.snapshot, projects),
-          }))
-        const tabIds = new Set(tabs.map((tab) => tab.id))
-        const history = state.workspace.history
-          .filter((entry) => tabIds.has(entry.tabId))
-          .map((entry) => ({
-            ...entry,
-            snapshot: sanitizeWorkspaceSnapshot(entry.snapshot, projects),
-          }))
         // Nothing queued for a pane that no longer exists has anywhere to land.
         for (const id of idsToRemove) dropPaneInbox(id)
-        return {
-          projects,
-          // A task that launched one of these panes must not keep pointing at it.
-          todos: pruneTodoSessions(state.todos, (link) => !idsToRemove.has(link.terminalId)),
-          workspace: {
-            ...state.workspace,
-            containers,
-            tabs,
-            activeTabId: tabIds.has(state.workspace.activeTabId ?? '')
-              ? state.workspace.activeTabId
-              : (tabs[0]?.id ?? null),
-            focusedTerminalId: idsToRemove.has(state.workspace.focusedTerminalId ?? '')
-              ? null
-              : state.workspace.focusedTerminalId,
-            history,
-            historyIndex: Math.min(state.workspace.historyIndex, history.length - 1),
-          },
-        }
+        // Closing one pane and closing a whole front remove the same things
+        // from the same four places; only the list of ids differs.
+        return removePanesFromWorkspace({
+          projects: state.projects,
+          workspace: state.workspace,
+          todos: state.todos,
+          projectId,
+          paneIds: idsToRemove,
+        })
       }),
 
-    deleteTerminalWithWorktreeCleanup: async (projectId, terminalId) => {
+    deleteTerminalWithWorktreeCleanup: async (projectId, terminalId, options) => {
       const project = get().projects.find((p) => p.id === projectId)
       const terminal = project?.terminals.find((t) => t.id === terminalId)
+      // Before the confirm: asking about a removal that is going to be refused
+      // anyway is worse than not asking.
+      if (terminal?.pinned) return
       if (!terminal?.worktreeAgentId) {
         get().deleteTerminal(projectId, terminalId)
         return
@@ -349,14 +350,20 @@ export function createTerminalsSlice({
       // git raises for a dirty tree — modified and untracked files go with it. Ask
       // only when there is something to lose; a clean worktree is removed silently,
       // which is the common case.
-      if (terminal.cwd) {
+      // `assumeConfirmed` comes from a caller that already asked — the terminal,
+      // where `arco session close` puts the question. `window.confirm` blocks the
+      // whole renderer, so a second dialog nobody is looking at would stop the
+      // window answering anything at all.
+      if (terminal.cwd && !options?.assumeConfirmed) {
         const pending = await countPendingChanges(gitStatus, terminal.cwd)
-        if (pending > 0) {
+        if (pending === null || pending > 0) {
           // Cancel means cancel: the session stays open and the worktree stays on
           // disk. Closing the pane here instead would still lose the session the
           // user just chose to keep, and the work would only survive by accident.
           const confirmed = window.confirm(
-            t('term.worktreeDirtyOnClose', { count: pending, name: terminal.name }),
+            pending === null
+              ? t('term.worktreeUnknownOnClose', { name: terminal.name, path: terminal.cwd })
+              : t('term.worktreeDirtyOnClose', { count: pending, name: terminal.name }),
           )
           if (!confirmed) return
         }
@@ -436,6 +443,8 @@ export function createTerminalsSlice({
         if (!from) return
         const terminal = from.terminals.find((t) => t.id === terminalId)
         if (!terminal) return
+        // The orchestrator belongs to its front, and the front to its project.
+        if (terminal.pinned) return
         const projects = state.projects.map((p) => {
           if (p.id === fromProjectId) {
             return { ...p, terminals: p.terminals.filter((t) => t.id !== terminalId) }

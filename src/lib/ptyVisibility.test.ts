@@ -23,18 +23,25 @@ vi.mock('../stores/uiStore', () => ({
 const { computeVisibleFocusedPtyIds } = await import('./ptyVisibility')
 
 /** A pane whose tab may or may not have spawned its process yet. */
-function pane(id: string, ptyId: string | null) {
+function pane(id: string, ptyId: string | null, groupId?: string) {
   return {
     id,
     activeTabId: `${id}-tab`,
     tabs: [{ id: `${id}-tab`, ptyId }],
+    ...(groupId ? { groupId } : {}),
   }
 }
 
 beforeEach(() => {
   projectsState.projects = [{ id: 'p1', terminals: [] }]
   projectsState.workspace.containers = [
-    { projectId: 'p1', collapsed: false, activePaneId: 'pane-1', sidePaneId: null },
+    {
+      projectId: 'p1',
+      collapsed: false,
+      activePaneId: 'pane-1',
+      sidePaneId: null,
+      paneIds: ['pane-1', 'pane-2', 'pane-3'],
+    },
   ]
   uiState.focusedTerminalId = null
   uiState.activeTerminal = null
@@ -61,5 +68,52 @@ describe('computeVisibleFocusedPtyIds', () => {
     projectsState.projects[0].terminals = [pane('pane-1', null)]
     uiState.focusedTerminalId = 'pane-1'
     expect(computeVisibleFocusedPtyIds().focused.has('pane-1-tab')).toBe(true)
+  })
+})
+
+describe('a front of work laid out side by side', () => {
+  // The panes of the active front are all on screen, so they all have to spawn,
+  // stream and take input. Deciding this by "the one active pane" is what left
+  // every other pane of a split front showing "session not started".
+  it('counts every pane of the active front, not only the active one', () => {
+    projectsState.projects[0].terminals = [
+      pane('pane-1', 'pty-1', 'g1'),
+      pane('pane-2', 'pty-2', 'g1'),
+    ]
+
+    const visible = computeVisibleFocusedPtyIds().visible
+    expect(visible.has('pty-1')).toBe(true)
+    expect(visible.has('pty-2')).toBe(true)
+  })
+
+  it('leaves the panes of another front out', () => {
+    projectsState.projects[0].terminals = [
+      pane('pane-1', 'pty-1', 'g1'),
+      pane('pane-2', 'pty-2', 'g2'),
+    ]
+
+    const visible = computeVisibleFocusedPtyIds().visible
+    expect(visible.has('pty-1')).toBe(true)
+    expect(visible.has('pty-2')).toBe(false)
+  })
+
+  // The front says which panes belong together; the container says which are
+  // open. A sibling that was closed is not on screen just for being a sibling.
+  it('leaves out a sibling that is not open in the container', () => {
+    projectsState.workspace.containers[0].paneIds = ['pane-1']
+    projectsState.projects[0].terminals = [
+      pane('pane-1', 'pty-1', 'g1'),
+      pane('pane-2', 'pty-2', 'g1'),
+    ]
+
+    expect(computeVisibleFocusedPtyIds().visible.has('pty-2')).toBe(false)
+  })
+
+  it('still works for a pane that belongs to no front', () => {
+    projectsState.projects[0].terminals = [pane('pane-1', 'pty-1'), pane('pane-2', 'pty-2')]
+
+    const visible = computeVisibleFocusedPtyIds().visible
+    expect(visible.has('pty-1')).toBe(true)
+    expect(visible.has('pty-2')).toBe(false)
   })
 })

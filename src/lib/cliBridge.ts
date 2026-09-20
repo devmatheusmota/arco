@@ -35,6 +35,8 @@ type CliRequest = { requestId?: string }
 
 type SessionRequest = {
   agent?: string
+  /** Open in another front than the one the command was run from. */
+  group?: string
   project?: string
   cwd?: string
   name?: string
@@ -58,6 +60,27 @@ type SessionRequest = {
 type SessionSendRequest = {
   target?: string
   text?: string
+  /** Deliver the text alone, with no line saying where it came from. */
+  raw?: boolean
+}
+
+/**
+ * The line that says who is talking, and how to answer.
+ *
+ * Text arriving on its own reads like something the user typed, so an agent
+ * has no idea a conversation is open or who to reply to — it answers into its
+ * own pane and the reply goes nowhere. Naming the sender and the exact command
+ * that reaches it back turns a delivery into a two-way channel.
+ *
+ * Kept to one line, and skipped when the sender has no reference to give, so
+ * the text stays what it was.
+ */
+export function withSenderLine(text: string, senderRef: string | undefined): string {
+  if (!senderRef) return text
+  const header = `[de ${senderRef} · responda com: arco session send ${senderRef} <texto>]`
+  // Inline for a single line, on its own for anything longer: a header glued
+  // to the first line of a block reads as part of it.
+  return text.includes('\n') ? `${header}\n${text}` : `${header} ${text}`
 }
 
 type SessionScope = {
@@ -336,11 +359,14 @@ function resolveProjectId(request: SessionRequest | TodoRequest | TodoEditReques
   }
   const cwd = 'cwd' in request ? request.cwd?.trim() : undefined
   if (cwd) {
-    const match = projects.find((project) => {
-      const root = project.defaultCwd?.trim()
-      return root ? cwd === root || cwd.startsWith(`${root}/`) : false
-    })
-    if (match) return match.id
+    // Deepest root wins. A project rooted at the home directory is a prefix of
+    // every other one, so taking the first match hands it every session opened
+    // anywhere on the machine.
+    const match = projects
+      .map((project) => ({ project, root: project.defaultCwd?.trim() ?? '' }))
+      .filter(({ root }) => root && (cwd === root || cwd.startsWith(`${root}/`)))
+      .sort((a, b) => b.root.length - a.root.length)[0]
+    if (match) return match.project.id
   }
   return activeProjectId ?? projects[0]?.id ?? null
 }
@@ -355,7 +381,59 @@ function failure(detail: string): CliResult {
   return { ok: false, message: detail }
 }
 
-async function handleSession(request: SessionRequest): Promise<CliResult> {
+/**
+ * The front a new session belongs to.
+ *
+ * Asking for a session from inside a pane means asking for one *here*: the
+ * front you are working in, sharing its worktree. That is the whole point of a
+ * front, and a session that lands outside it comes back as a loose tab beside
+ * the fronts rather than beside its siblings.
+ *
+ * `--group` names another one, by front name or by the reference of any session
+ * in it. With neither, and no pane to inherit from, the session has no front —
+ * which the next load adopts into the project's own.
+ */
+function resolveGroupId(
+  request: SessionRequest & SessionScope,
+  projectId: string,
+): string | undefined {
+  const project = useProjectsStore.getState().projects.find((item) => item.id === projectId)
+  const groups = project?.groups ?? []
+  if (groups.length === 0) return undefined
+
+  const wanted = request.group?.trim()
+  if (wanted) {
+    const ref = normalizePaneRef(wanted)
+    const byRef = ref ? project?.terminals.find((pane) => pane.shortId === ref)?.groupId : undefined
+    if (byRef) return byRef
+    const lowered = wanted.toLowerCase()
+    return groups.find((group) => group.name.toLowerCase() === lowered)?.id
+  }
+
+  // No flag: inherit from the pane the command ran in.
+  const match = matchSession(request)
+  if ('entry' in match) return match.entry.terminal.groupId
+
+  // The `arco` on PATH is whatever build is installed, and an older one sends
+  // no session scope at all — the working directory is the one thing every
+  // version has always sent. A directory inside a front's worktree, or inside
+  // a pane of one, is that front: the session is already standing in it.
+  const cwd = request.cwd?.trim() ?? ''
+  if (!cwd) return undefined
+  const within = (root: string | undefined) =>
+    Boolean(root) && (cwd === root || cwd.startsWith(`${root}/`))
+
+  const byWorktree = groups.find((group) => within(group.cwd?.trim()))
+  if (byWorktree) return byWorktree.id
+  // Deepest first: a pane in a worktree under the project root must not match
+  // the project root's own front.
+  const byPane = [...(project?.terminals ?? [])]
+    .filter((pane) => pane.groupId && within(pane.cwd?.trim()))
+    .sort((a, b) => (b.cwd?.length ?? 0) - (a.cwd?.length ?? 0))[0]
+  return byPane?.groupId
+}
+
+async function handleSession(request: SessionRequest & SessionScope): Promise<CliResult> {
   const agent = (request.agent ?? 'claude') as AgentType
   if (!AGENTS.includes(agent)) return failure(`Agente desconhecido: ${request.agent}`)
   const projectId = resolveProjectId(request)
@@ -384,19 +462,28 @@ async function handleSession(request: SessionRequest): Promise<CliResult> {
   const paneName = requestedName || target?.title?.trim() || agent
   const paneNameSource = requestedName ? 'user' : target ? 'task' : 'auto'
 
+  const groupId = resolveGroupId(request, projectId)
+  const group = groupId ? (project?.groups ?? []).find((item) => item.id === groupId) : undefined
+  // A front that owns a worktree shares it: a second session there editing a
+  // checkout of its own would not be in the same piece of work at all.
+  const worktree = group?.worktreeAgentId ? 'none' : normalizeWorktree(request.worktree)
+  const paneCwd = group?.cwd?.trim() || cwd
+
   const terminal = await store.createAgentTerminal(projectId, {
     name: paneName,
     nameSource: paneNameSource,
-    cwd,
-    worktree: normalizeWorktree(request.worktree),
+    cwd: paneCwd,
+    worktree,
     firstTab: {
       type: agent,
-      cwd,
+      cwd: paneCwd,
       initialInput: request.prompt?.trim() || undefined,
       runtimeProfile: 'lean',
     },
+    ...(groupId ? { groupId } : {}),
   })
-  if (!target) return { ok: true, message: `Sessão ${agent} criada.` }
+  const where = group ? ` na frente "${group.name}"` : ''
+  if (!target) return { ok: true, message: `Sessão ${agent} criada${where}.` }
 
   const linked = useProjectsStore.getState()
   linked.setTodoSession(target.id, {
@@ -447,14 +534,19 @@ function paneStatus(terminal: Terminal): { status: PtyStatus; parked: boolean } 
  * there is nothing on disk to fall back to. An app that is not up answers 504,
  * which is the truthful answer rather than a stale listing.
  */
-function handleSessionList(): CliResult {
+function handleSessionList(request: SessionScope = {}): CliResult {
   const { projects, todos } = useProjectsStore.getState()
   const projectNames = new Map(projects.map((project) => [project.id, project.name]))
+  const groupsById = new Map(
+    projects.flatMap((project) => (project.groups ?? []).map((group) => [group.id, group])),
+  )
   const inboxes = usePaneInboxStore.getState().byTerminalId
   const sessions = sessionEntries().map(({ terminal, projectId }) => {
     const tab = terminal.tabs.find((item) => item.id === terminal.activeTabId) ?? terminal.tabs[0]
     const todo = todos.find((item) => item.session?.id === terminal.id)
     const { status, parked } = paneStatus(terminal)
+    const worktree =
+      terminal.worktreeAgentId ?? groupsById.get(terminal.groupId ?? '')?.worktreeAgentId
     return {
       ref: terminal.shortId ?? '',
       id: terminal.id,
@@ -466,8 +558,18 @@ function handleSessionList(): CliResult {
       status,
       parked,
       queued: inboxes[terminal.id]?.length ?? 0,
+      ...(terminal.groupId
+        ? { group: groupsById.get(terminal.groupId)?.name ?? '', groupId: terminal.groupId }
+        : {}),
+      pinned: Boolean(terminal.pinned),
+      // The caller exports its own id, so the listing can point at the row that
+      // is asking — without it, an agent cannot tell itself apart.
+      current: terminal.id === request.sessionId,
       ...(todo ? { todo: todo.id, todoTitle: todo.title } : {}),
-      ...(terminal.worktreeAgentId ? { worktree: terminal.worktreeAgentId } : {}),
+      // The worktree belongs to the front now: a session opened inside one runs
+      // in it without owning it, and reporting only what the pane owns makes it
+      // read as loose when it is not.
+      ...(worktree ? { worktree } : {}),
     }
   })
   return { ok: true, data: { sessions } }
@@ -508,7 +610,13 @@ function handleSessionSend(request: SessionSendRequest & SessionScope): CliResul
 
   const tab = terminal.tabs.find((item) => item.id === terminal.activeTabId) ?? terminal.tabs[0]
   const { status, parked } = paneStatus(terminal)
-  const { position } = usePaneInboxStore.getState().enqueue(terminal.id, text)
+
+  // Who sent it, when the sender is a pane of this workspace.
+  const sender = request.sessionId
+    ? sessionEntries().find((entry) => entry.terminal.id === request.sessionId)
+    : undefined
+  const body = request.raw ? text : withSenderLine(text, sender?.terminal.shortId)
+  const { position } = usePaneInboxStore.getState().enqueue(terminal.id, body)
 
   // The place in line is said whenever there is one, whatever the pane is
   // doing: two messages queued behind each other have to read differently, or
@@ -538,6 +646,146 @@ function handleSessionSend(request: SessionSendRequest & SessionScope): CliResul
     ok: true,
     message: `${label}: entra em instantes, o agente está ocioso.`,
     data: { ...data, queued: false },
+  }
+}
+
+/** `arco group list` — the fronts of work open in every project. */
+function handleGroupList(): CliResult {
+  const projects = useProjectsStore.getState().projects
+  const groups = projects.flatMap((project) =>
+    (project.groups ?? []).map((group) => {
+      const panes = project.terminals.filter((terminal) => terminal.groupId === group.id)
+      return {
+        id: group.id,
+        name: group.name,
+        project: project.name,
+        projectId: project.id,
+        panes: panes.length,
+        refs: panes.map((pane) => pane.shortId ?? '').filter(Boolean),
+        ...(group.worktreeAgentId ? { worktree: group.worktreeAgentId } : {}),
+        ...(group.cwd ? { cwd: group.cwd } : {}),
+      }
+    }),
+  )
+  return { ok: true, data: { groups } }
+}
+
+type SessionCloseRequest = {
+  target?: string
+  /** The terminal already asked, so the window must not block on a second one. */
+  confirmed?: boolean
+}
+
+/**
+ * `arco session close <ref>` — closes one pane and leaves the front standing.
+ *
+ * The only way out of a pane used to be the interface or `arco group close`,
+ * which takes the whole front with it. An agent asked to close the pane it just
+ * opened had nothing to run.
+ *
+ * Two panes are refused rather than closed. The orchestrator goes when its front
+ * goes — `deleteTerminal` refuses it anyway, and a silent no-op reads like a bug.
+ * And a pane does not close itself: the process that would die is the one still
+ * waiting to print the answer.
+ */
+function handleSessionClose(request: SessionCloseRequest & SessionScope): CliResult {
+  const target = request.target?.trim() ?? ''
+  if (!target) return failure('Informe o pane que quer fechar.')
+
+  const match = matchSession({ ...request, session: target })
+  if ('error' in match) return match.error
+  if ('orphanId' in match) {
+    return failure(`A sessão ${match.orphanId.slice(0, 8)} não está aberta neste perfil.`)
+  }
+
+  const { terminal, projectId } = match.entry
+  const label = terminal.shortId ?? terminal.id.slice(0, 8)
+
+  if (terminal.pinned) {
+    return failure(
+      `${label} é o orquestrador da frente e fecha junto com ela: arco group close ${label}.`,
+    )
+  }
+  if (request.sessionId && terminal.id === request.sessionId) {
+    return failure(
+      `${label} é este pane. Feche-o pela interface, ou peça a outro pane: arco session send <ref> "fecha o ${label}".`,
+    )
+  }
+
+  // A worktree of the pane's own is the pre-front shape, and it goes with the
+  // pane the way the interface does it — `git worktree remove --force`, which
+  // takes uncommitted work with it. The window would ask, but `window.confirm`
+  // blocks the whole renderer and nobody is looking at it, so the question is
+  // refused back to the terminal instead and `--yes` is the answer.
+  const ownsWorktree = Boolean(terminal.worktreeAgentId)
+  if (ownsWorktree && !request.confirmed) {
+    return failure(
+      `${label} tem worktree própria (${terminal.worktreeAgentId}) e fechá-lo apaga ela com --force. Repita com --yes se for isso mesmo.`,
+    )
+  }
+  void useProjectsStore.getState().deleteTerminalWithWorktreeCleanup(projectId, terminal.id, {
+    assumeConfirmed: request.confirmed,
+  })
+
+  return {
+    ok: true,
+    message: ownsWorktree
+      ? `Fechando ${label} e a worktree ${terminal.worktreeAgentId}.`
+      : `Fechando ${label}. A frente segue aberta.`,
+    data: {
+      sessionId: terminal.id,
+      ref: terminal.shortId ?? null,
+      worktree: terminal.worktreeAgentId ?? null,
+    },
+  }
+}
+
+type GroupCloseRequest = {
+  target?: string
+  /** The terminal already asked, so the window must not block on a second one. */
+  confirmed?: boolean
+}
+
+/**
+ * `arco group close <ref>` — closes a front of work and what it owns.
+ *
+ * The front is named by the reference of any session inside it, because that
+ * is the id a person has at hand; a group id is a nanoid nobody reads.
+ *
+ * The command answers as soon as the decision is made. Removing a worktree
+ * runs git twice with a wait in between and can outlast the eight seconds the
+ * request has, and a front that closed is not made less closed by the CLI
+ * having stopped listening.
+ */
+function handleGroupClose(request: GroupCloseRequest & SessionScope): CliResult {
+  const target = request.target?.trim() ?? ''
+  if (!target) return failure('Informe uma sessão da frente que quer fechar.')
+
+  const match = matchSession({ ...request, session: target })
+  if ('error' in match) return match.error
+  if ('orphanId' in match) {
+    return failure(`A sessão ${match.orphanId.slice(0, 8)} não está aberta neste perfil.`)
+  }
+
+  const { terminal, projectId } = match.entry
+  const project = useProjectsStore.getState().projects.find((item) => item.id === projectId)
+  const group = (project?.groups ?? []).find((item) => item.id === terminal.groupId)
+  if (!group) {
+    return failure(
+      `A sessão ${terminal.shortId ?? terminal.id.slice(0, 8)} não está em nenhuma frente de trabalho.`,
+    )
+  }
+
+  const panes = (project?.terminals ?? []).filter((item) => item.groupId === group.id)
+  void useProjectsStore
+    .getState()
+    .closeGroupWithWorktree(projectId, group.id, { assumeConfirmed: request.confirmed })
+  return {
+    ok: true,
+    message: group.worktreeAgentId
+      ? `Fechando "${group.name}": ${panes.length} sessão(ões) e a worktree ${group.worktreeAgentId}.`
+      : `Fechando "${group.name}": ${panes.length} sessão(ões). Nada sai do disco.`,
+    data: { groupId: group.id, name: group.name, panes: panes.length },
   }
 }
 
@@ -704,6 +952,21 @@ function resolveTodo(
 ): { todo: TodoItem } | { error: CliResult } {
   const ref = rawRef?.trim()
   if (!ref) return { error: failure(`Informe qual tarefa ${verb}.`) }
+  // `pa-3576` is a pane, and the agent that typed it was told to send
+  // something there. Saying only "no task found" sends it hunting through
+  // files for what the reference means, which is what happens in practice.
+  const asPane = normalizePaneRef(ref)
+  if (asPane) {
+    const pane = sessionEntries().find((entry) => entry.terminal.shortId === asPane)
+    return {
+      error: failure(
+        pane
+          ? `${asPane} é um pane, não uma tarefa. Para mandar texto: arco session send ${asPane} <texto>. Para ver os panes: arco session list.`
+          : `${asPane} tem cara de referência de pane, não de tarefa, e nenhum pane atende por ela. Veja os panes abertos com arco session list.`,
+      ),
+    }
+  }
+
   const { todo, ambiguous } = findTodoByRef(useProjectsStore.getState().todos, ref)
   if (todo) return { todo }
   if (ambiguous.length > 0) {
@@ -753,11 +1016,23 @@ function answer<T extends CliRequest>(
 /** Wires the CLI events. Returns a disposer for the app to call on teardown. */
 export async function startCliBridge(): Promise<UnlistenFn> {
   const unlisteners = await Promise.all([
-    listen<SessionRequest & CliRequest>(
+    listen<SessionRequest & SessionScope & CliRequest>(
       'cli://session-new',
-      answer<SessionRequest & CliRequest>(handleSession),
+      answer<SessionRequest & SessionScope & CliRequest>(handleSession),
     ),
-    listen<CliRequest>('cli://session-list', answer<CliRequest>(handleSessionList)),
+    listen<SessionScope & CliRequest>(
+      'cli://session-list',
+      answer<SessionScope & CliRequest>(handleSessionList),
+    ),
+    listen<CliRequest>('cli://group-list', answer<CliRequest>(handleGroupList)),
+    listen<GroupCloseRequest & SessionScope & CliRequest>(
+      'cli://group-close',
+      answer<GroupCloseRequest & SessionScope & CliRequest>(handleGroupClose),
+    ),
+    listen<SessionCloseRequest & SessionScope & CliRequest>(
+      'cli://session-close',
+      answer<SessionCloseRequest & SessionScope & CliRequest>(handleSessionClose),
+    ),
     listen<SessionSendRequest & SessionScope & CliRequest>(
       'cli://session-send',
       answer<SessionSendRequest & SessionScope & CliRequest>(handleSessionSend),

@@ -29,6 +29,48 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   `git log | arco session send pa-3576`. The queue lives in memory and is gone when the app
   closes — a message written half an hour ago is not worth replaying into a fresh session —
   and the pane header shows a counter while anything is waiting.
+- Starting a task from the play button opens a front of its own, named after the task, with
+  the session as its orchestrator — and the worktree it provisions belongs to that front, so
+  closing the front is what removes it. The session used to land as a loose pane in whatever
+  front happened to be on screen.
+- Every pane now belongs to a front, whichever way it was opened. Routes that never had a
+  front to give — a keybinding, the home screen, a handoff, a recovered chat, the scheduler —
+  put the pane in the front on screen, and open one for it when there is none. A pane that
+  brings a worktree of its own always gets its own front: one front, one tree.
+
+- `arco session close <ref>` closes a single pane and leaves its front and the other panes
+  in it open. Until now the only way out of a pane was the interface or `arco group close`,
+  which takes the whole front with it — an agent asked to close the pane it had just opened
+  had nothing to run. The orchestrator of a front is refused, and so is the pane the command
+  is running in. A pane that owns a worktree of its own needs `--yes`, because closing it
+  removes that worktree.
+
+- A message delivered by `arco session send` says where it came from: it arrives headed by the
+  sender's reference and the command that answers back, so the receiving agent can reply
+  instead of talking to an empty pane. `--raw` delivers the text alone, for when it is a
+  command the other side is meant to run verbatim.
+
+- A project is a list of fronts of work, not a flat list of sessions. A front has a name you
+  choose, a worktree of its own if you want one, an orchestrator session to speak from, and as
+  many sessions as you open in it — side by side on screen, not stacked as tabs. The sidebar
+  lists the fronts; the sessions of one are a level in. Projects that already existed get
+  their fronts from what the file already said: sessions that shared a worktree were one
+  piece of work, everything on the project tree is another.
+- Closing a front closes its sessions and deletes the worktree it created, in one action. It
+  asks first when that worktree has uncommitted work — and asks the same way when git cannot
+  say what is in there, since the removal runs with `--force` either way.
+- A session opened from inside a pane lands in that pane's front of work, sharing its
+  worktree instead of provisioning another. Asking an agent for another session now puts it
+  beside the one that asked, on screen at the same time, rather than in a tab of its own.
+  `--group <nome|ref>` opens in a different front.
+- The command line points an agent at what it can do instead of letting it guess. A pane
+  reference typed where a task was expected — `arco todo show pa-2825` — now says it names a
+  pane and gives the command that sends to one; `arco session list` marks the session the
+  command was run from with `*`; and `arco help` opens with a map of the commands before the
+  manual, so reading the first few lines is enough to know what exists.
+- `arco group list` prints the open fronts with the references their sessions answer to, and
+  `arco group close <ref>` closes the front a session belongs to. `arco session list` gained a
+  column for the front, and marks the orchestrator.
 
 ### Changed
 

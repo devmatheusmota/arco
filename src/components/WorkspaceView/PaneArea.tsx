@@ -38,34 +38,65 @@ function Pane({ projectId, terminal }: { projectId: string; terminal: Terminal }
 }
 
 /**
- * Every session of the project, stacked, with the active one on top.
+ * Every session of the project, in one box, with the visible ones side by side.
  *
- * They are all mounted and all the same size. Unmounting the ones behind would
- * mean rebuilding their terminal on every tab switch, which replays the recorded
- * scrollback — the expensive path, and the one that garbles a pane when the
- * geometry it was recorded under no longer matches. Keeping the box identical
- * also means switching tabs resizes nothing.
+ * They are all mounted, always, and they never change parent. Unmounting the
+ * ones behind — or moving them into a different container when they come to the
+ * front — would rebuild their terminal, which replays the recorded scrollback:
+ * the expensive path, and the one that garbles a pane when the geometry it was
+ * recorded under no longer matches.
+ *
+ * So the layout is done by position rather than by structure. A hidden pane
+ * keeps the full box and only loses its visibility, because a terminal that
+ * resizes to zero comes back wrong; a visible one is placed in its column.
  */
 function PaneStack({
   projectId,
   panes,
-  activeId,
+  visibleIds,
 }: {
   projectId: string
   panes: Terminal[]
-  activeId: string
+  visibleIds: string[]
 }) {
+  // A grid, not a row: four sessions side by side are four columns nobody can
+  // read. Squaring off keeps every pane wide enough to hold a line of output,
+  // and the last row spreads across whatever it has so no cell is left empty.
+  const count = visibleIds.length || 1
+  const columns = Math.ceil(Math.sqrt(count))
+  const rows = Math.ceil(count / columns)
+  const height = 100 / rows
+
   return (
     <div className={styles.paneStack}>
-      {panes.map((terminal) => (
-        <div
-          key={terminal.id}
-          className={terminal.id === activeId ? styles.paneLayer : styles.paneLayerHidden}
-          aria-hidden={terminal.id === activeId ? undefined : true}
-        >
-          <Pane projectId={projectId} terminal={terminal} />
-        </div>
-      ))}
+      {panes.map((terminal) => {
+        const index = visibleIds.indexOf(terminal.id)
+        const visible = index >= 0
+        let placement: React.CSSProperties | undefined
+        if (visible && count > 1) {
+          const row = Math.floor(index / columns)
+          const inRow = Math.min(columns, count - row * columns)
+          const width = 100 / inRow
+          placement = {
+            left: `${(index - row * columns) * width}%`,
+            width: `${width}%`,
+            top: `${row * height}%`,
+            height: `${height}%`,
+            right: 'auto',
+            bottom: 'auto',
+          }
+        }
+        return (
+          <div
+            key={terminal.id}
+            className={visible ? styles.paneLayer : styles.paneLayerHidden}
+            aria-hidden={visible ? undefined : true}
+            style={placement}
+          >
+            <Pane projectId={projectId} terminal={terminal} />
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -75,25 +106,28 @@ export type PaneAreaProps = {
   idPrefix: string
   /** Every session of the project, in tab order. */
   panes: Terminal[]
-  /** The session filling the screen. */
-  activeId: string
-  /** The optional terminal next to it. */
+  /** The sessions on screen, left to right. Everything else stays mounted, hidden. */
+  visibleIds: string[]
+  /** The optional terminal next to them. */
   side?: Terminal | null
 }
 
 /**
- * What a project shows: one session, and at most one terminal beside it.
+ * What a project shows: the sessions of the front of work you are in, side by
+ * side, and at most one terminal beside them.
  *
- * Every other session of the project is a tab, not a pane. Two terminals on
- * screen is the ceiling — a workspace of narrow panes is what used to leave each
- * one at a width nothing else agreed on.
+ * Sessions of the other fronts are not on screen and not tabs either — they are
+ * reached through their own front. A front is meant to hold the two or three
+ * panes that are worth reading together, which is why they fit next to each
+ * other at all.
  */
-export function PaneArea({ projectId, idPrefix, panes, activeId, side }: PaneAreaProps) {
+export function PaneArea({ projectId, idPrefix, panes, visibleIds, side }: PaneAreaProps) {
   const stacked = panes.filter((terminal) => terminal.id !== side?.id)
+  const visible = visibleIds.filter((id) => id !== side?.id)
   if (!side) {
     return (
       <div className={styles.singlePane}>
-        <PaneStack projectId={projectId} panes={stacked} activeId={activeId} />
+        <PaneStack projectId={projectId} panes={stacked} visibleIds={visible} />
       </div>
     )
   }
@@ -107,7 +141,7 @@ export function PaneArea({ projectId, idPrefix, panes, activeId, side }: PaneAre
       panelIds={[activePanelId, sidePanelId]}
     >
       <Panel id={activePanelId} defaultSize="65%" minSize="25%">
-        <PaneStack projectId={projectId} panes={stacked} activeId={activeId} />
+        <PaneStack projectId={projectId} panes={stacked} visibleIds={visible} />
       </Panel>
       <Separator className={styles.sepH} />
       <Panel id={sidePanelId} defaultSize="35%" minSize="15%">

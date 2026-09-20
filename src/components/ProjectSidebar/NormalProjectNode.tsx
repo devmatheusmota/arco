@@ -3,12 +3,13 @@ import { ChevronDown, Folder, MoreHorizontal, Network, Pause, Plus } from 'lucid
 
 import { useT } from '../../lib/i18n'
 import { type SidebarDropEdge } from '../../lib/sidebarDrag'
-import { type Project, type Terminal } from '../../lib/types'
+import { type PaneGroup, type Project, type Terminal } from '../../lib/types'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { Collapse } from '../ui/Collapse'
 import { DotmCircular2 } from '../ui/dotm-circular-2'
 import styles from './NormalProjectSidebar.module.css'
+import { NormalGroupNode } from './NormalGroupNode'
 import { NormalTerminalNode } from './NormalTerminalNode'
 
 export type NormalProjectNodeProps = {
@@ -25,6 +26,9 @@ export type NormalProjectNodeProps = {
   onQuickOpen: () => void
   onToggleDisabled: () => void
   dropEdge: SidebarDropEdge | null
+  onGroupMenu: (g: PaneGroup, e: React.MouseEvent) => void
+  onRenameGroup: (g: PaneGroup, name: string) => void
+  onAddPaneToGroup: (g: PaneGroup) => void
 }
 
 export function NormalProjectNode({
@@ -39,6 +43,9 @@ export function NormalProjectNode({
   onTerminalMenu,
   onAddTerminal,
   dropEdge,
+  onGroupMenu,
+  onRenameGroup,
+  onAddPaneToGroup,
 }: NormalProjectNodeProps) {
   const t = useT()
   const { setNodeRef: dropRef } = useDroppable({ id: `proj:${project.id}` })
@@ -58,7 +65,14 @@ export function NormalProjectNode({
           : ''
 
   const visibleTerminals = project.terminals.filter((term) => !term.gsdSyncViewer)
-  const isEmpty = visibleTerminals.length === 0
+  const groups = project.groups ?? []
+  // A pane with no group only happens between a build that does not know about
+  // groups creating one and the next load adopting it. It is listed straight
+  // under the project so it is never invisible in the meantime.
+  const ungrouped = visibleTerminals.filter(
+    (term) => !term.groupId || !groups.some((group) => group.id === term.groupId),
+  )
+  const isEmpty = visibleTerminals.length === 0 && groups.length === 0
 
   const allDisabled = visibleTerminals.length > 0 && visibleTerminals.every((term) => term.disabled)
   const runningCount = useTerminalsStore((state) =>
@@ -116,8 +130,8 @@ export function NormalProjectNode({
             e.stopPropagation()
             onAddTerminal()
           }}
-          title={t('ui.sidebar.newTerminal')}
-          aria-label={t('ui.sidebar.newTerminal')}
+          title={t('ui.group.new')}
+          aria-label={t('ui.group.new')}
         >
           <Plus size={16} />
         </button>
@@ -165,8 +179,28 @@ export function NormalProjectNode({
         ) : null}
       </div>
 
-      <Collapse open={!project.collapsed && visibleTerminals.length > 0}>
-        {visibleTerminals.map((term) => (
+      <Collapse open={!project.collapsed && !isEmpty}>
+        {groups.map((group) => {
+          const members = visibleTerminals.filter((term) => term.groupId === group.id)
+          return (
+            <NormalGroupNode
+              key={group.id}
+              group={group}
+              panes={members}
+              open={members.some((term) => openPanes?.has(term.id))}
+              // Opening a front means putting it on screen. Its sessions are
+              // laid out together, so reaching any one of them opens all.
+              onOpen={() => {
+                const target = members.find((term) => term.pinned) ?? members[0]
+                if (target) onTerminalClick(target)
+              }}
+              onRename={(name) => onRenameGroup(group, name)}
+              onAddPane={() => onAddPaneToGroup(group)}
+              onMenu={(e) => onGroupMenu(group, e)}
+            />
+          )
+        })}
+        {ungrouped.map((term) => (
           <NormalTerminalNode
             key={term.id}
             project={project}

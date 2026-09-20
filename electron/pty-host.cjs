@@ -99,8 +99,20 @@ function enrichedPath() {
 
 const LOGIN_ENV = loginEnv()
 
+/**
+ * Where the `arco` shim lives, put ahead of everything else.
+ *
+ * A pane opened by this app has to reach *this* app's command. A package
+ * manager leaves its own `arco` in `/usr/bin`, which the login PATH finds
+ * first, and that one is a different build: it answers to a different set of
+ * subcommands and sends a different payload for the ones it shares. Everything
+ * keeps looking like it works, because the old binary still talks to this
+ * window over HTTP — the sessions it opens simply land in the wrong place.
+ */
+const SHIM_DIR = path.join(os.homedir(), '.local', 'bin')
+
 /** Login shell PATH first, then the entries a desktop launch would miss. */
-const SPAWN_PATH = mergePath(LOGIN_ENV.PATH, enrichedPath())
+const SPAWN_PATH = [SHIM_DIR, mergePath(LOGIN_ENV.PATH, enrichedPath())].join(path.delimiter)
 
 /** Resolves a command name against the enriched PATH before handing it to the PTY. */
 function resolveExecutable(command) {

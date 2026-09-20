@@ -64,12 +64,26 @@ function writeErr(text) {
 
 const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
 
+O Arco organiza o trabalho em frentes; cada frente tem panes (sessoes de agente).
+Um pane atende por uma referencia curta: pa-3576. A sua esta em $ARCO_PANE_ID.
+
+  arco session list           quem esta aberto agora; o seu pane vem com *
+  arco session close <ref>    fecha um pane; a frente continua aberta
+  arco session send <ref> ... manda texto para outro pane; ele responde la
+  arco session [opcoes]       abre um pane novo, na sua frente
+  arco group list             as frentes de trabalho abertas
+  arco group close <ref>      fecha uma frente e a worktree dela
+  arco todo list              as tarefas
+
+Detalhe de cada um abaixo.
+
   arco                        abre o diretorio atual
   arco <caminho>              abre o diretorio informado
   arco --version              versao do app
 
   arco session [opcoes]       cria uma sessao de agente
       --agent claude|codex|opencode|shell   (padrao: claude)
+      --group <nome|ref>      abre em outra frente; sem isso, na frente deste pane
       --project <nome>        projeto alvo; sem isso, deduz pelo diretorio atual
       --name <rotulo>         nome do pane
       --prompt <texto>        texto enviado ao agente ao abrir
@@ -79,14 +93,26 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --force                 tira a tarefa da sessao que a segura hoje
 
   arco session list [--json]
-      lista as sessoes abertas: referencia curta, agente, estado, projeto e nome
+      lista as sessoes abertas: referencia curta, frente, agente, estado e nome
+
+  arco group list [--json]
+      lista as frentes de trabalho abertas e as sessoes de cada uma
+
+  arco group close <ref> [--yes]
+      fecha a frente a que a sessao <ref> pertence, com as sessoes dela;
+      se a frente criou uma worktree, ela tambem e apagada
 
   arco session send <ref> <texto>
       manda texto para um pane que ja esta aberto; entra quando o agente ficar ocioso
       <ref> e a referencia curta (pa-3576, ou so 3576), o id do pane, ou "current"
       --prompt <texto>        o mesmo que o texto solto
       --file <caminho>        le o texto de um arquivo
+      --raw                   entrega so o texto, sem a linha que diz quem mandou
       sem texto e sem --file, le da entrada padrao: git log | arco session send pa-3576
+
+  arco session close <ref> [--yes]
+      fecha um pane; a frente e os outros panes dela continuam abertos
+      --yes                   confirma quando o pane tem worktree propria, que sai junto
 
   arco session rename <nome> [--session <id|current>]
       renomeia a sessao; sem --session, a que roda neste terminal
@@ -465,12 +491,17 @@ const SEND_TEXT_MAX = 100_000
 function formatSessionTable(sessions) {
   if (sessions.length === 0) return 'nenhuma sessao\n'
   const rows = sessions.map((session) => ({
+    here: session.current ? '*' : '',
     ref: String(session.ref ?? ''),
+    // The front is what the session belongs to; the project is one level above
+    // it and already implied by the front's own listing.
+    group: String(session.group ?? ''),
     agent: String(session.agent ?? ''),
     status: String(session.status ?? ''),
     project: String(session.project ?? ''),
     name: String(session.name ?? ''),
     marks: [
+      session.pinned ? '[orq]' : '',
       session.queued ? `+${session.queued} na fila` : '',
       session.parked ? '[parked]' : '',
       session.todo ? `#${String(session.todo).slice(0, 8)}` : '',
@@ -480,24 +511,126 @@ function formatSessionTable(sessions) {
       .join(' '),
   }))
   const width = (key) => Math.max(...rows.map((row) => row[key].length))
+  const hereWidth = width('here')
   const refWidth = width('ref')
+  const groupWidth = width('group')
   const agentWidth = width('agent')
   const statusWidth = width('status')
   const projectWidth = width('project')
   return `${rows
     .map(
       (row) =>
-        `${row.ref.padEnd(refWidth)}  ${row.agent.padEnd(agentWidth)}  ${row.status.padEnd(
+        `${hereWidth ? `${row.here.padEnd(hereWidth)} ` : ''}${row.ref.padEnd(refWidth)}  ${
+          groupWidth ? `${row.group.padEnd(groupWidth)}  ` : ''
+        }${row.agent.padEnd(agentWidth)}  ${row.status.padEnd(
           statusWidth,
         )}  ${row.project.padEnd(projectWidth)}  ${row.name}${row.marks ? `  ${row.marks}` : ''}`,
     )
     .join('\n')}\n`
 }
 
+/** What `arco group` answers to, named in the error when a bare word is not one of them. */
+const GROUP_SUBCOMMANDS = 'list, close'
+
+/** `arco group list` as a table: the front, its project, and the sessions in it. */
+function formatGroupTable(groups) {
+  if (groups.length === 0) return 'nenhuma frente de trabalho\n'
+  const rows = groups.map((group) => ({
+    name: String(group.name ?? ''),
+    project: String(group.project ?? ''),
+    panes: `${group.panes ?? 0} pane(s)`,
+    // The references are what `arco session send` and `arco group close` take,
+    // so a listing is directly actionable without a second lookup.
+    refs: (group.refs ?? []).join(' '),
+    worktree: group.worktree ? `[${group.worktree}]` : '',
+  }))
+  const width = (key) => Math.max(...rows.map((row) => row[key].length))
+  const nameWidth = width('name')
+  const projectWidth = width('project')
+  const panesWidth = width('panes')
+  return `${rows
+    .map(
+      (row) =>
+        `${row.name.padEnd(nameWidth)}  ${row.project.padEnd(projectWidth)}  ${row.panes.padEnd(
+          panesWidth,
+        )}  ${row.refs}${row.worktree ? `  ${row.worktree}` : ''}`,
+    )
+    .join('\n')}\n`
+}
+
+async function runGroupList(args) {
+  const unknown = args.find((arg) => arg !== '--json')
+  if (unknown) throw new Error(`arco group list: opcao desconhecida: ${unknown}`)
+  const result = await post('group/list')
+  const groups = result.data?.groups ?? []
+  writeOut(args.includes('--json') ? `${JSON.stringify(groups)}\n` : formatGroupTable(groups))
+}
+
+async function runGroupClose(args) {
+  let target = null
+  let yes = false
+  for (const arg of args) {
+    if (arg === '--yes' || arg === '-y') yes = true
+    else if (arg.startsWith('--')) throw new Error(`arco group close: opcao desconhecida: ${arg}`)
+    else if (target === null) target = arg
+    else throw new Error(`arco group close: argumento a mais: ${arg}`)
+  }
+  if (!target) {
+    throw new Error('arco group close: informe uma sessao da frente (pa-3576 ou current)')
+  }
+  // Closing a front deletes its worktree, which is not undoable. The app asks
+  // again when the tree has uncommitted work; this is the terminal's own guard,
+  // for the case where nobody is looking at the window.
+  if (!yes) {
+    if (!process.stdin.isTTY) {
+      throw new Error('arco group close: sem terminal interativo, use --yes para confirmar')
+    }
+    const readline = require('node:readline')
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+    const answer = await new Promise((resolve) => {
+      rl.question(`fechar a frente de ${target} e apagar a worktree dela? [s/N] `, resolve)
+    })
+    rl.close()
+    if (!/^(s|sim|y|yes)$/i.test(String(answer).trim())) {
+      writeOut('cancelado\n')
+      return
+    }
+  }
+  // `confirmed` tells the window the question was already answered here. Left
+  // out, the window raises its own `window.confirm`, which blocks the renderer
+  // entirely — nobody is looking at it, and the app stops answering anything.
+  const result = await post('group/close', { target, confirmed: true, ...sessionScope() })
+  writeOut(`${result.message || 'frente fechada'}\n`)
+}
+
+/**
+ * `arco session close <ref> [--yes]`.
+ *
+ * No prompt of its own: closing a pane that owns no worktree takes nothing off
+ * disk, and the app refuses the one case that does until `--yes` says so.
+ */
+function parseSessionClose(args) {
+  let target = null
+  let yes = false
+  for (const arg of args) {
+    if (arg === '--yes' || arg === '-y') yes = true
+    else if (arg.startsWith('--')) throw new Error(`arco session close: opcao desconhecida: ${arg}`)
+    else if (target === null) target = arg
+    else throw new Error(`arco session close: argumento a mais: ${arg}`)
+  }
+  if (!target) throw new Error('arco session close: informe o pane (pa-3576)')
+  return { target, ...(yes ? { confirmed: true } : {}) }
+}
+
+async function runSessionClose(args) {
+  const result = await post('session/close', { ...parseSessionClose(args), ...sessionScope() })
+  writeOut(`${result.message || 'pane fechado'}\n`)
+}
+
 async function runSessionList(args) {
   const unknown = args.find((arg) => arg !== '--json')
   if (unknown) throw new Error(`arco session list: opcao desconhecida: ${unknown}`)
-  const result = await post('session/list')
+  const result = await post('session/list', sessionScope())
   const sessions = result.data?.sessions ?? []
   writeOut(args.includes('--json') ? `${JSON.stringify(sessions)}\n` : formatSessionTable(sessions))
 }
@@ -517,9 +650,11 @@ function parseSessionSend(args) {
   let target = null
   let prompt = null
   let file = null
+  let raw = false
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
     if (arg === '--prompt') prompt = args[++index]
+    else if (arg === '--raw') raw = true
     else if (arg === '--file') file = args[++index]
     else if (arg.startsWith('--')) throw new Error(`arco session send: opcao desconhecida: ${arg}`)
     else if (target === null) target = arg
@@ -532,7 +667,7 @@ function parseSessionSend(args) {
     throw new Error('arco session send: use o texto solto ou --prompt, nao os dois')
   const text = loose || flagged
   if (text && file) throw new Error('arco session send: use o texto ou --file, nao os dois')
-  return { target, text: text || null, file: file || null }
+  return { target, text: text || null, file: file || null, raw }
 }
 
 /** Reads the message from wherever it was pointed at, defaulting to standard input. */
@@ -568,12 +703,19 @@ function assertSendText(raw) {
 async function runSessionSend(args) {
   const parsed = parseSessionSend(args)
   const text = assertSendText(readSendText(parsed))
-  const result = await post('session/send', { target: parsed.target, text, ...sessionScope() })
+  const result = await post('session/send', {
+    target: parsed.target,
+    text,
+    ...(parsed.raw ? { raw: true } : {}),
+    ...sessionScope(),
+  })
   writeOut(`${result.message || 'mensagem enfileirada'}\n`)
 }
 
 function parseSession(args) {
-  const payload = { agent: 'claude', cwd: process.cwd(), worktree: 'inherit' }
+  // `sessionScope()` is what lets the new session land in the front the command
+  // was run from; without it every `arco session` opens a loose tab.
+  const payload = { agent: 'claude', cwd: process.cwd(), worktree: 'inherit', ...sessionScope() }
   for (let index = 0; index < args.length; index += 1) {
     const flag = args[index]
     if (flag === '--agent') payload.agent = args[++index]
@@ -582,6 +724,7 @@ function parseSession(args) {
     else if (flag === '--prompt') payload.prompt = args[++index]
     else if (flag === '--worktree') payload.worktree = 'new'
     else if (flag === '--no-worktree') payload.worktree = 'none'
+    else if (flag === '--group') payload.group = args[++index]
     else if (flag === '--todo') payload.todo = args[++index]
     else if (flag === '--force') payload.force = true
     // A bare word here is someone reaching for a subcommand, not an option. It
@@ -734,6 +877,21 @@ async function run(argv) {
     return
   }
 
+  if (command === 'group') {
+    const [subcommand, ...args] = rest
+    if (subcommand === 'list' || subcommand === 'ls') {
+      await runGroupList(args)
+      return
+    }
+    if (subcommand === 'close' || subcommand === 'rm') {
+      await runGroupClose(args)
+      return
+    }
+    throw new Error(
+      `arco group: subcomando desconhecido: ${subcommand ?? '(nenhum)'} (use: ${GROUP_SUBCOMMANDS})`,
+    )
+  }
+
   if (command === 'session') {
     const [subcommand, ...args] = rest
     if (subcommand === 'list' || subcommand === 'ls') {
@@ -742,6 +900,10 @@ async function run(argv) {
     }
     if (subcommand === 'send' || subcommand === 'msg') {
       await runSessionSend(args)
+      return
+    }
+    if (subcommand === 'close' || subcommand === 'rm') {
+      await runSessionClose(args)
       return
     }
     if (subcommand === 'rename' || subcommand === 'name') {
@@ -760,7 +922,7 @@ async function run(argv) {
   throw new Error(`arco: subcomando desconhecido: ${command}`)
 }
 
-const HANDLED = new Set(['todo', 'session'])
+const HANDLED = new Set(['todo', 'session', 'group'])
 const HELP = new Set(['--help', '-h', 'help'])
 const VERSION = new Set(['--version', '-v', 'version'])
 
@@ -958,7 +1120,9 @@ module.exports = {
   USAGE,
   parseSession,
   formatSessionTable,
+  formatGroupTable,
   parseSessionSend,
+  parseSessionClose,
   assertSendText,
   SEND_TEXT_MAX,
   parseTodo,

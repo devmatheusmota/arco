@@ -406,6 +406,84 @@
   font-size: var(--font-size-2);
 }
 
+/* --- Frentes de trabalho -------------------------------------------------
+   A linha do grupo fica entre a do projeto e a da sessão: mais recuada que o
+   projeto, menos que os panes que ficam dentro dela. */
+.groupNode {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.groupRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-row);
+  padding: 0 var(--space-4) 0 var(--space-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-2);
+  color: var(--fg);
+  cursor: pointer;
+  user-select: none;
+  min-width: 0;
+}
+
+.groupRow:hover {
+  background: var(--panel-hover);
+}
+
+/* The front whose sessions are on screen. Without it the sidebar gives no sign
+   of where you are, now that the panes are not listed under it. */
+.groupRowOpen {
+  background: var(--panel-hover);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.groupLead {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--fg-faint);
+}
+
+.groupName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+}
+
+/* Renomear acontece no lugar, então o campo ocupa exatamente o espaço do
+   nome — trocar de linha faria a lista pular a cada duplo clique. */
+.groupNameInput {
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 550 var(--font-size-2) var(--font-sans);
+  line-height: calc(var(--size-row) - 6px);
+  outline: none;
+}
+
+.groupCount {
+  font-size: var(--font-size-1);
+  line-height: 1;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--panel-hover) 60%, transparent);
+  color: var(--text-tertiary);
+  flex: none;
+}
+
 .terminalRow {
   display: flex;
   align-items: center;

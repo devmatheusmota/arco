@@ -57,7 +57,7 @@ describe('projects file migration', () => {
       preferences: { ...DEFAULT_PREFERENCES, isolatedPaneId: 'a' },
     })
 
-    expect(migrated.version).toBe(11)
+    expect(migrated.version).toBe(12)
     expect(migrated.projects[0]).not.toHaveProperty('layoutMode')
     expect(migrated.projects[0]).not.toHaveProperty('gridLayout')
     expect(migrated.projects[0]).not.toHaveProperty('gridLayoutHistory')
@@ -267,7 +267,7 @@ describe('v10 — stale completion badges', () => {
 
     expect(tabs.map((tab) => tab.completionUnread)).toEqual([undefined, undefined])
     expect(tabs.map((tab) => tab.id)).toEqual(['tab1', 'tab2'])
-    expect(migrated.version).toBe(11)
+    expect(migrated.version).toBe(12)
   })
 
   it('keeps everything else about the tab it clears', () => {
@@ -285,7 +285,7 @@ describe('v10 — stale completion badges', () => {
     const migrated = migrate(fileWithUnread(undefined))
 
     expect(migrated.projects[0].terminals[0].tabs).toHaveLength(2)
-    expect(migrated.version).toBe(11)
+    expect(migrated.version).toBe(12)
   })
 })
 
@@ -310,7 +310,7 @@ describe('v11 — short pane references', () => {
     const migrated = migrate(fileWith([paneAt('a'), paneAt('b'), paneAt('c')]))
     const refs = migrated.projects[0].terminals.map((terminal) => terminal.shortId)
 
-    expect(migrated.version).toBe(11)
+    expect(migrated.version).toBe(12)
     expect(refs.every((ref) => isPaneShortId(ref))).toBe(true)
     expect(new Set(refs).size).toBe(3)
   })
@@ -364,7 +364,220 @@ describe('v11 — short pane references', () => {
   it('reaches panes coming up from a file written well before v10', () => {
     const migrated = migrate(fileWith([paneAt('a')], 6))
 
-    expect(migrated.version).toBe(11)
+    expect(migrated.version).toBe(12)
     expect(isPaneShortId(migrated.projects[0].terminals[0].shortId)).toBe(true)
+  })
+})
+
+describe('v12 — a project is a list of fronts of work', () => {
+  const pane = (id: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    name: 'Claude Code',
+    cwd: '/repo',
+    activeTabId: `${id}-tab`,
+    disabled: false,
+    tabs: [{ id: `${id}-tab`, type: 'claude', name: 'claude', cwd: '/repo', ptyId: null }],
+    ...extra,
+  })
+
+  const fileWith = (projects: unknown[], version = 11) => ({
+    ...EMPTY_PROJECTS_FILE,
+    version,
+    projects,
+  })
+
+  const project = (terminals: unknown[], extra: Record<string, unknown> = {}) => ({
+    id: 'p1',
+    name: 'SOA',
+    defaultCwd: '/repo',
+    createdAt: 1,
+    terminals,
+    ...extra,
+  })
+
+  const groupsOf = (migrated: ReturnType<typeof migrate>) => migrated.projects[0].groups ?? []
+  const panesOf = (migrated: ReturnType<typeof migrate>) => migrated.projects[0].terminals
+
+  it('puts everything on the project tree into one group named after the project', () => {
+    const migrated = migrate(fileWith([project([pane('a'), pane('b')])]))
+
+    expect(migrated.version).toBe(12)
+    expect(groupsOf(migrated)).toHaveLength(1)
+    expect(groupsOf(migrated)[0]).toMatchObject({ name: 'SOA' })
+    expect(groupsOf(migrated)[0].worktreeAgentId).toBeUndefined()
+    const [first, second] = panesOf(migrated)
+    expect(first.groupId).toBe(groupsOf(migrated)[0].id)
+    expect(second.groupId).toBe(first.groupId)
+  })
+
+  // Panes that shared a worktree were one piece of work; that is the only
+  // record the old flat file kept of which panes belonged together.
+  it('makes one group per worktree, owning it', () => {
+    const migrated = migrate(
+      fileWith([
+        project([
+          pane('a', { worktreeAgentId: 'cl-58gb4a', cwd: '/repo/.arco/worktrees/cl-58gb4a' }),
+          pane('b', { worktreeAgentId: 'cl-58gb4a', cwd: '/repo/.arco/worktrees/cl-58gb4a' }),
+          pane('c', { worktreeAgentId: 'cl-FU6u6a', cwd: '/repo/.arco/worktrees/cl-FU6u6a' }),
+        ]),
+      ]),
+    )
+    const groups = groupsOf(migrated)
+
+    expect(groups).toHaveLength(2)
+    expect(groups.map((g) => g.worktreeAgentId).sort()).toEqual(['cl-58gb4a', 'cl-FU6u6a'])
+    expect(groups.find((g) => g.worktreeAgentId === 'cl-58gb4a')?.cwd).toBe(
+      '/repo/.arco/worktrees/cl-58gb4a',
+    )
+    const [a, b, c] = panesOf(migrated)
+    expect(a.groupId).toBe(b.groupId)
+    expect(c.groupId).not.toBe(a.groupId)
+  })
+
+  it('does not add an empty loose group to a project where everything is isolated', () => {
+    const migrated = migrate(
+      fileWith([project([pane('a', { worktreeAgentId: 'cl-1', cwd: '/wt/1' })])]),
+    )
+
+    expect(groupsOf(migrated)).toHaveLength(1)
+    expect(groupsOf(migrated)[0].worktreeAgentId).toBe('cl-1')
+  })
+
+  it('gives a project with no panes at all no group to show', () => {
+    const migrated = migrate(fileWith([project([])]))
+
+    expect(groupsOf(migrated)).toEqual([])
+  })
+})
+
+describe('v12 — what a group is called', () => {
+  const pane = (id: string, name: string, lastUsedAt: number, worktree?: string) => ({
+    id,
+    name,
+    lastUsedAt,
+    cwd: '/repo',
+    activeTabId: `${id}-t`,
+    disabled: false,
+    tabs: [{ id: `${id}-t`, type: 'claude', name: 'claude', cwd: '/repo', ptyId: null }],
+    ...(worktree ? { worktreeAgentId: worktree } : {}),
+  })
+
+  const nameOf = (terminals: unknown[]) => {
+    const migrated = migrate({
+      ...EMPTY_PROJECTS_FILE,
+      version: 11,
+      projects: [{ id: 'p1', name: 'SOA', createdAt: 1, terminals }],
+    })
+    return (migrated.projects[0].groups ?? [])[0]?.name
+  }
+
+  it('takes the name of the most recent pane that says what the work is', () => {
+    expect(
+      nameOf([
+        pane('a', 'Claude Code', 300, 'cl-1'),
+        pane('b', '[RE-REVIEW] PR 11286 cpf opcional', 200, 'cl-1'),
+        pane('c', 'Claude Code', 100, 'cl-1'),
+      ]),
+    ).toBe('[RE-REVIEW] PR 11286 cpf opcional')
+  })
+
+  // Fourteen of the twenty-six panes in a real workspace are called after their
+  // agent, so this is the common case, not the edge one.
+  it('falls back to the worktree id when every pane is called after its agent', () => {
+    expect(nameOf([pane('a', 'Claude Code', 100, 'cl-58gb4a')])).toBe('cl-58gb4a')
+  })
+
+  it('prefers a real name over a more recent placeholder', () => {
+    expect(
+      nameOf([pane('a', 'Claude Code', 999, 'cl-1'), pane('b', 'régua da folha', 1, 'cl-1')]),
+    ).toBe('régua da folha')
+  })
+})
+
+describe('v12 — running again over its own output', () => {
+  const file = {
+    ...EMPTY_PROJECTS_FILE,
+    version: 11,
+    projects: [
+      {
+        id: 'p1',
+        name: 'SOA',
+        createdAt: 1,
+        terminals: [
+          {
+            id: 'a',
+            name: 'Claude Code',
+            cwd: '/repo',
+            activeTabId: 'ta',
+            disabled: false,
+            worktreeAgentId: 'cl-1',
+            tabs: [{ id: 'ta', type: 'claude', name: 'claude', cwd: '/repo', ptyId: null }],
+          },
+          {
+            id: 'b',
+            name: 'Claude Code',
+            cwd: '/repo',
+            activeTabId: 'tb',
+            disabled: false,
+            tabs: [{ id: 'tb', type: 'claude', name: 'claude', cwd: '/repo', ptyId: null }],
+          },
+        ],
+      },
+    ],
+  }
+
+  it('changes nothing the second time, which is every load after the first', () => {
+    const once = migrate(file)
+    const twice = migrate(JSON.parse(JSON.stringify(once)))
+
+    expect(twice.projects[0].groups).toEqual(once.projects[0].groups)
+    expect(twice.projects[0].terminals.map((t) => t.groupId)).toEqual(
+      once.projects[0].terminals.map((t) => t.groupId),
+    )
+  })
+
+  it('keeps a group the user renamed', () => {
+    const once = migrate(file)
+    const renamed = JSON.parse(JSON.stringify(once))
+    renamed.projects[0].groups[0].name = 'cpf opcional no cadastro'
+
+    const twice = migrate(renamed)
+
+    expect(twice.projects[0].groups[0].name).toBe('cpf opcional no cadastro')
+  })
+
+  // A build that does not know about groups can still create a pane. The next
+  // load has to take it in rather than leave it in no group at all.
+  it('adopts a pane that arrived without a group', () => {
+    const once = migrate(file)
+    const withNewPane = JSON.parse(JSON.stringify(once))
+    withNewPane.projects[0].terminals.push({
+      id: 'novo',
+      name: 'Claude Code',
+      cwd: '/repo',
+      activeTabId: 'tn',
+      disabled: false,
+      shortId: 'pa-4242',
+      tabs: [{ id: 'tn', type: 'claude', name: 'claude', cwd: '/repo', ptyId: null }],
+    })
+
+    const twice = migrate(withNewPane)
+    const loose = (twice.projects[0].groups ?? []).find((g) => !g.worktreeAgentId)
+    const adopted = twice.projects[0].terminals.find((t) => t.id === 'novo')
+
+    expect(adopted?.groupId).toBe(loose?.id)
+    expect(twice.projects[0].groups).toHaveLength(once.projects[0].groups!.length)
+  })
+
+  it('rehomes a pane pointing at a group that is no longer in the file', () => {
+    const once = migrate(file)
+    const broken = JSON.parse(JSON.stringify(once))
+    broken.projects[0].terminals[1].groupId = 'grupo-que-sumiu'
+
+    const twice = migrate(broken)
+    const rehomed = twice.projects[0].terminals[1]
+
+    expect(rehomed.groupId).not.toBe('grupo-que-sumiu')
+    expect((twice.projects[0].groups ?? []).some((g) => g.id === rehomed.groupId)).toBe(true)
   })
 })

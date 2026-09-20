@@ -321,3 +321,16 @@
   font-style: normal;
   color: var(--fg-faint);
 }
+
+/* The failure that kept the modal open, so the choices made in it are not lost.
+   It was read from the stylesheet without ever being written here. */
+.error {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--status-error, #f87171);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--status-error, #f87171) 12%, transparent);
+  color: var(--status-error, #f87171);
+  font-size: var(--font-size-1);
+  line-height: 1.4;
+}

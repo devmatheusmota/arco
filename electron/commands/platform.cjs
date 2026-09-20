@@ -113,6 +113,27 @@ function appBinary() {
   return process.env.APPIMAGE || process.execPath
 }
 
+/**
+ * How the shim invokes the app, as a shell command.
+ *
+ * Running from source, `process.execPath` is Electron itself and knows nothing
+ * about this app until it is handed the entry point — so a shim installed from
+ * a development run used to point at a binary that opens an empty window. That
+ * is the run whose commands differ most from the installed build, which makes
+ * it exactly the one worth being able to reach.
+ */
+function appCommand() {
+  let packaged = true
+  let appPath = ''
+  try {
+    const { app } = require('electron')
+    packaged = app.isPackaged
+    appPath = app.getAppPath()
+  } catch {}
+  if (packaged) return `"${appBinary()}"`
+  return `"${appBinary()}" --no-sandbox "${path.join(appPath, 'electron', 'main.cjs')}"`
+}
+
 function shimScript() {
   return `#!/bin/sh
 ${SHIM_MARKER}
@@ -134,7 +155,12 @@ ${SHIM_MARKER}
 #     --no-worktree           forca a mesma arvore
 #                             sem nenhum dos dois, segue o padrao do projeto
 #
+# arco session list [--json]  -> lista as sessoes abertas
+# arco session send <ref> <texto>  -> manda texto para um pane ja aberto
 # arco session rename <nome> [--session <id>]  -> renomeia a sessao
+#
+# arco group list [--json]     -> lista as frentes de trabalho
+# arco group close <ref>       -> fecha a frente e a worktree dela
 #
 # arco todo list [--json]     -> lista as tarefas
 # arco todo show <ref>        -> mostra uma tarefa inteira
@@ -155,8 +181,8 @@ set -e
 # Os subcomandos vivem no binario do app: uma implementacao so, que responde
 # igual com ou sem este atalho. Aqui eles sao apenas repassados.
 case "\${1:-}" in
-  session|todo|help|--help|-h|version|--version|-v)
-    exec "${appBinary()}" "$@"
+  session|group|todo|help|--help|-h|version|--version|-v)
+    exec ${appCommand()} "$@"
     ;;
 esac
 
@@ -170,8 +196,35 @@ fi
 # Caminho absoluto: o app compara com o cwd salvo dos projetos.
 target=$(cd "$target" && pwd)
 
-exec "${appBinary()}" --open-path "$target"
+exec ${appCommand()} --open-path "$target"
 `
+}
+
+/**
+ * Another `arco` that PATH reaches before the shim, if there is one.
+ *
+ * Being installed and on PATH is not enough: a package-managed `arco` in
+ * `/usr/bin` is found first, and it is a different build that answers to a
+ * different set of subcommands. Everything still appears to work — the old
+ * binary talks to the running app over HTTP — while the commands this version
+ * added come back as unknown options and the ones it changed behave the way
+ * they used to. Nothing in the app said so, because nothing looked.
+ */
+function shadowingShim() {
+  const dirs = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean)
+  for (const dir of dirs) {
+    if (path.resolve(dir) === path.resolve(SHIM_DIR)) return null
+    const candidate = path.join(dir, 'arco')
+    try {
+      const contents = fs.readFileSync(candidate, 'utf8')
+      if (contents.includes(SHIM_MARKER)) continue
+    } catch {
+      // Not readable as text: a real binary, which is exactly the case that
+      // shadows the shim.
+    }
+    if (fs.existsSync(candidate)) return candidate
+  }
+  return null
 }
 
 function shimStatus() {
@@ -180,7 +233,7 @@ function shimStatus() {
   try {
     const contents = fs.readFileSync(SHIM_PATH, 'utf8')
     installed = contents.includes(SHIM_MARKER)
-    stale = installed && !contents.includes(appBinary())
+    stale = installed && !contents.includes(appCommand())
   } catch {}
   const onPath = (process.env.PATH ?? '').split(path.delimiter).includes(SHIM_DIR)
   return {
@@ -190,6 +243,7 @@ function shimStatus() {
     path: installed ? SHIM_PATH : null,
     bin_dir: SHIM_DIR,
     on_path: onPath,
+    shadowed_by: shadowingShim(),
   }
 }
 

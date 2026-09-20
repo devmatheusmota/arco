@@ -22,6 +22,7 @@ type ModalKind =
   | 'newProject'
   | 'editProject'
   | 'newTerminal'
+  | 'newGroup'
   | 'addContent'
   | 'addBrowser'
   | 'newSubTab'

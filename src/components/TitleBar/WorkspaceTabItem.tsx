@@ -2,6 +2,7 @@ import { Pin, TerminalSquare, X } from 'lucide-react'
 
 import { useT } from '../../lib/i18n'
 import type { WorkspaceTab } from '../../lib/types'
+import { useProjectsStore } from '../../stores/projectsStore'
 import styles from './TitleBar.module.css'
 
 export type WorkspaceTabItemProps = {
@@ -12,7 +13,7 @@ export type WorkspaceTabItemProps = {
   onContextMenu: (position: { x: number; y: number }) => void
 }
 
-/** One workspace tab: a single project, with the pane count of that project. */
+/** One workspace tab: a single project, with the number of fronts open in it. */
 export function WorkspaceTabItem({
   tab,
   active,
@@ -21,10 +22,21 @@ export function WorkspaceTabItem({
   onContextMenu,
 }: WorkspaceTabItemProps) {
   const t = useT()
-  const count = tab.snapshot.containers.reduce(
-    (total, container) => total + container.paneIds.length,
-    0,
-  )
+  // Fronts, not sessions: the sessions of one front are read together, so
+  // counting them here says a project is busier than it is.
+  const count = useProjectsStore((state) => {
+    const project = state.projects.find((item) => item.id === tab.projectId)
+    if (!project) return 0
+    const groups = project.groups ?? []
+    if (groups.length === 0) {
+      return tab.snapshot.containers.reduce((total, c) => total + c.paneIds.length, 0)
+    }
+    const open = new Set(tab.snapshot.containers.flatMap((c) => c.paneIds))
+    const shown = new Set(
+      project.terminals.filter((term) => open.has(term.id)).map((term) => term.groupId),
+    )
+    return shown.size
+  })
   return (
     <div
       className={`${styles.groupTab} ${active ? styles.groupTabActive : ''} ${

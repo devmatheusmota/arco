@@ -22,6 +22,7 @@ import {
   type OrphanWorktree,
   type Preferences,
   type Project,
+  type PaneGroup,
   type ProjectsFile,
   type SubTab,
   type Terminal,
@@ -48,6 +49,7 @@ import {
   scopedTabSnapshot,
 } from '../lib/workspaceNavigation'
 import { migrate } from './projectsStore.migrations'
+import { createGroupsSlice } from './projectsStore.groupSlices'
 import { createProjectsSlice } from './projectsStore.projectSlices'
 import {
   createPreferencesSlice,
@@ -176,6 +178,30 @@ export type ProjectsState = ProjectsFile & {
   reorderTodo: (draggedId: string, targetId: string) => void
 
   // terminals
+  /** Opens a new front of work in a project. */
+  createGroup: (
+    projectId: string,
+    args: { name: string; worktreeAgentId?: string; cwd?: string },
+  ) => PaneGroup
+  renameGroup: (projectId: string, groupId: string, name: string) => void
+  /** Records the worktree the group's first session provisioned. */
+  adoptGroupWorktree: (
+    projectId: string,
+    groupId: string,
+    worktree: { worktreeAgentId: string; cwd?: string },
+  ) => void
+  setGroupCollapsed: (projectId: string, groupId: string, collapsed: boolean) => void
+  /** Closes a front of work and its panes, leaving whatever is on disk alone. */
+  closeGroup: (projectId: string, groupId: string) => void
+  /** The same, plus removing the worktree the group created. */
+  closeGroupWithWorktree: (
+    projectId: string,
+    groupId: string,
+    /** Set by a caller that already asked, so the window does not block on a
+     *  second question nobody is there to answer. */
+    options?: { assumeConfirmed?: boolean },
+  ) => Promise<void>
+
   createTerminal: (
     projectId: string,
     args: {
@@ -192,6 +218,10 @@ export type ProjectsState = ProjectsFile & {
       }
       worktreeAgentId?: string
       gsdSyncViewer?: boolean
+      /** The front of work this pane belongs to. */
+      groupId?: string
+      /** The group's orchestrator: born with it, gone with it. */
+      pinned?: boolean
     },
   ) => Terminal
 
@@ -214,6 +244,8 @@ export type ProjectsState = ProjectsFile & {
         handoff?: AgentHandoffBootstrap
         runtimeProfile?: AgentRuntimeProfile
       }
+      groupId?: string
+      pinned?: boolean
     },
   ) => Promise<Terminal>
 
@@ -231,7 +263,11 @@ export type ProjectsState = ProjectsFile & {
   markGsdSyncViewer: (projectId: string, terminalId: string) => void
   deleteTerminal: (projectId: string, terminalId: string) => void
 
-  deleteTerminalWithWorktreeCleanup: (projectId: string, terminalId: string) => Promise<void>
+  deleteTerminalWithWorktreeCleanup: (
+    projectId: string,
+    terminalId: string,
+    options?: { assumeConfirmed?: boolean },
+  ) => Promise<void>
 
   killTerminal: (projectId: string, terminalId: string) => void
   moveTerminal: (fromProjectId: string, terminalId: string, toProjectId: string) => void
@@ -340,7 +376,7 @@ function nextWriteSequence(): number {
 
 function projectsPayload(state: ProjectsState): ProjectsFile {
   return {
-    version: 11,
+    version: 12,
     projectOrder: state.projectOrder,
     projects: state.projects,
     todos: state.todos,
@@ -691,6 +727,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     },
 
     ...createProjectsSlice(sliceCtx),
+    ...createGroupsSlice(sliceCtx),
     ...createWorkspaceSlice(sliceCtx),
     ...createTerminalsSlice(sliceCtx),
     ...createContainersSlice(sliceCtx),

@@ -17,7 +17,7 @@ import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeA
 import { useT } from '../../lib/i18n'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import { getPtyCwd, openInFileExplorer, openInVscode, restartPty } from '../../lib/tauri'
-import { agentCliCommand, type Project, type Terminal } from '../../lib/types'
+import { agentCliCommand, type PaneGroup, type Project, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { promptText, useUiStore } from '../../stores/uiStore'
@@ -43,6 +43,7 @@ type MenuActions = Pick<
   | 'setTerminalRemoteExcluded'
   | 'deleteTerminal'
   | 'deleteTerminalWithWorktreeCleanup'
+  | 'closeGroupWithWorktree'
   | 'setPreferences'
 >
 
@@ -372,16 +373,52 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
         icon: <Power size={14} />,
         onClick: () => actions.killTerminal(projectId, term.id),
       },
+      // The orchestrator has no delete of its own: it goes when its front is
+      // closed, and an item that does nothing is worse than no item.
+      ...(term.pinned
+        ? []
+        : ([
+            { kind: 'separator' },
+            {
+              kind: 'item',
+              label: t('ui.sidebar.deleteTerminal'),
+              icon: <Trash2 size={14} />,
+              danger: true,
+              onClick: () => confirmAndDeleteTerminal(projectId, term),
+            },
+          ] as MenuItem[])),
+    ]
+  }
+
+  /**
+   * A front of work is closed as a whole, which is what makes the list shrink:
+   * the panes go with it and, when it owns one, so does the worktree on disk.
+   */
+  const groupMenu = (project: Project, group: PaneGroup): MenuItem[] => {
+    const panes = project.terminals.filter((term) => term.groupId === group.id)
+    return [
+      {
+        kind: 'item',
+        label: t('ui.group.addPane'),
+        icon: <Plus size={14} />,
+        onClick: () => openModal('newTerminal', { projectId: project.id, groupId: group.id }),
+      },
       { kind: 'separator' },
       {
         kind: 'item',
-        label: t('ui.sidebar.deleteTerminal'),
+        label: group.worktreeAgentId ? t('ui.group.closeWithWorktree') : t('ui.group.close'),
         icon: <Trash2 size={14} />,
         danger: true,
-        onClick: () => confirmAndDeleteTerminal(projectId, term),
+        onClick: () => {
+          if (
+            !window.confirm(t('ui.group.confirmClose', { name: group.name, count: panes.length }))
+          )
+            return
+          void actions.closeGroupWithWorktree(project.id, group.id)
+        },
       },
     ]
   }
 
-  return { projectMenu, terminalMenu }
+  return { projectMenu, terminalMenu, groupMenu }
 }

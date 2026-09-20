@@ -66,6 +66,8 @@ export function makeDefaultTerminal(args: {
   }
   worktreeAgentId?: string
   gsdSyncViewer?: boolean
+  groupId?: string
+  pinned?: boolean
 }): Terminal {
   const tabId = nanoid()
   const now = Date.now()
@@ -80,6 +82,8 @@ export function makeDefaultTerminal(args: {
     lastUsedAt: now,
     worktreeAgentId: args.worktreeAgentId,
     gsdSyncViewer: args.gsdSyncViewer,
+    ...(args.groupId ? { groupId: args.groupId } : {}),
+    ...(args.pinned ? { pinned: true } : {}),
     tabs: [
       {
         id: tabId,
@@ -248,6 +252,18 @@ export function getProjectDefaultCwd(project: Project | null | undefined): strin
  *  do caminho — inclusive worktrees aninhadas, onde o match mais à esquerda
  *  ainda aponta pro segmento mais externo (a raiz real). */
 const ARCO_WORKTREES_SEGMENT = /[\\/]\.arco[\\/]worktrees[\\/]/i
+
+/**
+ * Whether a path lives inside a worktree Arco provisioned.
+ *
+ * A worktree is never a project's home: it is one piece of work, and it gets
+ * deleted when that work is closed. A project whose `defaultCwd` points at one
+ * answers for a directory that is about to stop existing — and, while it does,
+ * claims every session opened anywhere below it.
+ */
+export function isInsideArcoWorktree(path: string | undefined): boolean {
+  return Boolean(path) && ARCO_WORKTREES_SEGMENT.test(path as string)
+}
 
 function deriveRepoRootFromWorktreeCwd(cwd: string): string {
   const match = cwd.match(ARCO_WORKTREES_SEGMENT)

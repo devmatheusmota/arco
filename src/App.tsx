@@ -23,6 +23,7 @@ import { McpIntroModal } from './components/modals/McpIntroModal'
 import { McpManagerModal } from './components/modals/McpManagerModal'
 import { NewProjectModal } from './components/modals/NewProjectModal'
 import { NewSubTabModal } from './components/modals/NewSubTabModal'
+import { NewGroupModal } from './components/modals/NewGroupModal'
 import { NewTerminalModal } from './components/modals/NewTerminalModal'
 import { OnboardingModal } from './components/modals/OnboardingModal'
 import { PreferencesModal } from './components/modals/PreferencesModal'
@@ -620,6 +621,7 @@ export default function App() {
         <NewProjectModal />
         <EditProjectModal />
         <NewTerminalModal />
+        <NewGroupModal />
         <AddContentModal />
         <AddBrowserModal />
         <NewSubTabModal />

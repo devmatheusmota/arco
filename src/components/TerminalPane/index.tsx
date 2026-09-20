@@ -1,9 +1,10 @@
 import {
   ArrowRightLeft,
+  Check,
   Clock,
-  Copy,
   Maximize2,
   Minimize2,
+  Pin,
   RefreshCw,
   Trash2,
   X,
@@ -153,7 +154,10 @@ export const TerminalPane = memo(function TerminalPane({
 
   const isShell = activeTab?.type === 'shell'
   const showFloatingIdentity = Boolean(activeTab && !isShell)
-  const showLeftFloating = showFloatingIdentity
+  // A shell pane shows no agent identity, but it still has a reference — and
+  // the reference is now the control that copies it, so the strip has to be
+  // there for it even when the name and icon are not.
+  const showLeftFloating = showFloatingIdentity || Boolean(paneShortId)
 
   // Selecting the runtime object would rerender the whole pane every time its
   // I/O timestamp moves — four times a second while an agent streams.
@@ -304,6 +308,28 @@ export const TerminalPane = memo(function TerminalPane({
               isFocusMode ? t('ui.terminal.exitFocusModeEsc') : t('ui.terminal.focusModeFullscreen')
             }
           >
+            {paneShortId ? (
+              <button
+                type="button"
+                className={`${styles.refPill} ${refCopied ? styles.refPillCopied : ''}`}
+                onClick={(event) => {
+                  // The header's double-click toggles focus mode, and the pane's
+                  // own click handlers pull focus into the terminal.
+                  event.stopPropagation()
+                  void copyPaneRef()
+                }}
+                onDoubleClick={(event) => event.stopPropagation()}
+                title={
+                  refCopied
+                    ? t('ui.terminal.refCopied')
+                    : t('ui.terminal.copyRef', { ref: paneShortId })
+                }
+                aria-label={t('ui.terminal.copyRef', { ref: paneShortId })}
+              >
+                {refCopied ? <Check size={11} /> : null}
+                {paneShortId}
+              </button>
+            ) : null}
             {showFloatingIdentity && activeTab ? (
               <>
                 <span className={styles.iconWrap}>
@@ -314,11 +340,6 @@ export const TerminalPane = memo(function TerminalPane({
                     {activeTab.name || terminal.name}
                   </span>
                 </div>
-                {paneShortId ? (
-                  <span className={styles.cwdPill} title={t('ui.terminal.paneRef')}>
-                    {paneShortId}
-                  </span>
-                ) : null}
                 {queuedMessages > 0 ? (
                   <span
                     className={styles.queueBadge}
@@ -336,21 +357,6 @@ export const TerminalPane = memo(function TerminalPane({
         {!preview ? (
           <div className={styles.headRight}>
             <div className={styles.actions}>
-              {paneShortId ? (
-                <button
-                  type="button"
-                  className={`${styles.action} ${refCopied ? styles.actionActive : ''}`}
-                  onClick={() => void copyPaneRef()}
-                  title={
-                    refCopied
-                      ? t('ui.terminal.refCopied')
-                      : t('ui.terminal.copyRef', { ref: paneShortId })
-                  }
-                  aria-label={t('ui.terminal.copyRef', { ref: paneShortId })}
-                >
-                  <Copy size={12} />
-                </button>
-              ) : null}
               {activeTab && activeTab.type !== 'shell' ? (
                 <button
                   type="button"
@@ -425,15 +431,28 @@ export const TerminalPane = memo(function TerminalPane({
                   <RefreshCw size={12} />
                 </button>
               ) : null}
-              <button
-                type="button"
-                className={`${styles.action} ${styles.danger}`}
-                onClick={onDelete}
-                title={t('ui.sidebar.deleteTerminal')}
-                aria-label={t('ui.sidebar.deleteTerminal')}
-              >
-                <Trash2 size={12} />
-              </button>
+              {terminal.pinned ? (
+                // An inert marker in the slot the delete used to hold, so the
+                // row of actions does not reflow between an orchestrator and
+                // its neighbours.
+                <span
+                  className={styles.action}
+                  title={t('ui.group.orchestrator')}
+                  aria-label={t('ui.group.orchestrator')}
+                >
+                  <Pin size={12} />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className={`${styles.action} ${styles.danger}`}
+                  onClick={onDelete}
+                  title={t('ui.sidebar.deleteTerminal')}
+                  aria-label={t('ui.sidebar.deleteTerminal')}
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
             </div>
           </div>
         ) : null}

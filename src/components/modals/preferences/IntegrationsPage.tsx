@@ -92,6 +92,15 @@ function TerminalCommandSection() {
               <p className={styles.cliWarning}>{t('prefs.cliNotOnPath', { dir: status.binDir })}</p>
             ) : null}
 
+            {/* Installed and on PATH is not enough: another `arco` found first
+                answers to a different set of subcommands, and everything looks
+                like it works because it still talks to this window. */}
+            {status?.installed && status.shadowedBy ? (
+              <p className={styles.cliWarning}>
+                {t('prefs.cliShadowed', { other: status.shadowedBy, dir: status.binDir ?? '' })}
+              </p>
+            ) : null}
+
             {error ? <p className={styles.cliWarning}>{error}</p> : null}
           </>
         )}

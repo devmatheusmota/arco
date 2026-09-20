@@ -29,6 +29,15 @@ export function computeVisibleFocusedPtyIds(): PtyVisibilitySets {
     const container = projectsState.workspace.containers.find(
       (entry) => entry.projectId === project.id,
     )
+    // The whole front of work is on screen, not just one session of it. This
+    // decides which panes spawn, stream and take input, so leaving it on the
+    // old "one active pane" rule leaves every other pane of a split front
+    // showing "session not started" and refusing the keyboard.
+    const activePane = container
+      ? project.terminals.find((item) => item.id === container.activePaneId)
+      : undefined
+    const activeGroupId = activePane?.groupId ?? null
+
     for (const terminal of project.terminals) {
       const activeTab = terminal.tabs.find((tab) => tab.id === terminal.activeTabId)
       // A tab has no pty id until it spawns, and the pane it mounts is keyed by
@@ -42,7 +51,13 @@ export function computeVisibleFocusedPtyIds(): PtyVisibilitySets {
       const onScreen =
         container &&
         !container.collapsed &&
-        (container.activePaneId === terminal.id || container.sidePaneId === terminal.id)
+        (container.activePaneId === terminal.id ||
+          container.sidePaneId === terminal.id ||
+          // A sibling of the active front, and open in this container: the
+          // panes laid out beside the active one.
+          (activeGroupId !== null &&
+            terminal.groupId === activeGroupId &&
+            container.paneIds.includes(terminal.id)))
       const isKeptAlive = keptAlivePaneIds.has(terminal.id)
       if (paneId && workspaceVisible && (onScreen || isKeptAlive)) {
         visible.add(paneId)

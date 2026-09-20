@@ -126,6 +126,9 @@ export function NormalProjectSidebar() {
       clearTerminalCompletionUnread: s.clearTerminalCompletionUnread,
       createFilePane: s.createFilePane,
       createGraphifyPane: s.createGraphifyPane,
+      createGroup: s.createGroup,
+      renameGroup: s.renameGroup,
+      closeGroupWithWorktree: s.closeGroupWithWorktree,
     })),
   )
 
@@ -242,7 +245,7 @@ export function NormalProjectSidebar() {
         : null
     : null
 
-  const { projectMenu, terminalMenu } = createSidebarMenus({
+  const { projectMenu, terminalMenu, groupMenu } = createSidebarMenus({
     t,
     graphifyEnabled: preferences.enabledFeatures.graphify,
     browserEnabled: preferences.enabledFeatures.browser,
@@ -301,7 +304,10 @@ export function NormalProjectSidebar() {
       onTerminalMenu={(t, e) =>
         setMenu({ x: e.clientX, y: e.clientY, items: terminalMenu(p.id, t) })
       }
-      onAddTerminal={() => openModal('newTerminal', { projectId: p.id })}
+      onAddTerminal={() => openModal('newGroup', { projectId: p.id })}
+      onGroupMenu={(g, e) => setMenu({ x: e.clientX, y: e.clientY, items: groupMenu(p, g) })}
+      onRenameGroup={(g, name) => actions.renameGroup(p.id, g.id, name)}
+      onAddPaneToGroup={(g) => openModal('newTerminal', { projectId: p.id, groupId: g.id })}
       onQuickOpen={() => activateProject(p, 'open')}
       onToggleDisabled={() => {
         const visible = p.terminals.filter((term) => !term.gsdSyncViewer)
