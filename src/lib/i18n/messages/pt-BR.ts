@@ -831,6 +831,14 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v300.note1':
+    'Um projeto agora é uma lista de frentes de trabalho, não uma lista solta de sessões. Uma frente é um assunto: o nome que você der, uma worktree própria se você quiser, uma sessão fixa para você falar (o orquestrador) e quantos panes você abrir ali — lado a lado na tela, não empilhados em abas. O menu da esquerda lista as frentes; os panes da frente aberta ficam na tela, cada um com o seu nome. Os seus projetos já vêm divididos pelo que o arquivo dizia: sessões que dividiam uma worktree eram um assunto só, o que roda na árvore do projeto é outro.',
+  'whatsNew.v300.note2':
+    'Fechar uma frente fecha as sessões dela e apaga a worktree que ela criou, numa ação só. Ele pergunta antes quando há coisa não commitada ali — e pergunta do mesmo jeito quando o git não consegue dizer o que tem, porque a remoção roda com `--force`.',
+  'whatsNew.v300.note3':
+    'Cada pane atende por uma referência curta, tipo `pa-3576`, e ela vale no terminal: `arco session list` mostra quem está aberto, `arco session send pa-3576 <texto>` manda texto para outro pane (ele responde, porque a mensagem diz de onde veio) e `arco session close pa-3576` fecha um pane sem levar a frente junto. Clicar na referência no cabeçalho do pane copia ela. Se você já instalou o comando `arco` antes, reinstale em Preferências → Integrações → Comando de terminal: o pacote não atualiza o atalho.',
+  'whatsNew.v300.note4':
+    'Iniciar uma tarefa pelo play abre uma frente com o nome dela, e a sessão vira o orquestrador dessa frente. Qualquer outro jeito de abrir um pane — atalho, tela inicial, handoff, agendador — coloca o pane na frente que está na tela, e abre uma quando não tem nenhuma.',
   'whatsNew.v2162.note1':
     'O comando `arco` parou de perder metade de uma resposta longa. Capturar a saída com o stderr no mesmo pipe — `arco todo list --json 2>&1`, que é como um script ou outro agente lê — cortava a resposta em exatos 64 KB e ainda dizia que tinha dado certo, então o JSON chegava quebrado no meio de uma string. Agora o comando escreve tudo que tem antes de sair.',
   'whatsNew.v2161.note1':

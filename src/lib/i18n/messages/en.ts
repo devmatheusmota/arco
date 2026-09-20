@@ -818,6 +818,14 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v300.note1':
+    'A project is now a list of fronts of work, not a loose list of sessions. A front is one piece of work: the name you give it, a worktree of its own if you want one, a fixed session to speak from (the orchestrator) and as many panes as you open in it — side by side on screen, not stacked as tabs. The sidebar lists the fronts; the panes of the open one are on screen, each with its own name. Your projects come already divided by what the file said: sessions that shared a worktree were one piece of work, whatever runs on the project tree is another.',
+  'whatsNew.v300.note2':
+    'Closing a front closes its sessions and deletes the worktree it created, in one action. It asks first when there is uncommitted work in there — and asks the same way when git cannot say what is in there, because removal runs with `--force`.',
+  'whatsNew.v300.note3':
+    'Every pane answers to a short reference such as `pa-3576`, and it works from the terminal: `arco session list` shows who is open, `arco session send pa-3576 <text>` hands text to another pane (which can answer, because the message says where it came from) and `arco session close pa-3576` closes one pane without taking its front with it. Clicking the reference in the pane header copies it. If you installed the `arco` command before, reinstall it under Preferences → Integrations → Terminal command: the package does not update the shortcut.',
+  'whatsNew.v300.note4':
+    "Starting a task with the play button opens a front named after it, and the session becomes that front's orchestrator. Every other way of opening a pane — a keybinding, the home screen, a handoff, the scheduler — puts the pane in the front on screen, and opens one when there is none.",
   'whatsNew.v2162.note1':
     'The `arco` command stopped losing half of a long answer. Capturing its output with stderr on the same pipe — `arco todo list --json 2>&1`, which is how a script or another agent reads it — cut the answer at exactly 64 KB and still reported success, so the JSON arrived broken in the middle of a string. The command now writes everything it has before it exits.',
   'whatsNew.v2161.note1':

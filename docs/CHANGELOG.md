@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-09-20
+
 ### Added
 
 - Every pane now answers to a short reference such as `pa-3576`, alongside the internal id
