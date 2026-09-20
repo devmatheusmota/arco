@@ -14,6 +14,7 @@ import { buildCliContextArgs } from '../../lib/cliContext'
 import { getLocale, translate } from '../../lib/i18n'
 import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
 import { measure } from '../../lib/mainThreadBudget'
+import { deliverToPty } from '../../lib/paneDelivery'
 import { isWindows } from '../../lib/platform'
 import {
   isPtyPanelVisibleNow,
@@ -66,7 +67,6 @@ import {
   snapshotOpenCodeSessions,
   spawnPty,
   writeClipboardText,
-  writePty,
 } from '../../lib/tauri'
 import {
   agentCliCommand,
@@ -1826,10 +1826,10 @@ export function useXtermSession(params: {
             }
             if (disposed) return
             try {
-              await writePtyChunked(response.id, prompt, true)
-              await new Promise((resolve) => window.setTimeout(resolve, 150))
-              await writePty(response.id, '\r')
-              window.setTimeout(() => void writePty(response.id, '\r').catch(() => {}), 1_200)
+              // Same delivery the queue uses, which is also what arms the
+              // completion monitor: the initial prompt used to leave the pane
+              // reading `waiting` while the agent worked through it.
+              await deliverToPty(response.id, prompt)
               onInitialInputSentRef.current?.()
             } catch (error) {
               console.warn('[pty-launch] could not send the initial prompt:', error)

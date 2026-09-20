@@ -1,7 +1,8 @@
-import { create } from 'zustand'
-import { nanoid } from 'nanoid'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { nanoid } from 'nanoid'
+import { create } from 'zustand'
 
+import { writePtyChunked } from '../components/XTermView/terminalWrite'
 import {
   agentHooksEndpoint,
   agentHooksSettingsPath,
@@ -152,16 +153,16 @@ function hookSummary(payload: Record<string, unknown>): string {
   return `[Arco hook] ${eventName}${tool}${detail ? `: ${detail.replace(/[\r\n]+/g, ' ').slice(0, 420)}` : ''}`
 }
 
+/**
+ * Pastes a message into an agent and submits it.
+ *
+ * Delegates the bracketed paste rather than repeating it: this used to open and
+ * close the markers by hand, with no `try`/`finally`, so a write that threw
+ * part-way left the agent stuck in paste mode with no way back.
+ */
 async function writeAgentMessage(ptyId: string, text: string): Promise<void> {
-  const open = '\x1b[200~'
-  const close = '\x1b[201~'
-  const chunkSize = 900
-  await writePty(ptyId, open)
-  for (let index = 0; index < text.length; index += chunkSize) {
-    await writePty(ptyId, text.slice(index, index + chunkSize))
-    await new Promise((resolve) => window.setTimeout(resolve, 8))
-  }
-  await writePty(ptyId, `${close}\r`)
+  await writePtyChunked(ptyId, text, true)
+  await writePty(ptyId, '\r')
 }
 
 function agentInput(command: SandboxNode['command'], from: string, text: string): string {

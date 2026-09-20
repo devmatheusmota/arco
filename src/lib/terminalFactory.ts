@@ -53,6 +53,8 @@ export function rememberWorkspaceTab(
 export function makeDefaultTerminal(args: {
   name: string
   nameSource?: Terminal['nameSource']
+  /** Drawn by the caller, which is the only place that can see every pane. */
+  shortId?: string
   cwd: string
   firstTab: {
     type: AgentType
@@ -71,6 +73,7 @@ export function makeDefaultTerminal(args: {
     id: nanoid(),
     name: args.name,
     nameSource: args.nameSource ?? 'auto',
+    shortId: args.shortId,
     cwd: args.cwd,
     activeTabId: tabId,
     disabled: false,
@@ -102,11 +105,16 @@ function classifyPaneKind(filePath: string): 'markdown' | 'video' | 'file' {
   return MARKDOWN_FILE_PATTERN.test(filePath) ? 'markdown' : 'file'
 }
 
-export function makeFilePane(args: { filePath: string; name?: string }): Terminal {
+export function makeFilePane(args: {
+  filePath: string
+  name?: string
+  shortId?: string
+}): Terminal {
   const filePath = args.filePath.trim().replace(/:\d+(?::\d+)?$/, '')
   return {
     id: nanoid(),
     name: args.name?.trim() || basename(filePath) || filePath,
+    shortId: args.shortId,
     cwd: '',
     activeTabId: '',
     disabled: false,
@@ -122,11 +130,13 @@ export function makeDiffPane(args: {
   repoRoot: string
   staged: boolean
   name?: string
+  shortId?: string
 }): Terminal {
   const filePath = args.filePath.trim().replace(/:\d+(?::\d+)?$/, '')
   return {
     id: nanoid(),
     name: args.name?.trim() || `Diff: ${basename(filePath) || filePath}`,
+    shortId: args.shortId,
     cwd: args.repoRoot,
     activeTabId: '',
     disabled: false,
@@ -138,7 +148,7 @@ export function makeDiffPane(args: {
   }
 }
 
-export function makeWebPane(args: BrowserPaneOptions): Terminal {
+export function makeWebPane(args: BrowserPaneOptions & { shortId?: string }): Terminal {
   const url = args.url.trim()
   let host = url
   try {
@@ -149,6 +159,7 @@ export function makeWebPane(args: BrowserPaneOptions): Terminal {
   return {
     id: nanoid(),
     name: args.name?.trim() || host,
+    shortId: args.shortId,
     cwd: '',
     activeTabId: '',
     disabled: false,

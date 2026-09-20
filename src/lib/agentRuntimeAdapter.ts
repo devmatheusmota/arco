@@ -1,4 +1,4 @@
-import type { AgentRuntimeProfile, AgentType } from './types'
+import type { AgentRuntimeProfile, AgentType, Terminal } from './types'
 
 export type AgentRuntimeBackend = 'pty' | 'codex-app-server' | 'claude-agent-sdk'
 
@@ -45,9 +45,16 @@ export type PreparedRuntimeLaunch = {
  * Without it, `arco todo --session current` has only the working directory to go
  * on, and two sessions started on the same tree share that directory — the one
  * case where guessing links the task to the wrong session.
+ *
+ * `ARCO_PANE_ID` carries the short reference instead, so an agent can quote the
+ * pane it is running in without the user having to read it off the header. It is
+ * only set at spawn time: a pane that already has a process keeps the values it
+ * started with until it restarts.
  */
-export function paneSessionEnv(terminalId: string): Record<string, string> {
-  return { ARCO_SESSION_ID: terminalId }
+export function paneSessionEnv(terminal: Pick<Terminal, 'id' | 'shortId'>): Record<string, string> {
+  const env: Record<string, string> = { ARCO_SESSION_ID: terminal.id }
+  if (terminal.shortId) env.ARCO_PANE_ID = terminal.shortId
+  return env
 }
 
 function addArg(args: string[], value: string): void {

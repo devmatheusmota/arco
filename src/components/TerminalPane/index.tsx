@@ -1,4 +1,13 @@
-import { ArrowRightLeft, Clock, Maximize2, Minimize2, RefreshCw, Trash2, X } from 'lucide-react'
+import {
+  ArrowRightLeft,
+  Clock,
+  Copy,
+  Maximize2,
+  Minimize2,
+  RefreshCw,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 
 import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
@@ -13,6 +22,7 @@ import {
   openInVscode,
   restartPty,
   snapshotCodexSessions,
+  writeClipboardText,
 } from '../../lib/tauri'
 import {
   agentCliCommand,
@@ -21,6 +31,7 @@ import {
   type Terminal as TerminalEntry,
   type Theme,
 } from '../../lib/types'
+import { usePaneInboxStore } from '../../stores/paneInboxStore'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -47,6 +58,7 @@ export const TerminalPane = memo(function TerminalPane({
   const t = useT()
   const [resumeNonce, setResumeNonce] = useState(0)
   const [resumePending, setResumePending] = useState(false)
+  const [refCopied, setRefCopied] = useState(false)
   const focusedTerminalId = useUiStore((s) => s.focusedTerminalId)
   const isFocusMode = inFocusOverlay || focusedTerminalId === terminal.id
   // The tab bar is what gets dragged now; the pane body only ever showed one
@@ -126,7 +138,18 @@ export const TerminalPane = memo(function TerminalPane({
     return args
   }, [activeTab?.extraArgs, activeTab?.handoff])
 
-  const paneEnv = useMemo(() => paneSessionEnv(terminal.id), [terminal.id])
+  // Keyed by the two fields the env is built from rather than by the pane
+  // object, which gets a new reference on every I/O tick.
+  const paneId = terminal.id
+  const paneShortId = terminal.shortId
+  const paneEnv = useMemo(
+    () => paneSessionEnv({ id: paneId, shortId: paneShortId }),
+    [paneId, paneShortId],
+  )
+
+  // Scoped to this pane's own queue: selecting the whole map would rerender
+  // every header on screen each time any queue moves.
+  const queuedMessages = usePaneInboxStore((s) => s.byTerminalId[paneId]?.length ?? 0)
 
   const isShell = activeTab?.type === 'shell'
   const showFloatingIdentity = Boolean(activeTab && !isShell)
@@ -145,6 +168,18 @@ export const TerminalPane = memo(function TerminalPane({
   const handoffSuggested =
     (activeTab?.type === 'claude' && (claudeUsage?.five_hour.utilization ?? 0) >= 100) ||
     (activeTab?.type === 'codex' && codexUsage?.rate_limited === true)
+
+  const copyPaneRef = async () => {
+    if (!paneShortId) return
+    try {
+      await writeClipboardText(paneShortId)
+      setRefCopied(true)
+      pushToast({ title: t('ui.terminal.refCopied'), body: paneShortId })
+      window.setTimeout(() => setRefCopied(false), 1500)
+    } catch {
+      setRefCopied(false)
+    }
+  }
 
   const openVscode = async () => {
     let target = cwd
@@ -183,7 +218,7 @@ export const TerminalPane = memo(function TerminalPane({
       activeTab.type,
       activeTab.runtimeProfile,
       activeTab.extraArgs ?? [],
-      paneSessionEnv(terminal.id),
+      paneSessionEnv(terminal),
     )
     const launch = buildAgentLaunch(activeTab.type, preparedRuntime.args, resumeSessionId)
     if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {
@@ -279,6 +314,20 @@ export const TerminalPane = memo(function TerminalPane({
                     {activeTab.name || terminal.name}
                   </span>
                 </div>
+                {paneShortId ? (
+                  <span className={styles.cwdPill} title={t('ui.terminal.paneRef')}>
+                    {paneShortId}
+                  </span>
+                ) : null}
+                {queuedMessages > 0 ? (
+                  <span
+                    className={styles.queueBadge}
+                    title={t('ui.terminal.queuedMessages', { count: queuedMessages })}
+                    aria-label={t('ui.terminal.queuedMessages', { count: queuedMessages })}
+                  >
+                    {queuedMessages}
+                  </span>
+                ) : null}
               </>
             ) : null}
           </div>
@@ -287,6 +336,21 @@ export const TerminalPane = memo(function TerminalPane({
         {!preview ? (
           <div className={styles.headRight}>
             <div className={styles.actions}>
+              {paneShortId ? (
+                <button
+                  type="button"
+                  className={`${styles.action} ${refCopied ? styles.actionActive : ''}`}
+                  onClick={() => void copyPaneRef()}
+                  title={
+                    refCopied
+                      ? t('ui.terminal.refCopied')
+                      : t('ui.terminal.copyRef', { ref: paneShortId })
+                  }
+                  aria-label={t('ui.terminal.copyRef', { ref: paneShortId })}
+                >
+                  <Copy size={12} />
+                </button>
+              ) : null}
               {activeTab && activeTab.type !== 'shell' ? (
                 <button
                   type="button"

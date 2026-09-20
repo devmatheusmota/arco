@@ -1,12 +1,16 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
+import { usePaneInboxStore } from '../stores/paneInboxStore'
 import { useProjectsStore } from '../stores/projectsStore'
+import { useTerminalsStore } from '../stores/terminalsStore'
 import { useUiStore } from '../stores/uiStore'
 import { parseAdoRef } from './adoRef'
+import { normalizePaneRef } from './paneShortId'
 import { cliReply, type CliResult } from './tauri/cli'
 import { findTodoByRef, parseTodoStatus, TODO_NOTES_MAX_LENGTH } from './todos'
 import type {
   AgentType,
+  PtyStatus,
   Terminal,
   TodoAdoRef,
   TodoItem,
@@ -50,6 +54,12 @@ type SessionRequest = {
  * command ran in is the fallback for sessions started before that existed, or
  * for a terminal the app did not spawn.
  */
+/** `arco session send <ref>` — text for a pane that is already running. */
+type SessionSendRequest = {
+  target?: string
+  text?: string
+}
+
 type SessionScope = {
   session?: string
   sessionId?: string
@@ -218,6 +228,12 @@ function matchSession(request: SessionScope): SessionMatch {
   const entries = sessionEntries()
 
   if (wanted && wanted.toLowerCase() !== 'current' && wanted.toLowerCase() !== 'atual') {
+    // The short reference is the name a person has, so it answers first. It
+    // still falls through on a miss: the digits could prefix a nanoid, and
+    // refusing outright would make a valid id unreachable.
+    const ref = normalizePaneRef(wanted)
+    const byRef = ref ? entries.find((entry) => entry.terminal.shortId === ref) : undefined
+    if (byRef) return { entry: byRef }
     const exact = entries.find((entry) => entry.terminal.id === wanted)
     if (exact) return { entry: exact }
     const byPrefix = entries.filter((entry) => entry.terminal.id.startsWith(wanted))
@@ -232,7 +248,13 @@ function matchSession(request: SessionScope): SessionMatch {
         ),
       }
     }
-    return { error: failure(`Nenhuma sessão do Arco com o id "${wanted}".`) }
+    return {
+      error: failure(
+        ref
+          ? `Nenhuma sessão do Arco com a referência ${ref}.`
+          : `Nenhuma sessão do Arco com o id "${wanted}".`,
+      ),
+    }
   }
 
   const declared = request.sessionId?.trim()
@@ -396,6 +418,126 @@ async function handleSession(request: SessionRequest): Promise<CliResult> {
     ok: true,
     message: `Sessão ${agent} criada e ligada a ${target.id.slice(0, 8)} ${target.title}.`,
     data: { todo: todoSnapshot(target.id), sessionId: terminal.id },
+  }
+}
+
+/**
+ * What the pane's active tab is doing, as the app itself labels it.
+ *
+ * The status lives in `useTerminalsStore`, keyed by PTY, so a pane that has not
+ * been opened since the app started has no runtime at all — which is `offline`,
+ * the same answer as a process that has exited. `parked` is reported separately
+ * because it is not a state of the agent: the pane is alive and its runtime was
+ * released to save memory.
+ */
+function paneStatus(terminal: Terminal): { status: PtyStatus; parked: boolean } {
+  if (terminal.disabled) return { status: 'disabled', parked: false }
+  const tab = terminal.tabs.find((item) => item.id === terminal.activeTabId) ?? terminal.tabs[0]
+  const ptyId = tab?.ptyId
+  if (!ptyId) return { status: 'offline', parked: false }
+  const runtime = useTerminalsStore.getState().byPtyId[ptyId]
+  if (!runtime?.alive) return { status: 'offline', parked: false }
+  return { status: runtime.status, parked: runtime.parked }
+}
+
+/**
+ * `arco session list` — every pane the command line can address.
+ *
+ * Read from the store and nowhere else: a pane exists in the running window, so
+ * there is nothing on disk to fall back to. An app that is not up answers 504,
+ * which is the truthful answer rather than a stale listing.
+ */
+function handleSessionList(): CliResult {
+  const { projects, todos } = useProjectsStore.getState()
+  const projectNames = new Map(projects.map((project) => [project.id, project.name]))
+  const inboxes = usePaneInboxStore.getState().byTerminalId
+  const sessions = sessionEntries().map(({ terminal, projectId }) => {
+    const tab = terminal.tabs.find((item) => item.id === terminal.activeTabId) ?? terminal.tabs[0]
+    const todo = todos.find((item) => item.session?.id === terminal.id)
+    const { status, parked } = paneStatus(terminal)
+    return {
+      ref: terminal.shortId ?? '',
+      id: terminal.id,
+      project: projectNames.get(projectId) ?? '',
+      projectId,
+      name: terminal.name?.trim() ?? '',
+      agent: tab?.type ?? '',
+      cwd: tab?.cwd?.trim() || terminal.cwd?.trim() || '',
+      status,
+      parked,
+      queued: inboxes[terminal.id]?.length ?? 0,
+      ...(todo ? { todo: todo.id, todoTitle: todo.title } : {}),
+      ...(terminal.worktreeAgentId ? { worktree: terminal.worktreeAgentId } : {}),
+    }
+  })
+  return { ok: true, data: { sessions } }
+}
+
+/** Reminder that the queue is in memory, appended where the wait may be long. */
+const QUEUE_IS_VOLATILE = 'A fila se perde se o app fechar.'
+
+/**
+ * `arco session send <ref> <texto>` — hands text to a pane that already exists.
+ *
+ * Never delivers inline. Waiting for the agent to go idle can take minutes and
+ * the request has eight seconds, so this resolves the target, puts the message
+ * in its queue and answers with what is going to happen; the drain does the
+ * writing, outside the request.
+ *
+ * There is no check for a pane that is not a terminal: `sessionEntries()` only
+ * ever yields those, so a markdown or browser pane cannot be matched here.
+ */
+function handleSessionSend(request: SessionSendRequest & SessionScope): CliResult {
+  const text = request.text?.trim() ?? ''
+  if (!text) return failure('Sem texto para entregar.')
+
+  const target = request.target?.trim() ?? ''
+  if (!target) return failure('Informe o pane de destino.')
+
+  const match = matchSession({ ...request, session: target })
+  if ('error' in match) return match.error
+  if ('orphanId' in match) {
+    return failure(`A sessão ${match.orphanId.slice(0, 8)} não está aberta neste perfil.`)
+  }
+
+  const { terminal } = match.entry
+  const label = terminal.shortId || terminal.id.slice(0, 8)
+  if (terminal.disabled) {
+    return failure(`O pane ${label} está desativado. Reative-o antes de mandar texto.`)
+  }
+
+  const tab = terminal.tabs.find((item) => item.id === terminal.activeTabId) ?? terminal.tabs[0]
+  const { status, parked } = paneStatus(terminal)
+  const { position } = usePaneInboxStore.getState().enqueue(terminal.id, text)
+
+  // The place in line is said whenever there is one, whatever the pane is
+  // doing: two messages queued behind each other have to read differently, or
+  // the second looks like the first never landed.
+  const place = position > 1 ? `, posição ${position}` : ''
+  const data = { sessionId: terminal.id, ref: terminal.shortId ?? null, position }
+
+  // A pane with no process is the normal state of one that has not been on
+  // screen since the app started, so it waits instead of being refused.
+  if (!tab?.ptyId || status === 'offline' || parked) {
+    return {
+      ok: true,
+      message: `${label}: na fila${place} — o pane ainda não está rodando. ${QUEUE_IS_VOLATILE}`,
+      data: { ...data, queued: true },
+    }
+  }
+
+  if (status === 'working' || position > 1) {
+    return {
+      ok: true,
+      message: `${label}: na fila${place} — entra quando o agente parar. ${QUEUE_IS_VOLATILE}`,
+      data: { ...data, queued: true },
+    }
+  }
+
+  return {
+    ok: true,
+    message: `${label}: entra em instantes, o agente está ocioso.`,
+    data: { ...data, queued: false },
   }
 }
 
@@ -614,6 +756,11 @@ export async function startCliBridge(): Promise<UnlistenFn> {
     listen<SessionRequest & CliRequest>(
       'cli://session-new',
       answer<SessionRequest & CliRequest>(handleSession),
+    ),
+    listen<CliRequest>('cli://session-list', answer<CliRequest>(handleSessionList)),
+    listen<SessionSendRequest & SessionScope & CliRequest>(
+      'cli://session-send',
+      answer<SessionSendRequest & SessionScope & CliRequest>(handleSessionSend),
     ),
     listen<SessionRenameRequest & CliRequest>(
       'cli://session-rename',

@@ -3,6 +3,7 @@
 import { nanoid } from 'nanoid'
 
 import { getLocale, translate } from '../lib/i18n'
+import { collectPaneShortIds, generatePaneShortId } from '../lib/paneShortId'
 import {
   clearTerminalPtyIds,
   collectTerminalPtyIds,
@@ -21,6 +22,7 @@ import { cleanupPtys } from '../lib/terminalLifecycle'
 import { pruneTodoSessions } from '../lib/todos'
 import type { Terminal } from '../lib/types'
 import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
+import { dropPaneInbox } from './paneInboxStore'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
 import { useUiStore } from './uiStore'
@@ -107,6 +109,14 @@ export function createTerminalsSlice({
     }
   }
 
+  /**
+   * A reference has to be unique across the whole file, and `state.projects` is
+   * the only place that sees every pane — which is why it is drawn here and not
+   * inside the factories.
+   */
+  const freshShortId = (state: ProjectsState): string =>
+    generatePaneShortId(collectPaneShortIds(state.projects))
+
   return {
     createTerminal: (projectId, args) => {
       let terminal = makeDefaultTerminal(args)
@@ -117,6 +127,7 @@ export function createTerminalsSlice({
         terminal = makeDefaultTerminal({
           ...args,
           cwd: finalCwd,
+          shortId: freshShortId(state),
           firstTab: {
             ...args.firstTab,
             cwd: args.firstTab.cwd.trim() || finalCwd,
@@ -189,8 +200,9 @@ export function createTerminalsSlice({
     },
 
     createFilePane: (projectId, args) => {
-      const pane = makeFilePane(args)
+      let pane = makeFilePane(args)
       update((state) => {
+        pane = makeFilePane({ ...args, shortId: freshShortId(state) })
         const projects = state.projects.map((p) =>
           p.id === projectId ? { ...p, terminals: [...p.terminals, pane] } : p,
         )
@@ -200,8 +212,9 @@ export function createTerminalsSlice({
     },
 
     createDiffPane: (projectId, args) => {
-      const pane = makeDiffPane(args)
+      let pane = makeDiffPane(args)
       update((state) => {
+        pane = makeDiffPane({ ...args, shortId: freshShortId(state) })
         const projects = state.projects.map((p) =>
           p.id === projectId ? { ...p, terminals: [...p.terminals, pane] } : p,
         )
@@ -211,8 +224,9 @@ export function createTerminalsSlice({
     },
 
     createWebPane: (projectId, args) => {
-      const pane = makeWebPane(args)
+      let pane = makeWebPane(args)
       update((state) => {
+        pane = makeWebPane({ ...args, shortId: freshShortId(state) })
         const projects = state.projects.map((project) =>
           project.id === projectId
             ? { ...project, terminals: [...project.terminals, pane] }
@@ -224,7 +238,7 @@ export function createTerminalsSlice({
     },
 
     createGraphifyPane: (projectId, cwd) => {
-      const pane: Terminal = {
+      let pane: Terminal = {
         id: `graphify-${nanoid()}`,
         name: 'Visualização de Grafo (Graphify)',
         cwd,
@@ -234,6 +248,7 @@ export function createTerminalsSlice({
         kind: 'graphify',
       }
       update((state) => {
+        pane = { ...pane, shortId: freshShortId(state) }
         const projects = state.projects.map((p) =>
           p.id === projectId ? { ...p, terminals: [...p.terminals, pane] } : p,
         )
@@ -257,7 +272,6 @@ export function createTerminalsSlice({
       update((state) => {
         const project = state.projects.find((p) => p.id === projectId)
         const terminal = project?.terminals.find((t) => t.id === terminalId)
-
         // teardown da worktree inteira — arrasta junto o terminal "viewer" GSD
 
         const idsToRemove = new Set([terminalId])
@@ -300,6 +314,8 @@ export function createTerminalsSlice({
             ...entry,
             snapshot: sanitizeWorkspaceSnapshot(entry.snapshot, projects),
           }))
+        // Nothing queued for a pane that no longer exists has anywhere to land.
+        for (const id of idsToRemove) dropPaneInbox(id)
         return {
           projects,
           // A task that launched one of these panes must not keep pointing at it.

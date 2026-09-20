@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid'
 
 import { normalizeAdoRef } from '../lib/adoRef'
 import { normalizeEnabledFeatures } from '../lib/features'
+import { generatePaneShortId, isPaneShortId } from '../lib/paneShortId'
 import {
   normalizeTodoNotes,
   normalizeTodoPriority,
@@ -37,6 +38,12 @@ import {
 } from './projectsStore.constants'
 
 type LegacyPreferences = Partial<Preferences> & { showGitControl?: boolean }
+
+/**
+ * A file part-way up the chain: the current shape, but still carrying the
+ * version number of the step that produced it.
+ */
+type PartiallyMigratedFile = Omit<ProjectsFile, 'version'> & { version: number }
 
 function normalizeStoredAccent(value: unknown, fallback?: string): string | undefined {
   if (typeof value !== 'string') return fallback
@@ -495,7 +502,7 @@ function migrateToV9(parsed: any): ProjectsFile {
  * assuming a deliberate name would pin a placeholder like "Claude Code" to the
  * top of the precedence for good.
  */
-function migrateToV10(parsed: any): ProjectsFile {
+function migrateToV10(parsed: any): PartiallyMigratedFile {
   const v9 = migrateToV9(parsed)
   return {
     ...v9,
@@ -513,13 +520,49 @@ function migrateToV10(parsed: any): ProjectsFile {
   }
 }
 
+/**
+ * v10 -> v11: every pane gets a short reference (`pa-3576`).
+ *
+ * `id` stays the internal key, but it is 21 characters of mixed case and nobody
+ * types or dictates one. The short reference is what a person puts into
+ * `arco session send` or says out loud, so panes written before it existed have
+ * to get one.
+ *
+ * The walk is deterministic in file order and idempotent: a reference that is
+ * well formed and not yet seen is kept, and only a missing, malformed or
+ * duplicated one is replaced. Running this over its own output changes nothing,
+ * which matters because `migrate()` runs on every load, not once.
+ */
+function migrateToV11(parsed: any): ProjectsFile {
+  const v10 = migrateToV10(parsed)
+  const taken = new Set<string>()
+  return {
+    ...v10,
+    version: 11,
+    projects: v10.projects.map((project) => ({
+      ...project,
+      terminals: (project.terminals ?? []).map((terminal) => {
+        const current = terminal.shortId
+        if (isPaneShortId(current) && !taken.has(current)) {
+          taken.add(current)
+          return terminal
+        }
+        const shortId = generatePaneShortId(taken)
+        taken.add(shortId)
+        return { ...terminal, shortId }
+      }),
+    })),
+  }
+}
+
 /** Migrates older files and normalizes restorable snapshots. */
 export function migrate(parsed: any): ProjectsFile {
-  if (parsed.version === 10) return migrateToV10(parsed)
-  if (parsed.version === 9) return migrateToV10(parsed)
-  if (parsed.version === 8) return migrateToV10(parsed)
-  if (parsed.version === 7) return migrateToV10(parsed)
-  if (parsed.version === 6) return migrateToV10(parsed)
+  if (parsed.version === 11) return migrateToV11(parsed)
+  if (parsed.version === 10) return migrateToV11(parsed)
+  if (parsed.version === 9) return migrateToV11(parsed)
+  if (parsed.version === 8) return migrateToV11(parsed)
+  if (parsed.version === 7) return migrateToV11(parsed)
+  if (parsed.version === 6) return migrateToV11(parsed)
 
   const v5Result = parsed.version === 5 ? parsed : migrateToV5(parsed)
 
@@ -529,7 +572,7 @@ export function migrate(parsed: any): ProjectsFile {
     orphanWorktrees: p.orphanWorktrees ?? [],
   }))
 
-  return migrateToV10({
+  return migrateToV11({
     ...v5Result,
     version: 6,
     projects: v6Projects,

@@ -8,6 +8,10 @@ const {
   parseTodoImplicit,
   parseTodoEdit,
   parseSession,
+  formatSessionTable,
+  parseSessionSend,
+  assertSendText,
+  SEND_TEXT_MAX,
   formatTodoTable,
   formatTodoReceipt,
   formatTodoDetail,
@@ -20,6 +24,10 @@ const {
   parseTodoImplicit: (args: string[]) => Record<string, unknown>
   parseTodoEdit: (args: string[]) => Record<string, unknown>
   parseSession: (args: string[]) => Record<string, unknown>
+  formatSessionTable: (sessions: unknown[]) => string
+  parseSessionSend: (args: string[]) => { target: string; text: string | null; file: string | null }
+  assertSendText: (raw: unknown) => string
+  SEND_TEXT_MAX: number
   formatTodoTable: (todos: unknown[]) => string
   formatTodoReceipt: (verb: string, todo: unknown) => string
   formatTodoDetail: (todo: unknown, projectName?: string | null) => string
@@ -293,6 +301,125 @@ describe('--session', () => {
     expect(detail).toContain('sessao')
     expect(detail).toContain('bbbbbbbb claude (claude)')
     expect(formatTodoDetail({ id: 'x', title: 'sem', tags: [] })).toMatch(/sessao\s+-/)
+  })
+})
+
+describe('parseSession', () => {
+  // `arco session list` used to fail as "opcao desconhecida: list", which sends
+  // the reader hunting for a flag when what they typed was a subcommand. The
+  // guard is also the backstop for a subcommand the routing stops catching: a
+  // mistyped one must not be swallowed into a session-creation payload.
+  it('names the subcommands when a bare word is not one of them', () => {
+    expect(() => parseSession(['list'])).toThrow(/subcomando desconhecido: list/)
+    expect(() => parseSession(['list'])).toThrow(/list, send, rename, new/)
+    expect(() => parseSession(['lsit'])).toThrow(/subcomando desconhecido: lsit/)
+  })
+
+  it('still reports an unknown option as an option', () => {
+    expect(() => parseSession(['--nope'])).toThrow(/opcao desconhecida: --nope/)
+  })
+
+  it('creates with the defaults when nothing is passed', () => {
+    expect(parseSession([])).toMatchObject({ agent: 'claude', worktree: 'inherit' })
+  })
+})
+
+describe('formatSessionTable', () => {
+  const sessions = [
+    { ref: 'pa-3576', agent: 'claude', status: 'working', project: 'Arco', name: 'mesa' },
+    {
+      ref: 'pa-12345',
+      agent: 'shell',
+      status: 'offline',
+      project: 'SOA',
+      name: 'build',
+      parked: true,
+      todo: 'abcdefgh1234',
+      worktree: 'cl-a1b2c3',
+    },
+  ]
+
+  it('prints the reference whole, because it is what the other commands take', () => {
+    const lines = formatSessionTable(sessions).trim().split('\n')
+    expect(lines[0].startsWith('pa-3576 ')).toBe(true)
+    expect(lines[1].startsWith('pa-12345')).toBe(true)
+  })
+
+  it('pads the short columns so the names line up', () => {
+    const lines = formatSessionTable(sessions).trim().split('\n')
+    expect(lines[0].indexOf('mesa')).toBe(lines[1].indexOf('build'))
+  })
+
+  it('carries the markers only for the session that has them', () => {
+    const lines = formatSessionTable(sessions).trim().split('\n')
+    expect(lines[0]).not.toMatch(/\[|#/)
+    expect(lines[1]).toContain('[parked]')
+    expect(lines[1]).toContain('#abcdefgh')
+    expect(lines[1]).not.toContain('#abcdefgh1')
+    expect(lines[1]).toContain('[cl-a1b2c3]')
+  })
+
+  it('says so when there is nothing to list', () => {
+    expect(formatSessionTable([])).toBe('nenhuma sessao\n')
+  })
+})
+
+describe('parseSessionSend', () => {
+  it('takes the target from the first bare word and the message from the rest', () => {
+    expect(parseSessionSend(['pa-3576', 'roda', 'os', 'testes'])).toEqual({
+      target: 'pa-3576',
+      text: 'roda os testes',
+      file: null,
+    })
+  })
+
+  it('accepts the reference in every form a person writes it, plus current', () => {
+    expect(parseSessionSend(['3576', 'oi']).target).toBe('3576')
+    expect(parseSessionSend(['PA-3576', 'oi']).target).toBe('PA-3576')
+    expect(parseSessionSend(['current', 'oi']).target).toBe('current')
+  })
+
+  it('reads the message from --prompt or --file when it is not typed loose', () => {
+    expect(parseSessionSend(['pa-3576', '--prompt', 'oi'])).toMatchObject({ text: 'oi' })
+    expect(parseSessionSend(['pa-3576', '--file', 'nota.md'])).toMatchObject({
+      text: null,
+      file: 'nota.md',
+    })
+  })
+
+  // Nothing here is a request to concatenate, so guessing which one wins would
+  // send something nobody wrote.
+  it('refuses two sources for the same message', () => {
+    expect(() => parseSessionSend(['pa-3576', 'oi', '--prompt', 'tchau'])).toThrow(/nao os dois/)
+    expect(() => parseSessionSend(['pa-3576', 'oi', '--file', 'x.md'])).toThrow(/nao os dois/)
+  })
+
+  it('refuses a call with no target, and an option it does not know', () => {
+    expect(() => parseSessionSend([])).toThrow(/informe o pane de destino/)
+    expect(() => parseSessionSend(['pa-3576', '--nope'])).toThrow(/opcao desconhecida: --nope/)
+  })
+
+  it('leaves the message with no target when only options were passed', () => {
+    expect(() => parseSessionSend(['--prompt', 'oi'])).toThrow(/informe o pane de destino/)
+  })
+})
+
+describe('assertSendText', () => {
+  it('trims and keeps a message that fits', () => {
+    expect(assertSendText('  roda os testes\n')).toBe('roda os testes')
+  })
+
+  it('refuses an empty message instead of pressing Enter on nothing', () => {
+    expect(() => assertSendText('   \n ')).toThrow(/nao ha texto/)
+    expect(() => assertSendText(undefined)).toThrow(/nao ha texto/)
+  })
+
+  // The listener's body reader destroys the request past 1 MB without saying
+  // why, so the ceiling has to be enforced where it can explain itself.
+  it('refuses a message past the ceiling and says what to do instead', () => {
+    expect(() => assertSendText('a'.repeat(SEND_TEXT_MAX + 1))).toThrow(/passam do limite/)
+    expect(() => assertSendText('a'.repeat(SEND_TEXT_MAX + 1))).toThrow(/--file/)
+    expect(assertSendText('a'.repeat(SEND_TEXT_MAX))).toHaveLength(SEND_TEXT_MAX)
   })
 })
 

@@ -220,7 +220,7 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
       activeTab.type,
       activeTab.runtimeProfile,
       activeTab.extraArgs ?? [],
-      paneSessionEnv(term.id),
+      paneSessionEnv(term),
     )
     const launch = buildAgentLaunch(activeTab.type, runtime.args, activeTab.sessionId)
     useTerminalsStore.getState().beginRestart(activeTab.ptyId)

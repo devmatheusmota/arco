@@ -124,7 +124,7 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
       activeTab.type,
       activeTab.runtimeProfile,
       activeTab.extraArgs ?? [],
-      paneSessionEnv(terminal.id),
+      paneSessionEnv(terminal),
     )
     const launch = buildAgentLaunch(activeTab.type, preparedRuntime.args, activeTab.sessionId)
     if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {
@@ -185,6 +185,13 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
       {detailsPath ? (
         <div className={styles.path} title={detailsPath}>
           {detailsPath}
+        </div>
+      ) : null}
+
+      {terminal.shortId ? (
+        <div className={styles.refRow}>
+          <span className={styles.refLabel}>{t('ui.terminal.paneRef')}</span>
+          <span className={styles.refValue}>{terminal.shortId}</span>
         </div>
       ) : null}
 

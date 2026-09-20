@@ -26,16 +26,31 @@ const todos = Array.from({ length: 400 }, (_, index) => ({
 }))
 const expected = `${JSON.stringify(todos)}\n`
 
+// Same shape as the todo listing, and just as large: a session list is served
+// from the store in one write, so it shares the pipe the fix was about.
+const sessions = Array.from({ length: 400 }, (_, index) => ({
+  ref: `pa-${1000 + index}`,
+  id: `pane-${index}`,
+  project: 'Arco',
+  projectId: 'p1',
+  name: `sessao ${index} ${'x'.repeat(300)}`,
+  agent: 'claude',
+  cwd: '/home/user/projects/arco',
+  status: 'waiting',
+  parked: false,
+}))
+const expectedSessions = `${JSON.stringify(sessions)}\n`
+
 let server: Server
 let dir: string
 let settingsFile: string
 
 /** Runs the CLI with both descriptors on one pipe, the way `$(... 2>&1)` does. */
-function runCli(): Promise<{ output: string; code: number | null }> {
+function runCli(args: string[]): Promise<{ output: string; code: number | null }> {
   return new Promise((done, fail) => {
     const child = spawn(
       'sh',
-      ['-c', `exec "$0" "$1" todo list --json 2>&1`, process.execPath, CLI_ENTRY],
+      ['-c', `exec "$0" "$1" ${args.join(' ')} 2>&1`, process.execPath, CLI_ENTRY],
       { env: { ...process.env, ARCO_HOOKS_SETTINGS_FILE: settingsFile }, stdio: 'pipe' },
     )
     const chunks: Buffer[] = []
@@ -48,10 +63,12 @@ function runCli(): Promise<{ output: string; code: number | null }> {
 beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), 'arco-cli-output-'))
   server = createServer((request, response) => {
+    const route = (request.url ?? '').split('?')[0]
     request.resume()
     request.on('end', () => {
       response.setHeader('Content-Type', 'application/json')
-      response.end(JSON.stringify({ ok: true, data: { todos } }))
+      const data = route === '/cli/session/list' ? { sessions } : { todos }
+      response.end(JSON.stringify({ ok: true, data }))
     })
   })
   await new Promise<void>((ready) => server.listen(0, '127.0.0.1', ready))
@@ -78,11 +95,22 @@ afterEach(async () => {
 
 describe('arco todo list --json', () => {
   it('prints the whole listing when stdout and stderr share one pipe', async () => {
-    const { output, code } = await runCli()
+    const { output, code } = await runCli(['todo', 'list', '--json'])
 
     expect(code).toBe(0)
     expect(output.length).toBeGreaterThan(64 * 1024)
     expect(output).toBe(expected)
     expect(JSON.parse(output)).toHaveLength(todos.length)
+  }, 20000)
+})
+
+describe('arco session list --json', () => {
+  it('prints the whole listing when stdout and stderr share one pipe', async () => {
+    const { output, code } = await runCli(['session', 'list', '--json'])
+
+    expect(code).toBe(0)
+    expect(output.length).toBeGreaterThan(64 * 1024)
+    expect(output).toBe(expectedSessions)
+    expect(JSON.parse(output)).toHaveLength(sessions.length)
   }, 20000)
 })

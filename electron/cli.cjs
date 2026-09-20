@@ -78,6 +78,16 @@ const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
       --todo <ref>            ja nasce amarrada a essa tarefa
       --force                 tira a tarefa da sessao que a segura hoje
 
+  arco session list [--json]
+      lista as sessoes abertas: referencia curta, agente, estado, projeto e nome
+
+  arco session send <ref> <texto>
+      manda texto para um pane que ja esta aberto; entra quando o agente ficar ocioso
+      <ref> e a referencia curta (pa-3576, ou so 3576), o id do pane, ou "current"
+      --prompt <texto>        o mesmo que o texto solto
+      --file <caminho>        le o texto de um arquivo
+      sem texto e sem --file, le da entrada padrao: git log | arco session send pa-3576
+
   arco session rename <nome> [--session <id|current>]
       renomeia a sessao; sem --session, a que roda neste terminal
 
@@ -431,6 +441,137 @@ function formatTodoDetail(todo, projectName) {
   return `${head}\n${notes ? `notas\n${notes.replace(/^/gm, '  ')}\n` : ''}`
 }
 
+/** What `arco session` answers to, named in the error when a bare word is not one of them. */
+const SESSION_SUBCOMMANDS = 'list, send, rename, new'
+
+/**
+ * Ceiling on a single message.
+ *
+ * `readBody` in the listener destroys the request past 1 MB without explaining
+ * itself, so the refusal has to happen here, where it can say what was wrong.
+ * Anything near this is a file the agent should be told to read, not text to
+ * paste into its composer.
+ */
+const SEND_TEXT_MAX = 100_000
+
+/**
+ * `arco session list` as a table, in the shape `formatTodoTable` prints.
+ *
+ * The reference goes in whole — it is four digits — because it is the column
+ * every other command takes as an argument. The working directory stays out:
+ * a path is long enough to push the name off the line, and the name is what
+ * tells two panes apart at a glance. `--json` still carries it.
+ */
+function formatSessionTable(sessions) {
+  if (sessions.length === 0) return 'nenhuma sessao\n'
+  const rows = sessions.map((session) => ({
+    ref: String(session.ref ?? ''),
+    agent: String(session.agent ?? ''),
+    status: String(session.status ?? ''),
+    project: String(session.project ?? ''),
+    name: String(session.name ?? ''),
+    marks: [
+      session.queued ? `+${session.queued} na fila` : '',
+      session.parked ? '[parked]' : '',
+      session.todo ? `#${String(session.todo).slice(0, 8)}` : '',
+      session.worktree ? `[${session.worktree}]` : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
+  }))
+  const width = (key) => Math.max(...rows.map((row) => row[key].length))
+  const refWidth = width('ref')
+  const agentWidth = width('agent')
+  const statusWidth = width('status')
+  const projectWidth = width('project')
+  return `${rows
+    .map(
+      (row) =>
+        `${row.ref.padEnd(refWidth)}  ${row.agent.padEnd(agentWidth)}  ${row.status.padEnd(
+          statusWidth,
+        )}  ${row.project.padEnd(projectWidth)}  ${row.name}${row.marks ? `  ${row.marks}` : ''}`,
+    )
+    .join('\n')}\n`
+}
+
+async function runSessionList(args) {
+  const unknown = args.find((arg) => arg !== '--json')
+  if (unknown) throw new Error(`arco session list: opcao desconhecida: ${unknown}`)
+  const result = await post('session/list')
+  const sessions = result.data?.sessions ?? []
+  writeOut(args.includes('--json') ? `${JSON.stringify(sessions)}\n` : formatSessionTable(sessions))
+}
+
+/**
+ * `arco session send <ref> [texto] [--prompt <texto>] [--file <caminho>]`.
+ *
+ * The target is the first bare word and the message is everything after it,
+ * joined — the same shape `parseSessionRename` uses, for the same reason: a
+ * message is a sentence, and quoting should not be the only way to write one.
+ *
+ * Two sources at once is a typo, not an intent to concatenate, so it is refused
+ * rather than guessed at.
+ */
+function parseSessionSend(args) {
+  const words = []
+  let target = null
+  let prompt = null
+  let file = null
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+    if (arg === '--prompt') prompt = args[++index]
+    else if (arg === '--file') file = args[++index]
+    else if (arg.startsWith('--')) throw new Error(`arco session send: opcao desconhecida: ${arg}`)
+    else if (target === null) target = arg
+    else words.push(arg)
+  }
+  if (!target) throw new Error('arco session send: informe o pane de destino (pa-3576 ou current)')
+  const loose = words.join(' ').trim()
+  const flagged = (prompt ?? '').trim()
+  if (loose && flagged)
+    throw new Error('arco session send: use o texto solto ou --prompt, nao os dois')
+  const text = loose || flagged
+  if (text && file) throw new Error('arco session send: use o texto ou --file, nao os dois')
+  return { target, text: text || null, file: file || null }
+}
+
+/** Reads the message from wherever it was pointed at, defaulting to standard input. */
+function readSendText(parsed) {
+  if (parsed.file) {
+    try {
+      return fs.readFileSync(path.resolve(process.cwd(), parsed.file), 'utf8')
+    } catch {
+      throw new Error(`arco session send: nao consegui ler ${parsed.file}`)
+    }
+  }
+  if (parsed.text) return parsed.text
+  // A pipe is the useful form for an agent: `git log | arco session send pa-3576`.
+  if (process.stdin.isTTY) return ''
+  try {
+    return fs.readFileSync(0, 'utf8')
+  } catch {
+    return ''
+  }
+}
+
+/** Refuses a message the app could not act on, before the request leaves. */
+function assertSendText(raw) {
+  const text = String(raw ?? '').trim()
+  if (!text) throw new Error('arco session send: nao ha texto para enviar')
+  if (text.length > SEND_TEXT_MAX)
+    throw new Error(
+      `arco session send: ${text.length} caracteres passam do limite de ${SEND_TEXT_MAX}; use --file com um caminho e peca para o agente ler`,
+    )
+  return text
+}
+
+async function runSessionSend(args) {
+  const parsed = parseSessionSend(args)
+  const text = assertSendText(readSendText(parsed))
+  const result = await post('session/send', { target: parsed.target, text, ...sessionScope() })
+  writeOut(`${result.message || 'mensagem enfileirada'}\n`)
+}
+
 function parseSession(args) {
   const payload = { agent: 'claude', cwd: process.cwd(), worktree: 'inherit' }
   for (let index = 0; index < args.length; index += 1) {
@@ -443,6 +584,13 @@ function parseSession(args) {
     else if (flag === '--no-worktree') payload.worktree = 'none'
     else if (flag === '--todo') payload.todo = args[++index]
     else if (flag === '--force') payload.force = true
+    // A bare word here is someone reaching for a subcommand, not an option. It
+    // already failed, but as "opcao desconhecida: list", which sends the reader
+    // looking for a flag that was never the problem.
+    else if (!flag.startsWith('--'))
+      throw new Error(
+        `arco session: subcomando desconhecido: ${flag} (use: ${SESSION_SUBCOMMANDS})`,
+      )
     else throw new Error(`arco session: opcao desconhecida: ${flag}`)
   }
   return payload
@@ -588,12 +736,23 @@ async function run(argv) {
 
   if (command === 'session') {
     const [subcommand, ...args] = rest
+    if (subcommand === 'list' || subcommand === 'ls') {
+      await runSessionList(args)
+      return
+    }
+    if (subcommand === 'send' || subcommand === 'msg') {
+      await runSessionSend(args)
+      return
+    }
     if (subcommand === 'rename' || subcommand === 'name') {
       const result = await post('session/rename', parseSessionRename(args))
       writeOut(`${result.message || 'sessao renomeada'}\n`)
       return
     }
-    const result = await post('session', parseSession(rest))
+    // `new`/`create` names what the bare form already does, so the word is
+    // dropped before parsing instead of reaching the guard as a stray positional.
+    const createArgs = subcommand === 'new' || subcommand === 'create' ? args : rest
+    const result = await post('session', parseSession(createArgs))
     writeOut(`${result.message || 'sessao criada'}\n`)
     return
   }
@@ -798,6 +957,10 @@ module.exports = {
   mistypedFlag,
   USAGE,
   parseSession,
+  formatSessionTable,
+  parseSessionSend,
+  assertSendText,
+  SEND_TEXT_MAX,
   parseTodo,
   parseTodoImplicit,
   parseTodoEdit,

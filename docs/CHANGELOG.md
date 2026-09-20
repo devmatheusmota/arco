@@ -10,6 +10,41 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- Every pane now answers to a short reference such as `pa-3576`, alongside the internal id
+  nobody could read out loud. Panes that already existed get one the first time this version
+  opens the workspace, and the reference survives restarts. A session also exports it as
+  `ARCO_PANE_ID`, so anything running inside a pane can say which pane it is — the value is
+  set when the session starts, so an open pane picks it up on its next restart.
+- The reference is on screen and one click from the clipboard: it shows next to the session
+  name in the pane header and in the pane inspector, and a button in the header copies it.
+- `arco session list` prints the open sessions — reference, agent, state, project and name,
+  plus the task a session is working on, the worktree it lives in and how many messages are
+  waiting for it. `--json` carries the pane id and the working directory too.
+- `arco session send <ref> <texto>` hands text to a session that is already open, from any
+  other session. The message goes in when the agent is idle; while it is busy the text waits
+  in a queue and the command says what place it took, so nothing blocks. The text can also
+  come from `--file <caminho>` or from a pipe, which is the useful form for an agent:
+  `git log | arco session send pa-3576`. The queue lives in memory and is gone when the app
+  closes — a message written half an hour ago is not worth replaying into a fresh session —
+  and the pane header shows a counter while anything is waiting.
+
+### Changed
+
+- `arco session <palavra>` says the word is an unknown subcommand and names the ones that
+  exist, instead of reporting it as an unknown option and sending you looking for a flag.
+
+### Fixed
+
+- A message relayed between agents in the sandbox no longer risks leaving the agent stuck in
+  paste mode. It opened and closed the paste markers by hand, so a write that failed part-way
+  never sent the closing one and every following keystroke went into a paste that never ended.
+- A session started with `--prompt` shows as working while the agent works through it. The
+  pane only left the idle state on a keystroke, so a prompt the app typed for you left the
+  sidebar marker, the status column and everything else reading the status saying the agent
+  was free.
+
 ## [2.16.2] — 2026-09-09
 
 ### Fixed

@@ -208,7 +208,7 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
                 tab.type,
                 tab.runtimeProfile,
                 tab.extraArgs ?? [],
-                paneSessionEnv(terminal.id),
+                paneSessionEnv(terminal),
               )
               const launch = buildAgentLaunch(tab.type, runtime.args)
               useTerminalsStore.getState().beginRestart(tab.ptyId)

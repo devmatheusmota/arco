@@ -80,6 +80,27 @@ const state = {
 
 vi.mock('../stores/projectsStore', () => ({ useProjectsStore: { getState: () => state } }))
 
+/** The queue is in-memory state the bridge reads and writes, so it is a real store here. */
+const inbox: Record<string, Array<{ id: string; text: string; queuedAt: number }>> = {}
+vi.mock('../stores/paneInboxStore', () => ({
+  usePaneInboxStore: {
+    getState: () => ({
+      byTerminalId: inbox,
+      enqueue: (terminalId: string, text: string) => {
+        const queue = [...(inbox[terminalId] ?? []), { id: 'm', text, queuedAt: 0 }]
+        inbox[terminalId] = queue
+        return { message: queue.at(-1)!, position: queue.length }
+      },
+    }),
+  },
+}))
+
+/** PTY runtime lives outside `projects.json`, keyed by pty id, and drives `status`. */
+const runtimes: Record<string, { status: string; alive: boolean; parked: boolean }> = {}
+vi.mock('../stores/terminalsStore', () => ({
+  useTerminalsStore: { getState: () => ({ byPtyId: runtimes }) },
+}))
+
 const { startCliBridge } = await import('./cliBridge')
 
 /** Fires one CLI event and returns the answer the command line would receive. */
@@ -93,20 +114,24 @@ async function request(event: string, payload: Record<string, unknown>): Promise
 }
 
 /** A pane as the store holds it, which is what the CLI calls a session. */
-function pane(id: string, cwd: string, name = id) {
+function pane(id: string, cwd: string, name = id, extra: Record<string, unknown> = {}) {
   return {
     id,
     name,
     cwd,
     kind: 'terminal',
+    shortId: `pa-${String(id.length + 1000).padStart(4, '0')}`,
     activeTabId: `${id}-tab`,
     tabs: [{ id: `${id}-tab`, type: 'claude', cwd, ptyId: id }],
+    ...extra,
   }
 }
 
 beforeEach(async () => {
   state.todos = []
   state.projects[0].terminals = []
+  for (const key of Object.keys(runtimes)) delete runtimes[key]
+  for (const key of Object.keys(inbox)) delete inbox[key]
   replies.length = 0
   toasts.length = 0
   state.renameTerminal.mockClear()
@@ -392,5 +417,227 @@ describe('--session', () => {
     await request('cli://todo-add', { title: 'mostrar', session: 'current', sessionId: 'term-1' })
     const result = await request('cli://todo-show', { ref: 'id-0' })
     expect(result.data).toMatchObject({ sessionId: 'term-1' })
+  })
+})
+
+describe('cli://session-list', () => {
+  type Session = {
+    ref: string
+    id: string
+    project: string
+    name: string
+    agent: string
+    cwd: string
+    status: string
+    parked: boolean
+    todo?: string
+    worktree?: string
+  }
+
+  const list = async (): Promise<Session[]> => {
+    const result = await request('cli://session-list', {})
+    expect(result.ok).toBe(true)
+    return (result.data as { sessions: Session[] }).sessions
+  }
+
+  it('answers with the reference the other commands take, and the pane behind it', async () => {
+    state.projects[0].terminals = [pane('sessao-a', '/tmp/arco', 'mesa')]
+    runtimes['sessao-a'] = { status: 'working', alive: true, parked: false }
+
+    expect(await list()).toEqual([
+      {
+        ref: 'pa-1008',
+        id: 'sessao-a',
+        project: 'Arco',
+        projectId: 'p1',
+        name: 'mesa',
+        agent: 'claude',
+        cwd: '/tmp/arco',
+        status: 'working',
+        parked: false,
+        queued: 0,
+      },
+    ])
+  })
+
+  // A pane that has not been opened since the app started has no PTY at all,
+  // which is the normal state of most of the list — not an error.
+  it('calls a pane with no live runtime offline instead of guessing', async () => {
+    state.projects[0].terminals = [pane('sem-pty', '/tmp/arco')]
+
+    expect((await list())[0].status).toBe('offline')
+  })
+
+  it('reports a released runtime as parked without hiding its status', async () => {
+    state.projects[0].terminals = [pane('dormindo', '/tmp/arco')]
+    runtimes['dormindo'] = { status: 'waiting', alive: true, parked: true }
+
+    const [session] = await list()
+    expect(session).toMatchObject({ status: 'waiting', parked: true })
+  })
+
+  it('leaves out the panes that are not sessions', async () => {
+    state.projects[0].terminals = [
+      pane('terminal', '/tmp/arco'),
+      { ...pane('nota', '/tmp/arco'), kind: 'markdown', tabs: [] },
+      { ...pane('site', '/tmp/arco'), kind: 'web', tabs: [] },
+    ]
+
+    expect((await list()).map((session) => session.id)).toEqual(['terminal'])
+  })
+
+  it('names the task a session is working on and the worktree it lives in', async () => {
+    state.projects[0].terminals = [
+      pane('com-tudo', '/tmp/wt', 'isolada', { worktreeAgentId: 'cl-a1b2c3' }),
+    ]
+    await request('cli://todo-add', { title: 'revisar PR' })
+    state.todos = state.todos.map((todo) => ({
+      ...todo,
+      session: { id: 'com-tudo', linkedAt: 1 },
+    }))
+
+    expect((await list())[0]).toMatchObject({ todo: 'id-0', worktree: 'cl-a1b2c3' })
+  })
+
+  it('answers with an empty list rather than an error when nothing is open', async () => {
+    expect(await list()).toEqual([])
+  })
+})
+
+describe('cli://session-send', () => {
+  const send = (payload: Record<string, unknown>) => request('cli://session-send', payload)
+
+  beforeEach(() => {
+    state.projects[0].terminals = [pane('alvo', '/tmp/arco', 'mesa')]
+  })
+
+  it('takes the short reference, in every form a person writes it', async () => {
+    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
+
+    for (const target of ['pa-1004', 'PA-1004', '1004']) {
+      const result = await send({ target, text: `oi via ${target}` })
+      expect(result.ok).toBe(true)
+    }
+    expect(inbox['alvo'].map((item) => item.text)).toEqual([
+      'oi via pa-1004',
+      'oi via PA-1004',
+      'oi via 1004',
+    ])
+  })
+
+  it('still takes the pane id, so a reference-shaped miss does not hide it', async () => {
+    const result = await send({ target: 'alvo', text: 'oi' })
+
+    expect(result.ok).toBe(true)
+    expect(inbox['alvo']).toHaveLength(1)
+  })
+
+  it('names the reference when nothing answers to it, instead of calling it an id', async () => {
+    const result = await send({ target: 'pa-9999', text: 'oi' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/referência pa-9999/)
+    expect(inbox).toEqual({})
+  })
+
+  // The queue is in memory and the pane goes idle on its own schedule, so the
+  // answer says what is going to happen rather than pretending it happened.
+  it('says the message goes in shortly when the agent is idle', async () => {
+    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
+
+    const result = await send({ target: 'pa-1004', text: 'roda os testes' })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/entra em instantes/)
+    expect(result.data).toMatchObject({ position: 1, queued: false, ref: 'pa-1004' })
+  })
+
+  it('says the message waits when the agent is working', async () => {
+    runtimes['alvo'] = { status: 'working', alive: true, parked: false }
+
+    const result = await send({ target: 'pa-1004', text: 'depois disso' })
+
+    expect(result.message).toMatch(/entra quando o agente parar/)
+    expect(result.message).toMatch(/A fila se perde se o app fechar/)
+    expect(result.data).toMatchObject({ position: 1, queued: true })
+  })
+
+  // Two messages queued behind each other have to read differently, whatever
+  // the pane is doing — otherwise the second looks like the first never landed.
+  it('names the place in line for a pane that is not even running yet', async () => {
+    await send({ target: 'pa-1004', text: 'primeira' })
+
+    const result = await send({ target: 'pa-1004', text: 'segunda' })
+
+    expect(result.message).toMatch(/posição 2/)
+    expect(result.message).toMatch(/o pane ainda não está rodando/)
+  })
+
+  it('leaves the place out when there is nothing in front', async () => {
+    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
+
+    expect((await send({ target: 'pa-1004', text: 'sozinha' })).message).not.toMatch(/posição/)
+  })
+
+  it('counts the messages already waiting, not only the agent state', async () => {
+    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
+    await send({ target: 'pa-1004', text: 'primeira' })
+
+    const result = await send({ target: 'pa-1004', text: 'segunda' })
+
+    expect(result.message).toMatch(/posição 2/)
+    expect(result.data).toMatchObject({ position: 2, queued: true })
+  })
+
+  // A pane that has not been on screen since the app started has no process.
+  // That is the normal state of most of the list, not a reason to refuse.
+  it('queues for a pane whose process is not up, and says why it will wait', async () => {
+    const result = await send({ target: 'pa-1004', text: 'quando abrir' })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/o pane ainda não está rodando/)
+    expect(inbox['alvo']).toHaveLength(1)
+  })
+
+  it('refuses a disabled pane instead of queueing for something switched off', async () => {
+    state.projects[0].terminals = [{ ...pane('alvo', '/tmp/arco'), disabled: true }]
+
+    const result = await send({ target: 'pa-1004', text: 'oi' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/desativado/)
+    expect(inbox).toEqual({})
+  })
+
+  it('refuses an empty message and a call with no target', async () => {
+    expect((await send({ target: 'pa-1004', text: '   ' })).ok).toBe(false)
+    expect((await send({ text: 'oi' })).ok).toBe(false)
+    expect(inbox).toEqual({})
+  })
+
+  it('resolves current from the pane the command ran in', async () => {
+    const result = await send({ target: 'current', sessionId: 'alvo', text: 'para mim mesmo' })
+
+    expect(result.ok).toBe(true)
+    expect(inbox['alvo']).toHaveLength(1)
+  })
+
+  it('reports a current that points at a pane this profile does not have', async () => {
+    const result = await send({ target: 'current', sessionId: 'outro-perfil', text: 'oi' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/não está aberta neste perfil/)
+  })
+})
+
+describe('the queue in cli://session-list', () => {
+  it('reports how many messages a session has waiting', async () => {
+    state.projects[0].terminals = [pane('alvo', '/tmp/arco')]
+    await request('cli://session-send', { target: 'pa-1004', text: 'a' })
+    await request('cli://session-send', { target: 'pa-1004', text: 'b' })
+
+    const result = await request('cli://session-list', {})
+    const [session] = (result.data as { sessions: Array<{ queued: number }> }).sessions
+    expect(session.queued).toBe(2)
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { isPaneShortId } from '../lib/paneShortId'
 import { DEFAULT_PREFERENCES, EMPTY_PROJECTS_FILE } from '../lib/types'
 import { migrate, normalizePreferences } from './projectsStore.migrations'
 
@@ -56,7 +57,7 @@ describe('projects file migration', () => {
       preferences: { ...DEFAULT_PREFERENCES, isolatedPaneId: 'a' },
     })
 
-    expect(migrated.version).toBe(10)
+    expect(migrated.version).toBe(11)
     expect(migrated.projects[0]).not.toHaveProperty('layoutMode')
     expect(migrated.projects[0]).not.toHaveProperty('gridLayout')
     expect(migrated.projects[0]).not.toHaveProperty('gridLayoutHistory')
@@ -266,7 +267,7 @@ describe('v10 — stale completion badges', () => {
 
     expect(tabs.map((tab) => tab.completionUnread)).toEqual([undefined, undefined])
     expect(tabs.map((tab) => tab.id)).toEqual(['tab1', 'tab2'])
-    expect(migrated.version).toBe(10)
+    expect(migrated.version).toBe(11)
   })
 
   it('keeps everything else about the tab it clears', () => {
@@ -284,6 +285,86 @@ describe('v10 — stale completion badges', () => {
     const migrated = migrate(fileWithUnread(undefined))
 
     expect(migrated.projects[0].terminals[0].tabs).toHaveLength(2)
-    expect(migrated.version).toBe(10)
+    expect(migrated.version).toBe(11)
+  })
+})
+
+describe('v11 — short pane references', () => {
+  const paneAt = (id: string, shortId?: string) => ({
+    id,
+    name: id,
+    cwd: '/repo',
+    activeTabId: `${id}-tab`,
+    disabled: false,
+    ...(shortId ? { shortId } : {}),
+    tabs: [{ id: `${id}-tab`, type: 'claude', name: 'claude', cwd: '/repo', ptyId: null }],
+  })
+
+  const fileWith = (terminals: ReturnType<typeof paneAt>[], version = 10) => ({
+    ...EMPTY_PROJECTS_FILE,
+    version,
+    projects: [{ id: 'p1', name: 'Arco', defaultCwd: '/repo', terminals }],
+  })
+
+  it('gives every pane a unique reference', () => {
+    const migrated = migrate(fileWith([paneAt('a'), paneAt('b'), paneAt('c')]))
+    const refs = migrated.projects[0].terminals.map((terminal) => terminal.shortId)
+
+    expect(migrated.version).toBe(11)
+    expect(refs.every((ref) => isPaneShortId(ref))).toBe(true)
+    expect(new Set(refs).size).toBe(3)
+  })
+
+  // `migrate()` runs on every load, not once, so a second pass over its own
+  // output has to be a no-op — otherwise a reference someone wrote down and
+  // dictated to an agent would point somewhere else after a restart.
+  it('keeps the references it already handed out when it runs again', () => {
+    const once = migrate(fileWith([paneAt('a'), paneAt('b')]))
+    const twice = migrate(once)
+
+    expect(twice.projects[0].terminals.map((terminal) => terminal.shortId)).toEqual(
+      once.projects[0].terminals.map((terminal) => terminal.shortId),
+    )
+  })
+
+  it('breaks a tie instead of letting two panes answer to the same reference', () => {
+    const migrated = migrate(fileWith([paneAt('a', 'pa-3576'), paneAt('b', 'pa-3576')]))
+    const [first, second] = migrated.projects[0].terminals
+
+    // The pane that comes first in the file keeps the reference; the duplicate
+    // is the one that gets redrawn.
+    expect(first.shortId).toBe('pa-3576')
+    expect(second.shortId).not.toBe('pa-3576')
+    expect(isPaneShortId(second.shortId)).toBe(true)
+  })
+
+  it('replaces a malformed reference and leaves a well-formed one alone', () => {
+    const migrated = migrate(fileWith([paneAt('a', 'nonsense'), paneAt('b', 'pa-4242')]))
+    const [first, second] = migrated.projects[0].terminals
+
+    expect(isPaneShortId(first.shortId)).toBe(true)
+    expect(first.shortId).not.toBe('nonsense')
+    expect(second.shortId).toBe('pa-4242')
+  })
+
+  it('keeps references unique across projects, not just inside one', () => {
+    const migrated = migrate({
+      ...EMPTY_PROJECTS_FILE,
+      version: 10,
+      projects: [
+        { id: 'p1', name: 'A', terminals: [paneAt('a', 'pa-3576')] },
+        { id: 'p2', name: 'B', terminals: [paneAt('b', 'pa-3576')] },
+      ],
+    })
+
+    expect(migrated.projects[0].terminals[0].shortId).toBe('pa-3576')
+    expect(migrated.projects[1].terminals[0].shortId).not.toBe('pa-3576')
+  })
+
+  it('reaches panes coming up from a file written well before v10', () => {
+    const migrated = migrate(fileWith([paneAt('a')], 6))
+
+    expect(migrated.version).toBe(11)
+    expect(isPaneShortId(migrated.projects[0].terminals[0].shortId)).toBe(true)
   })
 })

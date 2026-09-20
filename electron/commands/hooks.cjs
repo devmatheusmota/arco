@@ -44,6 +44,8 @@ function readBody(request) {
 /** Routes the `arco` terminal command posts to, mirroring the Rust listener. */
 const CLI_EVENTS = {
   session: 'cli://session-new',
+  'session/list': 'cli://session-list',
+  'session/send': 'cli://session-send',
   'session/rename': 'cli://session-rename',
   todo: 'cli://todo-add',
   'todo/list': 'cli://todo-list',

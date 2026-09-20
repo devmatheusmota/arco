@@ -218,6 +218,13 @@ export type Terminal = {
    * someone typed. Absent means a file written before this was recorded.
    */
   nameSource?: 'user' | 'task' | 'auto'
+  /**
+   * Short reference a person can type or read out loud — `pa-3576`. `id` stays
+   * the internal key; this is the name the pane answers to in the CLI and in a
+   * sentence. Optional in the type because files written before v11 have none;
+   * the v11 migration backfills every pane, so it is there at runtime.
+   */
+  shortId?: string
   cwd: string
   tabs: SubTab[]
   activeTabId: string
@@ -512,7 +519,7 @@ export type ResourcePolicyPreferences = {
 }
 
 export type ProjectsFile = {
-  version: 10
+  version: 11
   /** Project order in the sidebar. */
   projectOrder: string[]
   projects: Project[]
@@ -618,7 +625,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 export const EMPTY_PROJECTS_FILE: ProjectsFile = {
-  version: 10,
+  version: 11,
   projectOrder: [],
   projects: [],
   todos: [],

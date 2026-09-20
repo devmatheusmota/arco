@@ -219,6 +219,20 @@
   max-width: 240px;
 }
 
+.queueBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 600 var(--font-size-1) / 16px var(--font-mono);
+  flex-shrink: 0;
+}
+
 .statusPill {
   width: 8px;
   height: 8px;
