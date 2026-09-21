@@ -502,7 +502,6 @@ function formatSessionTable(sessions) {
     name: String(session.name ?? ''),
     marks: [
       session.pinned ? '[orq]' : '',
-      session.queued ? `+${session.queued} na fila` : '',
       session.parked ? '[parked]' : '',
       session.todo ? `#${String(session.todo).slice(0, 8)}` : '',
       session.worktree ? `[${session.worktree}]` : '',
@@ -709,7 +708,7 @@ async function runSessionSend(args) {
     ...(parsed.raw ? { raw: true } : {}),
     ...sessionScope(),
   })
-  writeOut(`${result.message || 'mensagem enfileirada'}\n`)
+  writeOut(`${result.message || 'mensagem entregue'}\n`)
 }
 
 function parseSession(args) {

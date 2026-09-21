@@ -1,10 +1,10 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
-import { usePaneInboxStore } from '../stores/paneInboxStore'
 import { useProjectsStore } from '../stores/projectsStore'
 import { useTerminalsStore } from '../stores/terminalsStore'
 import { useUiStore } from '../stores/uiStore'
 import { parseAdoRef } from './adoRef'
+import { deliverToPty, submitKeyFor } from './paneDelivery'
 import { normalizePaneRef } from './paneShortId'
 import { cliReply, type CliResult } from './tauri/cli'
 import { findTodoByRef, parseTodoStatus, TODO_NOTES_MAX_LENGTH } from './todos'
@@ -540,7 +540,6 @@ function handleSessionList(request: SessionScope = {}): CliResult {
   const groupsById = new Map(
     projects.flatMap((project) => (project.groups ?? []).map((group) => [group.id, group])),
   )
-  const inboxes = usePaneInboxStore.getState().byTerminalId
   const sessions = sessionEntries().map(({ terminal, projectId }) => {
     const tab = terminal.tabs.find((item) => item.id === terminal.activeTabId) ?? terminal.tabs[0]
     const todo = todos.find((item) => item.session?.id === terminal.id)
@@ -557,7 +556,6 @@ function handleSessionList(request: SessionScope = {}): CliResult {
       cwd: tab?.cwd?.trim() || terminal.cwd?.trim() || '',
       status,
       parked,
-      queued: inboxes[terminal.id]?.length ?? 0,
       ...(terminal.groupId
         ? { group: groupsById.get(terminal.groupId)?.name ?? '', groupId: terminal.groupId }
         : {}),
@@ -575,21 +573,22 @@ function handleSessionList(request: SessionScope = {}): CliResult {
   return { ok: true, data: { sessions } }
 }
 
-/** Reminder that the queue is in memory, appended where the wait may be long. */
-const QUEUE_IS_VOLATILE = 'A fila se perde se o app fechar.'
-
 /**
- * `arco session send <ref> <texto>` — hands text to a pane that already exists.
+ * `arco session send <ref> <texto>` — types text into a pane that is running.
  *
- * Never delivers inline. Waiting for the agent to go idle can take minutes and
- * the request has eight seconds, so this resolves the target, puts the message
- * in its queue and answers with what is going to happen; the drain does the
- * writing, outside the request.
+ * Written straight into the PTY, inside the request. The agents keep a queue of
+ * their own for what arrives mid-turn, and theirs lives in the agent's process.
+ * The one Arco used to keep lived in this window's memory, so any reload emptied
+ * it without a word after the command line had already answered `ok`.
+ *
+ * A pane with no process is refused rather than waited for: nothing here lasts
+ * long enough to promise a later delivery. A shell pane runs the text as soon as
+ * it lands, the same as a paste followed by Enter.
  *
  * There is no check for a pane that is not a terminal: `sessionEntries()` only
  * ever yields those, so a markdown or browser pane cannot be matched here.
  */
-function handleSessionSend(request: SessionSendRequest & SessionScope): CliResult {
+async function handleSessionSend(request: SessionSendRequest & SessionScope): Promise<CliResult> {
   const text = request.text?.trim() ?? ''
   if (!text) return failure('Sem texto para entregar.')
 
@@ -611,42 +610,37 @@ function handleSessionSend(request: SessionSendRequest & SessionScope): CliResul
   const tab = terminal.tabs.find((item) => item.id === terminal.activeTabId) ?? terminal.tabs[0]
   const { status, parked } = paneStatus(terminal)
 
+  // A pane that has not been on screen since the app started has no process,
+  // and a parked one gave its runtime back. Opening it is what brings either up.
+  if (!tab?.ptyId || status === 'offline' || parked) {
+    const why = parked ? 'foi estacionado para liberar memória' : 'não está rodando'
+    return failure(`O pane ${label} ${why}. Abra-o no app e mande de novo.`)
+  }
+
   // Who sent it, when the sender is a pane of this workspace.
   const sender = request.sessionId
     ? sessionEntries().find((entry) => entry.terminal.id === request.sessionId)
     : undefined
   const body = request.raw ? text : withSenderLine(text, sender?.terminal.shortId)
-  const { position } = usePaneInboxStore.getState().enqueue(terminal.id, body)
 
-  // The place in line is said whenever there is one, whatever the pane is
-  // doing: two messages queued behind each other have to read differently, or
-  // the second looks like the first never landed.
-  const place = position > 1 ? `, posição ${position}` : ''
-  const data = { sessionId: terminal.id, ref: terminal.shortId ?? null, position }
+  try {
+    await deliverToPty(tab.ptyId, body, submitKeyFor(tab.type, body))
+  } catch (error) {
+    return failure(`Não consegui escrever no pane ${label}: ${String(error).slice(0, 160)}`)
+  }
 
-  // A pane with no process is the normal state of one that has not been on
-  // screen since the app started, so it waits instead of being refused.
-  if (!tab?.ptyId || status === 'offline' || parked) {
+  const data = { sessionId: terminal.id, ref: terminal.shortId ?? null, status }
+  if (tab.type === 'shell') {
+    return { ok: true, message: `${label}: entregue ao shell, que executa na hora.`, data }
+  }
+  if (status === 'working') {
     return {
       ok: true,
-      message: `${label}: na fila${place} — o pane ainda não está rodando. ${QUEUE_IS_VOLATILE}`,
-      data: { ...data, queued: true },
+      message: `${label}: entregue. O agente está trabalhando e lê a mensagem quando puder.`,
+      data,
     }
   }
-
-  if (status === 'working' || position > 1) {
-    return {
-      ok: true,
-      message: `${label}: na fila${place} — entra quando o agente parar. ${QUEUE_IS_VOLATILE}`,
-      data: { ...data, queued: true },
-    }
-  }
-
-  return {
-    ok: true,
-    message: `${label}: entra em instantes, o agente está ocioso.`,
-    data: { ...data, queued: false },
-  }
+  return { ok: true, message: `${label}: entregue.`, data }
 }
 
 /** `arco group list` — the fronts of work open in every project. */

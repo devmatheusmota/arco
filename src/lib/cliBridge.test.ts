@@ -97,19 +97,20 @@ const state = {
 
 vi.mock('../stores/projectsStore', () => ({ useProjectsStore: { getState: () => state } }))
 
-/** The queue is in-memory state the bridge reads and writes, so it is a real store here. */
-const inbox: Record<string, Array<{ id: string; text: string; queuedAt: number }>> = {}
-vi.mock('../stores/paneInboxStore', () => ({
-  usePaneInboxStore: {
-    getState: () => ({
-      byTerminalId: inbox,
-      enqueue: (terminalId: string, text: string) => {
-        const queue = [...(inbox[terminalId] ?? []), { id: 'm', text, queuedAt: 0 }]
-        inbox[terminalId] = queue
-        return { message: queue.at(-1)!, position: queue.length }
-      },
-    }),
+/**
+ * What reached a PTY. The submit key comes back tagged with the agent it was
+ * chosen for: which key each agent takes is `paneDelivery`'s own test, and this
+ * one only checks that the pane's agent is what gets asked.
+ */
+const deliveries: Array<{ ptyId: string; text: string; submit: string }> = []
+let deliveryError: Error | null = null
+vi.mock('./paneDelivery', () => ({
+  deliverToPty: (ptyId: string, text: string, submit: string) => {
+    if (deliveryError) return Promise.reject(deliveryError)
+    deliveries.push({ ptyId, text, submit })
+    return Promise.resolve()
   },
+  submitKeyFor: (agent: string) => `submit:${agent}`,
 }))
 
 /** PTY runtime lives outside `projects.json`, keyed by pty id, and drives `status`. */
@@ -152,7 +153,8 @@ beforeEach(async () => {
   state.deleteTerminalWithWorktreeCleanup.mockClear()
   state.createAgentTerminal.mockClear()
   for (const key of Object.keys(runtimes)) delete runtimes[key]
-  for (const key of Object.keys(inbox)) delete inbox[key]
+  deliveries.length = 0
+  deliveryError = null
   replies.length = 0
   toasts.length = 0
   state.renameTerminal.mockClear()
@@ -478,7 +480,6 @@ describe('cli://session-list', () => {
         parked: false,
         pinned: false,
         current: false,
-        queued: 0,
       },
     ])
   })
@@ -532,16 +533,15 @@ describe('cli://session-send', () => {
 
   beforeEach(() => {
     state.projects[0].terminals = [pane('alvo', '/tmp/arco', 'mesa')]
+    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
   })
 
   it('takes the short reference, in every form a person writes it', async () => {
-    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
-
     for (const target of ['pa-1004', 'PA-1004', '1004']) {
       const result = await send({ target, text: `oi via ${target}` })
       expect(result.ok).toBe(true)
     }
-    expect(inbox['alvo'].map((item) => item.text)).toEqual([
+    expect(deliveries.map((item) => item.text)).toEqual([
       'oi via pa-1004',
       'oi via PA-1004',
       'oi via 1004',
@@ -552,7 +552,7 @@ describe('cli://session-send', () => {
     const result = await send({ target: 'alvo', text: 'oi' })
 
     expect(result.ok).toBe(true)
-    expect(inbox['alvo']).toHaveLength(1)
+    expect(deliveries).toHaveLength(1)
   })
 
   it('names the reference when nothing answers to it, instead of calling it an id', async () => {
@@ -560,89 +560,120 @@ describe('cli://session-send', () => {
 
     expect(result.ok).toBe(false)
     expect(result.message).toMatch(/referência pa-9999/)
-    expect(inbox).toEqual({})
+    expect(deliveries).toEqual([])
   })
 
-  // The queue is in memory and the pane goes idle on its own schedule, so the
-  // answer says what is going to happen rather than pretending it happened.
-  it('says the message goes in shortly when the agent is idle', async () => {
-    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
-
+  // Written inside the request: the answer reports what happened, not a promise
+  // about later that a reload of the window could break.
+  it('writes into the pane PTY before answering', async () => {
     const result = await send({ target: 'pa-1004', text: 'roda os testes' })
 
+    expect(deliveries).toEqual([{ ptyId: 'alvo', text: 'roda os testes', submit: 'submit:claude' }])
     expect(result.ok).toBe(true)
-    expect(result.message).toMatch(/entra em instantes/)
-    expect(result.data).toMatchObject({ position: 1, queued: false, ref: 'pa-1004' })
+    expect(result.message).toBe('pa-1004: entregue.')
+    expect(result.data).toEqual({ sessionId: 'alvo', ref: 'pa-1004', status: 'waiting' })
   })
 
-  it('says the message waits when the agent is working', async () => {
+  // The agent's own queue holds what arrives mid-turn, so a busy agent is not a
+  // reason to wait — only a reason to say when it will be read.
+  it('delivers to a working agent at once, and says when it will be read', async () => {
     runtimes['alvo'] = { status: 'working', alive: true, parked: false }
 
     const result = await send({ target: 'pa-1004', text: 'depois disso' })
 
-    expect(result.message).toMatch(/entra quando o agente parar/)
-    expect(result.message).toMatch(/A fila se perde se o app fechar/)
-    expect(result.data).toMatchObject({ position: 1, queued: true })
+    expect(deliveries).toHaveLength(1)
+    expect(result.message).toMatch(/entregue\. O agente está trabalhando/)
   })
 
-  // Two messages queued behind each other have to read differently, whatever
-  // the pane is doing — otherwise the second looks like the first never landed.
-  it('names the place in line for a pane that is not even running yet', async () => {
-    await send({ target: 'pa-1004', text: 'primeira' })
+  it('asks for the submit key of the agent the pane is running', async () => {
+    state.projects[0].terminals = [
+      pane('alvo', '/tmp/arco', 'mesa', {
+        tabs: [{ id: 'alvo-tab', type: 'codex', cwd: '/tmp/arco', ptyId: 'alvo' }],
+      }),
+    ]
 
-    const result = await send({ target: 'pa-1004', text: 'segunda' })
+    await send({ target: 'pa-1004', text: 'revisa isso' })
 
-    expect(result.message).toMatch(/posição 2/)
-    expect(result.message).toMatch(/o pane ainda não está rodando/)
+    expect(deliveries[0].submit).toBe('submit:codex')
   })
 
-  it('leaves the place out when there is nothing in front', async () => {
-    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
+  it('warns that a shell pane runs the text as soon as it lands', async () => {
+    state.projects[0].terminals = [
+      pane('alvo', '/tmp/arco', 'mesa', {
+        tabs: [{ id: 'alvo-tab', type: 'shell', cwd: '/tmp/arco', ptyId: 'alvo' }],
+      }),
+    ]
 
-    expect((await send({ target: 'pa-1004', text: 'sozinha' })).message).not.toMatch(/posição/)
+    const result = await send({ target: 'pa-1004', text: 'npm test' })
+
+    expect(deliveries).toHaveLength(1)
+    expect(result.message).toMatch(/entregue ao shell, que executa na hora/)
   })
 
-  it('counts the messages already waiting, not only the agent state', async () => {
-    runtimes['alvo'] = { status: 'waiting', alive: true, parked: false }
-    await send({ target: 'pa-1004', text: 'primeira' })
+  // Nothing in the window lasts long enough to promise a delivery for later.
+  it('refuses a pane whose process is not up', async () => {
+    delete runtimes['alvo']
 
-    const result = await send({ target: 'pa-1004', text: 'segunda' })
-
-    expect(result.message).toMatch(/posição 2/)
-    expect(result.data).toMatchObject({ position: 2, queued: true })
-  })
-
-  // A pane that has not been on screen since the app started has no process.
-  // That is the normal state of most of the list, not a reason to refuse.
-  it('queues for a pane whose process is not up, and says why it will wait', async () => {
     const result = await send({ target: 'pa-1004', text: 'quando abrir' })
 
-    expect(result.ok).toBe(true)
-    expect(result.message).toMatch(/o pane ainda não está rodando/)
-    expect(inbox['alvo']).toHaveLength(1)
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/O pane pa-1004 não está rodando\. Abra-o no app/)
+    expect(deliveries).toEqual([])
   })
 
-  it('refuses a disabled pane instead of queueing for something switched off', async () => {
+  it('refuses a pane that has not spawned its process at all', async () => {
+    state.projects[0].terminals = [
+      pane('alvo', '/tmp/arco', 'mesa', {
+        tabs: [{ id: 'alvo-tab', type: 'claude', cwd: '/tmp/arco', ptyId: null }],
+      }),
+    ]
+
+    const result = await send({ target: 'pa-1004', text: 'oi' })
+
+    expect(result.ok).toBe(false)
+    expect(deliveries).toEqual([])
+  })
+
+  it('refuses a parked pane and says why it is down', async () => {
+    runtimes['alvo'] = { status: 'waiting', alive: true, parked: true }
+
+    const result = await send({ target: 'pa-1004', text: 'oi' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/foi estacionado para liberar memória/)
+    expect(deliveries).toEqual([])
+  })
+
+  it('answers with the failure when the write itself fails', async () => {
+    deliveryError = new Error('pty morto')
+
+    const result = await send({ target: 'pa-1004', text: 'oi' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/Não consegui escrever no pane pa-1004: Error: pty morto/)
+  })
+
+  it('refuses a disabled pane instead of writing to something switched off', async () => {
     state.projects[0].terminals = [{ ...pane('alvo', '/tmp/arco'), disabled: true }]
 
     const result = await send({ target: 'pa-1004', text: 'oi' })
 
     expect(result.ok).toBe(false)
     expect(result.message).toMatch(/desativado/)
-    expect(inbox).toEqual({})
+    expect(deliveries).toEqual([])
   })
 
   it('refuses an empty message and a call with no target', async () => {
     expect((await send({ target: 'pa-1004', text: '   ' })).ok).toBe(false)
     expect((await send({ text: 'oi' })).ok).toBe(false)
-    expect(inbox).toEqual({})
+    expect(deliveries).toEqual([])
   })
 
   it('resolves current from the pane the command ran in', async () => {
     const result = await send({ target: 'current', sessionId: 'alvo', text: 'para mim mesmo' })
 
     expect(result.ok).toBe(true)
-    expect(inbox['alvo']).toHaveLength(1)
+    expect(deliveries).toHaveLength(1)
   })
 
   it('reports a current that points at a pane this profile does not have', async () => {
@@ -670,7 +701,7 @@ describe('the line that says where a message came from', () => {
   it('names the sender, and how to answer it', async () => {
     await send({ target: 'pa-1004', text: 'roda os testes', sessionId: 'remetente' })
 
-    expect(inbox['alvo'][0].text).toBe(
+    expect(deliveries[0].text).toBe(
       '[de pa-1009 · responda com: arco session send pa-1009 <texto>] roda os testes',
     )
   })
@@ -679,7 +710,7 @@ describe('the line that says where a message came from', () => {
   it('keeps its own line when the text has more than one', async () => {
     await send({ target: 'pa-1004', text: 'primeira\nsegunda', sessionId: 'remetente' })
 
-    expect(inbox['alvo'][0].text).toBe(
+    expect(deliveries[0].text).toBe(
       '[de pa-1009 · responda com: arco session send pa-1009 <texto>]\nprimeira\nsegunda',
     )
   })
@@ -689,7 +720,7 @@ describe('the line that says where a message came from', () => {
   it('delivers the text alone when asked for raw', async () => {
     await send({ target: 'pa-1004', text: '/compact', sessionId: 'remetente', raw: true })
 
-    expect(inbox['alvo'][0].text).toBe('/compact')
+    expect(deliveries[0].text).toBe('/compact')
   })
 
   // Called from a plain shell there is no pane to answer, so a header would
@@ -698,7 +729,7 @@ describe('the line that says where a message came from', () => {
     await send({ target: 'pa-1004', text: 'de fora' })
     await send({ target: 'pa-1004', text: 'de um pane fechado', sessionId: 'sumiu' })
 
-    expect(inbox['alvo'].map((item) => item.text)).toEqual(['de fora', 'de um pane fechado'])
+    expect(deliveries.map((item) => item.text)).toEqual(['de fora', 'de um pane fechado'])
   })
 })
 
@@ -769,18 +800,6 @@ describe('cli://session-close', () => {
 
     expect(result.ok).toBe(false)
     expect(result.message).toMatch(/referência pa-9999/)
-  })
-})
-
-describe('the queue in cli://session-list', () => {
-  it('reports how many messages a session has waiting', async () => {
-    state.projects[0].terminals = [pane('alvo', '/tmp/arco')]
-    await request('cli://session-send', { target: 'pa-1004', text: 'a' })
-    await request('cli://session-send', { target: 'pa-1004', text: 'b' })
-
-    const result = await request('cli://session-list', {})
-    const [session] = (result.data as { sessions: Array<{ queued: number }> }).sessions
-    expect(session.queued).toBe(2)
   })
 })
 

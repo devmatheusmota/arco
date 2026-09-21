@@ -201,13 +201,6 @@ export const en = {
     'http://192.168.x.x:9340 · Open a pairing window to reveal the address',
   'ui.terminal.hideFromRemote': 'Hide from remote devices',
   'ui.terminal.shareWithRemote': 'Show on remote devices',
-  'ui.terminal.deliveryFailedTitle': 'Message not delivered',
-  'ui.terminal.deliveryFailedBody': 'Pane {ref} refused the write: {error}',
-  'ui.terminal.queueDiscardedTitle': 'Queued messages discarded',
-  'ui.terminal.queueExpiredBody':
-    '{count} message(s) for {ref} waited longer than half an hour and were dropped.',
-  'ui.terminal.queuePaneGoneBody': '{count} message(s) were waiting for {ref}, which is gone.',
-  'ui.terminal.queuedMessages': '{count} message(s) waiting for this pane to be free',
   'ui.terminal.paneRef': 'Pane reference',
   'ui.terminal.copyRef': 'Copy the pane reference ({ref})',
   'ui.terminal.refCopied': 'Reference copied',

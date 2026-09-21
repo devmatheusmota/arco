@@ -35,7 +35,6 @@ import {
   type Terminal as TerminalEntry,
   type Theme,
 } from '../../lib/types'
-import { usePaneInboxStore } from '../../stores/paneInboxStore'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -150,10 +149,6 @@ export const TerminalPane = memo(function TerminalPane({
     () => paneSessionEnv({ id: paneId, shortId: paneShortId }),
     [paneId, paneShortId],
   )
-
-  // Scoped to this pane's own queue: selecting the whole map would rerender
-  // every header on screen each time any queue moves.
-  const queuedMessages = usePaneInboxStore((s) => s.byTerminalId[paneId]?.length ?? 0)
 
   // Selecting the runtime object would rerender the whole pane every time its
   // I/O timestamp moves — four times a second while an agent streams.
@@ -336,15 +331,6 @@ export const TerminalPane = memo(function TerminalPane({
                 nameSource={terminal.nameSource}
                 tab={activeTab}
               />
-              {queuedMessages > 0 ? (
-                <span
-                  className={styles.queueBadge}
-                  title={t('ui.terminal.queuedMessages', { count: queuedMessages })}
-                  aria-label={t('ui.terminal.queuedMessages', { count: queuedMessages })}
-                >
-                  {queuedMessages}
-                </span>
-              ) : null}
             </>
           ) : null}
         </div>

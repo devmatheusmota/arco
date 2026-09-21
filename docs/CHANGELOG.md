@@ -19,6 +19,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   sat behind the hover (recent chats, handoff, VS Code, focus mode, restart, close) stay on the
   bar. The terminal is sized to the space below it rather than drawn under it, and a narrow pane
   drops the reference pill before it cuts into the title or the actions.
+- `arco session send` writes the text into the pane right away instead of holding it in a queue
+  until the agent went quiet. That queue lived in the window's memory, so a reload of the window
+  emptied it without a word after the command had already answered that the message was queued.
+  The agents keep a queue of their own for what arrives mid-turn, and the command now uses it:
+  Claude Code takes the message on Enter and reads it when it can, and Codex gets it on Tab, which
+  waits for the end of the turn instead of interrupting the one in progress. The answer says the
+  message was delivered, or why it was not. A pane that is not running, or was parked to free
+  memory, is refused with a note to open it first. The queued-message badge on the pane header
+  and the count in `arco session list` are gone with the queue.
 
 ### Fixed
 

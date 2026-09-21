@@ -11,16 +11,35 @@ import { writePtyChunked } from '../components/XTermView/terminalWrite'
 import { useTerminalsStore } from '../stores/terminalsStore'
 import { recordAgentActivityInput } from './activityTracker'
 import { writePty } from './tauri'
+import type { AgentType } from './types'
 
 /** How long the agent's input box gets to settle before the submit lands. */
 const SUBMIT_DELAY_MS = 150
 
 /**
- * Claude and Codex redraw their composer on the first Enter and swallow it
- * often enough that one submit is not reliable. The second is harmless when the
- * first took: the composer is empty and an Enter on an empty line does nothing.
+ * Claude and Codex redraw their composer on the first submit and swallow it
+ * often enough that one is not reliable. The second is harmless when the first
+ * took: the composer is empty, and submitting an empty composer does nothing.
  */
 const SECOND_SUBMIT_DELAY_MS = 1_200
+
+/**
+ * The key that hands text to the agent without cutting into the turn it is on.
+ *
+ * Enter is that key in Claude Code: mid-turn, it queues the message in the
+ * agent's own queue. In Codex, Enter during a running task steers instead — it
+ * interrupts the model and folds the text into the turn in progress, and a
+ * review or compact turn refuses it. Tab is Codex's queue: the message waits
+ * for the end of the turn, and on an idle Codex it goes out at once.
+ *
+ * Tab also completes a slash command, and a `!` line is a shell command Tab
+ * does not send, so those keep Enter.
+ */
+export function submitKeyFor(agent: AgentType | undefined, text: string): string {
+  if (agent !== 'codex') return '\r'
+  const first = text.trimStart()[0]
+  return first === '/' || first === '!' ? '\r' : '\t'
+}
 
 /**
  * How much of the delivery the completion monitor is told about.
@@ -54,7 +73,7 @@ function armCompletionMonitor(ptyId: string, text: string): void {
 }
 
 /**
- * Writes `text` into the PTY as a bracketed paste and submits it.
+ * Writes `text` into the PTY as a bracketed paste and submits it with `submit`.
  *
  * Bracketed paste is what keeps a multi-line message from being run a line at a
  * time, and it is also the safety net when the agent turns out to be mid-turn:
@@ -63,13 +82,13 @@ function armCompletionMonitor(ptyId: string, text: string): void {
  * Throws whatever the write threw. The second submit is fire-and-forget, so a
  * failure there is swallowed — by then the message is already in the composer.
  */
-export async function deliverToPty(ptyId: string, text: string): Promise<void> {
+export async function deliverToPty(ptyId: string, text: string, submit = '\r'): Promise<void> {
   await writePtyChunked(ptyId, text, true)
   await new Promise((resolve) => window.setTimeout(resolve, SUBMIT_DELAY_MS))
-  await writePty(ptyId, '\r')
+  await writePty(ptyId, submit)
   armCompletionMonitor(ptyId, text)
   // Marks the pane as having just moved bytes, so a caller watching for silence
   // does not read the quiet before the agent answers as the agent being free.
   useTerminalsStore.getState().recordIo(ptyId)
-  window.setTimeout(() => void writePty(ptyId, '\r').catch(() => {}), SECOND_SUBMIT_DELAY_MS)
+  window.setTimeout(() => void writePty(ptyId, submit).catch(() => {}), SECOND_SUBMIT_DELAY_MS)
 }

@@ -7,7 +7,6 @@ import { removePanesFromWorkspace } from '../lib/paneRemoval'
 import { collectTerminalPtyIds } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import type { PaneGroup, Project, Terminal } from '../lib/types'
-import { dropPaneInbox } from './paneInboxStore'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
 import { useUiStore } from './uiStore'
@@ -72,7 +71,6 @@ export function createGroupsSlice({ get, update, updateProject }: SliceCtx): Gro
       const panes = panesOfGroup(project, groupId)
       const paneIds = new Set(panes.map((pane) => pane.id))
       if (panes.length > 0) cleanupPtys(collectTerminalPtyIds(panes))
-      for (const id of paneIds) dropPaneInbox(id)
       return removePanesFromWorkspace({
         projects: state.projects,
         workspace: state.workspace,

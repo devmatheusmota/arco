@@ -1826,7 +1826,7 @@ export function useXtermSession(params: {
             }
             if (disposed) return
             try {
-              // Same delivery the queue uses, which is also what arms the
+              // Same delivery `arco session send` uses, which is also what arms the
               // completion monitor: the initial prompt used to leave the pane
               // reading `waiting` while the agent worked through it.
               await deliverToPty(response.id, prompt)

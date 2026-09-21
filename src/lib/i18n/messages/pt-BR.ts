@@ -201,14 +201,6 @@ export const ptBR: Record<MessageKey, string> = {
     'http://192.168.x.x:9340 · Abra uma janela de pareamento para revelar o endereço',
   'ui.terminal.hideFromRemote': 'Ocultar de dispositivos remotos',
   'ui.terminal.shareWithRemote': 'Exibir em dispositivos remotos',
-  'ui.terminal.deliveryFailedTitle': 'Mensagem não entregue',
-  'ui.terminal.deliveryFailedBody': 'O pane {ref} recusou a escrita: {error}',
-  'ui.terminal.queueDiscardedTitle': 'Mensagens da fila descartadas',
-  'ui.terminal.queueExpiredBody':
-    '{count} mensagem(ns) para {ref} esperaram mais de meia hora e foram descartadas.',
-  'ui.terminal.queuePaneGoneBody':
-    '{count} mensagem(ns) esperavam o pane {ref}, que não existe mais.',
-  'ui.terminal.queuedMessages': '{count} mensagem(ns) esperando este pane ficar livre',
   'ui.terminal.paneRef': 'Referência do pane',
   'ui.terminal.copyRef': 'Copiar a referência do pane ({ref})',
   'ui.terminal.refCopied': 'Referência copiada',

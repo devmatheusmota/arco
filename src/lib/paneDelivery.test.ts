@@ -25,7 +25,7 @@ vi.mock('../stores/terminalsStore', () => ({
   useTerminalsStore: { getState: () => ({ recordIo: (ptyId: string) => ios.push(ptyId) }) },
 }))
 
-const { deliverToPty } = await import('./paneDelivery')
+const { deliverToPty, submitKeyFor } = await import('./paneDelivery')
 
 /** Runs a delivery to completion, including the submit that trails it. */
 async function deliver(text: string, ptyId = 'pty-1') {
@@ -103,11 +103,42 @@ describe('deliverToPty', () => {
     expect(ios).toEqual(['pty-1'])
   })
 
+  it('submits both times with the key it was given', async () => {
+    const done = deliverToPty('pty-1', 'depois disso', '\t')
+    await vi.advanceTimersByTimeAsync(2_000)
+    await done
+
+    expect(writes).toEqual([
+      { id: 'pty-1', data: '\t' },
+      { id: 'pty-1', data: '\t' },
+    ])
+  })
+
   it('throws what the write threw, without submitting', async () => {
     chunked.mockImplementation(() => Promise.reject(new Error('pty morto')))
 
     await expect(deliverToPty('pty-1', 'oi')).rejects.toThrow('pty morto')
     expect(writes).toEqual([])
     expect(armed).toEqual([])
+  })
+})
+
+describe('submitKeyFor', () => {
+  it('submits with Enter everywhere but Codex', () => {
+    for (const agent of ['claude', 'opencode', 'shell', undefined] as const) {
+      expect(submitKeyFor(agent, 'roda os testes')).toBe('\r')
+    }
+  })
+
+  // Enter on a busy Codex steers the turn in progress; Tab waits for its end.
+  it('queues with Tab in Codex', () => {
+    expect(submitKeyFor('codex', 'roda os testes')).toBe('\t')
+    expect(submitKeyFor('codex', '[de pa-1009 · responda com: …] oi')).toBe('\t')
+  })
+
+  // Tab completes a slash command, and a `!` line is a shell command Tab does not send.
+  it('keeps Enter for a slash command or a shell line in Codex', () => {
+    expect(submitKeyFor('codex', '/compact')).toBe('\r')
+    expect(submitKeyFor('codex', '  !git status')).toBe('\r')
   })
 })

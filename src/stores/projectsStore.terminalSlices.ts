@@ -23,7 +23,6 @@ import {
 } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import type { PaneGroup, Terminal } from '../lib/types'
-import { dropPaneInbox } from './paneInboxStore'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
 import { useUiStore } from './uiStore'
@@ -321,8 +320,6 @@ export function createTerminalsSlice({
         }
         const terminalsToClean = (project?.terminals ?? []).filter((t) => idsToRemove.has(t.id))
         if (terminalsToClean.length > 0) cleanupPtys(collectTerminalPtyIds(terminalsToClean))
-        // Nothing queued for a pane that no longer exists has anywhere to land.
-        for (const id of idsToRemove) dropPaneInbox(id)
         // Closing one pane and closing a whole front remove the same things
         // from the same four places; only the list of ids differs.
         return removePanesFromWorkspace({
