@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-09-21
+
 ### Changed
 
 - Every pane has a fixed header bar with its title, instead of a strip that only showed up

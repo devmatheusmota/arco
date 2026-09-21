@@ -823,6 +823,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v310.note1':
+    'Todo pane ganhou uma barra fixa no topo com o título e as ações, no lugar da faixa que só aparecia com o mouse em cima. O título é o mesmo da sidebar: o nome dado com `arco session rename` ou `--name`, depois a tarefa em que a sessão está, depois o título que o agente deu à conversa. Assim o pane não aparece mais só como "claude". Conversas recentes, handoff, VS Code, modo foco, reiniciar e fechar ficam na barra. Com vários panes lado a lado e a barra estreita, a referência `pa-` sai primeiro, depois conversas recentes, handoff e VS Code. Modo foco, reiniciar e fechar ficam sempre.',
+  'whatsNew.v310.note2':
+    'Sessão aberta a partir de uma tarefa aparece com o nome da tarefa na sidebar, na barra de abas e no Find/Jump, e não mais como "Claude Code". Vale para a sessão aberta pelo diálogo da tarefa, com `arco session --todo` ou ligada depois com `arco todo edit --session`, e renomear a tarefa renomeia a sessão.',
+  'whatsNew.v310.note3':
+    'O `arco session send` entrega o texto na hora, sem segurar numa fila. Essa fila ficava na memória da janela, então recarregar a janela perdia o que estava esperando, depois de o comando já ter dito que a mensagem estava na fila. Agora quem guarda é a fila do próprio agente: o Claude Code lê quando termina o que está fazendo, e o Codex recebe com Tab, sem interromper o turno em andamento. O comando diz se a mensagem foi entregue. Pane que não está rodando, ou que foi estacionado para liberar memória, é recusado: abra ele antes. O contador de fila no pane e no `arco session list` saiu.',
   'whatsNew.v301.note1':
     'O comando de tarefas voltou a aceitar número como referência. Depois da 3.0.0, `arco todo edit 11299` respondia que `11299` tinha cara de referência de pane e recusava a tarefa, mesmo com ela aberta e com esse número no título — o mesmo valia para qualquer número de PR ou de card. Agora a tarefa é procurada primeiro, e só o `pa-` escrito na frente, ou um número que um pane aberto realmente atende, recebe a resposta sobre panes.',
   'whatsNew.v300.note1':

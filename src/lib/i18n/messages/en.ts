@@ -811,6 +811,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v310.note1':
+    'Every pane has a fixed bar at the top with its title and its actions, instead of a strip that only showed up under the mouse. The title is the one the sidebar shows: the name given with `arco session rename` or `--name`, then the task the session is working on, then the title the agent gave the conversation, so a pane no longer reads just "claude". Recent chats, handoff, VS Code, focus mode, restart and close stay on the bar. When several panes sit side by side and the bar gets narrow, the `pa-` reference goes first, then recent chats, handoff and VS Code. Focus mode, restart and close are always there.',
+  'whatsNew.v310.note2':
+    'A session started from a task is named after the task in the sidebar, the tab bar and Find/Jump, instead of "Claude Code". That holds whether it was started from the task dialog, with `arco session --todo` or linked later with `arco todo edit --session`, and renaming the task renames the session.',
+  'whatsNew.v310.note3':
+    "`arco session send` delivers the text right away instead of holding it in a queue. That queue lived in the window's memory, so reloading the window lost whatever was waiting in it, after the command had already said the message was queued. The agent's own queue takes it now: Claude Code reads it when it finishes what it is doing, and Codex gets it with Tab, so the turn in progress is not interrupted. The command says whether the message was delivered. A pane that is not running, or was parked to free memory, is refused: open it first. The queue badge on the pane and the count in `arco session list` are gone.",
   'whatsNew.v301.note1':
     'The task command takes a number as a reference again. After 3.0.0, `arco todo edit 11299` answered that `11299` looked like a pane reference and refused the task, even with that task open and carrying the number in its title — the same happened for any PR or card number. The task is now looked up first, and only a written `pa-` prefix, or a number an open pane really answers to, gets the pane answer.',
   'whatsNew.v300.note1':
