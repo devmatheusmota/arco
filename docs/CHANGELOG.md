@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.0.1] — 2026-09-20
+
+### Fixed
+
+- `arco todo edit 11299` stopped answering "11299 looks like a pane reference" when a task with
+  that number in its title was right there. A reference is bare digits far more often than it is a
+  pane — a PR number, an issue, a piece of a title — so the task is looked up first, and only the
+  written `pa-` prefix, or digits an open pane really answers to, gets the pane message.
+
 ## [3.0.0] — 2026-09-20
 
 ### Added

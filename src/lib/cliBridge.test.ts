@@ -1093,6 +1093,35 @@ describe('a reference that names a pane, typed where a task was expected', () =>
 
     expect(result.message).toMatch(/Nenhuma tarefa encontrada/)
   })
+
+  // A reference is bare digits far more often than it is a pane: a PR number,
+  // an issue, a piece of a title. `arco todo edit 11299 --ado …` was refused
+  // with "pa-11299 looks like a pane reference" while the task was right there.
+  it('finds the task first when the reference is bare digits', async () => {
+    await request('cli://todo-add', { title: '[MEU PR] publicar 11299 prova impressa' })
+
+    const result = await request('cli://todo-show', { ref: '11299' })
+
+    expect(result.ok).toBe(true)
+    expect(result.message ?? JSON.stringify(result.data)).toMatch(/11299/)
+  })
+
+  // Only the written prefix says "I meant a pane"; bare digits that match no
+  // pane are a reference that missed, and saying otherwise hides the real miss.
+  it('calls bare digits that match nothing a plain miss, not a pane', async () => {
+    const result = await request('cli://todo-show', { ref: '4321' })
+
+    expect(result.message).toMatch(/Nenhuma tarefa encontrada/)
+    expect(result.message).not.toMatch(/pane/)
+  })
+
+  // The pane wins over nothing, though: an open pane answering to those digits
+  // is still the likeliest thing the agent meant.
+  it('still names the pane when one answers to the bare digits', async () => {
+    const result = await request('cli://todo-show', { ref: '1004' })
+
+    expect(result.message).toMatch(/é um pane, não uma tarefa/)
+  })
 })
 
 describe('finding yourself in the listing', () => {

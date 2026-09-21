@@ -952,21 +952,10 @@ function resolveTodo(
 ): { todo: TodoItem } | { error: CliResult } {
   const ref = rawRef?.trim()
   if (!ref) return { error: failure(`Informe qual tarefa ${verb}.`) }
-  // `pa-3576` is a pane, and the agent that typed it was told to send
-  // something there. Saying only "no task found" sends it hunting through
-  // files for what the reference means, which is what happens in practice.
-  const asPane = normalizePaneRef(ref)
-  if (asPane) {
-    const pane = sessionEntries().find((entry) => entry.terminal.shortId === asPane)
-    return {
-      error: failure(
-        pane
-          ? `${asPane} é um pane, não uma tarefa. Para mandar texto: arco session send ${asPane} <texto>. Para ver os panes: arco session list.`
-          : `${asPane} tem cara de referência de pane, não de tarefa, e nenhum pane atende por ela. Veja os panes abertos com arco session list.`,
-      ),
-    }
-  }
 
+  // The task comes first. A reference is bare digits far more often than it is
+  // a pane — a PR number, an issue, a piece of a title — and answering "that is
+  // a pane" to `arco todo edit 11299` refuses a task that exists.
   const { todo, ambiguous } = findTodoByRef(useProjectsStore.getState().todos, ref)
   if (todo) return { todo }
   if (ambiguous.length > 0) {
@@ -975,6 +964,30 @@ function resolveTodo(
       .map((item) => `${item.id.slice(0, 8)} ${item.title}`)
       .join('; ')
     return { error: failure(`"${ref}" corresponde a ${ambiguous.length} tarefas: ${names}…`) }
+  }
+
+  // Nothing answers as a task. `pa-3576` is a pane, and the agent that typed it
+  // was told to send something there; saying only "no task found" sends it
+  // hunting through files for what the reference means, which is what happened.
+  const asPane = normalizePaneRef(ref)
+  const pane = asPane
+    ? sessionEntries().find((entry) => entry.terminal.shortId === asPane)
+    : undefined
+  if (pane) {
+    return {
+      error: failure(
+        `${asPane} é um pane, não uma tarefa. Para mandar texto: arco session send ${asPane} <texto>. Para ver os panes: arco session list.`,
+      ),
+    }
+  }
+  // Bare digits that match no pane are just a reference that missed. Only the
+  // written `pa-` prefix says the person meant a pane.
+  if (asPane && ref.toLowerCase().startsWith('pa-')) {
+    return {
+      error: failure(
+        `${asPane} tem cara de referência de pane, não de tarefa, e nenhum pane atende por ela. Veja os panes abertos com arco session list.`,
+      ),
+    }
   }
   return { error: failure(`Nenhuma tarefa encontrada para "${ref}".`) }
 }

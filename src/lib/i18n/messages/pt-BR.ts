@@ -831,6 +831,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v301.note1':
+    'O comando de tarefas voltou a aceitar número como referência. Depois da 3.0.0, `arco todo edit 11299` respondia que `11299` tinha cara de referência de pane e recusava a tarefa, mesmo com ela aberta e com esse número no título — o mesmo valia para qualquer número de PR ou de card. Agora a tarefa é procurada primeiro, e só o `pa-` escrito na frente, ou um número que um pane aberto realmente atende, recebe a resposta sobre panes.',
   'whatsNew.v300.note1':
     'Um projeto agora é uma lista de frentes de trabalho, não uma lista solta de sessões. Uma frente é um assunto: o nome que você der, uma worktree própria se você quiser, uma sessão fixa para você falar (o orquestrador) e quantos panes você abrir ali — lado a lado na tela, não empilhados em abas. O menu da esquerda lista as frentes; os panes da frente aberta ficam na tela, cada um com o seu nome. Os seus projetos já vêm divididos pelo que o arquivo dizia: sessões que dividiam uma worktree eram um assunto só, o que roda na árvore do projeto é outro.',
   'whatsNew.v300.note2':

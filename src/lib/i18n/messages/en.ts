@@ -818,6 +818,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v301.note1':
+    'The task command takes a number as a reference again. After 3.0.0, `arco todo edit 11299` answered that `11299` looked like a pane reference and refused the task, even with that task open and carrying the number in its title — the same happened for any PR or card number. The task is now looked up first, and only a written `pa-` prefix, or a number an open pane really answers to, gets the pane answer.',
   'whatsNew.v300.note1':
     'A project is now a list of fronts of work, not a loose list of sessions. A front is one piece of work: the name you give it, a worktree of its own if you want one, a fixed session to speak from (the orchestrator) and as many panes as you open in it — side by side on screen, not stacked as tabs. The sidebar lists the fronts; the panes of the open one are on screen, each with its own name. Your projects come already divided by what the file said: sessions that shared a worktree were one piece of work, whatever runs on the project tree is another.',
   'whatsNew.v300.note2':
