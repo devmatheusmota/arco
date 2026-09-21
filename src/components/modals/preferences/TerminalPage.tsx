@@ -178,6 +178,29 @@ export function TerminalPage({ enabledCount }: { enabledCount: number }) {
       </SettingsSection>
 
       <SettingsSection
+        id="claude-skip-permissions"
+        title={t('prefs.claudeSkipPermissions')}
+        description={t('prefs.claudeSkipPermissionsDesc')}
+      >
+        <div className={styles.segmented}>
+          <button
+            type="button"
+            className={preferences.claudeSkipPermissions ? styles.segmentActive : undefined}
+            onClick={() => setPreferences({ claudeSkipPermissions: true })}
+          >
+            {t('prefs.claudeSkipPermissionsOn')}
+          </button>
+          <button
+            type="button"
+            className={!preferences.claudeSkipPermissions ? styles.segmentActive : undefined}
+            onClick={() => setPreferences({ claudeSkipPermissions: false })}
+          >
+            {t('prefs.claudeSkipPermissionsOff')}
+          </button>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
         id="cli-paths"
         title={t('prefs.cliPaths')}
         description={t('prefs.cliPathsDesc')}

@@ -722,6 +722,11 @@ export const en = {
     'Sessions started here learn that `arco` exists and how to move a task to in-progress, review or done. Claude Code only — Codex and OpenCode have no way to take extra instructions without replacing their own.',
   'prefs.cliContextOn': 'On',
   'prefs.cliContextOff': 'Off',
+  'prefs.claudeSkipPermissions': 'Start Claude Code without permission prompts',
+  'prefs.claudeSkipPermissionsDesc':
+    'Every Claude Code session starts with --dangerously-skip-permissions, however the pane was opened: a new pane, a task, arco session, a restore or a restart. Claude then runs commands and edits files without asking first. A pane already running keeps how it started until it restarts.',
+  'prefs.claudeSkipPermissionsOn': 'On',
+  'prefs.claudeSkipPermissionsOff': 'Off',
   'prefs.cliUnsupported': 'The terminal command is not available on this platform.',
   'prefs.ado': 'Azure DevOps',
   'prefs.adoDesc':

@@ -731,6 +731,11 @@ export const ptBR: Record<MessageKey, string> = {
     'As sessões abertas aqui passam a saber que o `arco` existe e como mover uma tarefa para em andamento, revisão ou concluída. Só no Claude Code — Codex e OpenCode não têm como receber instruções extras sem substituir as próprias.',
   'prefs.cliContextOn': 'Ligado',
   'prefs.cliContextOff': 'Desligado',
+  'prefs.claudeSkipPermissions': 'Iniciar o Claude Code sem pedir permissão',
+  'prefs.claudeSkipPermissionsDesc':
+    'Toda sessão do Claude Code começa com --dangerously-skip-permissions, não importa como o pane foi aberto: pane novo, tarefa, arco session, restauração ou reinício. O Claude passa a rodar comandos e editar arquivos sem perguntar antes. Um pane que já está rodando mantém o jeito como começou até reiniciar.',
+  'prefs.claudeSkipPermissionsOn': 'Ligado',
+  'prefs.claudeSkipPermissionsOff': 'Desligado',
   'prefs.cliUnsupported': 'O comando de terminal não está disponível nesta plataforma.',
   'prefs.ado': 'Azure DevOps',
   'prefs.adoDesc':

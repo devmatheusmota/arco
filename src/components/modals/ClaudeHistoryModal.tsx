@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 
-import { intlLocale, useT, type Locale, type TFunction } from '../../lib/i18n'
-import { listClaudeSessions, restartPty, type ClaudeSessionMeta } from '../../lib/tauri'
+import { intlLocale, type Locale, type TFunction, useT } from '../../lib/i18n'
+import { withLaunchPreferences } from '../../lib/sessionLaunch'
+import { type ClaudeSessionMeta, listClaudeSessions, restartPty } from '../../lib/tauri'
 import { agentCliCommand, type AgentType } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
-import { Modal } from './Modal'
 import styles from './ClaudeHistoryModal.module.css'
+import { Modal } from './Modal'
 
 type Props = {
   open: boolean
@@ -77,17 +78,17 @@ export function ClaudeHistoryModal({
     if (!ptyId) return
     setBusyId(sessionId)
     try {
-      // remove --resume <id> antigo e adiciona o novo.
+      // Drop the old `--resume <id>` and add the new one.
       const old = extraArgs ?? []
       const filtered: string[] = []
       for (let i = 0; i < old.length; i++) {
         if (old[i] === '--resume') {
-          i++ // pula o sessionId antigo
+          i++ // skip the old session id
           continue
         }
         filtered.push(old[i])
       }
-      const newExtraArgs = [...filtered, '--resume', sessionId]
+      const newExtraArgs = withLaunchPreferences(agentType, [...filtered, '--resume', sessionId])
 
       await restartPty({
         id: ptyId,

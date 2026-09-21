@@ -1,3 +1,6 @@
+import { useProjectsStore } from '../stores/projectsStore'
+import { useTerminalsStore } from '../stores/terminalsStore'
+import { withLaunchPreferences } from './sessionLaunch'
 import { getActiveSessions, saveSession } from './sessionResume'
 import { acquireSpawnSlot, releaseSpawnSlot } from './spawnQueue'
 import {
@@ -9,8 +12,6 @@ import {
   snapshotOpenCodeSessions,
 } from './tauri'
 import type { AgentType } from './types'
-import { useProjectsStore } from '../stores/projectsStore'
-import { useTerminalsStore } from '../stores/terminalsStore'
 
 const RESUMABLE: AgentType[] = ['claude', 'codex', 'opencode', 'antigravity']
 
@@ -166,7 +167,10 @@ export async function resetLastSession(): Promise<ResetLastSessionResult> {
       }
       const savedOpenCodeId = target.agent === 'opencode' ? active?.opencodeSessionId : undefined
       const sessionId = await latestSessionId(target.agent, cwd, exclude, savedOpenCodeId)
-      const extraArgs = buildResumeArgs(target.agent, target.extraArgs, sessionId)
+      const extraArgs = withLaunchPreferences(
+        target.agent,
+        buildResumeArgs(target.agent, target.extraArgs, sessionId),
+      )
 
       useTerminalsStore.getState().beginRestart(target.ptyId)
       await restartPty({

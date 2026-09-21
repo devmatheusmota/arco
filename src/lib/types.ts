@@ -510,6 +510,12 @@ export type Preferences = {
    */
   cliContextInjection: boolean
   /**
+   * Starts every Claude Code session with `--dangerously-skip-permissions`,
+   * however the pane was opened. Default false; a pane already running keeps the
+   * args it started with until it restarts.
+   */
+  claudeSkipPermissions: boolean
+  /**
    * Azure DevOps defaults used when a task reference is a bare id (`#22447`).
    * A full URL carries its own organization and project; the CLI shorthand needs
    * somewhere to resolve them from.
@@ -645,6 +651,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   rightSidebarWidth: 300,
   notifyOnLimitReset: true,
   cliContextInjection: true,
+  claudeSkipPermissions: false,
   adoOrg: '',
   adoProject: '',
   adoPat: '',

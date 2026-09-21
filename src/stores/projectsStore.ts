@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 
+import { setClaudeSkipPermissionsSource } from '../lib/sessionLaunch'
 import { setStorageNamespace } from '../lib/storageNamespace'
 import {
   listProfiles,
@@ -20,9 +21,9 @@ import {
   EMPTY_PROJECTS_FILE,
   type Locale,
   type OrphanWorktree,
+  type PaneGroup,
   type Preferences,
   type Project,
-  type PaneGroup,
   type ProjectsFile,
   type SubTab,
   type Terminal,
@@ -48,8 +49,8 @@ import {
   replaceCurrentHistorySnapshot,
   scopedTabSnapshot,
 } from '../lib/workspaceNavigation'
-import { migrate } from './projectsStore.migrations'
 import { createGroupsSlice } from './projectsStore.groupSlices'
+import { migrate } from './projectsStore.migrations'
 import { createProjectsSlice } from './projectsStore.projectSlices'
 import {
   createPreferencesSlice,
@@ -736,6 +737,12 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     ...createPreferencesSlice(sliceCtx),
   }
 })
+
+// The launch rules read this at spawn time, so turning it on reaches the next
+// pane that starts without the rules importing the store.
+setClaudeSkipPermissionsSource(
+  () => useProjectsStore.getState().preferences.claudeSkipPermissions === true,
+)
 
 /** Flushes the debounced document before the native window is destroyed. */
 export async function flushProjectsState(): Promise<void> {

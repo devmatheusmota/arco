@@ -10,6 +10,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- A setting to start every Claude Code session without permission prompts (Settings → Terminal
+  and agents). When on, Claude starts with `--dangerously-skip-permissions` however the pane was
+  opened: a new pane, a task, `arco session`, a restore when the app opens, a handoff or a restart.
+  It is off by default, and a pane already running keeps how it started until it restarts.
+
 ## [3.1.0] — 2026-09-21
 
 ### Changed

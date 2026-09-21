@@ -1,9 +1,10 @@
+import { withLaunchPreferences } from './sessionLaunch'
 import { agentCliCommand, type AgentType } from './types'
 
 export function buildGhosttyCommand(type: AgentType, extraArgs?: string[]): string | undefined {
   const command = agentCliCommand(type)
   if (!command) return undefined
-  const parts = [command, ...(extraArgs ?? []).map(shellQuote)]
+  const parts = [command, ...withLaunchPreferences(type, extraArgs ?? []).map(shellQuote)]
   return parts.join(' ')
 }
 

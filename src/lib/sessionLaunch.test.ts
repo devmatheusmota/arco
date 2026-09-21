@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { buildAgentLaunch } from './sessionLaunch'
+import { buildAgentLaunch, setClaudeSkipPermissionsSource } from './sessionLaunch'
 
 describe('buildAgentLaunch', () => {
   it('new Claude panes receive distinct deterministic session ids', () => {
@@ -59,5 +59,41 @@ describe('buildAgentLaunch', () => {
         'agy-pane',
       ).args,
     ).toEqual(['--conversation', 'agy-pane', '--dangerously-skip-permissions'])
+  })
+})
+
+describe('Claude skip-permissions preference', () => {
+  afterEach(() => setClaudeSkipPermissionsSource(() => false))
+
+  it('adds the flag to a new and a resumed Claude session when on', () => {
+    setClaudeSkipPermissionsSource(() => true)
+    expect(buildAgentLaunch('claude', [], undefined, () => 'new-id').args).toEqual([
+      '--session-id',
+      'new-id',
+      '--dangerously-skip-permissions',
+    ])
+    expect(buildAgentLaunch('claude', ['--model', 'sonnet'], 'pane-session').args).toEqual([
+      '--resume',
+      'pane-session',
+      '--model',
+      'sonnet',
+      '--dangerously-skip-permissions',
+    ])
+  })
+
+  it('does not repeat a flag the pane already asked for', () => {
+    setClaudeSkipPermissionsSource(() => true)
+    const args = buildAgentLaunch('claude', ['--dangerously-skip-permissions'], 'pane-session').args
+    expect(args.filter((arg) => arg === '--dangerously-skip-permissions')).toHaveLength(1)
+  })
+
+  it('leaves Claude alone when off, and other agents alone when on', () => {
+    expect(buildAgentLaunch('claude', [], 'pane-session').args).toEqual([
+      '--resume',
+      'pane-session',
+    ])
+    setClaudeSkipPermissionsSource(() => true)
+    expect(buildAgentLaunch('codex', [], 'thread').args).toEqual(['resume', 'thread'])
+    expect(buildAgentLaunch('opencode', [], 'ses').args).toEqual(['--session', 'ses'])
   })
 })

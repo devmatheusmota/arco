@@ -1,4 +1,29 @@
-import type { AgentType } from './types'
+import { type AgentType, UNRESTRICTED_FLAG } from './types'
+
+/**
+ * Whether every Claude session starts with its permission prompts skipped. The
+ * store registers where that preference lives; this module does not import it,
+ * so the launch rules stay testable without one.
+ */
+let claudeSkipPermissions: () => boolean = () => false
+
+export function setClaudeSkipPermissionsSource(source: () => boolean): void {
+  claudeSkipPermissions = source
+}
+
+/**
+ * The args an agent starts with once the launch preferences are applied. Every
+ * way a pane starts an agent goes through here — a new pane, a task, `arco
+ * session`, a restore when the app opens, a handoff, a restart — so a
+ * preference that has to hold "however the pane was opened" holds.
+ */
+export function withLaunchPreferences(agent: AgentType, args: readonly string[]): string[] {
+  const flag = UNRESTRICTED_FLAG[agent]
+  if (agent !== 'claude' || !flag || args.includes(flag) || !claudeSkipPermissions()) {
+    return [...args]
+  }
+  return [...args, flag]
+}
 
 export type AgentLaunch = {
   args: string[]
@@ -56,7 +81,7 @@ export function buildAgentLaunch(
   }
 
   if (agent === 'claude') {
-    const clean = stripClaudeSessionArgs([...baseArgs])
+    const clean = withLaunchPreferences('claude', stripClaudeSessionArgs([...baseArgs]))
     const mcp = (mcpConfigPaths ?? []).flatMap((path) => ['--mcp-config', path])
     if (sessionId) {
       return {
