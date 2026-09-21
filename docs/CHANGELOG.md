@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.2.0] — 2026-09-21
+
 ### Added
 
 - A setting to start every Claude Code session without permission prompts (Settings → Terminal

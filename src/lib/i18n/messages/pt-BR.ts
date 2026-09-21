@@ -828,6 +828,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v320.note1':
+    'Configuração nova em Preferências → Terminal e agentes: iniciar o Claude Code sem pedir permissão. Ligada, toda sessão do Claude começa com --dangerously-skip-permissions, não importa como o pane foi aberto: pane novo, tarefa, arco session, restauração ao abrir o app, handoff ou reinício. O Claude passa a rodar comandos e editar arquivos sem perguntar antes. Vem desligada, então ligue se quiser. Pane que já está rodando mantém o jeito como começou: reinicie para pegar a configuração.',
   'whatsNew.v310.note1':
     'Todo pane ganhou uma barra fixa no topo com o título e as ações, no lugar da faixa que só aparecia com o mouse em cima. O título é o mesmo da sidebar: o nome dado com `arco session rename` ou `--name`, depois a tarefa em que a sessão está, depois o título que o agente deu à conversa. Assim o pane não aparece mais só como "claude". Conversas recentes, handoff, VS Code, modo foco, reiniciar e fechar ficam na barra. Com vários panes lado a lado e a barra estreita, a referência `pa-` sai primeiro, depois conversas recentes, handoff e VS Code. Modo foco, reiniciar e fechar ficam sempre.',
   'whatsNew.v310.note2':

@@ -816,6 +816,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v320.note1':
+    'New setting in Preferences → Terminal and agents: start Claude Code without permission prompts. When on, every Claude session starts with --dangerously-skip-permissions, however the pane was opened: a new pane, a task, arco session, a restore when the app opens, a handoff or a restart. Claude then runs commands and edits files without asking first. It is off by default, so turn it on if you want it. A pane already running keeps how it started: restart it to pick the setting up.',
   'whatsNew.v310.note1':
     'Every pane has a fixed bar at the top with its title and its actions, instead of a strip that only showed up under the mouse. The title is the one the sidebar shows: the name given with `arco session rename` or `--name`, then the task the session is working on, then the title the agent gave the conversation, so a pane no longer reads just "claude". Recent chats, handoff, VS Code, focus mode, restart and close stay on the bar. When several panes sit side by side and the bar gets narrow, the `pa-` reference goes first, then recent chats, handoff and VS Code. Focus mode, restart and close are always there.',
   'whatsNew.v310.note2':
