@@ -1,6 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { FileText, MoreHorizontal } from 'lucide-react'
 
+import { usePaneTaskTitle } from '../../hooks/usePaneTaskTitle'
 import { useRelativeTick } from '../../hooks/useRelativeTick'
 import { useSidebarChatTitle } from '../../hooks/useSidebarChatTitle'
 import { formatRelativeTimestamp } from '../../lib/greeting'
@@ -43,7 +44,8 @@ export function NormalTerminalNode({
 
   const activeTab = terminal.tabs.find((tab) => tab.id === terminal.activeTabId) ?? terminal.tabs[0]
   const chatTitle = useSidebarChatTitle(activeTab)
-  const displayName = sessionDisplayLabel(terminal, chatTitle)
+  const taskTitle = usePaneTaskTitle(terminal.id)
+  const displayName = sessionDisplayLabel(terminal, chatTitle, taskTitle)
   const uniqueTypes = Array.from(new Set(terminal.tabs.map((tab) => tab.type))) as AgentType[]
   const orderedTypes =
     activeTab && uniqueTypes.length > 1

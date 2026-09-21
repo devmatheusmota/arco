@@ -10,6 +10,23 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- Every pane has a fixed header bar with its title, instead of a strip that only showed up
+  under the mouse. The title is the one the sidebar and the tab bar show: the name given with
+  `arco session rename` or `--name`, then the task the session is working on, then the title
+  the agent gave the conversation — so a pane no longer reads just "claude". The actions that
+  sat behind the hover (recent chats, handoff, VS Code, focus mode, restart, close) stay on the
+  bar. The terminal is sized to the space below it rather than drawn under it, and a narrow pane
+  drops the reference pill before it cuts into the title or the actions.
+
+### Fixed
+
+- A session started from a task no longer shows up as "Claude Code" in the sidebar, the tab bar
+  and Find/Jump. It is named after the task — whether it was started from the task dialog, with
+  `arco session --todo`, or linked later with `arco todo edit --session` — and renaming the task
+  renames the session with it.
+
 ## [3.0.1] — 2026-09-20
 
 ### Fixed

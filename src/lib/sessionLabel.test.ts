@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { cleanChatTitle, isGenericSessionName, sessionDisplayLabel } from './sessionLabel'
-import type { SubTab, Terminal } from './types'
+import {
+  cleanChatTitle,
+  isGenericSessionName,
+  paneTaskTitle,
+  sessionDisplayLabel,
+} from './sessionLabel'
+import type { SubTab, Terminal, TodoItem } from './types'
 
 function pane(over: Partial<Terminal> = {}): Terminal {
   const tabs: SubTab[] = [{ id: 'tab1', type: 'claude', name: 'claude', cwd: '/repo', ptyId: null }]
@@ -38,6 +43,59 @@ describe('sessionDisplayLabel', () => {
     expect(label).toBe('apoiar Erika no teste do 19763')
   })
 
+  // The task dialog creates its pane as "Claude Code" marked 'task'. Trusting the
+  // mark made every session started from a task read as the agent's label.
+  it('does not trust a placeholder just because it is marked as the task', () => {
+    const label = sessionDisplayLabel(
+      pane({ name: 'Claude Code', nameSource: 'task' }),
+      'Retorno correto de dados para o front',
+    )
+
+    expect(label).toBe('Retorno correto de dados para o front')
+  })
+
+  it('names a pane after the task that claimed it, above the conversation title', () => {
+    const label = sessionDisplayLabel(
+      pane({ name: 'Claude Code', nameSource: 'task' }),
+      'Investigating a failing assertion',
+      '[TASK] header fixo com título em cada pane',
+    )
+
+    expect(label).toBe('[TASK] header fixo com título em cada pane')
+  })
+
+  // A pane made with `arco session --todo` keeps the task's title as its name,
+  // frozen at that moment. Renaming the task afterwards has to show up.
+  it('shows the task as it reads now over the title it had when the pane was made', () => {
+    const label = sessionDisplayLabel(
+      pane({ name: 'Tarefa A', nameSource: 'task' }),
+      null,
+      'Tarefa B',
+    )
+
+    expect(label).toBe('Tarefa B')
+  })
+
+  it('falls back to the name from the task once the pane is no longer linked', () => {
+    const label = sessionDisplayLabel(
+      pane({ name: 'Tarefa A', nameSource: 'task' }),
+      'Investigating a failing assertion',
+      null,
+    )
+
+    expect(label).toBe('Tarefa A')
+  })
+
+  it('keeps a name someone typed above the task that claimed the pane', () => {
+    const label = sessionDisplayLabel(
+      pane({ name: 'análise bug 23722', nameSource: 'user' }),
+      null,
+      '[BUG] 23722 nota zerada',
+    )
+
+    expect(label).toBe('análise bug 23722')
+  })
+
   it('falls back to the conversation title when the name is only a placeholder', () => {
     const label = sessionDisplayLabel(
       pane({ name: 'Claude Code', nameSource: 'auto' }),
@@ -57,6 +115,45 @@ describe('sessionDisplayLabel', () => {
 
   it('lands on the agent label only when there is nothing else', () => {
     expect(sessionDisplayLabel(pane({ nameSource: 'auto' }), null)).toBe('Claude Code')
+  })
+})
+
+describe('paneTaskTitle', () => {
+  function todo(over: Partial<TodoItem>): Pick<TodoItem, 'title' | 'session' | 'sessions'> {
+    return { title: 'task', ...over }
+  }
+
+  // The task dialog only records the pane it starts in `sessions`; reading
+  // `session` alone left every pane started from the board without its task.
+  it('finds the task that started the pane from the dialog', () => {
+    const todos = [
+      todo({
+        title: 'other',
+        sessions: [{ projectId: 'p', terminalId: 't9', agent: 'claude', startedAt: 1 }],
+      }),
+      todo({
+        title: 'Corrigir header',
+        sessions: [{ projectId: 'p', terminalId: 't1', agent: 'claude', startedAt: 1 }],
+      }),
+    ]
+
+    expect(paneTaskTitle(todos, 't1')).toBe('Corrigir header')
+  })
+
+  it('prefers the task that claimed the pane over one that merely launched it', () => {
+    const todos = [
+      todo({
+        title: 'launched',
+        sessions: [{ projectId: 'p', terminalId: 't1', agent: 'claude', startedAt: 1 }],
+      }),
+      todo({ title: 'claimed', session: { id: 't1', linkedAt: 1 } }),
+    ]
+
+    expect(paneTaskTitle(todos, 't1')).toBe('claimed')
+  })
+
+  it('has nothing for a pane no task points at', () => {
+    expect(paneTaskTitle([todo({ session: { id: 't2', linkedAt: 1 } })], 't1')).toBeNull()
   })
 })
 

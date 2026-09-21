@@ -11,10 +11,13 @@ import {
 } from 'lucide-react'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 
+import { usePaneTaskTitle } from '../../hooks/usePaneTaskTitle'
+import { useSidebarChatTitle } from '../../hooks/useSidebarChatTitle'
 import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { buildGhosttyCommand } from '../../lib/ghosttyCommand'
 import { useT } from '../../lib/i18n'
 import { shouldUseNativeBackend } from '../../lib/platform'
+import { sessionDisplayLabel } from '../../lib/sessionLabel'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import { getActiveSessions, savedConversationIdFor, saveSession } from '../../lib/sessionResume'
 import {
@@ -69,7 +72,7 @@ export const TerminalPane = memo(function TerminalPane({
     paneRef.current = node
   }
 
-  // Foco vindo da sidebar — scroll into view + foca o textarea do xterm.
+  // A focus request from the sidebar: scroll the pane into view and focus xterm's input.
   const focusReq = useUiStore((s) => s.focusRequest)
   useEffect(() => {
     if (!focusReq || focusReq.terminalId !== terminal.id) return
@@ -116,14 +119,14 @@ export const TerminalPane = memo(function TerminalPane({
   const nativeTerminalMacos = useProjectsStore((s) => s.preferences.nativeTerminalMacos ?? false)
   const useNativeBackend = shouldUseNativeBackend(nativeTerminalMacos)
 
-  // repo para injetar o MCP (o XTermView resolve o config/bootstrap).
+  // The repo to wire the Graphify MCP into; XTermView resolves the config and bootstrap.
   const graphifyRepo = useProjectsStore((s) => {
     const p = s.projects.find((p) => p.id === projectId)
     if (!p?.graphifyEnabled) return null
     return terminal.cwd || p.terminals[0]?.cwd || null
   })
 
-  // sozinho (ver XTermView, gatilho condicionado a command === 'opencode').
+  // XTermView only acts on this for OpenCode (its trigger checks command === 'opencode').
   const gsdWatcherEnabled = useProjectsStore((s) => {
     const p = s.projects.find((p) => p.id === projectId)
     return Boolean(p?.gsdWatcherEnabled)
@@ -151,13 +154,6 @@ export const TerminalPane = memo(function TerminalPane({
   // Scoped to this pane's own queue: selecting the whole map would rerender
   // every header on screen each time any queue moves.
   const queuedMessages = usePaneInboxStore((s) => s.byTerminalId[paneId]?.length ?? 0)
-
-  const isShell = activeTab?.type === 'shell'
-  const showFloatingIdentity = Boolean(activeTab && !isShell)
-  // A shell pane shows no agent identity, but it still has a reference — and
-  // the reference is now the control that copies it, so the strip has to be
-  // there for it even when the name and icon are not.
-  const showLeftFloating = showFloatingIdentity || Boolean(paneShortId)
 
   // Selecting the runtime object would rerender the whole pane every time its
   // I/O timestamp moves — four times a second while an agent streams.
@@ -192,7 +188,7 @@ export const TerminalPane = memo(function TerminalPane({
     }
     if (!target) return
     await openInVscode(target).catch((err) => {
-      console.error('open vscode falhou', err)
+      console.error('opening VS Code failed', err)
     })
   }
 
@@ -255,7 +251,7 @@ export const TerminalPane = memo(function TerminalPane({
       requestPaneFocus(terminal.id)
       window.setTimeout(() => requestPaneFocus(terminal.id), 160)
     } catch (err) {
-      console.error('restart pty falhou', err)
+      console.error('restarting the PTY failed', err)
       pushToast({ title: t('ui.terminal.restartFailed'), body: String(err) })
     }
   }
@@ -300,59 +296,58 @@ export const TerminalPane = memo(function TerminalPane({
       className={`${styles.pane} ${isFocusMode ? styles.paneFocus : ''} ${terminal.disabled ? styles.disabled : ''}`}
     >
       <header className={styles.header}>
-        {showLeftFloating ? (
-          <div
-            className={`${styles.headLeft} ${showFloatingIdentity ? '' : styles.headLeftControlsOnly}`}
-            onDoubleClick={() => setFocusedTerminal(isFocusMode ? null : terminal.id)}
-            title={
-              isFocusMode ? t('ui.terminal.exitFocusModeEsc') : t('ui.terminal.focusModeFullscreen')
-            }
-          >
-            {paneShortId ? (
-              <button
-                type="button"
-                className={`${styles.refPill} ${refCopied ? styles.refPillCopied : ''}`}
-                onClick={(event) => {
-                  // The header's double-click toggles focus mode, and the pane's
-                  // own click handlers pull focus into the terminal.
-                  event.stopPropagation()
-                  void copyPaneRef()
-                }}
-                onDoubleClick={(event) => event.stopPropagation()}
-                title={
-                  refCopied
-                    ? t('ui.terminal.refCopied')
-                    : t('ui.terminal.copyRef', { ref: paneShortId })
-                }
-                aria-label={t('ui.terminal.copyRef', { ref: paneShortId })}
-              >
-                {refCopied ? <Check size={11} /> : null}
-                {paneShortId}
-              </button>
-            ) : null}
-            {showFloatingIdentity && activeTab ? (
-              <>
-                <span className={styles.iconWrap}>
-                  <AgentIcon type={activeTab.type} size={16} theme={terminalTheme} />
+        <div
+          className={styles.headLeft}
+          onDoubleClick={() => setFocusedTerminal(isFocusMode ? null : terminal.id)}
+          title={
+            isFocusMode ? t('ui.terminal.exitFocusModeEsc') : t('ui.terminal.focusModeFullscreen')
+          }
+        >
+          {paneShortId ? (
+            <button
+              type="button"
+              className={`${styles.refPill} ${refCopied ? styles.refPillCopied : ''}`}
+              onClick={(event) => {
+                // The header's double-click toggles focus mode, and the pane's
+                // own click handlers pull focus into the terminal.
+                event.stopPropagation()
+                void copyPaneRef()
+              }}
+              onDoubleClick={(event) => event.stopPropagation()}
+              title={
+                refCopied
+                  ? t('ui.terminal.refCopied')
+                  : t('ui.terminal.copyRef', { ref: paneShortId })
+              }
+              aria-label={t('ui.terminal.copyRef', { ref: paneShortId })}
+            >
+              {refCopied ? <Check size={11} /> : null}
+              {paneShortId}
+            </button>
+          ) : null}
+          {activeTab ? (
+            <>
+              <span className={styles.iconWrap}>
+                <AgentIcon type={activeTab.type} size={14} theme={terminalTheme} />
+              </span>
+              <PaneTitle
+                paneId={paneId}
+                name={terminal.name}
+                nameSource={terminal.nameSource}
+                tab={activeTab}
+              />
+              {queuedMessages > 0 ? (
+                <span
+                  className={styles.queueBadge}
+                  title={t('ui.terminal.queuedMessages', { count: queuedMessages })}
+                  aria-label={t('ui.terminal.queuedMessages', { count: queuedMessages })}
+                >
+                  {queuedMessages}
                 </span>
-                <div className={styles.identity}>
-                  <span className={styles.name} title={activeTab.name || terminal.name}>
-                    {activeTab.name || terminal.name}
-                  </span>
-                </div>
-                {queuedMessages > 0 ? (
-                  <span
-                    className={styles.queueBadge}
-                    title={t('ui.terminal.queuedMessages', { count: queuedMessages })}
-                    aria-label={t('ui.terminal.queuedMessages', { count: queuedMessages })}
-                  >
-                    {queuedMessages}
-                  </span>
-                ) : null}
-              </>
-            ) : null}
-          </div>
-        ) : null}
+              ) : null}
+            </>
+          ) : null}
+        </div>
 
         {!preview ? (
           <div className={styles.headRight}>
@@ -360,7 +355,7 @@ export const TerminalPane = memo(function TerminalPane({
               {activeTab && activeTab.type !== 'shell' ? (
                 <button
                   type="button"
-                  className={styles.action}
+                  className={`${styles.action} ${styles.actionSecondary}`}
                   onClick={() =>
                     openModal('recentChats', {
                       projectId,
@@ -377,7 +372,7 @@ export const TerminalPane = memo(function TerminalPane({
               {canHandoff ? (
                 <button
                   type="button"
-                  className={`${styles.action} ${handoffSuggested ? styles.handoffSuggested : ''}`}
+                  className={`${styles.action} ${styles.actionSecondary} ${handoffSuggested ? styles.handoffSuggested : ''}`}
                   onClick={() =>
                     openModal('handoff', {
                       projectId,
@@ -396,7 +391,7 @@ export const TerminalPane = memo(function TerminalPane({
               ) : null}
               <button
                 type="button"
-                className={styles.action}
+                className={`${styles.action} ${styles.actionSecondary}`}
                 onClick={() => void openVscode()}
                 title={t('ui.terminal.openInVscode')}
                 aria-label={t('ui.terminal.openInVscode')}
@@ -563,6 +558,36 @@ export const TerminalPane = memo(function TerminalPane({
         </div>
       </div>
     </div>
+  )
+})
+
+/**
+ * The pane's title, resolved by the same rule the sidebar and the tab bar use:
+ * a name someone gave the session, then the task it is for, then the title the
+ * agent gave the conversation, and only last the agent's own label.
+ *
+ * Its own component because the conversation title loads on its own schedule;
+ * when it lands, this label repaints and the pane around the terminal does not.
+ */
+const PaneTitle = memo(function PaneTitle({
+  paneId,
+  name,
+  nameSource,
+  tab,
+}: {
+  paneId: string
+  name: string
+  nameSource: TerminalEntry['nameSource']
+  tab: SubTab
+}) {
+  const chatTitle = useSidebarChatTitle(tab)
+  const taskTitle = usePaneTaskTitle(paneId)
+  const label =
+    sessionDisplayLabel({ name, nameSource, tabs: [tab] }, chatTitle, taskTitle) || tab.name
+  return (
+    <span className={styles.name} title={label}>
+      {label}
+    </span>
   )
 })
 

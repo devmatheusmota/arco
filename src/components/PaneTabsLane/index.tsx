@@ -1,6 +1,7 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Columns2, FolderGit2, GitBranch, Plus, X } from 'lucide-react'
 
+import { usePaneTaskTitle } from '../../hooks/usePaneTaskTitle'
 import { useSidebarChatTitle } from '../../hooks/useSidebarChatTitle'
 import { useT } from '../../lib/i18n'
 import { sessionDisplayLabel } from '../../lib/sessionLabel'
@@ -55,7 +56,8 @@ function PaneTab({
   // bar reads the same source, or every Claude session of a project reads
   // "claude" and nothing tells them apart.
   const chatTitle = useSidebarChatTitle(entry.tab)
-  const label = sessionDisplayLabel(entry.pane, chatTitle) || entry.label
+  const taskTitle = usePaneTaskTitle(entry.pane.id)
+  const label = sessionDisplayLabel(entry.pane, chatTitle, taskTitle) || entry.label
   const draggable = useDraggable({ id: `pane:${entry.pane.id}` })
   const droppable = useDroppable({ id: `pane:${entry.pane.id}` })
   const setRefs = (node: HTMLElement | null) => {

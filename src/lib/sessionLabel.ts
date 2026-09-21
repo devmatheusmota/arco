@@ -7,7 +7,7 @@
 // rename writes `terminal.name`, which the sidebar reached last, behind a chain
 // that never ran out.
 
-import { AGENT_TYPE_LABELS, type SubTab, type Terminal } from './types'
+import { AGENT_TYPE_LABELS, type SubTab, type Terminal, type TodoItem } from './types'
 
 /** Prefixes that mark a title as context the agent echoed back, not a subject. */
 const ECHOED_CONTEXT = [
@@ -91,19 +91,52 @@ export function cleanChatTitle(raw: string | null | undefined, max = 48): string
 }
 
 /**
+ * The title of the task a pane is working on, or `null` when it has none.
+ *
+ * A pane reaches its task two ways, written by different paths: the command
+ * line records the session that claimed a task in `session`, while the task
+ * dialog only adds the pane it starts to `sessions`. The claim goes first,
+ * since it is the one somebody asserted.
+ */
+export function paneTaskTitle(
+  todos: readonly Pick<TodoItem, 'title' | 'session' | 'sessions'>[],
+  paneId: string,
+): string | null {
+  const claimed = todos.find((todo) => todo.session?.id === paneId)
+  if (claimed) return claimed.title
+  const launched = todos.find((todo) =>
+    todo.sessions?.some((session) => session.terminalId === paneId),
+  )
+  return launched?.title ?? null
+}
+
+/**
  * The name to show for a pane.
  *
  * Precedence, most deliberate first: a name someone typed, then the task the
- * session was started for, then the conversation's own title, then whatever the
- * pane was created with — and only as a last resort the agent's label, which is
- * what every unnamed pane would otherwise show.
+ * session is for, then the conversation's own title, then whatever the pane was
+ * created with — and only as a last resort the agent's label, which is what
+ * every unnamed pane would otherwise show.
+ *
+ * `taskTitle` is the task as it reads now (see `paneTaskTitle`). A name marked
+ * `'task'` is only the title the task had when the pane was created, so it is
+ * the fallback for when the pane is no longer linked, not a rival to it.
  */
 export function sessionDisplayLabel(
   terminal: Pick<Terminal, 'name' | 'nameSource' | 'tabs'>,
   chatTitle?: string | null,
+  taskTitle?: string | null,
 ): string {
   const name = terminal.name?.trim() ?? ''
-  if (name && (terminal.nameSource === 'user' || terminal.nameSource === 'task')) return name
+  if (name && terminal.nameSource === 'user') return name
+
+  const task = taskTitle?.replace(/\s+/g, ' ').trim()
+  if (task) return task
+
+  // A session started from the task dialog is created as "Claude Code" marked
+  // `'task'` — the task's title goes on the front. Trusting that mark put the
+  // agent's label above everything that actually named the work.
+  if (name && terminal.nameSource === 'task' && !isGenericSessionName(name)) return name
 
   const title = cleanChatTitle(chatTitle)
   if (title) return title

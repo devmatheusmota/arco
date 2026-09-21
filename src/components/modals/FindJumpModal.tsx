@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { peekCachedChatTitle } from '../../hooks/useSidebarChatTitle'
 import { useT } from '../../lib/i18n'
-import { sessionDisplayLabel } from '../../lib/sessionLabel'
+import { paneTaskTitle, sessionDisplayLabel } from '../../lib/sessionLabel'
 import type { AgentType } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -39,6 +39,7 @@ export function FindJumpModal() {
   const open = useUiStore((s) => s.openModal === 'findJump')
   const closeModal = useUiStore((s) => s.closeModal)
   const projects = useProjectsStore((s) => s.projects)
+  const todos = useProjectsStore((s) => s.todos)
   const openTerminalWorkspace = useProjectsStore((s) => s.openTerminalWorkspace)
 
   const [query, setQuery] = useState('')
@@ -65,7 +66,9 @@ export function FindJumpModal() {
           // The same name the sidebar draws. Searching `term.name` while the
           // sidebar showed the conversation title meant reading a name on
           // screen, typing it here, and finding nothing.
-          terminalName: sessionDisplayLabel(term, peekCachedChatTitle(active)) || term.name,
+          terminalName:
+            sessionDisplayLabel(term, peekCachedChatTitle(active), paneTaskTitle(todos, term.id)) ||
+            term.name,
           rawName: term.name,
           lastUsedAt: term.lastUsedAt ?? 0,
           type: active?.type ?? 'shell',
@@ -85,7 +88,7 @@ export function FindJumpModal() {
         `${h.projectName} ${h.terminalName} ${h.rawName} ${h.cwd}`.toLowerCase().includes(q),
       )
       .slice(0, 50)
-  }, [projects, query])
+  }, [projects, todos, query])
 
   const jump = (hit: Hit) => {
     openTerminalWorkspace(hit.projectId, hit.terminalId)
