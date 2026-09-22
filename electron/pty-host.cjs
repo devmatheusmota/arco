@@ -11,6 +11,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { loginEnv, mergePath } = require('./login-env.cjs')
 const { clearInheritedAgentSession, stripAppImageEnv } = require('./pty-env.cjs')
+const { modePreamble, trimScrollback } = require('./terminal-modes.cjs')
 const {
   inspectSpawnHelper,
   prepareSpawnHelper,
@@ -219,15 +220,7 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
   )
 
   child.onData((data) => {
-    session.scrollback += data
-    if (session.scrollback.length > SCROLLBACK_CAP_BYTES) {
-      // Cut on a line boundary: escape sequences never span a newline, so this
-      // is the only trim that cannot leave a half-written CSI at the front of a
-      // replay, where it would swallow the bytes that follow it.
-      const excess = session.scrollback.length - SCROLLBACK_CAP_BYTES
-      const boundary = session.scrollback.indexOf('\n', excess)
-      session.scrollback = session.scrollback.slice(boundary >= 0 ? boundary + 1 : excess)
-    }
+    session.scrollback = trimScrollback(session.scrollback + data, SCROLLBACK_CAP_BYTES)
     session.dirty = true
     if (session.visible) {
       send({ type: 'data', id, data })
@@ -291,7 +284,9 @@ const handlers = {
   clear_pty_scrollback({ id }) {
     const session = sessions.get(id)
     if (session) {
-      session.scrollback = ''
+      // The output goes; the modes the agent switched on at start stay, or the
+      // next replay of this pane would come back without them.
+      session.scrollback = modePreamble(session.scrollback)
       session.dirty = true
     }
     try {
