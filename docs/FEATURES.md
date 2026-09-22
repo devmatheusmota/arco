@@ -99,8 +99,16 @@ you are reading. Only a terminal is accepted there, and only one at a time.
 
   On macOS, `Ctrl` is read as `Cmd` (`e.ctrlKey || e.metaKey`), so the table
   below is the same on both platforms. Most shortcuts are ignored while focus
-  is in an editable field; `Esc`, zoom, and the `Ctrl`-prefixed shortcuts are
-  the exceptions.
+  is in an editable field; `Esc`, zoom and the `Ctrl`-prefixed shortcuts are
+  the exceptions, and `Alt+Shift+arrows` work inside a terminal but leave a
+  text field alone.
+
+  A key is either the app's or the terminal's, never both: every chord in the
+  table is resolved in `src/lib/keybindings.ts`, and the terminal refuses to
+  forward the ones the app acts on. Inside a terminal the pane also keeps
+  `Ctrl+C` with a selection (copy), `Ctrl+V` (paste) and `Ctrl+Up`/`Ctrl+Down`
+  (the pane's prompt history). Everything else — `Ctrl+L`, `Ctrl+R`,
+  `Ctrl+Left`/`Ctrl+Right`, `Alt+arrows` — reaches the process in the pane.
 
   | Shortcut | Action |
   | --- | --- |
@@ -111,11 +119,15 @@ you are reading. Only a terminal is accepted there, and only one at a time.
   | `Ctrl+P` | Find/jump |
   | `Ctrl+Shift+P` | New project |
   | `Ctrl+Shift+H` | Toggle between Home and the workspace |
-  | `Ctrl+1` … `Ctrl+9` | Jump to the Nth project in sidebar order |
-  | `Alt+Left` / `Alt+Right` | Navigate persistent workspace history |
-  | `Shift+Tab` | Focus the next session of the current project |
+  | `Ctrl+1` … `Ctrl+9` | Open the Nth front of work in sidebar order, on the session used last in it |
+  | `Ctrl+0` | Open the last front of work |
+  | `Alt+Shift+Left` / `Right` / `Up` / `Down` | Focus the pane on that side, including the terminal beside the front |
+  | `Ctrl+PageDown` / `Ctrl+PageUp` | Focus the next / previous pane on screen |
+  | `Alt+Left` / `Alt+Right` | Navigate persistent workspace history (outside a terminal) |
+  | `Shift+Tab` | Focus the next pane on screen (outside a terminal) |
   | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Cycle project tabs without reordering them |
-  | `Ctrl++` / `Ctrl+-` / `Ctrl+0` | UI zoom in, out, reset (numpad variants included) |
+  | `Ctrl+N` | Focus the task composer, while the task panel is open |
+  | `Ctrl++` / `Ctrl+-` / `Ctrl+Numpad 0` | UI zoom in, out, reset (numpad `+` and `-` included) |
   | `R` | Restart the selected terminal when focus is on the UI, not inside the terminal |
   | `Esc` | Close the open modal, or leave fullscreen |
 

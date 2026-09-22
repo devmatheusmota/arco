@@ -10,6 +10,43 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-09-22
+
+### Added
+
+- Ctrl+1 … Ctrl+9 open the fronts of work in the order the sidebar lists them, and Ctrl+0 opens
+  the last one, as in a browser. A front opens on the session you used last in it, and hovering a
+  front in the sidebar shows its shortcut. A collapsed project still counts, so folding one away
+  does not renumber the rest.
+- Alt+Shift+arrows move to the pane on that side of the one you are in, across the front's panes
+  and the terminal beside them. The combination is one no shell, editor or agent the app runs
+  binds by default, while Ctrl+Left/Right, Alt+arrows and Ctrl+letters stay with them for moving
+  by word, walking history and Claude Code's own shortcuts.
+
+### Changed
+
+- Ctrl+1 … Ctrl+9 no longer open projects by position; they open fronts (see above).
+- Ctrl+PageUp and Ctrl+PageDown, and Shift+Tab when the focus is outside a terminal, cycle through
+  the panes on screen instead of every session of the project, so they no longer switch fronts
+  under you. Ctrl+digit is how you change fronts now.
+- Resetting the zoom moved from Ctrl+0 to Ctrl+Numpad 0. The button in Settings → Appearance
+  still does it.
+
+### Fixed
+
+- A shortcut the app acts on no longer reaches the terminal as well. Ctrl+3 switched projects and
+  sent Escape to the agent in the pane, which is enough to interrupt Claude mid-answer; Ctrl+8
+  sent a Delete, Ctrl+Tab a Tab, Ctrl+T toggled Claude Code's task list while opening the new
+  terminal dialog, and Ctrl+P and Ctrl+N moved the shell through its history. Keys the app does
+  not use reach the terminal untouched.
+- A screenshot pasted into Claude Code turns into `[Image #1]` again instead of arriving as its
+  file path. The app keeps only the last 512 KB of a session's output, and in a long session the
+  start of it, where the agent switched on bracketed paste, the alternate screen and mouse
+  reporting, was cut away with the rest; `/clear` erased it outright. A pane rebuilt from that
+  record, after a reload, a tab coming back or a resync once it had been hidden, came back without
+  those modes, so a paste reached the agent as typing and the mouse wheel stopped scrolling it. The
+  modes now survive both the cut and `/clear`.
+
 ## [3.2.0] — 2026-09-21
 
 ### Added

@@ -12,6 +12,7 @@ import {
 import { memo, useMemo } from 'react'
 
 import { useT } from '../../lib/i18n'
+import { panesOnScreen } from '../../lib/paneLayout'
 import type { Project, Terminal, WorkspaceContainer } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -59,21 +60,8 @@ export const ProjectContainer = memo(function ProjectContainer({
     return container.paneIds.map((id) => map.get(id)).filter((t): t is Terminal => Boolean(t))
   }, [project.terminals, container.paneIds])
 
-  const activePane =
-    terminals.find((terminal) => terminal.id === container.activePaneId) ?? terminals[0] ?? null
-  // The front of work on screen is the one the active session belongs to, so
-  // the two never disagree and nothing has to be stored to keep them in step.
+  const { activePane, visibleIds, sidePane } = panesOnScreen(terminals, container)
   const activeGroupId = activePane?.groupId ?? null
-  const visibleIds = (
-    activeGroupId
-      ? terminals.filter((terminal) => terminal.groupId === activeGroupId)
-      : // A pane with no group is on its own until the next load adopts it.
-        terminals.filter((terminal) => terminal.id === activePane?.id)
-  ).map((terminal) => terminal.id)
-  const sidePane =
-    container.sidePaneId && container.sidePaneId !== activePane?.id
-      ? (terminals.find((terminal) => terminal.id === container.sidePaneId) ?? null)
-      : null
   const graphifyPaneOpen = terminals.some((terminal) => terminal.kind === 'graphify')
   const graphifyEnabled = useProjectsStore((s) => s.preferences.enabledFeatures.graphify)
   const graphifyCwd = terminals.find(

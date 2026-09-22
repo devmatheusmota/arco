@@ -206,6 +206,7 @@ export const en = {
   'ui.terminal.refCopied': 'Reference copied',
   'ui.group.new': 'New front of work',
   'ui.group.addPane': 'Add a session to this front',
+  'ui.group.openShortcut': 'Open with {shortcut}',
   'ui.group.rename': 'Rename front',
   'ui.group.close': 'Close front',
   'ui.group.closeWithWorktree': 'Close front and delete its worktree',
@@ -745,7 +746,7 @@ export const en = {
   'prefs.photoPlaceholder': 'Photo link',
   'prefs.zoomDecrease': 'Decrease zoom (Ctrl+-)',
   'prefs.zoomIncrease': 'Increase zoom (Ctrl+=)',
-  'prefs.zoomReset': 'Reset zoom (Ctrl+0)',
+  'prefs.zoomReset': 'Reset zoom (Ctrl+Numpad 0)',
   'prefs.checkUpdates': 'Software updates',
   'prefs.checkUpdatesDesc': 'Check whether a newer version of Arco is available to download.',
   'prefs.installedVersion': 'Installed version',
@@ -816,6 +817,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v330.note1':
+    'Ctrl+1 to Ctrl+9 open the fronts of work in the order the sidebar lists them, and Ctrl+0 opens the last one, like tabs in a browser. A front opens on the session you were last using in it, and hovering a front in the sidebar shows its shortcut. These keys used to open projects by position. Resetting the zoom moved to Ctrl+Numpad 0, and the button in Preferences → Appearance still does it.',
+  'whatsNew.v330.note2':
+    'Alt+Shift+arrows move to the pane on that side of the one you are in, including the terminal beside the front. Ctrl+PageDown and Ctrl+PageUp go to the next and the previous pane on screen without leaving the front. Ctrl+Left, Ctrl+Right, Alt+arrows and the Ctrl+letter keys the app does not use stay with the shell and the agent.',
+  'whatsNew.v330.note3':
+    "A shortcut no longer reaches the terminal as well. Ctrl+3 switched projects and also sent Escape to the agent, which could interrupt Claude mid-answer; Ctrl+Tab sent a Tab and Ctrl+T toggled Claude's task list. A screenshot pasted into Claude also turns into [Image #1] again in a long session, instead of arriving as its file path. Restart the app once after updating for the paste fix to take effect.",
   'whatsNew.v320.note1':
     'New setting in Preferences → Terminal and agents: start Claude Code without permission prompts. When on, every Claude session starts with --dangerously-skip-permissions, however the pane was opened: a new pane, a task, arco session, a restore when the app opens, a handoff or a restart. Claude then runs commands and edits files without asking first. It is off by default, so turn it on if you want it. A pane already running keeps how it started: restart it to pick the setting up.',
   'whatsNew.v310.note1':

@@ -16,6 +16,8 @@ export type NormalProjectNodeProps = {
   project: Project
   isActive: boolean
   openPanes: Set<string> | undefined
+  /** The chord that opens each front, by group id. */
+  frontShortcuts: Map<string, string>
   onActivate: () => void
   onToggleCollapsed: () => void
   onTerminalClick: (t: Terminal) => void
@@ -35,6 +37,7 @@ export function NormalProjectNode({
   project,
   isActive,
   openPanes,
+  frontShortcuts,
   onActivate,
   onToggleCollapsed,
   onTerminalClick,
@@ -188,6 +191,7 @@ export function NormalProjectNode({
               group={group}
               panes={members}
               open={members.some((term) => openPanes?.has(term.id))}
+              shortcut={frontShortcuts.get(group.id)}
               // Opening a front means putting it on screen. Its sessions are
               // laid out together, so reaching any one of them opens all.
               onOpen={() => {

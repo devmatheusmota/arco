@@ -12,6 +12,8 @@ export type NormalGroupNodeProps = {
   panes: Terminal[]
   /** True when any session of this front is on screen. */
   open: boolean
+  /** The chord that opens this front from anywhere, when it has one. */
+  shortcut?: string
   onOpen: () => void
   onRename: (name: string) => void
   onAddPane: () => void
@@ -31,6 +33,7 @@ export function NormalGroupNode({
   group,
   panes,
   open,
+  shortcut,
   onOpen,
   onRename,
   onAddPane,
@@ -78,7 +81,11 @@ export function NormalGroupNode({
           event.stopPropagation()
           onMenu(event)
         }}
-        title={group.cwd || group.name}
+        title={
+          shortcut
+            ? `${group.cwd || group.name}\n${t('ui.group.openShortcut', { shortcut })}`
+            : group.cwd || group.name
+        }
       >
         <span className={styles.groupLead}>
           {/* The icon says where the work happens, which is the one thing about

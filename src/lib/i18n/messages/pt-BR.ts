@@ -206,6 +206,7 @@ export const ptBR: Record<MessageKey, string> = {
   'ui.terminal.refCopied': 'Referência copiada',
   'ui.group.new': 'Nova frente de trabalho',
   'ui.group.addPane': 'Adicionar sessão a esta frente',
+  'ui.group.openShortcut': 'Abrir com {shortcut}',
   'ui.group.rename': 'Renomear frente',
   'ui.group.close': 'Fechar frente',
   'ui.group.closeWithWorktree': 'Fechar frente e apagar a worktree dela',
@@ -754,7 +755,7 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.photoPlaceholder': 'Link da foto',
   'prefs.zoomDecrease': 'Diminuir zoom (Ctrl+-)',
   'prefs.zoomIncrease': 'Aumentar zoom (Ctrl+=)',
-  'prefs.zoomReset': 'Resetar zoom (Ctrl+0)',
+  'prefs.zoomReset': 'Resetar zoom (Ctrl+0 do teclado numérico)',
   'prefs.checkUpdates': 'Atualizações do software',
   'prefs.checkUpdatesDesc':
     'Verifique se uma versão mais recente do Arco está disponível para baixar.',
@@ -828,6 +829,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v330.note1':
+    'Ctrl+1 até Ctrl+9 abrem as frentes de trabalho na ordem da barra lateral, e Ctrl+0 abre a última, como as abas do navegador. A frente abre na sessão que você usou por último nela, e passar o mouse numa frente da barra lateral mostra o atalho dela. Antes essas teclas abriam projetos pela posição. Resetar o zoom passou para Ctrl+0 do teclado numérico, e o botão em Preferências → Aparência continua fazendo isso.',
+  'whatsNew.v330.note2':
+    'Alt+Shift+setas vão para o pane daquele lado, incluindo o terminal ao lado da frente. Ctrl+PageDown e Ctrl+PageUp vão para o próximo e o anterior entre os panes na tela, sem sair da frente. Ctrl+←, Ctrl+→, Alt+setas e as teclas Ctrl+letra que o app não usa continuam com o shell e o agente.',
+  'whatsNew.v330.note3':
+    'Atalho do app não chega mais no terminal junto. Ctrl+3 trocava de projeto e mandava Esc para o agente, o que podia interromper o Claude no meio da resposta; Ctrl+Tab mandava um Tab e Ctrl+T abria e fechava a lista de tarefas do Claude. Print colado no Claude também volta a virar [Image #1] em sessão longa, em vez de chegar como o caminho do arquivo. Reinicie o app uma vez depois de atualizar para a correção da colagem valer.',
   'whatsNew.v320.note1':
     'Configuração nova em Preferências → Terminal e agentes: iniciar o Claude Code sem pedir permissão. Ligada, toda sessão do Claude começa com --dangerously-skip-permissions, não importa como o pane foi aberto: pane novo, tarefa, arco session, restauração ao abrir o app, handoff ou reinício. O Claude passa a rodar comandos e editar arquivos sem perguntar antes. Vem desligada, então ligue se quiser. Pane que já está rodando mantém o jeito como começou: reinicie para pegar a configuração.',
   'whatsNew.v310.note1':

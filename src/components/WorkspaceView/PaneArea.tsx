@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Panel, Separator } from 'react-resizable-panels'
 
+import { paneGridCells } from '../../lib/paneLayout'
 import type { Terminal } from '../../lib/types'
 import { DiffPane } from '../DiffPane'
 import { TerminalPane } from '../TerminalPane'
@@ -59,13 +60,8 @@ function PaneStack({
   panes: Terminal[]
   visibleIds: string[]
 }) {
-  // A grid, not a row: four sessions side by side are four columns nobody can
-  // read. Squaring off keeps every pane wide enough to hold a line of output,
-  // and the last row spreads across whatever it has so no cell is left empty.
-  const count = visibleIds.length || 1
-  const columns = Math.ceil(Math.sqrt(count))
-  const rows = Math.ceil(count / columns)
-  const height = 100 / rows
+  // The pane shortcuts move through these same cells, so the layout lives in one place.
+  const cells = paneGridCells(visibleIds.length)
 
   return (
     <div className={styles.paneStack}>
@@ -73,15 +69,13 @@ function PaneStack({
         const index = visibleIds.indexOf(terminal.id)
         const visible = index >= 0
         let placement: React.CSSProperties | undefined
-        if (visible && count > 1) {
-          const row = Math.floor(index / columns)
-          const inRow = Math.min(columns, count - row * columns)
-          const width = 100 / inRow
+        if (visible && cells.length > 1) {
+          const cell = cells[index]
           placement = {
-            left: `${(index - row * columns) * width}%`,
-            width: `${width}%`,
-            top: `${row * height}%`,
-            height: `${height}%`,
+            left: `${cell.left}%`,
+            width: `${cell.width}%`,
+            top: `${cell.top}%`,
+            height: `${cell.height}%`,
             right: 'auto',
             bottom: 'auto',
           }

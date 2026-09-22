@@ -12,6 +12,7 @@ import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
 import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { buildCliContextArgs } from '../../lib/cliContext'
 import { getLocale, translate } from '../../lib/i18n'
+import { isAppChordInTerminal } from '../../lib/keybindings'
 import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
 import { measure } from '../../lib/mainThreadBudget'
 import { deliverToPty } from '../../lib/paneDelivery'
@@ -750,22 +751,13 @@ export function useXtermSession(params: {
       if (event.type !== 'keydown') return true
       traceKeyDown(event)
       const ctrl = event.ctrlKey || event.metaKey
+      if (!ctrl && !event.altKey) return true
+      // xterm ignores defaultPrevented: a chord the app acts on would reach the
+      // process too unless it is refused here.
+      if (isAppChordInTerminal(event)) return false
       if (!ctrl || event.altKey) return true
 
       const key = event.key.toLowerCase()
-
-      if (
-        key === '+' ||
-        key === '=' ||
-        key === '-' ||
-        key === '_' ||
-        key === '0' ||
-        event.code === 'NumpadAdd' ||
-        event.code === 'NumpadSubtract' ||
-        event.code === 'Numpad0'
-      ) {
-        return false
-      }
 
       if (key === 'c' && terminal.hasSelection()) {
         const selection = terminal.getSelection()
@@ -797,9 +789,6 @@ export function useXtermSession(params: {
           })
         return false
       }
-
-      // Ctrl+B toggles the left sidebar; the shell must not also receive it.
-      if (key === 'b' && !event.shiftKey) return false
 
       if (!readOnly && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
         navigateHistory(event.key === 'ArrowUp' ? 'up' : 'down')

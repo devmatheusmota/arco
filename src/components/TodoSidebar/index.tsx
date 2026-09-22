@@ -23,6 +23,7 @@ import { useSessionFocus } from '../../hooks/useSessionFocus'
 import { adoPullRequests, pullRequestUrl, workItemUrl } from '../../lib/adoRef'
 import { formatRelativeTimestamp } from '../../lib/greeting'
 import { type TFunction, translate, useT } from '../../lib/i18n'
+import { FOCUS_TASK_COMPOSER_EVENT, registerTaskComposer } from '../../lib/keybindings'
 import { formatShortcut } from '../../lib/platform'
 import { openInBrowser, type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
 import {
@@ -771,16 +772,19 @@ export function TodoSidebar() {
       ).length,
   )
 
+  // Ctrl+N is resolved with the other shortcuts, so a terminal never receives it
+  // while the composer is here to take it — and gets it back when it is not.
   useEffect(() => {
-    const focusComposer = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return
-      if (event.key.toLowerCase() !== 'n') return
-      event.preventDefault()
+    const focusComposer = () => {
       setComposerExpanded(true)
       addInputRef.current?.focus()
     }
-    window.addEventListener('keydown', focusComposer, true)
-    return () => window.removeEventListener('keydown', focusComposer, true)
+    const unregister = registerTaskComposer()
+    window.addEventListener(FOCUS_TASK_COMPOSER_EVENT, focusComposer)
+    return () => {
+      unregister()
+      window.removeEventListener(FOCUS_TASK_COMPOSER_EVENT, focusComposer)
+    }
   }, [])
 
   const submit = () => {

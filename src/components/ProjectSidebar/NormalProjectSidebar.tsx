@@ -25,6 +25,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { frontShortcuts, orderedFronts } from '../../lib/frontOrder'
 import { useT } from '../../lib/i18n'
 import { formatShortcut } from '../../lib/platform'
 import {
@@ -158,6 +159,10 @@ export function NormalProjectSidebar() {
   }, [containers])
 
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
+  const frontShortcutLabels = useMemo(
+    () => frontShortcuts(orderedFronts(projectOrder, projects)),
+    [projectOrder, projects],
+  )
   const activeProject = useMemo(
     () => projectsById.get(activeProjectId ?? '') ?? projects[0] ?? null,
     [activeProjectId, projects, projectsById],
@@ -271,6 +276,7 @@ export function NormalProjectSidebar() {
       project={p}
       isActive={p.id === activeProjectId}
       openPanes={openPaneSets[p.id]}
+      frontShortcuts={frontShortcutLabels}
       onActivate={() => {
         activateProject(p)
       }}
