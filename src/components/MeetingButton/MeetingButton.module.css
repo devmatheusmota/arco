@@ -1,0 +1,77 @@
+.btn {
+  position: fixed;
+  /* The dictation button is 44px wide at right: 18px, so it ends at 62px. This
+     clears it by 16px, matching the 18px the pair keeps from the window edge —
+     at 12px the two read as one blob, their shadows overlapping. */
+  right: 78px;
+  bottom: 18px;
+  z-index: 80;
+  height: 44px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated, var(--bg-sunken));
+  color: var(--fg-muted, var(--fg));
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--bg) 72%, transparent);
+  transition:
+    color 0.12s,
+    border-color 0.12s,
+    background 0.12s;
+}
+
+.btn:hover:not(:disabled) {
+  color: var(--fg);
+  border-color: var(--border-strong, var(--accent));
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Recording is the one state worth reading across the room, so it carries the
+   colour and the pulse; everything else stays quiet next to the terminal. */
+.recording {
+  color: var(--status-offline);
+  border-color: var(--status-offline);
+  background: var(--status-offline-soft);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: meetingPulse 1.6s ease-in-out infinite;
+}
+
+.failed {
+  color: var(--status-waiting);
+  border-color: var(--status-waiting);
+}
+
+.clock {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes meetingPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+  }
+}

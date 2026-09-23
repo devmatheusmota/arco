@@ -609,6 +609,19 @@ export const ptBR: Record<MessageKey, string> = {
   'dictation.stop': 'Parar ditado',
   'dictation.unsupported': 'Entrada de voz indisponível nesta versão.',
   'dictation.modelMissing': 'Modelo de voz não encontrado. O ditado precisa do modelo local.',
+  'meeting.label': 'Transcrição de reunião',
+  'meeting.idle': 'Reunião',
+  'meeting.recording': 'Gravando · {elapsed}',
+  'meeting.failed': 'Reunião · falhou',
+  'meeting.startHint':
+    'Transcrever a reunião: grava o que toca nesta máquina, junto com o microfone.',
+  'meeting.stopHint': 'Parar e transcrever. O texto vai para a pasta de transcrições.',
+  'meeting.warning': 'Atenção: {warning}.',
+  'meeting.lastError': 'Última tentativa: {error}',
+  'meeting.pending': 'Ainda há {count} blocos de áudio esperando transcrição.',
+  'meeting.savedTitle': 'Reunião transcrita',
+  'meeting.savedBody': 'Salva em {file}.',
+  'meeting.savedNoFile': 'A gravação parou, mas o meetscribe não informou o arquivo.',
   'prefs.terminalTheme': 'Tema do terminal',
   'prefs.terminalThemeDesc':
     'Use o tema da interface ou escolha uma paleta exclusiva para terminais.',
@@ -829,6 +842,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v340.note1':
+    'Um botão Reunião fica ao lado do botão de ditado, no canto de baixo. Ele transcreve a reunião: grava o que está tocando nesta máquina — Teams, Meet, o que estiver rodando — junto com o seu microfone, e escreve o texto na sua pasta de transcrições. Quem grava é o meetscribe, então a captura continua com o Arco fechado, e o botão só aparece em máquina que tem ele instalado.',
+  'whatsNew.v340.note2':
+    'Frente nova não cria mais a worktree dela dentro da worktree de outra frente. Bastava uma frente trabalhar isolada para toda worktree criada depois — pela interface e pela linha de comando — nascer dentro da primeira, onde fechar a frente de fora apagaria o trabalho de dentro. Worktree que já nasceu aninhada continua onde está: tire esse trabalho de lá antes de fechar a frente acima dela. A pasta que o Arco mantém no repositório também some do git status agora, por clone e sem mexer em arquivo versionado.',
+  'whatsNew.v340.note3':
+    'O comando arco responde --help em todos os subcomandos, e parou de devolver nome que você não consegue digitar: quando dois panes dividem o mesmo diretório, ele lista pa-1234, não um pedaço de id interno. Pedir uma frente que não existe com --group abre a frente, em vez de cair calado na frente em que você estava, e --worktree é recusado, com o motivo, quando a frente já tem uma — antes era ignorado em silêncio, que foi como uma sessão pedida isolada começou na árvore de outra. O comando de terminal não é atualizado pelo pacote: reinstale em Preferências \u2192 Integrações \u2192 Comando de terminal.',
   'whatsNew.v330.note1':
     'Ctrl+1 até Ctrl+9 abrem as frentes de trabalho na ordem da barra lateral, e Ctrl+0 abre a última, como as abas do navegador. A frente abre na sessão que você usou por último nela, e passar o mouse numa frente da barra lateral mostra o atalho dela. Antes essas teclas abriam projetos pela posição. Resetar o zoom passou para Ctrl+0 do teclado numérico, e o botão em Preferências → Aparência continua fazendo isso.',
   'whatsNew.v330.note2':

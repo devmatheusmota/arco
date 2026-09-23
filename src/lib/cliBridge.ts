@@ -220,8 +220,14 @@ function treeDepth(entry: SessionEntry, cwd: string): number {
 }
 
 function describeSession(entry: SessionEntry): string {
+  // The short reference is the only name for a pane that appears anywhere else:
+  // the session list, the sender line, `arco session send`. Naming the pane by a
+  // slice of its id here handed the reader a word the rest of the app never uses
+  // — and this string is printed exactly where someone has to pick one pane out
+  // of several, which is the worst moment to change vocabulary.
+  const ref = entry.terminal.shortId?.trim() || entry.terminal.id.slice(0, 8)
   const name = entry.terminal.name?.trim()
-  return name ? `${entry.terminal.id.slice(0, 8)} ${name}` : entry.terminal.id.slice(0, 8)
+  return name ? `${ref} ${name}` : ref
 }
 
 const NO_SESSION_HERE =
@@ -390,47 +396,55 @@ function failure(detail: string): CliResult {
  * the fronts rather than beside its siblings.
  *
  * `--group` names another one, by front name or by the reference of any session
- * in it. With neither, and no pane to inherit from, the session has no front —
- * which the next load adopts into the project's own.
+ * in it. A name that matches no front opens one: the flag is the only way the
+ * command line has to say "somewhere else", and answering it by landing in the
+ * caller's front is how an agent ends up working in another front's worktree.
+ * With neither, and no pane to inherit from, the session has no front — which
+ * the next load adopts into the project's own.
  */
-function resolveGroupId(
-  request: SessionRequest & SessionScope,
-  projectId: string,
-): string | undefined {
+type GroupChoice = { id?: string; createName?: string; error?: CliResult }
+
+function resolveGroup(request: SessionRequest & SessionScope, projectId: string): GroupChoice {
   const project = useProjectsStore.getState().projects.find((item) => item.id === projectId)
   const groups = project?.groups ?? []
-  if (groups.length === 0) return undefined
 
   const wanted = request.group?.trim()
   if (wanted) {
     const ref = normalizePaneRef(wanted)
-    const byRef = ref ? project?.terminals.find((pane) => pane.shortId === ref)?.groupId : undefined
-    if (byRef) return byRef
+    if (ref) {
+      // A reference names a pane that exists or nothing at all. Opening a front
+      // called `pa-1234` because the pane is gone helps nobody.
+      const byRef = project?.terminals.find((pane) => pane.shortId === ref)?.groupId
+      return byRef ? { id: byRef } : { error: failure(`Nenhum pane com a referência ${ref}.`) }
+    }
     const lowered = wanted.toLowerCase()
-    return groups.find((group) => group.name.toLowerCase() === lowered)?.id
+    const byName = groups.find((group) => group.name.toLowerCase() === lowered)
+    return byName ? { id: byName.id } : { createName: wanted }
   }
+
+  if (groups.length === 0) return {}
 
   // No flag: inherit from the pane the command ran in.
   const match = matchSession(request)
-  if ('entry' in match) return match.entry.terminal.groupId
+  if ('entry' in match) return { id: match.entry.terminal.groupId }
 
   // The `arco` on PATH is whatever build is installed, and an older one sends
   // no session scope at all — the working directory is the one thing every
   // version has always sent. A directory inside a front's worktree, or inside
   // a pane of one, is that front: the session is already standing in it.
   const cwd = request.cwd?.trim() ?? ''
-  if (!cwd) return undefined
+  if (!cwd) return {}
   const within = (root: string | undefined) =>
     Boolean(root) && (cwd === root || cwd.startsWith(`${root}/`))
 
   const byWorktree = groups.find((group) => within(group.cwd?.trim()))
-  if (byWorktree) return byWorktree.id
+  if (byWorktree) return { id: byWorktree.id }
   // Deepest first: a pane in a worktree under the project root must not match
   // the project root's own front.
   const byPane = [...(project?.terminals ?? [])]
     .filter((pane) => pane.groupId && within(pane.cwd?.trim()))
     .sort((a, b) => (b.cwd?.length ?? 0) - (a.cwd?.length ?? 0))[0]
-  return byPane?.groupId
+  return byPane?.groupId ? { id: byPane.groupId } : {}
 }
 
 async function handleSession(request: SessionRequest & SessionScope): Promise<CliResult> {
@@ -462,11 +476,27 @@ async function handleSession(request: SessionRequest & SessionScope): Promise<Cl
   const paneName = requestedName || target?.title?.trim() || agent
   const paneNameSource = requestedName ? 'user' : target ? 'task' : 'auto'
 
-  const groupId = resolveGroupId(request, projectId)
-  const group = groupId ? (project?.groups ?? []).find((item) => item.id === groupId) : undefined
+  const choice = resolveGroup(request, projectId)
+  if (choice.error) return choice.error
+  let groupId = choice.id
+  let group = groupId ? (project?.groups ?? []).find((item) => item.id === groupId) : undefined
+  if (!group && choice.createName) {
+    group = store.createGroup(projectId, { name: choice.createName })
+    groupId = group.id
+  }
+
   // A front that owns a worktree shares it: a second session there editing a
-  // checkout of its own would not be in the same piece of work at all.
-  const worktree = group?.worktreeAgentId ? 'none' : normalizeWorktree(request.worktree)
+  // checkout of its own would not be in the same piece of work at all. That is
+  // the right default, and the wrong answer to someone who typed `--worktree`:
+  // overriding it in silence is what let an agent run in another front's tree.
+  const requested = normalizeWorktree(request.worktree)
+  if (group?.worktreeAgentId && requested === 'new') {
+    return failure(
+      `A frente "${group.name}" já trabalha na worktree ${group.worktreeAgentId}, e uma sessão dela não abre outra. ` +
+        'Use --group com um nome novo para abrir uma frente com worktree própria, ou tire o --worktree para entrar nesta.',
+    )
+  }
+  const worktree = group?.worktreeAgentId ? 'none' : requested
   const paneCwd = group?.cwd?.trim() || cwd
 
   const terminal = await store.createAgentTerminal(projectId, {
@@ -482,6 +512,18 @@ async function handleSession(request: SessionRequest & SessionScope): Promise<Cl
     },
     ...(groupId ? { groupId } : {}),
   })
+
+  // The front takes the worktree its first session provisioned, the same way the
+  // interface does it. Left on the pane alone, the worktree is invisible to
+  // `arco group list` and, worse, `closeGroupWithWorktree` has nothing to remove:
+  // closing the front leaves the checkout on disk with nobody to answer for it.
+  if (groupId && terminal.worktreeAgentId && !group?.worktreeAgentId) {
+    useProjectsStore.getState().adoptGroupWorktree(projectId, groupId, {
+      worktreeAgentId: terminal.worktreeAgentId,
+      cwd: terminal.cwd,
+    })
+  }
+
   const where = group ? ` na frente "${group.name}"` : ''
   if (!target) return { ok: true, message: `Sessão ${agent} criada${where}.` }
 
@@ -617,10 +659,17 @@ async function handleSessionSend(request: SessionSendRequest & SessionScope): Pr
     return failure(`O pane ${label} ${why}. Abra-o no app e mande de novo.`)
   }
 
-  // Who sent it, when the sender is a pane of this workspace.
-  const sender = request.sessionId
-    ? sessionEntries().find((entry) => entry.terminal.id === request.sessionId)
-    : undefined
+  // Who sent it, when the sender is a pane of this workspace. The exported id is
+  // the reliable answer, but a pane started before that existed does not export
+  // one, and without a fallback its messages arrive anonymous — the receiving
+  // agent then has no address to answer, which is the whole point of the header.
+  // The directory is the same evidence `current` is resolved from; an ambiguous
+  // one names nobody rather than guessing wrong.
+  const senderScope: SessionScope = request.sessionId
+    ? { sessionId: request.sessionId }
+    : { sessionCwd: request.sessionCwd }
+  const senderMatch = request.sessionId || request.sessionCwd ? matchSession(senderScope) : null
+  const sender = senderMatch && 'entry' in senderMatch ? senderMatch.entry : undefined
   const body = request.raw ? text : withSenderLine(text, sender?.terminal.shortId)
 
   try {
@@ -649,6 +698,13 @@ function handleGroupList(): CliResult {
   const groups = projects.flatMap((project) =>
     (project.groups ?? []).map((group) => {
       const panes = project.terminals.filter((terminal) => terminal.groupId === group.id)
+      // A front created before the command line adopted worktrees carries none
+      // of its own, while a pane inside it does. Reading only the front told
+      // whoever asked — the `morning` skill among them — that the front occupies
+      // no disk, which is the opposite of true.
+      const owner = panes.find((pane) => pane.worktreeAgentId)
+      const worktree = group.worktreeAgentId ?? owner?.worktreeAgentId
+      const cwd = group.cwd ?? (group.worktreeAgentId ? undefined : owner?.cwd)
       return {
         id: group.id,
         name: group.name,
@@ -656,8 +712,8 @@ function handleGroupList(): CliResult {
         projectId: project.id,
         panes: panes.length,
         refs: panes.map((pane) => pane.shortId ?? '').filter(Boolean),
-        ...(group.worktreeAgentId ? { worktree: group.worktreeAgentId } : {}),
-        ...(group.cwd ? { cwd: group.cwd } : {}),
+        ...(worktree ? { worktree } : {}),
+        ...(cwd ? { cwd } : {}),
       }
     }),
   )

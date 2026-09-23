@@ -21,6 +21,8 @@ const {
   handlesCli,
   manifestCandidates,
   mistypedFlag,
+  helpFor,
+  helpRequested,
 } = require('../../electron/cli.cjs') as {
   parseTodo: (args: string[]) => Record<string, unknown>
   parseTodoImplicit: (args: string[]) => Record<string, unknown>
@@ -38,6 +40,8 @@ const {
   handlesCli: (argv: string[]) => boolean
   manifestCandidates: (dir: string) => string[]
   mistypedFlag: (argv: string[]) => string | null
+  helpFor: (topic: string) => string | null
+  helpRequested: (args: string[]) => boolean
 }
 
 describe('parseTodo', () => {
@@ -609,5 +613,34 @@ describe('mistypedFlag', () => {
     expect(mistypedFlag(['/opt/Arco/arco'])).toBeNull()
     expect(mistypedFlag(['/opt/Arco/arco', '/tmp'])).toBeNull()
     expect(mistypedFlag(['/opt/Arco/arco', '--hlep', '/tmp'])).toBeNull()
+  })
+})
+
+describe('helpFor', () => {
+  // `arco session --help` used to answer "opcao desconhecida: --help", which is
+  // the one reply that teaches nothing to someone asking what the options are.
+  it('answers for a command with its own block, not the whole index', () => {
+    const text = helpFor('session')
+
+    expect(text).toContain('--worktree')
+    expect(text).toContain('arco session list')
+    expect(text).not.toContain('arco todo list')
+  })
+
+  it('narrows to the subcommand when one is named', () => {
+    const text = helpFor('session send')
+
+    expect(text).toContain('--raw')
+    expect(text).not.toContain('--agent')
+  })
+
+  it('answers nothing for a command that has no block', () => {
+    expect(helpFor('inexistente')).toBeNull()
+  })
+
+  it('spots the flag anywhere in the line, since parsing must not see it first', () => {
+    expect(helpRequested(['send', 'pa-1', '--help'])).toBe(true)
+    expect(helpRequested(['-h'])).toBe(true)
+    expect(helpRequested(['send', 'pa-1', 'texto'])).toBe(false)
   })
 })

@@ -10,6 +10,49 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.4.0] — 2026-09-23
+
+### Added
+
+- A **Meeting** button in the bottom corner starts and stops the transcription of a call. It
+  records what plays on this machine — Teams, Meet, whatever is running — together with the
+  microphone, and the text lands in the transcripts folder. The recording belongs to
+  `meetscribe`, which keeps writing while Arco is closed; the button reads its state instead of
+  keeping one of its own, and it stays hidden on a machine that does not have it installed.
+- `--help` answers on every command of the `arco` CLI — `arco session --help`, `arco todo --help`,
+  `arco session send --help` — with the options of that command instead of "opcao desconhecida".
+- `arco session --group "<name>"` opens a front when no front answers to that name, rather than
+  quietly landing the session in the front the command was run from.
+
+### Changed
+
+- `arco session --worktree` is refused, with the reason and the way out, when the front already
+  works in a worktree of its own. It used to be downgraded in silence, so a session asked to run
+  in isolation started in another front's checkout while the command reported success.
+- A front opened from the command line now takes the worktree its first session created, the way
+  a front opened from the interface always has. Closing it removes that worktree instead of
+  leaving it on disk, and `arco group list` stops reporting the front as occupying nothing.
+- Provisioning a worktree adds `.arco/` to `.git/info/exclude`, so the folder stops showing up as
+  untracked in every `git status`. The file is per-clone and never versioned, and the rule is
+  written when attaching to a worktree that already exists too — otherwise repositories that had
+  worktrees before this shipped would never have received it.
+
+### Fixed
+
+- A new front's worktree is created beside the project again, not inside another front's
+  worktree. A pane opened in a front it did not provision carries no mark of the worktree it
+  stands in, and the project's root was read from it — so once any front worked in isolation,
+  every worktree created afterwards, from the interface and from the command line alike, was
+  nested inside that first one, where closing the outer front would have deleted the work
+  inside it.
+- `arco session send` and the other commands that ask you to pick between panes sharing a
+  directory now name each candidate by its short reference (`pa-1234`), the same name the
+  session list and the sender line use, instead of a slice of an internal id that no command
+  accepts.
+- Text sent from a pane that does not export its session id still says who sent it. The sender is
+  resolved from the directory, the same evidence `current` uses, so the receiving agent has an
+  address to answer instead of a message that reads like the user typed it.
+
 ## [3.3.0] — 2026-09-22
 
 ### Added

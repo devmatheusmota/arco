@@ -188,8 +188,10 @@ export function createTerminalsSlice({
         (isolationChoice === 'new' ||
           (isolationChoice === 'inherit' && Boolean(project?.autoWorktree)))
       if (project && wantsIsolation) {
-        // worktree_provision resolve a raiz de verdade via `--git-common-dir`
-
+        // This value is where the worktree directory lands. `worktree_provision`
+        // joins `.arco/worktrees/<id>` onto it verbatim — the Rust shell used to
+        // resolve the real root with `--git-common-dir`, the Electron one never
+        // did, so nothing downstream corrects a root that points into a worktree.
         const repo = getProjectRepoRoot(project) || getProjectDefaultCwd(project) || args.cwd.trim()
         if (repo) {
           const agentId = `${args.firstTab.type.slice(0, 2)}-${nanoid(6)}`.replace(

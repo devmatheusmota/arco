@@ -8,6 +8,7 @@ import styles from './App.module.css'
 import homeBackground from './assets/home-bg-right.png'
 import { AgentSandbox } from './components/AgentSandbox'
 import { DictationButton } from './components/DictationButton'
+import { MeetingButton } from './components/MeetingButton'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { FocusOverlay } from './components/FocusOverlay'
 import { AgentIcon } from './components/icons/AgentIcons'
@@ -616,6 +617,7 @@ export default function App() {
       <FocusOverlay />
       <LinkViewerOverlay />
       <DictationButton />
+      <MeetingButton />
       <MainMenu />
       <ErrorBoundary label="modals">
         <NewProjectModal />

@@ -275,12 +275,17 @@ export function getProjectRepoRoot(project: Project | null | undefined): string 
   if (!project) return ''
   const sorted = [...project.terminals].sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0))
 
-  // de raiz, devolvendo o path da worktree em vez do repo de verdade, e
-
-  const pure = sorted.filter((terminal) => !terminal.worktreeAgentId && !terminal.gsdSyncViewer)
-  for (const terminal of pure) {
+  // A pane answers for the root only when it stands outside every worktree.
+  // `worktreeAgentId` marks the pane that provisioned one, but it is not the
+  // only pane living there: a second session opened in the same front inherits
+  // the directory and carries no mark at all. Trusting the mark alone made that
+  // pane the project's root, and every worktree created afterwards — from the
+  // command line and from the interface alike — was nested inside the first
+  // one, where closing the outer front would delete it.
+  for (const terminal of sorted) {
+    if (terminal.worktreeAgentId || terminal.gsdSyncViewer) continue
     const cwd = resolveTerminalCwd(terminal)
-    if (cwd) return cwd
+    if (cwd && !isInsideArcoWorktree(cwd)) return cwd
   }
 
   for (const terminal of sorted) {

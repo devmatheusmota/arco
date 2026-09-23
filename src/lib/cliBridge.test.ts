@@ -74,6 +74,12 @@ const state = {
   renameTerminal: vi.fn(),
   closeGroupWithWorktree: vi.fn(async () => undefined),
   deleteTerminalWithWorktreeCleanup: vi.fn(async () => undefined),
+  createGroup: vi.fn((projectId: string, args: { name: string }) => {
+    const group = { id: `g-${state.projects[0].groups.length}`, name: args.name, createdAt: 1 }
+    state.projects[0].groups = [...state.projects[0].groups, group]
+    return group
+  }),
+  adoptGroupWorktree: vi.fn(),
   createAgentTerminal: vi.fn(async (projectId: string, args: Record<string, unknown>) => {
     const pane = {
       id: `novo-${state.projects[0].terminals.length}`,
@@ -158,6 +164,8 @@ beforeEach(async () => {
   replies.length = 0
   toasts.length = 0
   state.renameTerminal.mockClear()
+  state.createGroup.mockClear()
+  state.adoptGroupWorktree.mockClear()
   handlers.clear()
   await startCliBridge()
 })
@@ -731,6 +739,18 @@ describe('the line that says where a message came from', () => {
 
     expect(deliveries.map((item) => item.text)).toEqual(['de fora', 'de um pane fechado'])
   })
+
+  // Panes that share a directory cannot be told apart by it, and the way out is
+  // to name one. The list has to name them the way everything else does: an
+  // agent handed a slice of an internal id has no command to type it into.
+  it('names the candidates by their short reference when a directory is shared', async () => {
+    const result = await send({ target: 'current', text: 'oi', sessionCwd: '/tmp/arco' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('pa-1004')
+    expect(result.message).toContain('pa-1009')
+    expect(result.message).toMatch(/--session/)
+  })
 })
 
 describe('cli://session-close', () => {
@@ -908,9 +928,25 @@ describe('cli://session-new lands in a front of work', () => {
   // A second session in a front with a worktree shares it; one with a checkout
   // of its own would not be in the same piece of work at all.
   it('shares the front worktree instead of provisioning another', async () => {
-    await request('cli://session-new', { agent: 'claude', sessionId: 'orq', worktree: 'new' })
+    await request('cli://session-new', { agent: 'claude', sessionId: 'orq' })
 
     expect(created()).toMatchObject({ worktree: 'none', cwd: '/wt/1' })
+  })
+
+  // Sharing is the right default and the wrong answer to someone who typed the
+  // flag. Silently downgrading it is what let `/implement` start in another
+  // front's checkout while the command reported success.
+  it('refuses --worktree in a front that already has one, instead of ignoring it', async () => {
+    const result = await request('cli://session-new', {
+      agent: 'claude',
+      sessionId: 'orq',
+      worktree: 'new',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/já trabalha na worktree cl-1/)
+    expect(result.message).toMatch(/--group/)
+    expect(state.createAgentTerminal).not.toHaveBeenCalled()
   })
 
   it('still isolates when the front has no worktree of its own', async () => {
@@ -940,6 +976,66 @@ describe('cli://session-new lands in a front of work', () => {
 
     expect(result.ok).toBe(true)
     expect(created()?.groupId).toBeUndefined()
+  })
+
+  // `--group` is the only way the command line has to say "somewhere else".
+  // Matching nothing and landing in the caller's front answered the opposite of
+  // what was asked, and did it without a word.
+  it('opens a front when the name matches none', async () => {
+    const result = await request('cli://session-new', {
+      agent: 'claude',
+      sessionId: 'solto',
+      group: '23440 leitura das bolhas',
+    })
+
+    expect(result.ok).toBe(true)
+    const opened = state.projects[0].groups.find(
+      (group: { name: string }) => group.name === '23440 leitura das bolhas',
+    )
+    expect(opened).toBeDefined()
+    expect(created()).toMatchObject({ groupId: opened.id })
+    expect(result.message).toMatch(/frente "23440 leitura das bolhas"/)
+  })
+
+  // A reference names a pane that exists or nothing at all. Opening a front
+  // called `pa-9999` because the pane is gone helps nobody.
+  it('refuses a reference that points at no pane instead of opening a front named after it', async () => {
+    const result = await request('cli://session-new', {
+      agent: 'claude',
+      sessionId: 'solto',
+      group: 'pa-9999',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/Nenhum pane com a referência pa-9999/)
+    expect(state.createAgentTerminal).not.toHaveBeenCalled()
+  })
+
+  // Left on the pane alone the worktree is invisible to `arco group list`, and
+  // `closeGroupWithWorktree` has nothing to remove: closing the front leaves the
+  // checkout on disk with nobody to answer for it.
+  it('hands the front the worktree its first session provisioned', async () => {
+    state.createAgentTerminal.mockResolvedValueOnce({
+      id: 't-new',
+      name: 'claude',
+      cwd: '/repo/.arco/worktrees/cl-9',
+      worktreeAgentId: 'cl-9',
+    })
+
+    await request('cli://session-new', {
+      agent: 'claude',
+      sessionId: 'solto',
+      group: 'frente nova',
+      worktree: 'new',
+    })
+
+    const opened = state.projects[0].groups.find(
+      (group: { name: string }) => group.name === 'frente nova',
+    )
+    expect(state.adoptGroupWorktree).toHaveBeenCalledWith('p1', opened.id, {
+      worktreeAgentId: 'cl-9',
+      cwd: '/repo/.arco/worktrees/cl-9',
+    })
   })
 })
 

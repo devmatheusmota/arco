@@ -39,6 +39,35 @@ function branchName(agentId) {
   return `arco/agent-${agentId}`
 }
 
+/**
+ * Hides `.arco/` from the repository, locally.
+ *
+ * The first worktree turns `.arco/` into an untracked entry in every `git
+ * status` of that repository, which is noise in the one command people read to
+ * decide whether they have uncommitted work — and which an agent asked to check
+ * for pending changes reads the same way. `.git/info/exclude` is the right file:
+ * it is per-clone and never versioned, so nothing is imposed on whoever else
+ * works on the repository.
+ */
+function excludeArcoLocally(repo) {
+  try {
+    const gitDir = fs.statSync(path.join(repo, '.git')).isDirectory()
+      ? path.join(repo, '.git')
+      : null
+    // A worktree's `.git` is a file pointing elsewhere; only the main checkout
+    // owns the `info/` this writes to, and it is the one that shows the noise.
+    if (!gitDir) return
+    const file = path.join(gitDir, 'info', 'exclude')
+    const current = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''
+    if (/^\.arco\/?$/m.test(current)) return
+    paths.ensureDir(path.dirname(file))
+    const prefix = current && !current.endsWith('\n') ? '\n' : ''
+    fs.appendFileSync(file, `${prefix}# Arco agent worktrees and pane state\n.arco/\n`)
+  } catch {
+    // Cosmetic: a repository that refuses the write still gets its worktree.
+  }
+}
+
 async function info(repo, agentId) {
   const target = worktreePath(repo, agentId)
   let createdAt = 0
@@ -50,6 +79,11 @@ async function info(repo, agentId) {
 
 async function provision({ repo, agentId, mode }) {
   const target = worktreePath(repo, agentId)
+  // Before the early return below, not after: a repository whose worktrees all
+  // predate this was never going to reach the creation path again, and would
+  // have kept showing `?? .arco/` forever. Attaching to a worktree that already
+  // exists is the moment those repositories do pass through here.
+  excludeArcoLocally(repo)
   if (fs.existsSync(target)) {
     // A directory is not proof of a worktree. A provision interrupted halfway
     // leaves the folder behind without the `.git` file that makes it one, and
@@ -153,4 +187,4 @@ function buildWorktreeCommands() {
   }
 }
 
-module.exports = { buildWorktreeCommands }
+module.exports = { buildWorktreeCommands, excludeArcoLocally, provision }

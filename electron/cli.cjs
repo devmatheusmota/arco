@@ -83,11 +83,13 @@ Detalhe de cada um abaixo.
 
   arco session [opcoes]       cria uma sessao de agente
       --agent claude|codex|opencode|shell   (padrao: claude)
-      --group <nome|ref>      abre em outra frente; sem isso, na frente deste pane
+      --group <nome|ref>      abre em outra frente; nome que nao existe abre uma
+                              frente nova; sem isso, na frente deste pane
       --project <nome>        projeto alvo; sem isso, deduz pelo diretorio atual
       --name <rotulo>         nome do pane
       --prompt <texto>        texto enviado ao agente ao abrir
-      --worktree              forca worktree nova
+      --worktree              forca worktree nova; recusado quando a frente ja
+                              tem uma, em vez de entrar nela calado
       --no-worktree           forca a mesma arvore
       --todo <ref>            ja nasce amarrada a essa tarefa
       --force                 tira a tarefa da sessao que a segura hoje
@@ -868,8 +870,48 @@ async function runTodo(rest) {
   writeOut(formatTodoReceipt('criada', result.data?.todo))
 }
 
+/**
+ * The part of the usage text that answers for one command.
+ *
+ * `arco session --help` used to come back as "opcao desconhecida: --help", which
+ * is the one answer that teaches nothing: whoever typed it was asking what the
+ * options are. The blocks are the ones `arco help` already prints, filtered by
+ * the command asked about, so there is a single text to keep correct.
+ */
+function helpFor(topic) {
+  const wanted = `arco ${topic}`
+  // Only the detailed half: the summary above it is one block listing every
+  // command, so matching there would print the whole index for any topic.
+  const detail = USAGE.split('Detalhe de cada um abaixo.').pop() ?? ''
+  const blocks = detail.split('\n\n').filter((block) => {
+    const head = block.split('\n')[0].trim()
+    return head === wanted || head.startsWith(`${wanted} `)
+  })
+  return blocks.length > 0 ? `${blocks.join('\n\n')}\n` : null
+}
+
+/**
+ * Answers `--help` wherever it appears in a command, before parsing does.
+ *
+ * It has to run first: every parser treats an unknown `--flag` as an error, and
+ * asking for help is not a malformed command.
+ */
+function helpRequested(args) {
+  return args.some((arg) => arg === '--help' || arg === '-h')
+}
+
 async function run(argv) {
   const [command, ...rest] = argv
+
+  if (HANDLED.has(command) && helpRequested(rest)) {
+    // `arco session send --help` is about `session send`, not about `session`.
+    const sub = rest.find((arg) => !arg.startsWith('-'))
+    const text = (sub && helpFor(`${command} ${sub}`)) || helpFor(command)
+    if (text) {
+      writeOut(text)
+      return
+    }
+  }
 
   if (command === 'todo') {
     await runTodo(rest)
@@ -1117,6 +1159,8 @@ module.exports = {
   manifestCandidates,
   mistypedFlag,
   USAGE,
+  helpFor,
+  helpRequested,
   parseSession,
   formatSessionTable,
   formatGroupTable,

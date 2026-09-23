@@ -19,6 +19,7 @@ const { buildLibraryCommands } = require('./library.cjs')
 const { buildWorktreeCommands } = require('./worktrees.cjs')
 const { buildHookCommands, startHookListener } = require('./hooks.cjs')
 const { buildDictationCommands } = require('./dictation.cjs')
+const { buildMeetingCommands } = require('./meeting.cjs')
 const { buildPlatformCommands } = require('./platform.cjs')
 const { buildSystemCommands } = require('./system.cjs')
 const { buildPlanningCommands } = require('./planning.cjs')
@@ -96,6 +97,7 @@ function buildCommands({ ptyHost, mainWindow, send }) {
     ...buildWorktreeCommands(),
     ...buildHookCommands(),
     ...buildDictationCommands(send),
+    ...buildMeetingCommands(),
     ...buildPlatformCommands(),
     ...buildSystemCommands({ ptyHost, send }),
     ...buildPlanningCommands(),

@@ -605,6 +605,19 @@ export const en = {
   'dictation.stop': 'Stop dictation',
   'dictation.unsupported': 'Voice input is not available in this build.',
   'dictation.modelMissing': 'Speech model not found. Dictation needs the on-device model.',
+  'meeting.label': 'Meeting transcription',
+  'meeting.idle': 'Meeting',
+  'meeting.recording': 'Recording · {elapsed}',
+  'meeting.failed': 'Meeting · failed',
+  'meeting.startHint':
+    'Transcribe the meeting: records what plays on this machine, plus the microphone.',
+  'meeting.stopHint': 'Stop and transcribe. The text is written to the transcripts folder.',
+  'meeting.warning': 'Warning: {warning}.',
+  'meeting.lastError': 'Last attempt: {error}',
+  'meeting.pending': 'There are still {count} audio blocks waiting to be transcribed.',
+  'meeting.savedTitle': 'Meeting transcribed',
+  'meeting.savedBody': 'Saved to {file}.',
+  'meeting.savedNoFile': 'The recording stopped, but meetscribe did not name a file.',
   'prefs.terminalTheme': 'Terminal theme',
   'prefs.terminalThemeDesc': 'Follow the interface theme or choose a dedicated terminal palette.',
   'prefs.nativeTerminalMacos': 'Native terminal (Ghostty)',
@@ -817,6 +830,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v340.note1':
+    'A Meeting button sits next to the dictation one, in the bottom corner. It transcribes a call: it records what is playing on this machine — Teams, Meet, whatever is running — together with your microphone, and writes the text to your transcripts folder. The recording belongs to meetscribe, so it keeps going while Arco is closed, and the button only shows up on a machine that has it installed.',
+  'whatsNew.v340.note2':
+    'A new front no longer creates its worktree inside another front\u2019s. Once any front was working in isolation, every worktree made after it — from the interface and from the command line — was nested inside that first one, where closing the outer front would have deleted the work inside. Worktrees already nested stay where they are: move that work out before closing the front above it. The folder Arco keeps in a repository is also hidden from git status now, per clone and without touching a versioned file.',
+  'whatsNew.v340.note3':
+    'The arco command answers --help on every command, and stops giving you names you cannot type: when two panes share a directory it lists them as pa-1234, not as a slice of an internal id. Asking for a front that does not exist with --group opens it instead of quietly landing in the one you were in, and --worktree is refused, with the reason, when the front already has one — it used to be ignored in silence, which is how a session asked to run in isolation started in someone else\u2019s checkout. The terminal command is not updated by the package: reinstall it in Preferences \u2192 Integrations \u2192 Terminal command.',
   'whatsNew.v330.note1':
     'Ctrl+1 to Ctrl+9 open the fronts of work in the order the sidebar lists them, and Ctrl+0 opens the last one, like tabs in a browser. A front opens on the session you were last using in it, and hovering a front in the sidebar shows its shortcut. These keys used to open projects by position. Resetting the zoom moved to Ctrl+Numpad 0, and the button in Preferences → Appearance still does it.',
   'whatsNew.v330.note2':
