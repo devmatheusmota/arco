@@ -1580,8 +1580,8 @@ name = "gate"
     #[test]
     fn a_claude_project_key_uses_forward_slashes() {
         assert_eq!(
-            claude_project_key(Path::new(r"D:\kauam\repo")),
-            "D:/kauam/repo"
+            claude_project_key(Path::new(r"D:\user\repo")),
+            "D:/user/repo"
         );
     }
 }

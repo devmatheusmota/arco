@@ -941,7 +941,7 @@ name = "gate"
     "higgsfield": { "type": "http", "url": "https://mcp.higgsfield.ai/mcp" }
   },
   "projects": {
-    "D:/kauam/Documents/Github/Verzel/Retaguarda/Ret-Campanhas": {
+    "D:/user/Documents/Github/Verzel/Retaguarda/Ret-Campanhas": {
       "allowedTools": [],
       "mcpServers": {
         "azure-devops": {
@@ -1007,7 +1007,7 @@ name = "gate"
 
         let source = local_source(
             config,
-            r"D:\kauam\Documents\Github\Verzel\Retaguarda\Ret-Campanhas",
+            r"D:\user\Documents\Github\Verzel\Retaguarda\Ret-Campanhas",
         );
         let servers = adapter(McpAgent::Claude)
             .parse(CLAUDE_REAL_SHAPE, &source)
@@ -1033,7 +1033,7 @@ name = "gate"
     fn claude_local_lookup_is_slash_and_case_insensitive() {
         let source = local_source(
             PathBuf::from("x/.claude.json"),
-            r"d:\KAUAM\Documents\Github\Verzel\Retaguarda\Ret-Campanhas\",
+            r"d:\USER\Documents\Github\Verzel\Retaguarda\Ret-Campanhas\",
         );
         let servers = adapter(McpAgent::Claude)
             .parse(CLAUDE_REAL_SHAPE, &source)
@@ -1048,7 +1048,7 @@ name = "gate"
         fs::write(&config, CLAUDE_REAL_SHAPE).expect("fixture");
         let source = local_source(
             config.clone(),
-            r"D:\kauam\Documents\Github\Verzel\Retaguarda\Ret-Campanhas",
+            r"D:\user\Documents\Github\Verzel\Retaguarda\Ret-Campanhas",
         );
 
         apply_to_source(

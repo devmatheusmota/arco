@@ -29,7 +29,7 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": "all",
-    "publisher": "Kauã Miguel",
+    "publisher": "Matheus Mota",
     "shortDescription": "Terminal multiplexer GUI",
     "longDescription": "Arco is a Windows-first terminal multiplexer GUI: projects on the left, split-pane terminals on the right, with sub-tabs per pane.",
     "icon": [

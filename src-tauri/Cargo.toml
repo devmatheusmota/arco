@@ -2,7 +2,7 @@
 name = "arco"
 version = "3.4.1"
 description = "Arco — terminal multiplexer GUI"
-authors = ["Kauã Miguel"]
+authors = ["Matheus Mota"]
 license = "AGPL-3.0-or-later"
 edition = "2021"
 

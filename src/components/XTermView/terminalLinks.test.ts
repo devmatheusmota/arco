@@ -86,12 +86,12 @@ describe('terminal links', () => {
     expect(detectTerminalLinks('/tmp/trailer.mp4')[0].fileKind).toBe('video')
     expect(
       detectTerminalLinks(
-        'Jogado em D:\\kauam\\Vaults\\Nostromo\\40-Conteudo\\youtube\\projecao-canal.md com as duas projeções',
+        'Jogado em D:\\user\\Vaults\\Nostromo\\40-Conteudo\\youtube\\projecao-canal.md com as duas projeções',
       )[0].text,
-    ).toBe('D:\\kauam\\Vaults\\Nostromo\\40-Conteudo\\youtube\\projecao-canal.md')
+    ).toBe('D:\\user\\Vaults\\Nostromo\\40-Conteudo\\youtube\\projecao-canal.md')
     expect(
-      detectTerminalLinks('D:\\kauam\\Videos\\motion-kit-hype-video.mp4 e escuta')[0].text,
-    ).toBe('D:\\kauam\\Videos\\motion-kit-hype-video.mp4')
+      detectTerminalLinks('D:\\user\\Videos\\motion-kit-hype-video.mp4 e escuta')[0].text,
+    ).toBe('D:\\user\\Videos\\motion-kit-hype-video.mp4')
     expect(detectTerminalLinks('https://example.com/x')[0].fileKind).toBeUndefined()
   })
 
