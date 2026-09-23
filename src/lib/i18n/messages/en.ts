@@ -733,7 +733,7 @@ export const en = {
     '{dir} is not in your PATH. Add it to your shell profile: export PATH="{dir}:$PATH"',
   'prefs.cliContext': 'Tell agents about the terminal command',
   'prefs.cliContextDesc':
-    'Sessions started here learn that `arco` exists and how to move a task to in-progress, review or done. Claude Code only — Codex and OpenCode have no way to take extra instructions without replacing their own.',
+    'Sessions started here learn that `arco` exists: how to move a task to in-progress, review or done, and how to open a pane or send text to another one. Claude Code receives it as a system instruction. Codex and OpenCode reject an additive flag, so they only receive it when the session starts from a task, as its first message.',
   'prefs.cliContextOn': 'On',
   'prefs.cliContextOff': 'Off',
   'prefs.claudeSkipPermissions': 'Start Claude Code without permission prompts',
@@ -830,6 +830,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v341.note1':
+    'Agents opened here are now told about the whole `arco` command, not only the task board. Asked to open a pane or to send text to another session, an agent used to run `arco help` first to find out how \u2014 every session, because what it was told listed the task commands alone. It now covers listing the sessions, sending text to one, opening a pane and listing the fronts, and it says where a session finds its own reference. Nothing to turn on: it applies to sessions started after updating, and the switch is still Preferences \u2192 Integrations \u2192 Tell agents about the terminal command.',
   'whatsNew.v340.note1':
     'A Meeting button sits next to the dictation one, in the bottom corner. It transcribes a call: it records what is playing on this machine — Teams, Meet, whatever is running — together with your microphone, and writes the text to your transcripts folder. The recording belongs to meetscribe, so it keeps going while Arco is closed, and the button only shows up on a machine that has it installed.',
   'whatsNew.v340.note2':

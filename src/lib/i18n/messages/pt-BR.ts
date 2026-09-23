@@ -742,7 +742,7 @@ export const ptBR: Record<MessageKey, string> = {
     '{dir} não está no seu PATH. Adicione no perfil do shell: export PATH="{dir}:$PATH"',
   'prefs.cliContext': 'Contar aos agentes sobre o comando de terminal',
   'prefs.cliContextDesc':
-    'As sessões abertas aqui passam a saber que o `arco` existe e como mover uma tarefa para em andamento, revisão ou concluída. Só no Claude Code — Codex e OpenCode não têm como receber instruções extras sem substituir as próprias.',
+    'As sessões abertas aqui passam a saber que o `arco` existe: como mover uma tarefa para em andamento, revisão ou concluída, e como abrir um pane ou mandar texto para outro. O Claude Code recebe como instrução de sistema. Codex e OpenCode recusam uma flag aditiva, então só recebem quando a sessão nasce de uma tarefa, na primeira mensagem.',
   'prefs.cliContextOn': 'Ligado',
   'prefs.cliContextOff': 'Desligado',
   'prefs.claudeSkipPermissions': 'Iniciar o Claude Code sem pedir permissão',
@@ -842,6 +842,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v341.note1':
+    'Os agentes abertos aqui agora sabem do comando `arco` inteiro, não só do quadro de tarefas. Quando você pedia para abrir um pane ou mandar texto para outra sessão, o agente rodava `arco help` antes para descobrir como \u2014 toda sessão, porque o que ele recebia listava só os comandos de tarefa. Agora cobre listar as sessões, mandar texto para uma, abrir um pane e listar as frentes, e diz onde a sessão acha a própria referência. Não precisa ligar nada: vale para as sessões abertas depois de atualizar, e a chave continua em Preferências \u2192 Integrações \u2192 Avisar os agentes sobre o comando de terminal.',
   'whatsNew.v340.note1':
     'Um botão Reunião fica ao lado do botão de ditado, no canto de baixo. Ele transcreve a reunião: grava o que está tocando nesta máquina — Teams, Meet, o que estiver rodando — junto com o seu microfone, e escreve o texto na sua pasta de transcrições. Quem grava é o meetscribe, então a captura continua com o Arco fechado, e o botão só aparece em máquina que tem ele instalado.',
   'whatsNew.v340.note2':

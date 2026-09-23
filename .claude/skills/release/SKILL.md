@@ -63,6 +63,21 @@ uns 90s no total. É o preço de não descobrir depois.
 O que o hook não cobre continua com você: mudança visível se olha no app rodando.
 Screenshot vale mais que dedução.
 
+**Mexeu na linha de comando?** Três arquivos andam juntos, e esquecer um deixa a
+release incoerente consigo mesma:
+
+1. `electron/cli.cjs` — o `USAGE`, que é o que `arco help` e `--help` imprimem.
+2. `src/lib/cliContext.ts` — o `CLI_CONTEXT_PROMPT`, que é a **única** forma de um
+   agente saber que o comando existe. Ficou meses listando só `arco todo`, então
+   todo agente mandado abrir um pane ou falar com outro rodava `arco help` antes,
+   toda sessão.
+3. O aviso no passo 7: o `.deb` não atualiza o atalho `arco` em `~/.local/bin`.
+
+O teste `src/lib/arcoCliContext.test.ts` falha quando o `USAGE` ganha um comando
+que o preâmbulo não menciona — o gate roda sozinho, mas a decisão de **o que**
+contar ao agente é sua: comando destrutivo (`group close`) fica de fora, na lista
+`OUT_OF_SCOPE`, com o motivo escrito.
+
 ## 5. Cortar
 
 ```bash

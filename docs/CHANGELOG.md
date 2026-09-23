@@ -10,6 +10,20 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.4.1] — 2026-09-23
+
+### Changed
+
+- Sessions started in Arco are now told about the whole `arco` command, not only the task board.
+  An agent asked to open a pane or to reach another session had to run `arco help` first to find
+  out how, every session, because the preamble listed `arco todo` alone. It now covers
+  `arco session list`, `send`, opening a pane and `arco group list`, and says where the session
+  finds its own reference. A test fails when the command line grows something the preamble never
+  mentions, so the two stop drifting apart.
+- The description of "Tell agents about the terminal command" in Preferences said the setting was
+  Claude Code only. It has not been for a while: Codex and OpenCode receive the same text as the
+  first message when the session starts from a task.
+
 ## [3.4.0] — 2026-09-23
 
 ### Added

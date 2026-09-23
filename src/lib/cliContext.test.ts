@@ -24,6 +24,19 @@ describe('buildCliContextArgs', () => {
     expect(CLI_CONTEXT_PROMPT).toContain('arco todo status <ref>')
     expect(CLI_CONTEXT_PROMPT).toContain('arco todo list')
   })
+
+  // Listing only the board left an agent asked to open a pane, or to reach
+  // another one, running `arco help` first to find out how — every session.
+  it('documents reaching the other sessions, not only the board', () => {
+    expect(CLI_CONTEXT_PROMPT).toContain('arco session send <ref>')
+    expect(CLI_CONTEXT_PROMPT).toContain('arco session list')
+    expect(CLI_CONTEXT_PROMPT).toContain('arco group list')
+  })
+
+  // Without it an agent cannot name itself when it writes to another pane.
+  it('says where the session finds its own reference', () => {
+    expect(CLI_CONTEXT_PROMPT).toContain('$ARCO_PANE_ID')
+  })
 })
 
 describe('buildCliContextInitialInput', () => {
