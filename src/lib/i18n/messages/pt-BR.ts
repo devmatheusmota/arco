@@ -842,6 +842,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v342.note1':
+    'Pane fechado sem querer e reaberto volta para a conversa dele. Com outro pane aberto no mesmo projeto, esse outro pane tomava a conversa para si no instante em que o primeiro soltava, e o pane reaberto começava uma sessão vazia no lugar. O reiniciar também funciona na primeira vez: com o agente rodando, ele parava o agente e não subia nada, e numa conversa sem nada escrito falhava com "No conversation found" a cada clique. Agora ele confere a conversa antes de retomar, roda o CLI configurado nas Preferências em vez do que estiver no PATH, e o pane estacionado para liberar memória volta a oferecer Retomar.',
+  'whatsNew.v342.note2':
+    'Ctrl+Z não chega mais ao Claude Code, ao Codex nem ao OpenCode em pane de agente, no Linux e no macOS. Eles entendem a tecla como “suspender e depois digitar fg”, mas pane de agente não tem shell por trás para trazer o processo de volta, então o pane congelava até ser reiniciado. Pane de shell continua com Ctrl+Z para os jobs. No Claude Code, desfazer o que foi digitado é Ctrl+_.',
+  'whatsNew.v342.note3':
+    'Link comprido que o agente quebra em duas linhas volta a abrir inteiro. O Claude Code quebra linha longa por conta própria, em vez de deixar para o terminal, então num pane estreito ou com dois panes lado a lado o endereço chegava como duas linhas separadas: clicar na primeira abria só metade, e a segunda nem era link. Endereço web e caminho de arquivo agora atravessam essa quebra, clicando em qualquer uma das linhas. Os links que o agente marca explicitamente, como o Codex faz, agora abrem o mesmo menu de link dos outros, em vez de uma caixa de confirmação e uma janela nova.',
   'whatsNew.v341.note1':
     'Os agentes abertos aqui agora sabem do comando `arco` inteiro, não só do quadro de tarefas. Quando você pedia para abrir um pane ou mandar texto para outra sessão, o agente rodava `arco help` antes para descobrir como \u2014 toda sessão, porque o que ele recebia listava só os comandos de tarefa. Agora cobre listar as sessões, mandar texto para uma, abrir um pane e listar as frentes, e diz onde a sessão acha a própria referência. Não precisa ligar nada: vale para as sessões abertas depois de atualizar, e a chave continua em Preferências \u2192 Integrações \u2192 Avisar os agentes sobre o comando de terminal.',
   'whatsNew.v340.note1':

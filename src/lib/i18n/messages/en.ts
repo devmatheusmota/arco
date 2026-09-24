@@ -830,6 +830,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v342.note1':
+    'A pane closed by accident and reopened comes back to its conversation. With another pane open in the same project, that pane used to take the conversation as its own the moment the first one let go, and the reopened pane started an empty session in its place. Restart works on the first press too: on a running agent it used to stop it and start nothing, and on a conversation with nothing written in it, it failed with "No conversation found" every time. It now checks the conversation before resuming, runs the CLI set in Preferences instead of whatever is on the PATH, and a pane parked to save memory offers Resume again.',
+  'whatsNew.v342.note2':
+    'Ctrl+Z no longer reaches Claude Code, Codex or OpenCode in an agent pane, on Linux and macOS. They take it as “suspend, then type fg”, but an agent pane has no shell behind it to bring them back, so the pane froze until it was restarted. Shell panes keep Ctrl+Z for their jobs. In Claude Code, undoing what you typed is Ctrl+_.',
+  'whatsNew.v342.note3':
+    'A long link an agent breaks across two lines opens whole again. Claude Code wraps long lines itself instead of leaving it to the terminal, so in a narrow pane or with two panes side by side the address arrived as two separate lines: clicking the first opened half of it, and the second was not a link at all. Web addresses and file paths now carry across that break, from either line. Links an agent marks explicitly, as Codex does, now open the same link menu as every other link, instead of a confirmation box and a new window.',
   'whatsNew.v341.note1':
     'Agents opened here are now told about the whole `arco` command, not only the task board. Asked to open a pane or to send text to another session, an agent used to run `arco help` first to find out how \u2014 every session, because what it was told listed the task commands alone. It now covers listing the sessions, sending text to one, opening a pane and listing the fronts, and it says where a session finds its own reference. Nothing to turn on: it applies to sessions started after updating, and the switch is still Preferences \u2192 Integrations \u2192 Tell agents about the terminal command.',
   'whatsNew.v340.note1':

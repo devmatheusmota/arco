@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.4.2] — 2026-09-24
+
 ### Fixed
 
 - A long link an agent broke across two lines opened only its first half, and the second line
