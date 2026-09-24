@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A long link an agent broke across two lines opened only its first half, and the second line
+  was not a link at all, or pointed at a file that does not exist. Claude Code wraps long lines
+  itself instead of leaving it to the terminal, which is what happens in a narrow pane or with
+  two panes side by side. Web addresses and file paths now carry across that break, from either
+  line.
+- Links an agent marks explicitly, as Codex does, opened a confirmation box and then a new app
+  window. They now open the same link menu as every other link in the terminal.
 ## [3.4.1] — 2026-09-23
 
 ### Changed

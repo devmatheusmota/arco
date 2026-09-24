@@ -89,9 +89,9 @@ import {
 } from './terminalInput'
 import {
   type DetectedTerminalLink,
-  detectTerminalLinks,
-  getLogicalTerminalLine,
+  findTerminalLinks,
   makeXtermLink,
+  oscHyperlink,
 } from './terminalLinks'
 import {
   attachTerminalRendererWhenSized,
@@ -413,6 +413,11 @@ export function useXtermSession(params: {
       disableStdin: Boolean(readOnly),
       convertEol: false,
       allowProposedApi: true,
+      // OSC 8 hyperlinks (Codex emits them) win over the link provider below. Without a
+      // handler, xterm asks with `confirm()` and opens them in a new Electron window.
+      linkHandler: {
+        activate: (event, uri) => showLinkActionsMenu(event, oscHyperlink(uri)),
+      },
       scrollback: getTerminalScrollbackRows({
         agent: command != null && command !== 'shell',
         memoryBudgetMb: resourcePolicy.memoryBudgetMb,
@@ -517,16 +522,11 @@ export function useXtermSession(params: {
     document.addEventListener('scroll', clampAncestorScroll, { capture: true, passive: true })
     linkProviderDisposable = terminal.registerLinkProvider({
       provideLinks: (bufferLineNumber, callback) => {
-        const logicalLine = getLogicalTerminalLine(terminal.buffer.active, bufferLineNumber)
-        if (!logicalLine?.text) {
-          callback(undefined)
-          return
-        }
-        const links = detectTerminalLinks(logicalLine.text).map((link) =>
-          makeXtermLink(logicalLine.startLine, terminal.cols, link, {
-            openMenu: showLinkActionsMenu,
-          }),
-        )
+        const links = findTerminalLinks(
+          terminal.buffer.active,
+          bufferLineNumber,
+          terminal.cols,
+        ).map((match) => makeXtermLink(match, { openMenu: showLinkActionsMenu }))
         callback(links.length > 0 ? links : undefined)
       },
     })

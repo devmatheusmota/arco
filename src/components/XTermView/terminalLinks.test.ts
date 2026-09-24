@@ -1,6 +1,32 @@
 import { describe, expect, it } from 'vitest'
 
-import { detectTerminalLinks, getLogicalTerminalLine, terminalLinkRange } from './terminalLinks'
+import {
+  detectTerminalLinks,
+  findTerminalLinks,
+  getLogicalTerminalLine,
+  terminalLinkRange,
+} from './terminalLinks'
+
+const PR_URL =
+  'https://dev.azure.com/example-org/agentic-product-os/_git/emr-agent-skills/pullrequest/11350'
+
+/** A buffer whose rows were written separately, the way Ink wraps text itself. */
+function bufferOf(rows: Array<string | { value: string; isWrapped: boolean }>) {
+  const lines = rows.map((row) =>
+    typeof row === 'string' ? { value: row, isWrapped: false } : row,
+  )
+  return {
+    length: lines.length,
+    getLine: (index: number) => {
+      const line = lines[index]
+      return line ? { isWrapped: line.isWrapped, translateToString: () => line.value } : undefined
+    },
+  }
+}
+
+function targetsOnRow(buffer: ReturnType<typeof bufferOf>, row: number, columns: number) {
+  return findTerminalLinks(buffer, row, columns).map((match) => match.link.target)
+}
 
 describe('terminal links', () => {
   it('ends URLs at whitespace while preserving spaces inside local paths', () => {
@@ -70,6 +96,71 @@ describe('terminal links', () => {
       start: { x: 4, y: 1 },
       end: { x: 7, y: 3 },
     })
+  })
+
+  it('carries a URL across the row an app broke itself, from either row', () => {
+    // Claude Code moves the cursor down instead of letting the terminal wrap.
+    const head = `  ${PR_URL.slice(0, 57)}`
+    const tail = `  ${PR_URL.slice(57)}`
+    const buffer = bufferOf([head, tail, '', '  - Título: algo'])
+
+    expect(findTerminalLinks(buffer, 1, head.length)).toEqual([
+      {
+        link: expect.objectContaining({ target: PR_URL }),
+        range: { start: { x: 3, y: 1 }, end: { x: head.length, y: 1 } },
+      },
+    ])
+    expect(findTerminalLinks(buffer, 2, head.length)).toEqual([
+      {
+        link: expect.objectContaining({ target: PR_URL }),
+        range: { start: { x: 3, y: 2 }, end: { x: tail.length, y: 2 } },
+      },
+    ])
+  })
+
+  it('joins past written padding, a bullet, and a tail that starts with a slash', () => {
+    const cut = PR_URL.indexOf('/_git')
+    const bullet = `● ${PR_URL.slice(0, cut)}`
+    const buffer = bufferOf([bullet, `  ${PR_URL.slice(cut)}                  `])
+    expect(targetsOnRow(buffer, 1, bullet.length)).toEqual([PR_URL])
+    // Alone, the tail used to read as a local path.
+    expect(targetsOnRow(buffer, 2, bullet.length)).toEqual([PR_URL])
+
+    const echo = bufferOf([`  ${PR_URL.slice(0, 57)} `, `  ${PR_URL.slice(57)}`])
+    expect(targetsOnRow(echo, 2, 60)).toEqual([PR_URL])
+  })
+
+  it('follows a link over several broken rows and joins a broken path', () => {
+    const rows = ['  https://example.com/aaaaaaaaaa', '  bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', '  cccc']
+    const buffer = bufferOf(rows)
+    const target = 'https://example.com/aaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccc'
+    expect(targetsOnRow(buffer, 3, 32)).toEqual([target])
+    expect(targetsOnRow(buffer, 1, 32)).toEqual([target])
+
+    const path = bufferOf([
+      ' /tmp/arco-build/cache/5f0e2c1a-9b7d-4c3e-8a61-0f4b2e7d9c35/',
+      ' repro/readme.md',
+    ])
+    expect(findTerminalLinks(path, 2, 61)[0].link).toEqual(
+      expect.objectContaining({
+        target: '/tmp/arco-build/cache/5f0e2c1a-9b7d-4c3e-8a61-0f4b2e7d9c35/repro/readme.md',
+        fileKind: 'markdown',
+      }),
+    )
+  })
+
+  it('leaves the row below alone when it is not the rest of the link', () => {
+    const head = `  ${PR_URL.slice(0, 57)}`
+    const cut = PR_URL.slice(0, 57)
+    expect(targetsOnRow(bufferOf([head, '  - Título: algo']), 1, head.length)).toEqual([cut])
+    expect(targetsOnRow(bufferOf([head, '  https://outra.com/x']), 2, head.length)).toEqual([
+      'https://outra.com/x',
+    ])
+    // Short of the edge, the next row is a new line of prose.
+    expect(targetsOnRow(bufferOf(['  veja https://x.com/a', '  continua']), 1, 40)).toEqual([
+      'https://x.com/a',
+    ])
+    expect(targetsOnRow(bufferOf(['  veja https://x.com/a', '  continua']), 2, 40)).toEqual([])
   })
 
   it('keeps escaped spaces in the visual range and unescapes the opened path', () => {

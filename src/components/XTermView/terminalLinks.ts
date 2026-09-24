@@ -145,11 +145,34 @@ export function detectTerminalLinks(line: string): DetectedTerminalLink[] {
   return links
 }
 
-export function getLogicalTerminalLine(
-  buffer: TerminalBuffer,
-  bufferLineNumber: number,
-): LogicalTerminalLine | null {
-  let startIndex = bufferLineNumber - 1
+/** A logical line of the buffer: its soft-wrapped rows, read as one string. */
+type TerminalTextRun = {
+  text: string
+  startLine: number
+  endLine: number
+  /** Cell the text starts at on its first row; above 0 once a continuation drops its indent. */
+  column: number
+}
+
+export type TerminalLinkMatch = {
+  link: DetectedTerminalLink
+  range: ReturnType<typeof terminalLinkRange>
+}
+
+/**
+ * Rows an app wraps by itself (Ink, which Claude Code draws with, moves the cursor to the next
+ * row instead of letting the terminal wrap) reach the buffer as separate lines. A link is only
+ * carried across that break when it runs into the right edge and the next line picks up with
+ * a single token, so a new list item or a new link below stays its own line.
+ */
+const MAX_HARD_WRAP_RUNS = 6
+const MAX_CONTINUATION_INDENT = 8
+const LIST_MARKER_TOKEN = /^(?:[-*+•●⎿]|\d+[.)])$/
+const LINK_START_TOKEN = /^(?:https?:\/\/|[A-Za-z]:\\|\\\\|~\/)/i
+const TRAILING_PUNCTUATION_ONLY = /^[),.;:]*$/
+
+function logicalLineAt(buffer: TerminalBuffer, index: number): TerminalTextRun | null {
+  let startIndex = index
   if (startIndex < 0 || startIndex >= buffer.length || !buffer.getLine(startIndex)) return null
 
   while (startIndex > 0 && buffer.getLine(startIndex)?.isWrapped) startIndex -= 1
@@ -158,11 +181,122 @@ export function getLogicalTerminalLine(
   while (endIndex + 1 < buffer.length && buffer.getLine(endIndex + 1)?.isWrapped) endIndex += 1
 
   let text = ''
-  for (let index = startIndex; index <= endIndex; index += 1) {
-    text += buffer.getLine(index)?.translateToString(index === endIndex) ?? ''
+  for (let row = startIndex; row <= endIndex; row += 1) {
+    text += buffer.getLine(row)?.translateToString(row === endIndex) ?? ''
   }
 
-  return { text, startLine: startIndex + 1 }
+  return { text, startLine: startIndex + 1, endLine: endIndex + 1, column: 0 }
+}
+
+export function getLogicalTerminalLine(
+  buffer: TerminalBuffer,
+  bufferLineNumber: number,
+): LogicalTerminalLine | null {
+  const run = logicalLineAt(buffer, bufferLineNumber - 1)
+  return run ? { text: run.text, startLine: run.startLine } : null
+}
+
+/** Apps pad the rest of a row with written spaces, which `translateToString` keeps. */
+function rowReachesRightEdge(buffer: TerminalBuffer, index: number, columns: number): boolean {
+  const row = buffer.getLine(index)?.translateToString(true).trimEnd() ?? ''
+  return row.length >= columns - 1
+}
+
+/** The indent to drop when `text` can continue a link cut on the row above, else `null`. */
+function continuationIndent(text: string): number | null {
+  const indent = text.length - text.trimStart().length
+  const token = text.slice(indent).match(/^\S+/)?.[0]
+  if (!token || indent > MAX_CONTINUATION_INDENT) return null
+  if (LIST_MARKER_TOKEN.test(token) || LINK_START_TOKEN.test(token)) return null
+  return indent
+}
+
+function linkRunsIntoEdge(runs: readonly TerminalTextRun[]): boolean {
+  const text = runs.map((run) => run.text).join('')
+  const trimmed = text.trimEnd()
+  return detectTerminalLinks(text).some((link) =>
+    TRAILING_PUNCTUATION_ONLY.test(trimmed.slice(link.index + link.displayLength)),
+  )
+}
+
+function hardWrappedChain(
+  buffer: TerminalBuffer,
+  head: TerminalTextRun,
+  columns: number,
+): TerminalTextRun[] {
+  const runs = [{ ...head }]
+  for (let count = 0; count < MAX_HARD_WRAP_RUNS; count += 1) {
+    const last = runs[runs.length - 1]
+    if (!rowReachesRightEdge(buffer, last.endLine - 1, columns) || !linkRunsIntoEdge(runs)) break
+    const next = logicalLineAt(buffer, last.endLine)
+    const indent = next ? continuationIndent(next.text) : null
+    if (!next || indent === null) break
+    last.text = last.text.trimEnd()
+    runs.push({ ...next, text: next.text.slice(indent), column: indent })
+  }
+  return runs
+}
+
+/**
+ * Links on one buffer row, whole even when the text wraps. Called by the link provider, which
+ * xterm only asks on hover — once per row the pointer enters — so the extra rows read for a
+ * hard wrap never cost anything while typing or repainting.
+ */
+export function findTerminalLinks(
+  buffer: TerminalBuffer,
+  bufferLineNumber: number,
+  columns: number,
+): TerminalLinkMatch[] {
+  const hovered = logicalLineAt(buffer, bufferLineNumber - 1)
+  if (!hovered?.text) return []
+
+  let start = hovered
+  for (let count = 0; count < MAX_HARD_WRAP_RUNS; count += 1) {
+    const aboveIndex = start.startLine - 2
+    if (aboveIndex < 0 || !rowReachesRightEdge(buffer, aboveIndex, columns)) break
+    if (continuationIndent(start.text) === null) break
+    const above = logicalLineAt(buffer, aboveIndex)
+    if (!above) break
+    start = above
+  }
+
+  // The earliest row found above may head a chain that stops short of the hovered row; the
+  // next chain then starts right after it.
+  for (;;) {
+    const runs = hardWrappedChain(buffer, start, columns)
+    const last = runs[runs.length - 1]
+    if (last.endLine >= bufferLineNumber) return linksOnRow(runs, bufferLineNumber, columns)
+    const next = logicalLineAt(buffer, last.endLine)
+    if (!next) return []
+    start = next
+  }
+}
+
+function linksOnRow(
+  runs: readonly TerminalTextRun[],
+  bufferLineNumber: number,
+  columns: number,
+): TerminalLinkMatch[] {
+  const text = runs.map((run) => run.text).join('')
+  const matches: TerminalLinkMatch[] = []
+  for (const link of detectTerminalLinks(text)) {
+    let offset = 0
+    for (const run of runs) {
+      const from = Math.max(link.index, offset)
+      const to = Math.min(link.index + link.displayLength, offset + run.text.length)
+      if (from < to) {
+        const range = terminalLinkRange(run.startLine, columns, {
+          index: run.column + from - offset,
+          displayLength: to - from,
+        })
+        if (range.start.y <= bufferLineNumber && bufferLineNumber <= range.end.y) {
+          matches.push({ link, range })
+        }
+      }
+      offset += run.text.length
+    }
+  }
+  return matches
 }
 
 export function terminalLinkRange(
@@ -178,19 +312,22 @@ export function terminalLinkRange(
   }
 }
 
-/** Monta o `ILink` do xterm a partir de um link detectado, com o handler de menu. */
+/** An OSC 8 hyperlink as the link menu sees it: the app chose the target, so it is used as is. */
+export function oscHyperlink(uri: string): DetectedTerminalLink {
+  return { text: uri, target: uri, index: 0, displayLength: uri.length, kind: 'url' }
+}
+
+/** Builds the xterm `ILink` for a detected link, wired to the link menu. */
 export function makeXtermLink(
-  logicalLineStart: number,
-  columns: number,
-  link: DetectedTerminalLink,
+  match: TerminalLinkMatch,
   handlers: {
     openMenu: (event: MouseEvent, link: DetectedTerminalLink) => void
   },
 ): ILink {
   return {
-    text: link.text,
-    range: terminalLinkRange(logicalLineStart, columns, link),
+    text: match.link.text,
+    range: match.range,
     decorations: { pointerCursor: true, underline: true },
-    activate: (event: MouseEvent) => handlers.openMenu(event, link),
+    activate: (event: MouseEvent) => handlers.openMenu(event, match.link),
   }
 }
