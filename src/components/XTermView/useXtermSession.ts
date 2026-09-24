@@ -12,7 +12,7 @@ import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
 import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { buildCliContextArgs } from '../../lib/cliContext'
 import { getLocale, translate } from '../../lib/i18n'
-import { isAppChordInTerminal } from '../../lib/keybindings'
+import { isAgentSuspendChord, isAppChordInTerminal } from '../../lib/keybindings'
 import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
 import { measure } from '../../lib/mainThreadBudget'
 import { deliverToPty } from '../../lib/paneDelivery'
@@ -756,6 +756,7 @@ export function useXtermSession(params: {
       // process too unless it is refused here.
       if (isAppChordInTerminal(event)) return false
       if (!ctrl || event.altKey) return true
+      if (isAgentSuspendChord(event, command, isWindows())) return false
 
       const key = event.key.toLowerCase()
 

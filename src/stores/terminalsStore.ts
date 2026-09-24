@@ -92,7 +92,10 @@ export const useTerminalsStore = create<TerminalsState>((set) => ({
             lastTransitionAt: Date.now(),
             spawnedAt: Date.now(),
             lastIoAt: Date.now(),
-            expectedOldExits: base.expectedOldExits + 1,
+            // Only a process still running leaves an exit behind. Counting one
+            // for a pane that had already ended swallowed the exit of the new
+            // process instead, so an agent that died at once looked alive.
+            expectedOldExits: base.expectedOldExits + (current?.alive ? 1 : 0),
             poolState: 'ACTIVE',
             snapshot: null,
           },

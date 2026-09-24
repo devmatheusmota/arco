@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  isAgentSuspendChord,
   isAppChordInTerminal,
   type KeyChord,
   keyFocusOf,
@@ -237,5 +238,30 @@ describe('keyFocusOf', () => {
     expect(keyFocusOf(document.createElement('textarea'))).toBe('field')
     expect(keyFocusOf(document.createElement('div'))).toBe('none')
     expect(keyFocusOf(null)).toBe('none')
+  })
+})
+
+describe('isAgentSuspendChord — Ctrl+Z in a pane with no shell to bring the agent back', () => {
+  it('keeps Ctrl+Z from the agents that suspend on it', () => {
+    for (const agent of ['claude', 'codex', 'opencode']) {
+      expect(isAgentSuspendChord(ctrl('z'), agent, false), agent).toBe(true)
+      expect(isAgentSuspendChord(ctrl('Z', { shiftKey: true }), agent, false), agent).toBe(true)
+    }
+  })
+
+  it('leaves Ctrl+Z to a shell, which does job control', () => {
+    expect(isAgentSuspendChord(ctrl('z'), null, false)).toBe(false)
+    expect(isAgentSuspendChord(ctrl('z'), 'shell', false)).toBe(false)
+  })
+
+  it('leaves Windows alone, where nothing suspends', () => {
+    expect(isAgentSuspendChord(ctrl('z'), 'claude', true)).toBe(false)
+  })
+
+  it('touches no other key', () => {
+    expect(isAgentSuspendChord(ctrl('c'), 'claude', false)).toBe(false)
+    expect(isAgentSuspendChord(ctrl('_'), 'claude', false)).toBe(false)
+    expect(isAgentSuspendChord(chord('z'), 'claude', false)).toBe(false)
+    expect(isAgentSuspendChord(ctrl('z', { altKey: true }), 'claude', false)).toBe(false)
   })
 })

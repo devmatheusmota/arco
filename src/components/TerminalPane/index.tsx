@@ -17,6 +17,7 @@ import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeA
 import { buildGhosttyCommand } from '../../lib/ghosttyCommand'
 import { useT } from '../../lib/i18n'
 import { shouldUseNativeBackend } from '../../lib/platform'
+import { checkedResumePointer } from '../../lib/resumePointer'
 import { sessionDisplayLabel } from '../../lib/sessionLabel'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import { getActiveSessions, savedConversationIdFor, saveSession } from '../../lib/sessionResume'
@@ -208,6 +209,14 @@ export const TerminalPane = memo(function TerminalPane({
 
     if (!resumeSessionId && activeTab.type === 'codex' && restartCwd) {
       resumeSessionId = (await snapshotCodexSessions(restartCwd).catch(() => []))[0]?.id
+    }
+    if (resumeSessionId && restartCwd) {
+      resumeSessionId = await checkedResumePointer(
+        activeTab.type,
+        restartCwd,
+        resumeSessionId,
+        activeTab.id,
+      )
     }
     const preparedRuntime = preparePtyRuntimeLaunch(
       activeTab.type,

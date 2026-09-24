@@ -183,3 +183,25 @@ export function isAppChordInTerminal(event: KeyChord): boolean {
     resolveAppShortcut(event, { focus: 'terminal', taskComposer: taskComposerAvailable() }) !== null
   )
 }
+
+const SUSPENDING_AGENTS: ReadonlySet<string> = new Set(['claude', 'codex', 'opencode'])
+
+/**
+ * Whether Ctrl+Z has to stay out of the agent running in a pane.
+ *
+ * Claude Code, Codex and OpenCode answer Ctrl+Z by stopping themselves with
+ * SIGTSTP and printing "run `fg`". A pane runs the agent directly, as the leader
+ * of a session of its own, so no shell is there to bring it back — and the
+ * kernel drops a stop signal sent to a process group like that. The agent is
+ * left running with the terminal handed back, waiting for a SIGCONT that never
+ * comes. A shell pane keeps the key: the shell does job control there. Windows
+ * has no SIGTSTP, and the agents do not suspend on it.
+ */
+export function isAgentSuspendChord(
+  event: KeyChord,
+  agent: string | null | undefined,
+  windows: boolean,
+): boolean {
+  if (windows || !agent || !SUSPENDING_AGENTS.has(agent)) return false
+  return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'z'
+}

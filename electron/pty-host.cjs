@@ -243,11 +243,12 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
     sessions.delete(id)
     // An agent that dies in its first seconds leaves a pane that looks like it
     // never started at all; the elapsed time is what tells the two apart.
+    const reason = session.teardownReason ?? 'exited'
     log(
       'pty.exit',
-      `id=${id} pid=${child.pid} code=${exitCode ?? '—'} after=${Date.now() - startedAt}ms`,
+      `id=${id} pid=${child.pid} code=${exitCode ?? '—'} after=${Date.now() - startedAt}ms reason=${reason}`,
     )
-    send({ type: 'exit', id, code: exitCode ?? null })
+    send({ type: 'exit', id, code: exitCode ?? null, reason })
   })
 
   return { id, pid: child.pid }
@@ -270,9 +271,12 @@ const handlers = {
     } catch {}
     return null
   },
-  kill_pty({ id }) {
+  kill_pty({ id, reason }) {
     const session = sessions.get(id)
     if (!session) return false
+    // The pane reads this off the exit: a restart or a suspension is not the
+    // agent ending, and treating it as one drops the pane's saved session.
+    session.teardownReason = reason === 'restarted' || reason === 'suspended' ? reason : 'killed'
     // Same tree as on shutdown: closing one session must not leave the agent's
     // MCP servers behind, and whatever holds the hangup is killed after the
     // same grace period.

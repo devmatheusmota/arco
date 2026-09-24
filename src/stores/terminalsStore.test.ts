@@ -29,3 +29,31 @@ describe('terminals runtime activity', () => {
     expect(updatedRuntime.lastIoAt - initialRuntime.lastIoAt).toBe(IO_TIMESTAMP_THROTTLE_MS)
   })
 })
+
+describe('restarting a terminal', () => {
+  afterEach(() => {
+    useTerminalsStore.getState().reset()
+  })
+
+  it('absorbs the exit of the process a restart replaces', () => {
+    const store = useTerminalsStore.getState()
+    store.registerPty('pty-1')
+
+    store.beginRestart('pty-1')
+    store.markExited('pty-1')
+
+    expect(useTerminalsStore.getState().byPtyId['pty-1'].alive).toBe(true)
+  })
+
+  it('reports the new process ending when the pane had already ended', () => {
+    const store = useTerminalsStore.getState()
+    store.registerPty('pty-1')
+    store.markExited('pty-1')
+
+    store.beginRestart('pty-1')
+    // `--resume` on a conversation that is not there exits in a second.
+    store.markExited('pty-1')
+
+    expect(useTerminalsStore.getState().byPtyId['pty-1'].alive).toBe(false)
+  })
+})

@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 
+import { setCliPathSource } from '../lib/agentCliPath'
 import { setClaudeSkipPermissionsSource } from '../lib/sessionLaunch'
 import { setStorageNamespace } from '../lib/storageNamespace'
 import {
@@ -743,6 +744,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
 setClaudeSkipPermissionsSource(
   () => useProjectsStore.getState().preferences.claudeSkipPermissions === true,
 )
+setCliPathSource(() => useProjectsStore.getState().cliPaths)
 
 /** Flushes the debounced document before the native window is destroyed. */
 export async function flushProjectsState(): Promise<void> {

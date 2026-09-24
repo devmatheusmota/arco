@@ -106,3 +106,72 @@ describe('pty host logging', () => {
     expect(message).toMatch(/after=\d+ms/)
   })
 })
+
+// The pane tells a restart or a suspension apart from the agent ending by the
+// reason on the exit. Without it, a suspended pane lost its "Resume" and a
+// restarted one dropped its saved session.
+describe('pty host exit reason', () => {
+  const spawnArgs = (id: string, script: string) => ({
+    id,
+    command: '/bin/sh',
+    args: ['-c', script],
+    cwd: process.cwd(),
+    cols: 80,
+    rows: 24,
+  })
+
+  it('reports an agent that ended by itself as exited', async () => {
+    const child = startHost()
+    const exited = readUntil(child, (m) => m.type === 'exit' && m.id === 'reason-exit')
+    request(child, 1, 'spawn_pty', spawnArgs('reason-exit', 'exit 0'))
+
+    expect((await exited).reason).toBe('exited')
+  })
+
+  it.each([
+    ['restarted', 'restarted'],
+    ['suspended', 'suspended'],
+    [undefined, 'killed'],
+  ])('reports a kill asked for as %s', async (asked, reported) => {
+    const child = startHost()
+    const spawned = readUntil(child, (m) => m.type === 'reply' && m.requestId === 1)
+    request(child, 1, 'spawn_pty', spawnArgs('reason-kill', 'sleep 5'))
+    await spawned
+    const exited = readUntil(child, (m) => m.type === 'exit' && m.id === 'reason-kill')
+    request(child, 2, 'kill_pty', { id: 'reason-kill', reason: asked })
+
+    expect((await exited).reason).toBe(reported)
+  })
+})
+
+describe('restarting a live terminal on the real host', () => {
+  it('starts a new process once the old one has answered the hangup', async () => {
+    const { restartPty } = (await import('../../electron/commands/ptyRestart.cjs')) as {
+      restartPty: (
+        ptyHost: { request: (cmd: string, args: unknown) => Promise<any> },
+        args: Record<string, unknown>,
+      ) => Promise<{ id: string; pid?: number }>
+    }
+    const child = startHost()
+    let nextId = 1
+    const ptyHost = {
+      request: (cmd: string, args: unknown) => {
+        const requestId = nextId++
+        const reply = readUntil(child, (m) => m.type === 'reply' && m.requestId === requestId)
+        request(child, requestId, cmd, args)
+        return reply.then((m) => m.result)
+      },
+    }
+    // Takes a moment to go after SIGHUP, the way an agent flushes its transcript.
+    const script = 'trap "sleep 0.3; exit 129" HUP; while :; do sleep 0.05; done'
+    const args = { id: 'restart-live', command: '/bin/sh', extraArgs: ['-c', script] }
+    const first = await ptyHost.request('spawn_pty', { ...args, args: args.extraArgs })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    const second = await restartPty(ptyHost, args)
+
+    expect(second.pid).toBeDefined()
+    expect(second.pid).not.toBe(first.pid)
+    expect(await ptyHost.request('pty_exists', { id: 'restart-live' })).toBe(true)
+  })
+})

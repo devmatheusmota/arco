@@ -4,8 +4,10 @@ import {
   claimDiscoveredSession,
   claimMostRecentSession,
   isInteractiveSession,
+  isSessionClaimed,
   planResume,
   registerSessionClaim,
+  releaseSessionClaim,
   resetSessionClaimsForTests,
 } from './sessionDiscovery'
 
@@ -94,6 +96,66 @@ describe('claimDiscoveredSession', () => {
     )
 
     expect(claimed).toBeUndefined()
+  })
+})
+
+// Two Claude panes in the same directory. The second one's conversation is
+// closed by accident and reopened a second later; meanwhile the first pane's
+// watcher — whose baseline predates that conversation — polls the directory.
+describe('a pane closed and reopened while another pane watches the same directory', () => {
+  const cwd = '/home/mota/projetos/emr/Legends'
+  const watcherOwn = { id: '330255ab', modified_at_ms: 100, size_bytes: 1_100_000 }
+  const conversation = { id: '1105a343', modified_at_ms: 300, size_bytes: 2_600_000 }
+
+  beforeEach(() => {
+    resetSessionClaimsForTests()
+  })
+
+  it('does not let the watcher adopt the conversation the closed pane released', () => {
+    registerSessionClaim('claude', cwd, watcherOwn.id, 'pane-watching')
+    const watcherBaseline = new Set([watcherOwn.id])
+    registerSessionClaim('claude', cwd, conversation.id, 'pane-closed')
+
+    releaseSessionClaim('pane-closed')
+    const adopted = claimDiscoveredSession(
+      'claude',
+      cwd,
+      watcherBaseline,
+      [conversation, watcherOwn],
+      'pane-watching',
+    )
+
+    expect(adopted).toBeUndefined()
+    expect(isSessionClaimed('claude', cwd, conversation.id, 'pane-closed')).toBe(false)
+  })
+
+  it('still adopts what the watching pane itself starts afterwards', () => {
+    registerSessionClaim('claude', cwd, conversation.id, 'pane-closed')
+    releaseSessionClaim('pane-closed')
+
+    const adopted = claimDiscoveredSession(
+      'claude',
+      cwd,
+      new Set([watcherOwn.id]),
+      [{ id: 'after-new', modified_at_ms: 400, size_bytes: 800 }, conversation, watcherOwn],
+      'pane-watching',
+    )
+
+    expect(adopted?.id).toBe('after-new')
+  })
+
+  it('resumes the real conversation when the pointer names a session with no transcript', () => {
+    // The empty session only ever got a directory with hook output, so the
+    // listing — built from `*.jsonl` — does not have it at all.
+    registerSessionClaim('claude', cwd, watcherOwn.id, 'pane-watching')
+
+    const plan = planResume(
+      '20952054',
+      [conversation, watcherOwn],
+      (session) => !isSessionClaimed('claude', cwd, session.id, 'pane-reopened'),
+    )
+
+    expect(plan).toEqual({ problem: 'not-listed', replacement: conversation })
   })
 })
 

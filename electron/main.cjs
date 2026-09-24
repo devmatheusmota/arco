@@ -215,7 +215,7 @@ function startPtyHost(send) {
       } else if (message.type === 'activity') {
         send(`pty://activity/${message.id}`, message.data)
       } else if (message.type === 'exit') {
-        send(`pty://exit/${message.id}`, { code: message.code, reason: null })
+        send(`pty://exit/${message.id}`, { code: message.code, reason: message.reason ?? null })
       } else if (message.type === 'log') {
         appendLog('app-events.log', `[${message.kind}] ${message.message}`)
       }

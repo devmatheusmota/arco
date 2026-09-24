@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event'
 
+import { configuredLauncherFor } from '../agentCliPath'
 import { measure } from '../mainThreadBudget'
 
 // Every event handler is timed so main-thread cost can be attributed by event.
@@ -93,7 +94,7 @@ export async function restartPty(args: SpawnPtyArgs & { id: string }): Promise<{
     command: args.command,
     cwd: args.cwd,
     extraArgs: args.extraArgs,
-    launcherOverride: args.launcherOverride,
+    launcherOverride: args.launcherOverride ?? configuredLauncherFor(args.command),
     env: args.env,
   })
 }

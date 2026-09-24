@@ -26,6 +26,7 @@ const { buildPlanningCommands } = require('./planning.cjs')
 const { buildSkillsCommands } = require('./skills.cjs')
 const { buildTelemetryCommands } = require('./telemetry.cjs')
 const { buildResourceCommands } = require('./resources.cjs')
+const { restartPty } = require('./ptyRestart.cjs')
 
 const reportedMissing = new Set()
 
@@ -126,19 +127,8 @@ function buildCommands({ ptyHost, mainWindow, send }) {
     set_pty_visible: (args) => ptyHost.request('set_pty_visible', args),
     get_pty_cwd: (args) => ptyHost.request('get_pty_cwd', args),
     list_pty_processes: () => ptyHost.request('list_pty_processes', {}),
-    suspend_pty: (args) => ptyHost.request('kill_pty', args),
-    restart_pty: async (args) => {
-      await ptyHost.request('kill_pty', { id: args.id })
-      return ptyHost.request('spawn_pty', {
-        id: args.id,
-        command: args.command,
-        args: args.extraArgs ?? [],
-        cwd: args.cwd,
-        env: args.env,
-        cols: args.cols,
-        rows: args.rows,
-      })
-    },
+    suspend_pty: (args) => ptyHost.request('kill_pty', { id: args.id, reason: 'suspended' }),
+    restart_pty: (args) => restartPty(ptyHost, args),
 
     // ── persistence ──────────────────────────────────────────────────────
     // The Rust command hands the frontend the raw file contents as a string and

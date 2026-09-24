@@ -19,6 +19,31 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   line.
 - Links an agent marks explicitly, as Codex does, opened a confirmation box and then a new app
   window. They now open the same link menu as every other link in the terminal.
+- Closing a pane by accident and reopening it lost its conversation when another pane was open
+  in the same project. That other pane took the conversation as its own the moment the first
+  one let go, so the reopened pane found it "in use" and started an empty session in its place.
+  A conversation a pane has held is no longer taken by another pane's session tracking; it comes
+  back to the pane that reopens it, or to whoever picks it from the history.
+- Restarting a pane whose agent was still running only stopped it: the new process never started,
+  and a second press was needed. The restart now waits for the old process to exit before
+  starting the new one.
+- Restarting a pane that points at a conversation with nothing written in it no longer fails with
+  "No conversation found" on every press. The restart checks the conversation first, the way
+  opening the pane already did, and falls back to the latest conversation in the directory that
+  no other pane holds, or to a new one.
+- An agent that exited right after a restart left the pane looking alive, with no "Process ended"
+  and no restart button.
+- A restart ran the agent found on `PATH` instead of the executable set in Preferences, so a pane
+  whose CLI is only reachable through that path came back with "command not found".
+- A pane parked to free memory, or when switching profiles, showed "Process ended" and a restart
+  button instead of "Resume".
+
+### Changed
+
+- Ctrl+Z no longer reaches Claude Code, Codex or OpenCode in an agent pane (Linux and macOS). They
+  take it as "suspend", but a pane runs the agent with no shell behind it, so there was no `fg` to
+  bring it back and the pane froze until restarted. Shell panes keep Ctrl+Z for job control.
+
 ## [3.4.1] — 2026-09-23
 
 ### Changed

@@ -86,10 +86,28 @@ export function planResume(
 
 const claimedIds = new Map<string, Set<string>>()
 
+/**
+ * Every session a pane has held, including the ones whose claim was released.
+ *
+ * Releasing a claim — a pane closed, disabled, or its front closed — lets that
+ * conversation be resumed again, by the same pane reopening or by anyone
+ * picking it from the history. It must not make the conversation look like
+ * something another pane's agent just created: a pane whose baseline predates
+ * it would adopt it as its own, and the pane that owned it would then find it
+ * "claimed by another pane" and start an empty session over its pointer.
+ */
+const heldIds = new Map<string, Set<string>>()
+
 const claimOwners = new Map<string, Array<{ key: string; sessionId: string }>>()
 
 function claimKey(agent: string, cwd: string): string {
   return `${agent}\0${cwd.toLowerCase()}`
+}
+
+function markHeld(key: string, sessionId: string): void {
+  const held = heldIds.get(key) ?? new Set<string>()
+  held.add(sessionId)
+  heldIds.set(key, held)
 }
 
 function trackOwner(ptyId: string | undefined, key: string, sessionId: string): void {
@@ -111,6 +129,7 @@ export function registerSessionClaim(
   const claimed = claimedIds.get(key) ?? new Set<string>()
   claimed.add(sessionId)
   claimedIds.set(key, claimed)
+  markHeld(key, sessionId)
   trackOwner(ptyId, key, sessionId)
 }
 
@@ -139,6 +158,7 @@ export function claimDiscoveredSession(
 ): SessionSnapshot | undefined {
   const key = claimKey(agent, cwd)
   const claimed = claimedIds.get(key) ?? new Set<string>()
+  const held = heldIds.get(key)
   // An automated run — `/security-review`, an agent SDK call — writes its
   // transcript to the same per-project directory as the pane's own session and
   // often lands there first. Counting it as a candidate either made the pane
@@ -148,7 +168,10 @@ export function claimDiscoveredSession(
   const candidates = sessions
     .filter(
       (session) =>
-        !beforeIds.has(session.id) && !claimed.has(session.id) && isInteractiveSession(session),
+        !beforeIds.has(session.id) &&
+        !claimed.has(session.id) &&
+        !held?.has(session.id) &&
+        isInteractiveSession(session),
     )
     .sort((a, b) => a.modified_at_ms - b.modified_at_ms)
   if (candidates.length !== 1) return undefined
@@ -156,6 +179,7 @@ export function claimDiscoveredSession(
   if (!candidate) return undefined
   claimed.add(candidate.id)
   claimedIds.set(key, claimed)
+  markHeld(key, candidate.id)
   trackOwner(ptyId, key, candidate.id)
   return candidate
 }
@@ -174,10 +198,12 @@ export function claimMostRecentSession(
   if (!candidate) return undefined
   claimed.add(candidate.id)
   claimedIds.set(key, claimed)
+  markHeld(key, candidate.id)
   trackOwner(ptyId, key, candidate.id)
   return candidate
 }
 
+/** Frees what a pane held for resuming; `heldIds` keeps it out of discovery. */
 export function releaseSessionClaim(ptyId: string): void {
   const owned = claimOwners.get(ptyId)
   if (!owned) return
@@ -192,5 +218,6 @@ export function releaseSessionClaim(ptyId: string): void {
 
 export function resetSessionClaimsForTests(): void {
   claimedIds.clear()
+  heldIds.clear()
   claimOwners.clear()
 }
