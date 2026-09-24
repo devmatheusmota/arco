@@ -8,12 +8,12 @@ import styles from './App.module.css'
 import homeBackground from './assets/home-bg-right.png'
 import { AgentSandbox } from './components/AgentSandbox'
 import { DictationButton } from './components/DictationButton'
-import { MeetingButton } from './components/MeetingButton'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { FocusOverlay } from './components/FocusOverlay'
 import { AgentIcon } from './components/icons/AgentIcons'
 import { LinkViewerOverlay } from './components/LinkViewerOverlay'
 import { MainMenu } from './components/MainMenu'
+import { MeetingButton } from './components/MeetingButton'
 import { AddBrowserModal } from './components/modals/AddBrowserModal'
 import { AddContentModal } from './components/modals/AddContentModal'
 import { AiUsageModal } from './components/modals/AiUsageModal'
@@ -22,9 +22,9 @@ import { FindJumpModal } from './components/modals/FindJumpModal'
 import { HandoffModal } from './components/modals/HandoffModal'
 import { McpIntroModal } from './components/modals/McpIntroModal'
 import { McpManagerModal } from './components/modals/McpManagerModal'
+import { NewGroupModal } from './components/modals/NewGroupModal'
 import { NewProjectModal } from './components/modals/NewProjectModal'
 import { NewSubTabModal } from './components/modals/NewSubTabModal'
-import { NewGroupModal } from './components/modals/NewGroupModal'
 import { NewTerminalModal } from './components/modals/NewTerminalModal'
 import { OnboardingModal } from './components/modals/OnboardingModal'
 import { PreferencesModal } from './components/modals/PreferencesModal'
@@ -47,6 +47,7 @@ import { TokenHud } from './components/TokenHud'
 import { AsciiEffect } from './components/ui/ascii-effect'
 import { WorkspaceView } from './components/WorkspaceView'
 import { useAdoRefRepair } from './hooks/useAdoRefRepair'
+import { useClaudeSessionFollow } from './hooks/useClaudeSessionFollow'
 import { useCliOpenRequests } from './hooks/useCliOpenRequests'
 import { useCloseConfirmation } from './hooks/useCloseConfirmation'
 import { useKeybindings } from './hooks/useKeybindings'
@@ -245,6 +246,7 @@ export default function App() {
   useCloseConfirmation()
   useResourceSupervisor(hydrated)
   useCliOpenRequests(hydrated)
+  useClaudeSessionFollow(hydrated)
   useAdoRefRepair(hydrated)
 
   useEffect(() => {

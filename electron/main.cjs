@@ -12,6 +12,7 @@ const fs = require('node:fs')
 const { pathToFileURL } = require('node:url')
 
 const { buildCommands, missingCommand, appendLog } = require('./commands/index.cjs')
+const { configureSessionHook } = require('./commands/hooks.cjs')
 const githubSync = require('./commands/github-sync.cjs')
 const { publishEvent } = require('./commands/telemetry.cjs')
 const paths = require('./commands/paths.cjs')
@@ -368,6 +369,8 @@ app.whenReady().then(() => {
     }
   }
   const ptyHost = startPtyHost(send)
+  // Before the listener binds: that is when the pane settings file is written.
+  configureSessionHook(resolveNode())
   const commands = buildCommands({ ptyHost, mainWindow: () => mainWindow, send })
 
   // The gist only stays current if something pushes to it while the app runs;

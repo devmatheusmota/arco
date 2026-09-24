@@ -179,6 +179,9 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
       ...(env ?? {}),
       PATH: SPAWN_PATH,
       TERM: 'xterm-256color',
+      // Names the process to the SessionStart hook, which reports back which
+      // conversation this terminal's agent is in.
+      ARCO_PTY_ID: id,
     },
   }
   let child

@@ -10,6 +10,14 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A Claude pane follows the conversation its agent moves to. After `/resume` inside Claude Code,
+  restarting the pane or reopening Arco went back to the conversation it had left, because the
+  one it resumed already existed and nothing new showed up for Arco to notice. Claude now tells
+  the pane through a SessionStart hook each time it starts, clears or resumes a conversation. The
+  hook is loaded only in the panes Arco starts and prints nothing into the session.
+
 ## [3.4.2] — 2026-09-24
 
 ### Fixed

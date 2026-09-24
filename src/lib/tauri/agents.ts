@@ -45,6 +45,23 @@ export async function agentHooksSettingsPath(): Promise<string> {
   return invoke<string>('agent_hooks_settings_path')
 }
 
+/** The `--settings` file that gives a Claude pane its SessionStart hook, or `null` without one. */
+export async function agentSessionHooksPath(): Promise<string | null> {
+  return (await invoke<string | null>('agent_session_hooks_path')) ?? null
+}
+
+/** Which conversation a pane's agent moved to, as its SessionStart hook reports it. */
+export type SessionHookEvent = {
+  pty: string
+  sessionId: string
+  source: string | null
+  cwd: string | null
+}
+
+export function listenSessionHook(handler: (event: SessionHookEvent) => void): Promise<UnlistenFn> {
+  return listen<SessionHookEvent>('session-hook', (event) => handler(event.payload))
+}
+
 export type InstalledAgent = { name: string; from_arco: boolean }
 
 export async function listInstalledAgents(folder: string): Promise<InstalledAgent[]> {

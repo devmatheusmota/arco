@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { buildAgentLaunch, setClaudeSkipPermissionsSource } from './sessionLaunch'
+import {
+  buildAgentLaunch,
+  setClaudeSessionHooksSource,
+  setClaudeSkipPermissionsSource,
+} from './sessionLaunch'
 
 describe('buildAgentLaunch', () => {
   it('new Claude panes receive distinct deterministic session ids', () => {
@@ -95,5 +99,33 @@ describe('Claude skip-permissions preference', () => {
     setClaudeSkipPermissionsSource(() => true)
     expect(buildAgentLaunch('codex', [], 'thread').args).toEqual(['resume', 'thread'])
     expect(buildAgentLaunch('opencode', [], 'ses').args).toEqual(['--session', 'ses'])
+  })
+})
+
+describe('SessionStart hook on Claude launches', () => {
+  afterEach(() => setClaudeSessionHooksSource(() => null))
+
+  it('loads the pane settings on a new and a resumed session', () => {
+    setClaudeSessionHooksSource(() => '/tmp/arco-session-hooks.json')
+    expect(buildAgentLaunch('claude', [], undefined, () => 'new-id').args).toEqual([
+      '--session-id',
+      'new-id',
+      '--settings',
+      '/tmp/arco-session-hooks.json',
+    ])
+    expect(buildAgentLaunch('claude', [], 'pane-session').args).toEqual([
+      '--resume',
+      'pane-session',
+      '--settings',
+      '/tmp/arco-session-hooks.json',
+    ])
+  })
+
+  it('keeps settings a launch brings on its own, and leaves other agents alone', () => {
+    setClaudeSessionHooksSource(() => '/tmp/arco-session-hooks.json')
+    const canvas = buildAgentLaunch('claude', ['--settings', '/tmp/canvas.json'], 'pane-session')
+    expect(canvas.args.filter((arg) => arg === '--settings')).toHaveLength(1)
+    expect(canvas.args).toContain('/tmp/canvas.json')
+    expect(buildAgentLaunch('codex', [], 'thread').args).toEqual(['resume', 'thread'])
   })
 })

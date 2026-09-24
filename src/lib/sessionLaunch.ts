@@ -12,6 +12,17 @@ export function setClaudeSkipPermissionsSource(source: () => boolean): void {
 }
 
 /**
+ * The settings file holding the SessionStart hook every Claude pane loads, which
+ * tells the app when the agent moves to another conversation. Registered from
+ * outside for the same reason as the preference above.
+ */
+let claudeSessionHooks: () => string | null = () => null
+
+export function setClaudeSessionHooksSource(source: () => string | null): void {
+  claudeSessionHooks = source
+}
+
+/**
  * The args an agent starts with once the launch preferences are applied. Every
  * way a pane starts an agent goes through here — a new pane, a task, `arco
  * session`, a restore when the app opens, a handoff, a restart — so a
@@ -83,6 +94,9 @@ export function buildAgentLaunch(
   if (agent === 'claude') {
     const clean = withLaunchPreferences('claude', stripClaudeSessionArgs([...baseArgs]))
     const mcp = (mcpConfigPaths ?? []).flatMap((path) => ['--mcp-config', path])
+    const hooks = claudeSessionHooks()
+    // A launch that brings its own settings — the agent canvas — keeps them.
+    if (hooks && !clean.includes('--settings')) mcp.push('--settings', hooks)
     if (sessionId) {
       return {
         args: ['--resume', sessionId, ...mcp, ...clean],

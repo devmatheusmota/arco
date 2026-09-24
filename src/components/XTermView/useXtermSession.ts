@@ -10,6 +10,7 @@ import { recordAgentActivityInput } from '../../lib/activityTracker'
 import { cliPathMatchesAgent } from '../../lib/agentCliPath'
 import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
 import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { ensureClaudeSessionHooks } from '../../lib/claudeSessionHooks'
 import { buildCliContextArgs } from '../../lib/cliContext'
 import { getLocale, translate } from '../../lib/i18n'
 import { isAgentSuspendChord, isAppChordInTerminal } from '../../lib/keybindings'
@@ -1480,6 +1481,12 @@ export function useXtermSession(params: {
           await gsdOpenCodePluginWrite(cwd, modelChain).catch((error) => {
             console.error(`[pty-launch] gsdOpenCodePluginWrite falhou pra ${cwd}:`, error)
           })
+          if (disposed) return
+        }
+
+        // Asked once per run; every later launch already has the answer.
+        if (command === 'claude') {
+          await withTimeout(ensureClaudeSessionHooks(), null)
           if (disposed) return
         }
 

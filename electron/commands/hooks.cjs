@@ -12,6 +12,8 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
+const { unpackedPath } = require('../unpacked-path.cjs')
+
 // Where the `arco` command reads endpoint and token from. The override exists
 // so a second process — a test, a development instance — can bind a listener
 // without pointing the installed command at itself.
@@ -27,8 +29,20 @@ const HOOK_EVENTS = [
   'TaskCompleted',
 ]
 
+// Every Claude pane loads this one through `--settings`. It holds SessionStart
+// alone: the file above posts every tool call, which the canvas wants and a
+// pane has no use for.
+const SESSION_HOOKS_FILE = path.join(path.dirname(SETTINGS_FILE), 'arco-session-hooks.json')
+const SESSION_HOOK_SCRIPT = unpackedPath(path.join(__dirname, '..', 'session-hook.cjs'))
+
 const token = randomBytes(16).toString('hex')
 let port = 0
+let nodeBinary = null
+
+/** The Node that runs the SessionStart hook; without one, panes start without it. */
+function configureSessionHook(node) {
+  nodeBinary = node ?? null
+}
 
 function readBody(request) {
   return new Promise((resolve) => {
@@ -155,6 +169,24 @@ function startHookListener(send, readTodos) {
       return
     }
 
+    // Which conversation a pane's agent is in, posted by `session-hook.cjs`.
+    // Only these fields go on to the window.
+    if (route === '/session') {
+      try {
+        const { pty, sessionId, source, cwd } = JSON.parse(await readBody(request))
+        if (typeof pty === 'string' && typeof sessionId === 'string') {
+          send('session-hook', {
+            pty,
+            sessionId,
+            source: typeof source === 'string' ? source : null,
+            cwd: typeof cwd === 'string' ? cwd : null,
+          })
+        }
+      } catch {}
+      json(response, {})
+      return
+    }
+
     const body = await readBody(request)
     try {
       send('agent-hook', JSON.parse(body))
@@ -177,7 +209,8 @@ function startHookListener(send, readTodos) {
       try {
         const current = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'))
         const url = current.hooks?.SubagentStart?.[0]?.hooks?.[0]?.url
-        if (url !== `${endpoint()}/hook`) writeSettings()
+        const paneFileGone = nodeBinary && !fs.existsSync(SESSION_HOOKS_FILE)
+        if (url !== `${endpoint()}/hook` || paneFileGone) writeSettings()
       } catch {
         try {
           writeSettings()
@@ -213,7 +246,36 @@ function writeSettings() {
     hooks: Object.fromEntries(HOOK_EVENTS.map((event) => [event, hook])),
   }
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
+  writeSessionHooks()
   return SETTINGS_FILE
+}
+
+/**
+ * Puts the pane settings file back when a launch names it and it is gone.
+ *
+ * It lives in the temp directory, and Claude refuses to start at all when a
+ * `--settings` file is missing — a cleaned `/tmp` would take down every pane
+ * started until the watchdog noticed.
+ */
+function ensureSessionHooksFile(args) {
+  if (!Array.isArray(args) || !args.includes(SESSION_HOOKS_FILE)) return
+  if (fs.existsSync(SESSION_HOOKS_FILE)) return
+  try {
+    writeSessionHooks()
+  } catch {}
+}
+
+/** The `--settings` file for Claude panes, or `null` when there is no Node to run the hook. */
+function writeSessionHooks() {
+  if (!nodeBinary) return null
+  const command = [nodeBinary, SESSION_HOOK_SCRIPT, SETTINGS_FILE]
+    .map((part) => `"${part}"`)
+    .join(' ')
+  const settings = {
+    hooks: { SessionStart: [{ hooks: [{ type: 'command', command, timeout: 5 }] }] },
+  }
+  fs.writeFileSync(SESSION_HOOKS_FILE, JSON.stringify(settings, null, 2))
+  return SESSION_HOOKS_FILE
 }
 
 function buildHookCommands() {
@@ -221,10 +283,16 @@ function buildHookCommands() {
     agent_hooks_endpoint: () => endpoint(),
     agent_hooks_token: () => token,
     agent_hooks_settings_path: () => writeSettings(),
+    agent_session_hooks_path: () => (port ? writeSessionHooks() : null),
     // The other half of a `/cli/*` request: the frontend reports what it did,
     // and the HTTP response the CLI is still waiting on carries it back.
     cli_reply: (args) => resolveCliReply(args?.requestId, args?.result),
   }
 }
 
-module.exports = { startHookListener, buildHookCommands }
+module.exports = {
+  startHookListener,
+  buildHookCommands,
+  configureSessionHook,
+  ensureSessionHooksFile,
+}

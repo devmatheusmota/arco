@@ -17,7 +17,7 @@ const { buildExtraCommands } = require('./extras.cjs')
 const { buildUsageCommands } = require('./usage.cjs')
 const { buildLibraryCommands } = require('./library.cjs')
 const { buildWorktreeCommands } = require('./worktrees.cjs')
-const { buildHookCommands, startHookListener } = require('./hooks.cjs')
+const { buildHookCommands, ensureSessionHooksFile, startHookListener } = require('./hooks.cjs')
 const { buildDictationCommands } = require('./dictation.cjs')
 const { buildMeetingCommands } = require('./meeting.cjs')
 const { buildPlatformCommands } = require('./platform.cjs')
@@ -107,8 +107,9 @@ function buildCommands({ ptyHost, mainWindow, send }) {
     ...buildResourceCommands({ ptyHost }),
 
     // ── terminals ────────────────────────────────────────────────────────
-    spawn_pty: (args) =>
-      ptyHost.request('spawn_pty', {
+    spawn_pty: (args) => {
+      ensureSessionHooksFile(args.extraArgs)
+      return ptyHost.request('spawn_pty', {
         id: args.id,
         command: args.command,
         args: args.extraArgs ?? [],
@@ -117,7 +118,8 @@ function buildCommands({ ptyHost, mainWindow, send }) {
         cols: args.cols,
         rows: args.rows,
         launcherOverride: args.launcherOverride,
-      }),
+      })
+    },
     pty_exists: (args) => ptyHost.request('pty_exists', args),
     write_pty: (args) => ptyHost.request('write_pty', args),
     resize_pty: (args) => ptyHost.request('resize_pty', args),
@@ -128,7 +130,10 @@ function buildCommands({ ptyHost, mainWindow, send }) {
     get_pty_cwd: (args) => ptyHost.request('get_pty_cwd', args),
     list_pty_processes: () => ptyHost.request('list_pty_processes', {}),
     suspend_pty: (args) => ptyHost.request('kill_pty', { id: args.id, reason: 'suspended' }),
-    restart_pty: (args) => restartPty(ptyHost, args),
+    restart_pty: (args) => {
+      ensureSessionHooksFile(args.extraArgs)
+      return restartPty(ptyHost, args)
+    },
 
     // ── persistence ──────────────────────────────────────────────────────
     // The Rust command hands the frontend the raw file contents as a string and
