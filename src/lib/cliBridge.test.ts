@@ -821,6 +821,84 @@ describe('cli://session-close', () => {
     expect(result.ok).toBe(false)
     expect(result.message).toMatch(/referência pa-9999/)
   })
+
+  // Closing the last pane leaves the front open: taking it along would delete
+  // its worktree on a decision nobody made. What the answer owes the caller is
+  // the news, and the exact command that finishes the job.
+  describe('on the last pane of a front', () => {
+    beforeEach(() => {
+      state.projects[0].groups = [{ id: 'g-solo', name: 'solo', createdAt: 1 }]
+      state.projects[0].terminals = [{ ...pane('unico', '/tmp/arco'), groupId: 'g-solo' }]
+    })
+
+    it('keeps the front, says it is empty, and names the command that closes it', async () => {
+      const result = await close({ target: 'pa-1005' })
+
+      expect(result.ok).toBe(true)
+      expect(result.message).toMatch(/A frente "solo" ficou sem panes e segue aberta/)
+      expect(result.message).toMatch(/arco group close solo$/)
+      expect(result.data).toMatchObject({ groupId: 'g-solo', groupEmpty: true })
+      expect(state.deleteTerminalWithWorktreeCleanup).toHaveBeenCalledWith('p1', 'unico', {
+        assumeConfirmed: undefined,
+      })
+      expect(state.closeGroupWithWorktree).not.toHaveBeenCalled()
+    })
+
+    it('says the worktree of the front is still on disk', async () => {
+      state.projects[0].groups = [
+        { id: 'g-solo', name: 'solo', createdAt: 1, worktreeAgentId: 'cl-7', cwd: '/wt/7' },
+      ]
+
+      const result = await close({ target: 'pa-1005' })
+
+      expect(result.message).toMatch(/com a worktree cl-7 no disco/)
+    })
+
+    // The command it prints is only worth printing if it works as typed.
+    it('hands a command that closes that same front', async () => {
+      state.projects[0].groups = [{ id: 'g-solo', name: 'revisão do PR', createdAt: 1 }]
+
+      const result = await close({ target: 'pa-1005' })
+      const command = result.message?.match(/arco group close (.+)$/)?.[1] ?? ''
+      expect(command).toBe('"revisão do PR"')
+
+      state.projects[0].terminals = []
+      const closed = await request('cli://group-close', { target: command.replace(/"/g, '') })
+      expect(closed.data).toMatchObject({ groupId: 'g-solo', panes: 0 })
+    })
+
+    it('falls back to the id when the shell would rewrite the name', async () => {
+      state.projects[0].groups = [{ id: 'g-solo', name: 'PR !11350', createdAt: 1 }]
+
+      const result = await close({ target: 'pa-1005' })
+
+      expect(result.message).toMatch(/arco group close g-solo$/)
+    })
+
+    it('falls back to the id when another front has the same name', async () => {
+      state.projects[0].groups = [
+        { id: 'g-solo', name: 'solo', createdAt: 1 },
+        { id: 'g-outra', name: 'Solo', createdAt: 2 },
+      ]
+
+      const result = await close({ target: 'pa-1005' })
+
+      expect(result.message).toMatch(/arco group close g-solo$/)
+    })
+
+    it('says nothing about an empty front while another pane is still in it', async () => {
+      state.projects[0].terminals = [
+        { ...pane('unico', '/tmp/arco'), groupId: 'g-solo' },
+        { ...pane('orq', '/tmp/arco', 'orquestrador', { pinned: true }), groupId: 'g-solo' },
+      ]
+
+      const result = await close({ target: 'pa-1005' })
+
+      expect(result.message).toMatch(/A frente segue aberta/)
+      expect(result.message).not.toMatch(/sem panes/)
+      expect(result.data).toMatchObject({ groupEmpty: false })
+    })
+  })
 })
 
 describe('cli://group-list and cli://group-close', () => {
@@ -875,11 +953,106 @@ describe('cli://group-list and cli://group-close', () => {
     expect(result.message).toMatch(/Nada sai do disco/)
   })
 
-  it('refuses a reference that answers to nothing', async () => {
+  // The reference of a pane that already closed is exactly what the caller has
+  // left in hand, so the answer points at where the front can still be found.
+  it('refuses a reference that answers to nothing, and says where to look', async () => {
     const result = await request('cli://group-close', { target: 'pa-9999' })
 
     expect(result.ok).toBe(false)
     expect(result.message).toMatch(/referência pa-9999/)
+    expect(result.message).toMatch(/arco group list/)
+    expect(state.closeGroupWithWorktree).not.toHaveBeenCalled()
+  })
+
+  // The case that had no way out: the last pane closed, the front stayed, and
+  // with no session left in it there was nothing to name it by.
+  it('closes a front with no panes, named by its own name', async () => {
+    state.projects[0].groups = [...state.projects[0].groups, front('g-vazia', 'revisão do PR')]
+
+    const result = await request('cli://group-close', { target: 'revisão do PR', confirmed: true })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/a frente estava vazia/)
+    expect(result.data).toMatchObject({ groupId: 'g-vazia', panes: 0 })
+    expect(state.closeGroupWithWorktree).toHaveBeenCalledWith('p1', 'g-vazia', {
+      assumeConfirmed: true,
+    })
+  })
+
+  it('takes a piece of the name only one front has, whatever the case and accents', async () => {
+    state.projects[0].groups = [...state.projects[0].groups, front('g-vazia', 'Revisão do PR')]
+
+    const byCase = await request('cli://group-close', { target: 'OPCIONAL' })
+    const byAccent = await request('cli://group-close', { target: 'revisao' })
+
+    expect(byCase.data).toMatchObject({ groupId: 'g-wt' })
+    expect(byAccent.data).toMatchObject({ groupId: 'g-vazia' })
+  })
+
+  it('takes the id of the front, whole or by its first characters', async () => {
+    state.projects[0].groups = [
+      ...state.projects[0].groups,
+      front('Nwq3xYaBcdEFGhij_k1-2', 'sem nome util'),
+    ]
+
+    const whole = await request('cli://group-close', { target: 'Nwq3xYaBcdEFGhij_k1-2' })
+    const short = await request('cli://group-close', { target: 'Nwq3xYaB' })
+
+    expect(whole.data).toMatchObject({ groupId: 'Nwq3xYaBcdEFGhij_k1-2' })
+    expect(short.data).toMatchObject({ groupId: 'Nwq3xYaBcdEFGhij_k1-2' })
+  })
+
+  // Closing the wrong front deletes its worktree, so a name two fronts share is
+  // a question for the caller, answered with every front it could have meant.
+  it('refuses a piece of a name several fronts share, and lists them', async () => {
+    state.projects[0].groups = [...state.projects[0].groups, front('g-cpf2', 'cpf obrigatório')]
+
+    const result = await request('cli://group-close', { target: 'cpf', confirmed: true })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/corresponde a 2 frentes/)
+    expect(result.message).toContain('g-wt "cpf opcional"')
+    expect(result.message).toContain('g-cpf2 "cpf obrigatório"')
+    expect(state.closeGroupWithWorktree).not.toHaveBeenCalled()
+  })
+
+  it('takes a whole name over the fronts that only contain it', async () => {
+    state.projects[0].groups = [...state.projects[0].groups, front('g-arco2', 'Arco refactor')]
+
+    const result = await request('cli://group-close', { target: 'arco' })
+
+    expect(result.data).toMatchObject({ groupId: 'g-plain' })
+  })
+
+  // `1004` reads as pane pa-1004 and as a piece of "PR 1004" alike. Only the
+  // written prefix says which one was meant.
+  it('asks when bare digits name a pane in one front and a piece of another', async () => {
+    state.projects[0].groups = [...state.projects[0].groups, front('g-pr', 'PR 1004')]
+
+    const bare = await request('cli://group-close', { target: '1004' })
+    expect(bare.ok).toBe(false)
+    expect(bare.message).toContain('g-wt')
+    expect(bare.message).toContain('g-pr')
+
+    const prefixed = await request('cli://group-close', { target: 'pa-1004' })
+    expect(prefixed.data).toMatchObject({ groupId: 'g-wt' })
+  })
+
+  // A name and a pane landing on the same front agree; that is not ambiguity.
+  it('closes the front when its name and a pane in it both match', async () => {
+    state.projects[0].groups = [
+      front('g-wt', 'lado 1004', { worktreeAgentId: 'cl-1', cwd: '/wt/1' }),
+    ]
+
+    const result = await request('cli://group-close', { target: '1004' })
+
+    expect(result.data).toMatchObject({ groupId: 'g-wt' })
+  })
+
+  it('still closes the front of the pane the command runs in', async () => {
+    const result = await request('cli://group-close', { target: 'current', sessionId: 'lado' })
+
+    expect(result.data).toMatchObject({ groupId: 'g-wt' })
   })
 
   it('refuses a session that is in no front at all', async () => {

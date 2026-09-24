@@ -68,7 +68,7 @@ O Arco organiza o trabalho em frentes; cada frente tem panes (sessoes de agente)
 Um pane atende por uma referencia curta: pa-3576. A sua esta em $ARCO_PANE_ID.
 
   arco session list           quem esta aberto agora; o seu pane vem com *
-  arco session close <ref>    fecha um pane; a frente continua aberta
+  arco session close <ref>    fecha um pane; a frente continua aberta, mesmo vazia
   arco session send <ref> ... manda texto para outro pane; ele responde la
   arco session [opcoes]       abre um pane novo, na sua frente
   arco group list             as frentes de trabalho abertas
@@ -98,11 +98,16 @@ Detalhe de cada um abaixo.
       lista as sessoes abertas: referencia curta, frente, agente, estado e nome
 
   arco group list [--json]
-      lista as frentes de trabalho abertas e as sessoes de cada uma
+      lista as frentes de trabalho abertas: id curto, nome, projeto e as sessoes
+      de cada uma
 
   arco group close <ref> [--yes]
-      fecha a frente a que a sessao <ref> pertence, com as sessoes dela;
-      se a frente criou uma worktree, ela tambem e apagada
+      fecha uma frente, com as sessoes dela; se a frente criou uma worktree,
+      ela tambem e apagada
+      <ref> e a frente: o id dela (a primeira coluna de "arco group list") ou
+      um trecho do nome que so ela tenha; ou uma sessao dela (pa-3576, current).
+      Assim tambem fecha uma frente que ficou sem panes. Um <ref> que serve a
+      mais de uma frente falha e lista as candidatas
 
   arco session send <ref> <texto>
       manda texto para um pane que ja esta aberto; entra quando o agente ficar ocioso
@@ -114,6 +119,8 @@ Detalhe de cada um abaixo.
 
   arco session close <ref> [--yes]
       fecha um pane; a frente e os outros panes dela continuam abertos
+      no ultimo pane de uma frente, ela fica aberta e vazia (a worktree dela
+      tambem fica) e a resposta traz o "arco group close" que a fecha
       --yes                   confirma quando o pane tem worktree propria, que sai junto
 
   arco session rename <nome> [--session <id|current>]
@@ -537,6 +544,9 @@ const GROUP_SUBCOMMANDS = 'list, close'
 function formatGroupTable(groups) {
   if (groups.length === 0) return 'nenhuma frente de trabalho\n'
   const rows = groups.map((group) => ({
+    // The short id is what `arco group close` takes when two fronts share a
+    // name, or when a front has no pane left to be named by.
+    id: String(group.id ?? '').slice(0, 8),
     name: String(group.name ?? ''),
     project: String(group.project ?? ''),
     panes: `${group.panes ?? 0} pane(s)`,
@@ -546,15 +556,15 @@ function formatGroupTable(groups) {
     worktree: group.worktree ? `[${group.worktree}]` : '',
   }))
   const width = (key) => Math.max(...rows.map((row) => row[key].length))
+  const idWidth = width('id')
   const nameWidth = width('name')
   const projectWidth = width('project')
   const panesWidth = width('panes')
   return `${rows
-    .map(
-      (row) =>
-        `${row.name.padEnd(nameWidth)}  ${row.project.padEnd(projectWidth)}  ${row.panes.padEnd(
-          panesWidth,
-        )}  ${row.refs}${row.worktree ? `  ${row.worktree}` : ''}`,
+    .map((row) =>
+      `${idWidth ? `${row.id.padEnd(idWidth)}  ` : ''}${row.name.padEnd(nameWidth)}  ${row.project.padEnd(
+        projectWidth,
+      )}  ${row.panes.padEnd(panesWidth)}  ${row.refs}${row.worktree ? `  ${row.worktree}` : ''}`.trimEnd(),
     )
     .join('\n')}\n`
 }
@@ -567,7 +577,13 @@ async function runGroupList(args) {
   writeOut(args.includes('--json') ? `${JSON.stringify(groups)}\n` : formatGroupTable(groups))
 }
 
-async function runGroupClose(args) {
+/**
+ * `arco group close <ref> [--yes]`.
+ *
+ * The reference is resolved by the app, which is the only side that knows the
+ * fronts: an id, a piece of a name or a session inside one.
+ */
+function parseGroupClose(args) {
   let target = null
   let yes = false
   for (const arg of args) {
@@ -577,8 +593,15 @@ async function runGroupClose(args) {
     else throw new Error(`arco group close: argumento a mais: ${arg}`)
   }
   if (!target) {
-    throw new Error('arco group close: informe uma sessao da frente (pa-3576 ou current)')
+    throw new Error(
+      'arco group close: informe a frente (id ou trecho do nome) ou uma sessao dela (pa-3576 ou current)',
+    )
   }
+  return { target, yes }
+}
+
+async function runGroupClose(args) {
+  const { target, yes } = parseGroupClose(args)
   // Closing a front deletes its worktree, which is not undoable. The app asks
   // again when the tree has uncommitted work; this is the terminal's own guard,
   // for the case where nobody is looking at the window.
@@ -589,7 +612,10 @@ async function runGroupClose(args) {
     const readline = require('node:readline')
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
     const answer = await new Promise((resolve) => {
-      rl.question(`fechar a frente de ${target} e apagar a worktree dela? [s/N] `, resolve)
+      rl.question(
+        `fechar a frente indicada por "${target}" e apagar a worktree dela, se tiver? [s/N] `,
+        resolve,
+      )
     })
     rl.close()
     if (!/^(s|sim|y|yes)$/i.test(String(answer).trim())) {
@@ -1166,6 +1192,7 @@ module.exports = {
   formatGroupTable,
   parseSessionSend,
   parseSessionClose,
+  parseGroupClose,
   assertSendText,
   SEND_TEXT_MAX,
   parseTodo,

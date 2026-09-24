@@ -10,6 +10,18 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- `arco group close` takes the front itself: its id, or a piece of its name that no other front
+  has, as well as the reference of a session inside it. A front whose last pane was closed could
+  not be closed from the terminal at all, because there was no session left to name it by. A
+  name that fits more than one front is refused, and the answer lists every front it could mean.
+- `arco group list` shows each front's short id in the first column, so a front with no panes or
+  a name shared with another front can still be closed by it.
+- `arco session close` on the last pane of a front says the front is now empty and still open,
+  mentions its worktree when it has one, and prints the `arco group close` command that closes
+  it. The front is not closed along with the pane, since closing it also deletes its worktree.
+
 ### Fixed
 
 - A Claude pane follows the conversation its agent moves to. After `/resume` inside Claude Code,

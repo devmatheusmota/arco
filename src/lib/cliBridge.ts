@@ -7,9 +7,10 @@ import { parseAdoRef } from './adoRef'
 import { deliverToPty, submitKeyFor } from './paneDelivery'
 import { normalizePaneRef } from './paneShortId'
 import { cliReply, type CliResult } from './tauri/cli'
-import { findTodoByRef, parseTodoStatus, TODO_NOTES_MAX_LENGTH } from './todos'
+import { findTodoByRef, normalizeSearchText, parseTodoStatus, TODO_NOTES_MAX_LENGTH } from './todos'
 import type {
   AgentType,
+  PaneGroup,
   PtyStatus,
   Terminal,
   TodoAdoRef,
@@ -720,6 +721,178 @@ function handleGroupList(): CliResult {
   return { ok: true, data: { groups } }
 }
 
+/** A front of work and the project holding it. */
+type FrontEntry = { group: PaneGroup; projectId: string; projectName: string }
+
+function frontEntries(): FrontEntry[] {
+  return useProjectsStore.getState().projects.flatMap((project) =>
+    (project.groups ?? []).map((group) => ({
+      group,
+      projectId: project.id,
+      projectName: project.name,
+    })),
+  )
+}
+
+function paneCount(front: FrontEntry): number {
+  const project = useProjectsStore.getState().projects.find((item) => item.id === front.projectId)
+  return (project?.terminals ?? []).filter((pane) => pane.groupId === front.group.id).length
+}
+
+/** Id first, because it is the one handle that is never shared. */
+function describeFront(front: FrontEntry): string {
+  return `${front.group.id.slice(0, 8)} "${front.group.name}" (${front.projectName}, ${paneCount(front)} pane(s))`
+}
+
+/** How many candidates an ambiguous answer names before it summarizes the rest. */
+const FRONT_CANDIDATES_SHOWN = 5
+
+/** Case and accents folded, so `revisao` names the front called "Revisão". */
+function frontNameKey(name: string): string {
+  return normalizeSearchText(name.trim())
+}
+
+/**
+ * The single front a set of matches points at, or why there is not one.
+ *
+ * Several routes can land on the same front — its name and the reference of a
+ * pane inside it — and that is agreement, not ambiguity, so candidates are
+ * counted by front. A pane that matched but belongs to no front is kept apart:
+ * it is the answer when nothing else matched, and noise when something did.
+ */
+function pickFront(
+  target: string,
+  fronts: FrontEntry[],
+  panes: SessionEntry[],
+): { front: FrontEntry } | { problem: string } | null {
+  const all = frontEntries()
+  const candidates = new Map(fronts.map((front) => [front.group.id, front]))
+  const loose: SessionEntry[] = []
+  for (const entry of panes) {
+    const front = all.find((item) => item.group.id === entry.terminal.groupId)
+    if (front) candidates.set(front.group.id, front)
+    else loose.push(entry)
+  }
+  const unique = [...candidates.values()]
+  if (unique.length === 1) return { front: unique[0] }
+  if (unique.length > 1) {
+    const shown = unique.slice(0, FRONT_CANDIDATES_SHOWN).map(describeFront).join('; ')
+    const rest = unique.length - FRONT_CANDIDATES_SHOWN
+    return {
+      problem:
+        `"${target}" corresponde a ${unique.length} frentes: ${shown}${rest > 0 ? `; e mais ${rest}` : ''}. ` +
+        'Passe o id, ou um trecho do nome que só uma delas tenha.',
+    }
+  }
+  if (loose.length > 0) {
+    const pane = loose[0].terminal
+    return {
+      problem: `A sessão ${pane.shortId ?? pane.id.slice(0, 8)} não está em nenhuma frente de trabalho.`,
+    }
+  }
+  return null
+}
+
+type FrontMatch = { front: FrontEntry } | { error: CliResult }
+
+/**
+ * What `arco group close <ref>` points at.
+ *
+ * A front used to be reachable only through a pane inside it, which left the
+ * one front most worth closing — the one whose last pane was just closed — with
+ * no name the command line would take. It now answers to its own id and name as
+ * well, the way a task answers to its id and title.
+ *
+ * Whole matches are tried before partial ones: a complete id, an explicit
+ * `pa-` reference or a front's complete name is what somebody meant, even when
+ * it also happens to be a piece of another front's name. Bare digits are the
+ * exception and wait for the second round: `1004` reads as pane `pa-1004` and
+ * just as well as a piece of "PR 1004", and closing the wrong front deletes
+ * its worktree, so when the two disagree the command asks instead of picking.
+ */
+function resolveFront(request: GroupCloseRequest & SessionScope): FrontMatch {
+  const target = request.target?.trim() ?? ''
+  const lowered = target.toLowerCase()
+  if (lowered === 'current' || lowered === 'atual') {
+    const match = matchSession({ ...request, session: target })
+    if ('error' in match) return match
+    if ('orphanId' in match) {
+      return {
+        error: failure(`A sessão ${match.orphanId.slice(0, 8)} não está aberta neste perfil.`),
+      }
+    }
+    const answer = pickFront(target, [], [match.entry]) ?? { problem: NO_SESSION_HERE }
+    return 'problem' in answer ? { error: failure(answer.problem) } : answer
+  }
+  const answer = findFront(target)
+  return 'problem' in answer ? { error: failure(answer.problem) } : answer
+}
+
+function findFront(target: string): { front: FrontEntry } | { problem: string } {
+  if (!target) return { problem: 'Informe a frente que quer fechar: nome, id ou uma sessão dela.' }
+
+  const fronts = frontEntries()
+  const entries = sessionEntries()
+  const paneRef = normalizePaneRef(target)
+  const explicitRef = Boolean(paneRef) && target.toLowerCase().startsWith('pa-')
+  const key = frontNameKey(target)
+
+  const whole = pickFront(
+    target,
+    fronts.filter((front) => front.group.id === target || frontNameKey(front.group.name) === key),
+    entries.filter(
+      (entry) =>
+        entry.terminal.id === target || (explicitRef && entry.terminal.shortId === paneRef),
+    ),
+  )
+  if (whole) return whole
+
+  // Id prefixes need three characters, the same floor `arco todo` uses: one or
+  // two match half the workspace and name nothing in particular.
+  const prefix = target.length >= 3
+  const partial = pickFront(
+    target,
+    fronts.filter(
+      (front) =>
+        (prefix && front.group.id.startsWith(target)) ||
+        frontNameKey(front.group.name).includes(key),
+    ),
+    entries.filter(
+      (entry) =>
+        (!explicitRef && paneRef !== null && entry.terminal.shortId === paneRef) ||
+        (prefix && entry.terminal.id.startsWith(target)),
+    ),
+  )
+  if (partial) return partial
+
+  return {
+    problem: explicitRef
+      ? `Nenhuma sessão do Arco com a referência ${paneRef}, e nenhuma frente com esse nome. Veja as frentes abertas com arco group list.`
+      : `Nenhuma frente nem sessão do Arco atende por "${target}". Veja as frentes abertas com arco group list.`,
+  }
+}
+
+/**
+ * The word that closes this front from the command line.
+ *
+ * The name when it is the only front called that and survives a shell as
+ * typed; the id otherwise, which always resolves. A name shaped like something
+ * else the command takes — a pane reference, `current` — is not offered either:
+ * it would be read as that other thing.
+ */
+function frontHandle(group: PaneGroup): string {
+  const name = group.name.trim()
+  const shared = frontEntries().filter(
+    (front) => frontNameKey(front.group.name) === frontNameKey(name),
+  )
+  const lowered = name.toLowerCase()
+  const readsAsSomethingElse =
+    lowered === 'current' || lowered === 'atual' || normalizePaneRef(name) !== null
+  // `!` expands history inside double quotes in an interactive shell.
+  if (!name || shared.length !== 1 || readsAsSomethingElse || /["$`\\!]/.test(name)) return group.id
+  return /^[\w.-]+$/.test(name) ? name : `"${name}"`
+}
+
 type SessionCloseRequest = {
   target?: string
   /** The terminal already asked, so the window must not block on a second one. */
@@ -737,6 +910,12 @@ type SessionCloseRequest = {
  * goes — `deleteTerminal` refuses it anyway, and a silent no-op reads like a bug.
  * And a pane does not close itself: the process that would die is the one still
  * waiting to print the answer.
+ *
+ * Closing the last pane of a front leaves the front open, and says so with the
+ * command that closes it. Taking the front along would be a second decision
+ * made in the caller's name — one that deletes the front's worktree — and an
+ * empty front is a state the interface keeps too: the next `arco session
+ * --group` lands in it, in the same worktree.
  */
 function handleSessionClose(request: SessionCloseRequest & SessionScope): CliResult {
   const target = request.target?.trim() ?? ''
@@ -773,19 +952,41 @@ function handleSessionClose(request: SessionCloseRequest & SessionScope): CliRes
       `${label} tem worktree própria (${terminal.worktreeAgentId}) e fechá-lo apaga ela com --force. Repita com --yes se for isso mesmo.`,
     )
   }
+  // Read before the pane goes, so the count does not depend on how fast the
+  // store applies the removal.
+  const project = useProjectsStore.getState().projects.find((item) => item.id === projectId)
+  const group = terminal.groupId
+    ? (project?.groups ?? []).find((item) => item.id === terminal.groupId)
+    : undefined
+  const leavesFrontEmpty =
+    Boolean(group) &&
+    !(project?.terminals ?? []).some(
+      (pane) => pane.groupId === terminal.groupId && pane.id !== terminal.id,
+    )
+
   void useProjectsStore.getState().deleteTerminalWithWorktreeCleanup(projectId, terminal.id, {
     assumeConfirmed: request.confirmed,
   })
 
+  const closing = ownsWorktree
+    ? `Fechando ${label} e a worktree ${terminal.worktreeAgentId}.`
+    : `Fechando ${label}.`
+  const front =
+    group && leavesFrontEmpty
+      ? ` A frente "${group.name}" ficou sem panes e segue aberta${
+          group.worktreeAgentId ? `, com a worktree ${group.worktreeAgentId} no disco` : ''
+        }. Para fechá-la: arco group close ${frontHandle(group)}`
+      : ownsWorktree
+        ? ''
+        : ' A frente segue aberta.'
   return {
     ok: true,
-    message: ownsWorktree
-      ? `Fechando ${label} e a worktree ${terminal.worktreeAgentId}.`
-      : `Fechando ${label}. A frente segue aberta.`,
+    message: `${closing}${front}`,
     data: {
       sessionId: terminal.id,
       ref: terminal.shortId ?? null,
       worktree: terminal.worktreeAgentId ?? null,
+      ...(group ? { groupId: group.id, groupEmpty: leavesFrontEmpty } : {}),
     },
   }
 }
@@ -799,8 +1000,8 @@ type GroupCloseRequest = {
 /**
  * `arco group close <ref>` — closes a front of work and what it owns.
  *
- * The front is named by the reference of any session inside it, because that
- * is the id a person has at hand; a group id is a nanoid nobody reads.
+ * The front is named by its own id or name, or by the reference of any session
+ * inside it — see `resolveFront` for the order those are tried in.
  *
  * The command answers as soon as the decision is made. Removing a worktree
  * runs git twice with a wait in between and can outlast the eight seconds the
@@ -808,34 +1009,21 @@ type GroupCloseRequest = {
  * having stopped listening.
  */
 function handleGroupClose(request: GroupCloseRequest & SessionScope): CliResult {
-  const target = request.target?.trim() ?? ''
-  if (!target) return failure('Informe uma sessão da frente que quer fechar.')
-
-  const match = matchSession({ ...request, session: target })
+  const match = resolveFront(request)
   if ('error' in match) return match.error
-  if ('orphanId' in match) {
-    return failure(`A sessão ${match.orphanId.slice(0, 8)} não está aberta neste perfil.`)
-  }
 
-  const { terminal, projectId } = match.entry
-  const project = useProjectsStore.getState().projects.find((item) => item.id === projectId)
-  const group = (project?.groups ?? []).find((item) => item.id === terminal.groupId)
-  if (!group) {
-    return failure(
-      `A sessão ${terminal.shortId ?? terminal.id.slice(0, 8)} não está em nenhuma frente de trabalho.`,
-    )
-  }
-
-  const panes = (project?.terminals ?? []).filter((item) => item.groupId === group.id)
+  const { group, projectId } = match.front
+  const panes = paneCount(match.front)
   void useProjectsStore
     .getState()
     .closeGroupWithWorktree(projectId, group.id, { assumeConfirmed: request.confirmed })
+  const what = panes === 0 ? 'nenhuma sessão, a frente estava vazia' : `${panes} sessão(ões)`
   return {
     ok: true,
     message: group.worktreeAgentId
-      ? `Fechando "${group.name}": ${panes.length} sessão(ões) e a worktree ${group.worktreeAgentId}.`
-      : `Fechando "${group.name}": ${panes.length} sessão(ões). Nada sai do disco.`,
-    data: { groupId: group.id, name: group.name, panes: panes.length },
+      ? `Fechando "${group.name}": ${what}, e a worktree ${group.worktreeAgentId}.`
+      : `Fechando "${group.name}": ${what}. Nada sai do disco.`,
+    data: { groupId: group.id, name: group.name, panes },
   }
 }
 

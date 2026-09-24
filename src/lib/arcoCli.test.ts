@@ -12,6 +12,7 @@ const {
   formatGroupTable,
   parseSessionSend,
   parseSessionClose,
+  parseGroupClose,
   assertSendText,
   SEND_TEXT_MAX,
   formatTodoTable,
@@ -31,6 +32,8 @@ const {
   formatSessionTable: (sessions: unknown[]) => string
   formatGroupTable: (groups: unknown[]) => string
   parseSessionSend: (args: string[]) => { target: string; text: string | null; file: string | null }
+  parseSessionClose: (args: string[]) => Record<string, unknown>
+  parseGroupClose: (args: string[]) => { target: string; yes: boolean }
   assertSendText: (raw: unknown) => string
   SEND_TEXT_MAX: number
   formatTodoTable: (todos: unknown[]) => string
@@ -466,6 +469,25 @@ describe('parseSessionClose', () => {
   })
 })
 
+describe('parseGroupClose', () => {
+  // The app resolves the reference, so a front name with spaces has to arrive
+  // whole, as the one word the shell handed over.
+  it('takes one reference, whatever shape it has', () => {
+    expect(parseGroupClose(['pa-3576'])).toEqual({ target: 'pa-3576', yes: false })
+    expect(parseGroupClose(['revisão do PR', '--yes'])).toEqual({
+      target: 'revisão do PR',
+      yes: true,
+    })
+    expect(parseGroupClose(['-y', 'Nwq3xYaB'])).toEqual({ target: 'Nwq3xYaB', yes: true })
+  })
+
+  it('says a front can be named by itself, not only through a session', () => {
+    expect(() => parseGroupClose([])).toThrow(/id ou trecho do nome/)
+    expect(() => parseGroupClose(['cpf', 'opcional'])).toThrow(/argumento a mais/)
+    expect(() => parseGroupClose(['cpf', '--force'])).toThrow(/opcao desconhecida: --force/)
+  })
+})
+
 describe('assertSendText', () => {
   it('trims and keeps a message that fits', () => {
     expect(assertSendText('  roda os testes\n')).toBe('roda os testes')
@@ -514,6 +536,22 @@ describe('formatGroupTable', () => {
   it('pads the names so the columns after them line up', () => {
     const lines = formatGroupTable(groups).trim().split('\n')
     expect(lines[0].indexOf('3 pane(s)')).toBe(lines[1].indexOf('1 pane(s)'))
+  })
+
+  // A front with no pane left has no reference to be closed by, and two fronts
+  // can share a name: the id is the handle that always works.
+  it('leads with the short id when the app sends one', () => {
+    const lines = formatGroupTable([
+      { id: 'Nwq3xYaBcdEFGhij', name: 'vazia', project: 'Arco', panes: 0, refs: [] },
+      { id: 'k9zz0000abcdefgh', name: 'SOA', project: 'SOA', panes: 1, refs: ['pa-5369'] },
+    ])
+      .trimEnd()
+      .split('\n')
+
+    expect(lines[0].startsWith('Nwq3xYaB  vazia')).toBe(true)
+    expect(lines[1].startsWith('k9zz0000  SOA')).toBe(true)
+    // An empty front has nothing after its pane count, and no padding either.
+    expect(lines[0]).toBe(lines[0].trimEnd())
   })
 
   it('says so when there is nothing to list', () => {
@@ -632,6 +670,15 @@ describe('helpFor', () => {
 
     expect(text).toContain('--raw')
     expect(text).not.toContain('--agent')
+  })
+
+  it('tells how to name a front that has no session left', () => {
+    const text = helpFor('group close')
+
+    expect(text).toContain('trecho do nome')
+    expect(text).toContain('sem panes')
+    expect(text).toContain('pa-3576')
+    expect(helpFor('session close')).toContain('arco group close')
   })
 
   it('answers nothing for a command that has no block', () => {
