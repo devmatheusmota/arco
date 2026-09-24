@@ -830,6 +830,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v343.note1':
+    'A Claude pane follows the conversation you move to with `/resume`. Restarting the pane or reopening Arco used to bring back the conversation it had left, because the resumed one already existed and nothing new showed up for Arco to notice. Claude now tells the pane through a SessionStart hook each time it starts, clears or resumes a conversation. The hook is loaded only in the panes Arco starts and prints nothing into the session.',
+  'whatsNew.v343.note2':
+    "`arco group close` now closes a front by its own id or by a piece of its name, besides the reference of a session inside it. A front whose last pane was closed used to be stuck: with no session left in it, the command had nothing to name it by. A name that fits more than one front is refused with the list of fronts it could mean, and `arco group list` shows each front's id in its first column. Closing the last pane of a front with `arco session close` keeps the front open, since closing the front also deletes its worktree, and the answer prints the command that closes it.",
   'whatsNew.v342.note1':
     'A pane closed by accident and reopened comes back to its conversation. With another pane open in the same project, that pane used to take the conversation as its own the moment the first one let go, and the reopened pane started an empty session in its place. Restart works on the first press too: on a running agent it used to stop it and start nothing, and on a conversation with nothing written in it, it failed with "No conversation found" every time. It now checks the conversation before resuming, runs the CLI set in Preferences instead of whatever is on the PATH, and a pane parked to save memory offers Resume again.',
   'whatsNew.v342.note2':

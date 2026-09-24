@@ -842,6 +842,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v343.note1':
+    'Pane do Claude acompanha a conversa para onde você foi com `/resume`. Reiniciar o pane ou reabrir o Arco trazia de volta a conversa que ele tinha deixado, porque a conversa retomada já existia e nada novo aparecia para o Arco perceber. Agora o Claude avisa o pane por um hook de SessionStart sempre que começa, limpa ou retoma uma conversa. O hook só entra nos panes que o Arco abre e não escreve nada na sessão.',
+  'whatsNew.v343.note2':
+    '`arco group close` agora fecha uma frente pelo id dela ou por um trecho do nome, além da referência de uma sessão lá dentro. Frente que perdia o último pane ficava presa: sem sessão nenhuma dentro, o comando não tinha como apontar para ela. Nome que serve a mais de uma frente é recusado, com a lista das frentes possíveis, e o `arco group list` mostra o id de cada frente na primeira coluna. Fechar o último pane de uma frente com `arco session close` mantém a frente aberta, porque fechar a frente também apaga a worktree dela, e a resposta já traz o comando que a fecha.',
   'whatsNew.v342.note1':
     'Pane fechado sem querer e reaberto volta para a conversa dele. Com outro pane aberto no mesmo projeto, esse outro pane tomava a conversa para si no instante em que o primeiro soltava, e o pane reaberto começava uma sessão vazia no lugar. O reiniciar também funciona na primeira vez: com o agente rodando, ele parava o agente e não subia nada, e numa conversa sem nada escrito falhava com "No conversation found" a cada clique. Agora ele confere a conversa antes de retomar, roda o CLI configurado nas Preferências em vez do que estiver no PATH, e o pane estacionado para liberar memória volta a oferecer Retomar.',
   'whatsNew.v342.note2':

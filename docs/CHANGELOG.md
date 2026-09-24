@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.4.3] — 2026-09-24
+
 ### Changed
 
 - `arco group close` takes the front itself: its id, or a piece of its name that no other front
