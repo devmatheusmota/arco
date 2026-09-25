@@ -15,12 +15,23 @@
  *   4. `arco todo list`         — and the binary itself answers with no display,
  *                                 cleanly, shim or no shim
  *
+ * Then one check on the sandbox itself: the login-env cache in the real home is
+ * exactly as it was before the run.
+ *
  * Run under a display: `xvfb-run -a node scripts/smoke-boot.mjs`.
  */
 import { spawn } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, existsSync, rmSync } from 'node:fs'
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  existsSync,
+  rmSync,
+  statSync,
+} from 'node:fs'
 import { createRequire } from 'node:module'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import path from 'node:path'
 
 // The real binary, not `.bin/electron`: that wrapper respawns Electron as a
@@ -37,16 +48,33 @@ const dirs = {
   tmp: path.join(root, 't'),
   data: path.join(root, 'd'),
   config: path.join(root, 'c'),
+  home: path.join(root, 'h'),
 }
 for (const dir of Object.values(dirs)) mkdirSync(dir, { recursive: true })
 
 const hooksFile = path.join(dirs.tmp, 'arco-agent-hooks.json')
 const eventsLog = path.join(dirs.data, 'com.mota.arco', 'logs', 'app-events.log')
 
+// HOME is part of the sandbox. The app keeps the login shell's environment in
+// ~/.cache/arco/login-env.json for a day, and a dump taken here inherits this
+// run's TMPDIR and XDG dirs. Written into the real home, it sent the next
+// desktop launch to an empty profile under /tmp.
+const REAL_LOGIN_ENV_CACHE = path.join(homedir(), '.cache', 'arco', 'login-env.json')
+const loginEnvCacheBefore = fileStamp(REAL_LOGIN_ENV_CACHE)
+
+function fileStamp(file) {
+  try {
+    return String(statSync(file).mtimeMs)
+  } catch {
+    return 'absent'
+  }
+}
+
 let output = ''
 const child = spawn(ELECTRON, ['electron/main.cjs', '--no-sandbox', '--disable-gpu-sandbox'], {
   env: {
     ...process.env,
+    HOME: dirs.home,
     TMPDIR: dirs.tmp,
     XDG_DATA_HOME: dirs.data,
     XDG_CONFIG_HOME: dirs.config,
@@ -159,7 +187,7 @@ function binaryAnswers() {
     // DISPLAY: with GDK_BACKEND or XDG_SESSION_TYPE still naming wayland it
     // finds a compositor anyway and the check passes on a developer's machine
     // while the same code dies under cron.
-    const env = { ...process.env, TMPDIR: dirs.tmp }
+    const env = { ...process.env, HOME: dirs.home, TMPDIR: dirs.tmp }
     for (const name of [
       'DISPLAY',
       'WAYLAND_DISPLAY',
@@ -220,6 +248,10 @@ while (Date.now() - started < TIMEOUT_MS) {
       fail(`the binary's own subcommands are broken: ${error.message}`)
     }
     step('the binary answers subcommands with no display (arco todo list)')
+    if (fileStamp(REAL_LOGIN_ENV_CACHE) !== loginEnvCacheBefore) {
+      fail(`the sandboxed app wrote into the real home (${REAL_LOGIN_ENV_CACHE})`)
+    }
+    step('the real home was left alone (login-env cache untouched)')
     console.log('\n✓ boot smoke passed\n')
     cleanup()
     process.exit(0)
