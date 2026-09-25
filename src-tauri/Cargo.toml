@@ -1,6 +1,6 @@
 [package]
 name = "arco"
-version = "3.5.1"
+version = "3.5.2"
 description = "Arco — terminal multiplexer GUI"
 authors = ["Matheus Mota"]
 license = "AGPL-3.0-or-later"
