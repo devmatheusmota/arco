@@ -222,6 +222,10 @@ exec ${appCommand()} --open-path "$target"
  * binary talks to the running app over HTTP — while the commands this version
  * added come back as unknown options and the ones it changed behave the way
  * they used to. Nothing in the app said so, because nothing looked.
+ *
+ * Unless that `arco` is this very app: the .deb links `/usr/bin/arco` to the
+ * binary it installs, and running it is running this build, which answers
+ * exactly as the shim would.
  */
 function shadowingShim() {
   const dirs = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean)
@@ -235,9 +239,18 @@ function shadowingShim() {
       // Not readable as text: a real binary, which is exactly the case that
       // shadows the shim.
     }
-    if (fs.existsSync(candidate)) return candidate
+    if (fs.existsSync(candidate)) return isThisApp(candidate) ? null : candidate
   }
   return null
+}
+
+/** Whether `candidate` resolves to the binary this app runs from. */
+function isThisApp(candidate) {
+  try {
+    return fs.realpathSync(candidate) === fs.realpathSync(appBinary())
+  } catch {
+    return false
+  }
 }
 
 function shimStatus() {
