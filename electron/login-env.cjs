@@ -35,6 +35,32 @@ const VOLATILE = new Set([
   'ZSH_EXECUTION_STRING',
 ])
 
+/**
+ * Where the process that dumped them keeps its own state. The shell inherits
+ * these from whoever launched the app, so an isolated instance (the boot smoke,
+ * an e2e script, a dev run) writes its sandbox into the cache. A desktop launch
+ * sets none of them and would adopt them all: the app opens an empty profile
+ * under /tmp, and every pane moves its config and temp files there.
+ */
+const INSTANCE_STATE = [
+  'TMPDIR',
+  'TMP',
+  'TEMP',
+  'XDG_CONFIG_HOME',
+  'XDG_DATA_HOME',
+  'XDG_CACHE_HOME',
+  'XDG_STATE_HOME',
+  'XDG_RUNTIME_DIR',
+  'ARCO_HOOKS_SETTINGS_FILE',
+  'ARCO_DEV_URL',
+]
+
+function dropInstanceState(env) {
+  const cleaned = { ...env }
+  for (const key of INSTANCE_STATE) delete cleaned[key]
+  return cleaned
+}
+
 function readCache() {
   try {
     const stat = fs.statSync(CACHE_FILE)
@@ -44,7 +70,7 @@ function readCache() {
     // for a day. Strip on read too, so the fix does not wait for expiry — and an
     // AppImage run leaves mount paths behind that outlive the mount itself.
     if (!parsed || typeof parsed !== 'object') return null
-    return stripAppImageEnv(clearInheritedAgentSession(parsed))
+    return dropInstanceState(stripAppImageEnv(clearInheritedAgentSession(parsed)))
   } catch {
     return null
   }
@@ -77,7 +103,7 @@ function dumpFromShell() {
     // The dump inherits this process's environment, so an app started from an
     // agent pane would write that session's markers into a cache read for a day,
     // and an AppImage run would write paths into a mount that no longer exists.
-    return stripAppImageEnv(clearInheritedAgentSession(env))
+    return dropInstanceState(stripAppImageEnv(clearInheritedAgentSession(env)))
   } catch {
     return {}
   } finally {
@@ -119,4 +145,4 @@ function mergePath(...lists) {
   return [...new Set(entries)].join(path.delimiter)
 }
 
-module.exports = { loginEnv, applyLoginEnv, mergePath }
+module.exports = { INSTANCE_STATE, loginEnv, applyLoginEnv, mergePath }

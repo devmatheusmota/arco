@@ -119,6 +119,9 @@ describe('loginEnv cache', () => {
     if (realHome === undefined) delete process.env.HOME
     else process.env.HOME = realHome
     vi.resetModules()
+    // The module resolves the cache path and memoizes the result at load, and
+    // `vi.resetModules` leaves Node's own require cache alone.
+    delete require.cache[require.resolve('../../electron/login-env.cjs')]
   })
 
   it('strips markers a cache written before the fix still holds', () => {
@@ -137,5 +140,37 @@ describe('loginEnv cache', () => {
 
     expect(env.CLAUDE_CODE_EXECPATH).toBe(POISONED.CLAUDE_CODE_EXECPATH)
     for (const key of INHERITED_SESSION_VARS) expect(env).not.toHaveProperty(key)
+  })
+
+  it('drops the state paths an isolated instance wrote into the cache', () => {
+    // What an e2e run left behind: a desktop launch that adopted these opened an
+    // empty profile under /tmp instead of the user's projects.
+    const sandbox = '/tmp/arco-e2e-wH8yY6'
+    const home = mkdtempSync(join(tmpdir(), 'arco-login-env-'))
+    mkdirSync(join(home, '.cache', 'arco'), { recursive: true })
+    writeFileSync(
+      join(home, '.cache', 'arco', 'login-env.json'),
+      JSON.stringify({
+        TMPDIR: `${sandbox}/t`,
+        XDG_DATA_HOME: `${sandbox}/d`,
+        XDG_CONFIG_HOME: `${sandbox}/c`,
+        ARCO_HOOKS_SETTINGS_FILE: `${sandbox}/t/arco-agent-hooks.json`,
+        ARCO_DEV_URL: 'http://localhost:1422',
+        EDITOR: 'nvim',
+        PATH: '/usr/bin',
+      }),
+    )
+    process.env.HOME = home
+
+    vi.resetModules()
+    const { INSTANCE_STATE, loginEnv } = require('../../electron/login-env.cjs') as {
+      INSTANCE_STATE: string[]
+      loginEnv: () => Record<string, string>
+    }
+    const env = loginEnv()
+
+    for (const key of INSTANCE_STATE) expect(env).not.toHaveProperty(key)
+    expect(env.EDITOR).toBe('nvim')
+    expect(env.PATH).toBe('/usr/bin')
   })
 })

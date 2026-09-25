@@ -10,6 +10,14 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- Opening the app from the desktop no longer lands on an empty profile with the first-run setup.
+  The environment read from the login shell, cached for a day, could carry the data, config and
+  temp directories of an isolated test instance; a later launch adopted them and read its
+  projects from an empty folder under `/tmp` while the real ones sat untouched. Those locations
+  are no longer taken from the cache, and a cache that already holds them is cleaned on read.
+
 ## [3.5.0] — 2026-09-25
 
 ### Added
