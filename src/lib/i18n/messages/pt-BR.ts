@@ -842,6 +842,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v351.note1':
+    'Abrir o Arco pelo desktop não cai mais num workspace vazio com a configuração inicial. O Arco lê o ambiente do seu shell de login uma vez por dia e guarda num cache, e esse cache podia pegar as pastas de dados, configuração e temporários de uma cópia de teste do app. A abertura seguinte lia os projetos de uma pasta vazia em /tmp, enquanto os seus continuavam intactos. Essas pastas não vêm mais do cache, e um cache que já as tenha é limpo quando o app abre.',
   'whatsNew.v350.note1':
     '`arco project add <nome> --cwd <dir>` cria pelo terminal um projeto para um diretório, sem abrir sessão, e `arco project list` mostra todos os projetos com id e diretório. Um agente já consegue criar o projeto de um repositório que não tinha um antes de registrar tarefas nele. O comando falha quando o diretório não existe, quando outro projeto já aponta para ele ou quando já há projeto com esse nome. Para o `arco project` funcionar, reinstale o comando de terminal em Preferências > Integrações > Comando de terminal: o que foi instalado antes desta versão não repassa o subcomando ao app.',
   'whatsNew.v350.note2':

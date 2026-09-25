@@ -830,6 +830,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v351.note1':
+    'Opening Arco from the desktop no longer lands on an empty workspace with the first-run setup. Arco reads the environment of your login shell once a day and keeps it in a cache, and that cache could pick up the data, config and temp folders of a test copy of the app. The next launch then read its projects from an empty folder under /tmp while yours were untouched. Those folders are no longer taken from the cache, and a cache that already holds them is cleaned when the app starts.',
   'whatsNew.v350.note1':
     '`arco project add <name> --cwd <dir>` creates a project for a directory from the terminal, without opening a session, and `arco project list` shows every project with its id and directory. An agent can now set up the project for a repository that had none before filing tasks under it. The command fails when the directory does not exist, when another project already points at it, or when a project already has that name. For `arco project` to work, reinstall the terminal command in Preferences > Integrations > Terminal command: the one installed before this version does not pass it on to the app.',
   'whatsNew.v350.note2':

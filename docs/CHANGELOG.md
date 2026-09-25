@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.5.1] — 2026-09-25
+
 ### Fixed
 
 - Opening the app from the desktop no longer lands on an empty profile with the first-run setup.
