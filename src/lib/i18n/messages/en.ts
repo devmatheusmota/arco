@@ -830,6 +830,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v360.note1':
+    '`arco todo list --project <name>` lists only the tasks of that project; it also takes the short id `arco project list` prints. A name that matches no project fails and says so. Before, `arco todo list` skipped `--project` and printed every task on the board, which looked like a filtered listing.',
+  'whatsNew.v360.note2':
+    '`arco todo list`, `show`, `status` and `delete` now fail on an option they do not know or on an extra word, instead of carrying on without it. `arco todo delete abc --yse` used to go ahead as if the typo were not there, and `arco todo list --status doing` answered with an empty list. A piece of a title with spaces goes between quotes.',
   'whatsNew.v352.note1':
     'Preferences > Integrations no longer warns that another `arco` comes first on your PATH when that `arco` is Arco itself. Installing the .deb puts `/usr/bin/arco` in place as a link to the app, so running it is running this same version, with every subcommand. The warning now shows only when the `arco` found first is a different program.',
   'whatsNew.v351.note1':

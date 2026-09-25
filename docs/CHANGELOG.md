@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.6.0] — 2026-09-25
+
 ### Added
 
 - `arco todo list --project <name|id>` lists only the tasks of that project. A name that matches

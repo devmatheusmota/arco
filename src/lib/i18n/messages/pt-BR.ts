@@ -842,6 +842,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v360.note1':
+    '`arco todo list --project <nome>` lista só as tarefas daquele projeto; também aceita o id curto que o `arco project list` mostra. Um nome que não corresponde a nenhum projeto falha e diz isso. Antes, o `arco todo list` ignorava o `--project` e mostrava todas as tarefas do board, como se fosse uma lista filtrada.',
+  'whatsNew.v360.note2':
+    '`arco todo list`, `show`, `status` e `delete` agora falham com uma opção que não conhecem ou com uma palavra a mais, em vez de seguir sem ela. `arco todo delete abc --yse` seguia como se o erro de digitação não existisse, e `arco todo list --status doing` respondia com uma lista vazia. Trecho de título com espaço vai entre aspas.',
   'whatsNew.v352.note1':
     'Preferências > Integrações não avisa mais que outro `arco` vem antes no PATH quando esse `arco` é o próprio Arco. A instalação pelo .deb cria `/usr/bin/arco` como link para o app, então rodar esse comando é rodar esta mesma versão, com todos os subcomandos. O aviso agora só aparece quando o `arco` encontrado primeiro é outro programa.',
   'whatsNew.v351.note1':

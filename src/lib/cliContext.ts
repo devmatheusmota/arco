@@ -25,7 +25,7 @@ export const CLI_CONTEXT_PROMPT = [
   'Keep the task board honest — move a task to in-progress when you pick it up, and to',
   'review when you hand the work back.',
   '',
-  '  arco todo list                      tasks with their short id, status and tags',
+  '  arco todo list [--project <name>]   tasks with their short id, status and tags',
   '  arco todo show <ref>                one task in full: notes, tags, linked card',
   '  arco todo add "<title>" [--tag <tag>] [--status <status>] [--session current]',
   '  arco todo status <ref> <status>     todo | in-progress | review | done',
