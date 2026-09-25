@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.5.2] — 2026-09-25
+
+### Fixed
+
+- Preferences > Integrations no longer warns that another `arco` comes first on your PATH when
+  that `arco` is the app itself. The .deb links `/usr/bin/arco` to the binary it installs, so the
+  command it runs is this same build and answers every subcommand the shim does; the warning now
+  appears only for an `arco` that resolves to a different binary.
+
 ## [3.5.1] — 2026-09-25
 
 ### Fixed

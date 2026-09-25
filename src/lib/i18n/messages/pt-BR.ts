@@ -842,6 +842,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v352.note1':
+    'Preferências > Integrações não avisa mais que outro `arco` vem antes no PATH quando esse `arco` é o próprio Arco. A instalação pelo .deb cria `/usr/bin/arco` como link para o app, então rodar esse comando é rodar esta mesma versão, com todos os subcomandos. O aviso agora só aparece quando o `arco` encontrado primeiro é outro programa.',
   'whatsNew.v351.note1':
     'Abrir o Arco pelo desktop não cai mais num workspace vazio com a configuração inicial. O Arco lê o ambiente do seu shell de login uma vez por dia e guarda num cache, e esse cache podia pegar as pastas de dados, configuração e temporários de uma cópia de teste do app. A abertura seguinte lia os projetos de uma pasta vazia em /tmp, enquanto os seus continuavam intactos. Essas pastas não vêm mais do cache, e um cache que já as tenha é limpo quando o app abre.',
   'whatsNew.v350.note1':

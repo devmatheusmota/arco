@@ -830,6 +830,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v352.note1':
+    'Preferences > Integrations no longer warns that another `arco` comes first on your PATH when that `arco` is Arco itself. Installing the .deb puts `/usr/bin/arco` in place as a link to the app, so running it is running this same version, with every subcommand. The warning now shows only when the `arco` found first is a different program.',
   'whatsNew.v351.note1':
     'Opening Arco from the desktop no longer lands on an empty workspace with the first-run setup. Arco reads the environment of your login shell once a day and keeps it in a cache, and that cache could pick up the data, config and temp folders of a test copy of the app. The next launch then read its projects from an empty folder under /tmp while yours were untouched. Those folders are no longer taken from the cache, and a cache that already holds them is cleaned when the app starts.',
   'whatsNew.v350.note1':
