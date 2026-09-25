@@ -129,8 +129,11 @@ Detalhe de cada um abaixo.
   arco session rename <nome> [--session <id|current>]
       renomeia a sessao; sem --session, a que roda neste terminal
 
-  arco todo list [--json] [--status <status>]
+  arco todo list [--json] [--status <status>] [--project <nome|id>]
       lista as tarefas; sem --json sai em tabela com id curto
+      --status <status>       so as tarefas nesse status: todo | in-progress | review | done
+      --project <nome|id>     so as tarefas desse projeto; um projeto que nao
+                              existe falha (arco project list)
 
   arco todo show <ref> [--json]   mostra uma tarefa inteira: notas, tags, card do ADO
 
@@ -400,6 +403,64 @@ const STATUS_LABEL = {
   in_progress: 'in-progress',
   review: 'review',
   done: 'done',
+}
+
+/**
+ * `arco todo list [--json] [--status <status>] [--project <nome|id>]`.
+ *
+ * The listing used to read the two options it knew and skip everything else:
+ * `--project Medtest` printed every task on the board and exited 0, which looks
+ * exactly like a filtered listing that happens to be long. An option it does not
+ * know, a stray word, and a status no task can have are refused instead —
+ * `--status doing` answered "nenhuma tarefa" rather than naming the typo.
+ */
+function parseTodoList(args) {
+  const request = { json: false, status: null, project: null }
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+    if (arg === '--json') request.json = true
+    else if (arg === '--status' || arg === '--project') {
+      const value = (args[++index] ?? '').trim()
+      if (!value || value.startsWith('--')) throw new Error(`arco todo list: ${arg} sem valor`)
+      request[arg.slice(2)] = value
+    } else if (arg.startsWith('-')) throw new Error(`arco todo list: opcao desconhecida: ${arg}`)
+    else throw new Error(`arco todo list: argumento a mais: ${arg}`)
+  }
+  if (request.status) {
+    const status = request.status.replace(/-/g, '_')
+    if (!STATUS_LABEL[status]) {
+      throw new Error(
+        `arco todo list: status desconhecido: ${request.status} (use: ${Object.values(STATUS_LABEL).join(' | ')})`,
+      )
+    }
+    request.status = status
+  }
+  return request
+}
+
+/**
+ * The task a one-task command names, plus the options it takes.
+ *
+ * `todo show`, `todo status` and `todo delete` took the first bare words they
+ * needed and skipped the rest, so `arco todo show revisar PR` showed whatever
+ * matched "revisar" and `arco todo delete abc --yse` went on as if the typo were
+ * not there. What is left over is refused. Only `--` marks an option: a short
+ * id can start with `-`.
+ */
+function parseTodoTarget(verb, args, { flags = [], words: wanted = 1 } = {}) {
+  const words = []
+  const seen = new Set()
+  for (const arg of args) {
+    if (flags.includes(arg)) seen.add(arg)
+    else if (arg.startsWith('--')) throw new Error(`arco todo ${verb}: opcao desconhecida: ${arg}`)
+    else if (words.length < wanted) words.push(arg)
+    else {
+      throw new Error(
+        `arco todo ${verb}: argumento a mais: ${arg} (trecho do titulo com espaco vai entre aspas)`,
+      )
+    }
+  }
+  return { words, has: (flag) => seen.has(flag) }
 }
 
 /** Status as stored, so `--status` on the app side sees the same word it prints. */
@@ -823,16 +884,25 @@ async function runTodo(rest) {
   const [subcommand, ...args] = rest
 
   if (subcommand === 'list' || subcommand === 'ls') {
-    const wantsJson = args.includes('--json')
-    const statusIndex = args.indexOf('--status')
-    const wantedStatus = statusIndex === -1 ? null : args[statusIndex + 1]
-    const result = await post('todo/list')
+    const { json, status, project } = parseTodoList(args)
+    const result = await post('todo/list', project ? { project } : {})
+    if (project) {
+      // The file on disk has the tasks but not the projects, so there is no
+      // name to match `--project` against without the window.
+      if (result.stale)
+        throw new Error('arco todo list: o app nao respondeu; --project precisa dele')
+      // An app from before `--project` ignores the field and sends every task.
+      // The resolved project in the answer is what tells the two apart.
+      if (!result.data?.project) {
+        throw new Error(
+          'arco todo list: o app aberto e de uma versao que nao filtra por projeto; atualize ou reinicie o app para usar --project',
+        )
+      }
+    }
     const todos = result.data?.todos ?? []
     if (result.stale) writeErr('aviso: o app nao respondeu; lista lida do arquivo em disco\n')
-    const filtered = wantedStatus
-      ? todos.filter((todo) => statusOf(todo) === wantedStatus.replace(/-/g, '_'))
-      : todos
-    writeOut(wantsJson ? `${JSON.stringify(filtered)}\n` : formatTodoTable(filtered))
+    const filtered = status ? todos.filter((todo) => statusOf(todo) === status) : todos
+    writeOut(json ? `${JSON.stringify(filtered)}\n` : formatTodoTable(filtered))
     return
   }
 
@@ -842,13 +912,14 @@ async function runTodo(rest) {
     subcommand === 'view' ||
     subcommand === 'info'
   ) {
-    const ref = args.find((arg) => !arg.startsWith('--'))
+    const target = parseTodoTarget('show', args, { flags: ['--json'] })
+    const [ref] = target.words
     if (!ref) throw new Error('arco todo show: informe a tarefa (id ou trecho do titulo)')
     const result = await post('todo/show', { ref })
     const todo = result.data?.todo
     if (!todo) throw new Error(`nenhuma tarefa encontrada para "${ref}"`)
     writeOut(
-      args.includes('--json')
+      target.has('--json')
         ? // `sessionId` is lifted to the top level so a caller reading the JSON
           // does not have to know how the link is stored.
           `${JSON.stringify({ ...todo, sessionId: result.data?.sessionId ?? null })}\n`
@@ -866,7 +937,7 @@ async function runTodo(rest) {
   }
 
   if (subcommand === 'status') {
-    const [ref, status] = args
+    const [ref, status] = parseTodoTarget('status', args, { words: 2 }).words
     if (!ref || !status) throw new Error('arco todo status: informe a tarefa e o status')
     const result = await post('todo/edit', { ref, status })
     writeOut(formatTodoReceipt(status, result.data?.todo))
@@ -879,13 +950,14 @@ async function runTodo(rest) {
     subcommand === 'rm' ||
     subcommand === 'remove'
   ) {
-    const ref = args.find((arg) => !arg.startsWith('--'))
+    const target = parseTodoTarget('delete', args, { flags: ['--yes', '-y'] })
+    const [ref] = target.words
     if (!ref) throw new Error('arco todo delete: informe a tarefa (id ou trecho do titulo)')
     const found = await post('todo/show', { ref })
     const todo = found.data?.todo
     if (!todo) throw new Error(`nenhuma tarefa encontrada para "${ref}"`)
     const line = formatTodoReceipt('', todo)
-    if (!args.includes('--yes') && !args.includes('-y') && !(await confirmDelete(line))) {
+    if (!target.has('--yes') && !target.has('-y') && !(await confirmDelete(line))) {
       writeOut('cancelado\n')
       return
     }
@@ -1323,6 +1395,8 @@ module.exports = {
   parseTodo,
   parseTodoImplicit,
   parseTodoEdit,
+  parseTodoList,
+  parseTodoTarget,
   formatTodoTable,
   formatTodoReceipt,
   formatTodoDetail,

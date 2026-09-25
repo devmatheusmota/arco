@@ -45,6 +45,13 @@ let server: Server
 let dir: string
 let settingsFile: string
 
+/**
+ * What the stand-in answers `todo/list` with when the command names a project.
+ * Null plays an app from before `--project`: it ignores the field and sends the
+ * whole board.
+ */
+let filteredReply: Record<string, unknown> | null = null
+
 /** Runs the CLI with both descriptors on one pipe, the way `$(... 2>&1)` does. */
 function runCli(args: string[]): Promise<{ output: string; code: number | null }> {
   return new Promise((done, fail) => {
@@ -62,11 +69,18 @@ function runCli(args: string[]): Promise<{ output: string; code: number | null }
 
 beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), 'arco-cli-output-'))
+  filteredReply = null
   server = createServer((request, response) => {
     const route = (request.url ?? '').split('?')[0]
-    request.resume()
+    const body: Buffer[] = []
+    request.on('data', (chunk: Buffer) => body.push(chunk))
     request.on('end', () => {
       response.setHeader('Content-Type', 'application/json')
+      const payload = JSON.parse(Buffer.concat(body).toString('utf8') || '{}')
+      if (route === '/cli/todo/list' && payload.project && filteredReply) {
+        response.end(JSON.stringify(filteredReply))
+        return
+      }
       const data = route === '/cli/session/list' ? { sessions } : { todos }
       response.end(JSON.stringify({ ok: true, data }))
     })
@@ -112,5 +126,35 @@ describe('arco session list --json', () => {
     expect(output.length).toBeGreaterThan(64 * 1024)
     expect(output).toBe(expectedSessions)
     expect(JSON.parse(output)).toHaveLength(sessions.length)
+  }, 20000)
+})
+
+describe('arco todo list --project', () => {
+  it('prints only what the app filtered', async () => {
+    filteredReply = { ok: true, data: { todos: [todos[0]], project: { id: 'p1', name: 'Arco' } } }
+
+    const { output, code } = await runCli(['todo', 'list', '--project', 'Arco', '--json'])
+
+    expect(code).toBe(0)
+    expect(JSON.parse(output)).toEqual([todos[0]])
+  }, 20000)
+
+  it('fails with the reason the app gives for a project that does not exist', async () => {
+    filteredReply = { ok: false, message: 'Nenhum projeto atende por "Medtest".' }
+
+    const { output, code } = await runCli(['todo', 'list', '--project', 'Medtest'])
+
+    expect(code).toBe(1)
+    expect(output).toBe('Nenhum projeto atende por "Medtest".\n')
+  }, 20000)
+
+  // An app from before the filter answers with every task. Printing that would
+  // be the silent whole-board listing the option exists to end.
+  it('fails when the app sends the whole board instead of filtering it', async () => {
+    const { output, code } = await runCli(['todo', 'list', '--project', 'Arco'])
+
+    expect(code).toBe(1)
+    expect(output).toMatch(/versao que nao filtra por projeto/)
+    expect(output).not.toContain('tarefa 0')
   }, 20000)
 })

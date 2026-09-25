@@ -1257,9 +1257,31 @@ function handleTodoDelete(request: TodoRefRequest): CliResult {
   return { ok: true, message: 'apagada', data: { todo: found.todo } }
 }
 
-/** `arco todo list` — served from the store, so it never lags behind a write. */
-function handleTodoList(): CliResult {
-  return { ok: true, data: { todos: useProjectsStore.getState().todos } }
+/** `arco todo list` — `project` narrows the listing to one project's tasks. */
+type TodoListRequest = { project?: string }
+
+/**
+ * `arco todo list` — served from the store, so it never lags behind a write.
+ *
+ * With `project`, only the tasks filed under it, matched the way the sidebar
+ * groups them; a task with no project belongs to none. The resolved project goes
+ * back with the answer: an app from before this field sends every task, and the
+ * command line tells the two answers apart by it.
+ */
+function handleTodoList(request: TodoListRequest): CliResult {
+  const { todos } = useProjectsStore.getState()
+  const wanted = request.project?.trim()
+  if (!wanted) return { ok: true, data: { todos } }
+  const found = findProject(wanted)
+  if ('error' in found) return found.error
+  const { project } = found
+  return {
+    ok: true,
+    data: {
+      todos: todos.filter((todo) => todo.projectId === project.id),
+      project: projectSnapshot(project),
+    },
+  }
 }
 
 /** `arco project list` — the directory is where the command ran, to mark the project it lands in. */
@@ -1454,7 +1476,10 @@ export async function startCliBridge(): Promise<UnlistenFn> {
       'cli://todo-add',
       answer<TodoRequest & CliRequest>(handleTodo),
     ),
-    listen<CliRequest>('cli://todo-list', answer<CliRequest>(handleTodoList)),
+    listen<TodoListRequest & CliRequest>(
+      'cli://todo-list',
+      answer<TodoListRequest & CliRequest>(handleTodoList),
+    ),
     listen<TodoRefRequest & CliRequest>(
       'cli://todo-show',
       answer<TodoRefRequest & CliRequest>(handleTodoShow),

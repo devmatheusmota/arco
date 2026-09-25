@@ -10,6 +10,8 @@ const {
   parseTodo,
   parseTodoImplicit,
   parseTodoEdit,
+  parseTodoList,
+  parseTodoTarget,
   parseSession,
   formatSessionTable,
   formatGroupTable,
@@ -34,6 +36,16 @@ const {
   parseTodo: (args: string[]) => Record<string, unknown>
   parseTodoImplicit: (args: string[]) => Record<string, unknown>
   parseTodoEdit: (args: string[]) => Record<string, unknown>
+  parseTodoList: (args: string[]) => {
+    json: boolean
+    status: string | null
+    project: string | null
+  }
+  parseTodoTarget: (
+    verb: string,
+    args: string[],
+    options?: { flags?: string[]; words?: number },
+  ) => { words: string[]; has: (flag: string) => boolean }
   parseSession: (args: string[]) => Record<string, unknown>
   formatSessionTable: (sessions: unknown[]) => string
   formatGroupTable: (groups: unknown[]) => string
@@ -146,6 +158,66 @@ describe('parseTodoEdit', () => {
 
   it('requires a task reference', () => {
     expect(() => parseTodoEdit([])).toThrow(/informe a tarefa/)
+  })
+})
+
+describe('parseTodoList', () => {
+  it('reads every option the listing takes', () => {
+    expect(parseTodoList(['--json', '--status', 'in-progress', '--project', 'Arco'])).toEqual({
+      json: true,
+      status: 'in_progress',
+      project: 'Arco',
+    })
+  })
+
+  it('lists everything when nothing narrows it', () => {
+    expect(parseTodoList([])).toEqual({ json: false, status: null, project: null })
+  })
+
+  // `--project` used to be skipped along with any other option the listing did
+  // not know, so the whole board came back looking like a filtered answer.
+  it('refuses an option it does not know instead of skipping it', () => {
+    expect(() => parseTodoList(['--projet', 'Arco'])).toThrow(/opcao desconhecida: --projet/)
+    expect(() => parseTodoList(['-p', 'Arco'])).toThrow(/opcao desconhecida: -p/)
+  })
+
+  it('refuses a stray word', () => {
+    expect(() => parseTodoList(['Arco'])).toThrow(/argumento a mais: Arco/)
+  })
+
+  it('refuses an option left without its value', () => {
+    expect(() => parseTodoList(['--project'])).toThrow(/--project sem valor/)
+    expect(() => parseTodoList(['--status', '--json'])).toThrow(/--status sem valor/)
+  })
+
+  it('refuses a status no task can have, instead of answering with an empty list', () => {
+    expect(() => parseTodoList(['--status', 'doing'])).toThrow(/status desconhecido: doing/)
+  })
+})
+
+describe('parseTodoTarget', () => {
+  it('takes the reference and the options the command allows', () => {
+    const target = parseTodoTarget('delete', ['abc', '--yes'], { flags: ['--yes', '-y'] })
+    expect(target.words).toEqual(['abc'])
+    expect(target.has('--yes')).toBe(true)
+  })
+
+  it('refuses a mistyped option instead of going on without it', () => {
+    expect(() => parseTodoTarget('delete', ['abc', '--yse'], { flags: ['--yes'] })).toThrow(
+      /arco todo delete: opcao desconhecida: --yse/,
+    )
+  })
+
+  // `arco todo show revisar PR` showed whatever matched "revisar".
+  it('refuses a word past the ones it needs, pointing at quotes', () => {
+    expect(() => parseTodoTarget('show', ['revisar', 'PR'])).toThrow(/argumento a mais: PR.*aspas/)
+    expect(() => parseTodoTarget('status', ['abc', 'done', 'extra'], { words: 2 })).toThrow(
+      /argumento a mais: extra/,
+    )
+  })
+
+  it('reads a short id that starts with a dash as the reference', () => {
+    expect(parseTodoTarget('show', ['-x8Kp2Qa']).words).toEqual(['-x8Kp2Qa'])
   })
 })
 

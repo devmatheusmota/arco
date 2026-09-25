@@ -10,6 +10,19 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- `arco todo list --project <name|id>` lists only the tasks of that project. A name that matches
+  no project fails and points at `arco project list`, the same as `--project` on `todo add`.
+
+### Fixed
+
+- `arco todo list` no longer ignores options it does not know. `--project` used to be skipped
+  and the whole board came back with exit 0, looking like a filtered answer; an unknown option,
+  a stray word or a status no task can have (`--status doing`) is now an error. `todo show`,
+  `todo status` and `todo delete` refuse a mistyped option or an extra word the same way, so
+  `arco todo delete abc --yse` no longer carries on as if the typo were not there.
+
 ## [3.5.2] — 2026-09-25
 
 ### Fixed

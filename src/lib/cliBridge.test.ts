@@ -287,6 +287,34 @@ describe('cli://todo-list', () => {
     const result = await request('cli://todo-list', {})
     expect((result.data as { todos: TodoItem[] }).todos).toHaveLength(1)
   })
+
+  it('narrows to the tasks of the project named, and says which one it matched', async () => {
+    state.todos = [
+      { id: 'a', title: 'do Arco', completed: false, tags: [], projectId: 'p1' },
+      { id: 'b', title: 'de outro', completed: false, tags: [], projectId: 'p2' },
+      { id: 'c', title: 'sem projeto', completed: false, tags: [] },
+    ]
+
+    const result = await request('cli://todo-list', { project: 'arco' })
+
+    const data = result.data as { todos: TodoItem[]; project: { id: string } }
+    expect(data.todos.map((todo) => todo.id)).toEqual(['a'])
+    // The command line reads this to tell a filtered answer from an older app
+    // that ignored the field and sent the whole board.
+    expect(data.project.id).toBe('p1')
+  })
+
+  // `arco todo list --project Medtest`, with no Medtest project, printed every
+  // task on the board and exited 0.
+  it('fails for a project that does not exist instead of listing everything', async () => {
+    await request('cli://todo-add', { title: 'qualquer uma' })
+
+    const result = await request('cli://todo-list', { project: 'Medtest' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/Nenhum projeto atende por "Medtest"/)
+    expect(result.data).toBeUndefined()
+  })
 })
 
 describe('cli://session-rename', () => {
