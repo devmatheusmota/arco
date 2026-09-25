@@ -19,6 +19,16 @@ const SHIM_DIR = path.join(os.homedir(), '.local', 'bin')
 const SHIM_PATH = path.join(SHIM_DIR, 'arco')
 const SHIM_MARKER = '# arco-cli-shim'
 
+/**
+ * The first words the shim hands to the app instead of reading as a directory.
+ *
+ * Listed in the shim itself, so a subcommand added after it was installed does
+ * not reach the app: `arco project` came back as "diretorio nao encontrado:
+ * project" until the shim was written again. `shimStatus` compares this line to
+ * catch that, the same way it catches a shim pointing at an old binary.
+ */
+const SHIM_ROUTED = 'session|group|todo|project|help|--help|-h|version|--version|-v'
+
 // ── MCP ─────────────────────────────────────────────────────────────────────
 
 /** What each agent's MCP implementation supports, mirroring the Rust table. */
@@ -170,6 +180,9 @@ ${SHIM_MARKER}
 # arco todo status <ref> <status>
 # arco todo delete <ref> [--yes]
 #
+# arco project list [--json]  -> lista os projetos e o diretorio de cada um
+# arco project add [<nome>] --cwd <dir>  -> cria um projeto para o diretorio
+#
 # arco --version              -> versao do app
 #
 # "arco help" lista todas as opcoes.
@@ -181,7 +194,7 @@ set -e
 # Os subcomandos vivem no binario do app: uma implementacao so, que responde
 # igual com ou sem este atalho. Aqui eles sao apenas repassados.
 case "\${1:-}" in
-  session|group|todo|help|--help|-h|version|--version|-v)
+  ${SHIM_ROUTED})
     exec ${appCommand()} "$@"
     ;;
 esac
@@ -233,7 +246,8 @@ function shimStatus() {
   try {
     const contents = fs.readFileSync(SHIM_PATH, 'utf8')
     installed = contents.includes(SHIM_MARKER)
-    stale = installed && !contents.includes(appCommand())
+    stale =
+      installed && (!contents.includes(appCommand()) || !contents.includes(`  ${SHIM_ROUTED})`))
   } catch {}
   const onPath = (process.env.PATH ?? '').split(path.delimiter).includes(SHIM_DIR)
   return {

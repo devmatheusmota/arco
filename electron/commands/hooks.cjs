@@ -69,6 +69,8 @@ const CLI_EVENTS = {
   'todo/show': 'cli://todo-show',
   'todo/edit': 'cli://todo-edit',
   'todo/delete': 'cli://todo-delete',
+  'project/list': 'cli://project-list',
+  'project/add': 'cli://project-add',
 }
 
 /**

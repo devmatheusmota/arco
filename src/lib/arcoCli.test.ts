@@ -1,4 +1,7 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { homedir, tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -13,6 +16,9 @@ const {
   parseSessionSend,
   parseSessionClose,
   parseGroupClose,
+  parseProjectAdd,
+  formatProjectTable,
+  formatProjectReceipt,
   assertSendText,
   SEND_TEXT_MAX,
   formatTodoTable,
@@ -34,6 +40,9 @@ const {
   parseSessionSend: (args: string[]) => { target: string; text: string | null; file: string | null }
   parseSessionClose: (args: string[]) => Record<string, unknown>
   parseGroupClose: (args: string[]) => { target: string; yes: boolean }
+  parseProjectAdd: (args: string[], cwd?: string) => Record<string, unknown>
+  formatProjectTable: (projects: unknown[]) => string
+  formatProjectReceipt: (verb: string, project: unknown) => string
   assertSendText: (raw: unknown) => string
   SEND_TEXT_MAX: number
   formatTodoTable: (todos: unknown[]) => string
@@ -575,6 +584,7 @@ describe('handlesCli', () => {
       ['/opt/Arco/arco', 'help'],
       ['/opt/Arco/arco', '--help'],
       ['/opt/Arco/arco', '-h'],
+      ['/opt/Arco/arco', 'project', 'list'],
       ['electron', '.', 'todo', 'show', 'abc'],
     ]) {
       expect(handlesCli(argv), argv.join(' ')).toBe(true)
@@ -681,6 +691,18 @@ describe('helpFor', () => {
     expect(helpFor('session close')).toContain('arco group close')
   })
 
+  // The skills find out what the command can do by reading its help.
+  it('documents creating and listing projects, and what makes a creation fail', () => {
+    const add = helpFor('project add')
+
+    expect(add).toContain('--cwd <dir>')
+    expect(add).toContain('nao existe')
+    expect(add).toContain('ja aponta')
+    expect(add).not.toContain('arco project list [--json]')
+    expect(helpFor('project')).toContain('arco project list')
+    expect(helpFor('todo add')).toContain('arco project list')
+  })
+
   it('answers nothing for a command that has no block', () => {
     expect(helpFor('inexistente')).toBeNull()
   })
@@ -689,5 +711,92 @@ describe('helpFor', () => {
     expect(helpRequested(['send', 'pa-1', '--help'])).toBe(true)
     expect(helpRequested(['-h'])).toBe(true)
     expect(helpRequested(['send', 'pa-1', 'texto'])).toBe(false)
+  })
+})
+
+describe('parseProjectAdd', () => {
+  const root = mkdtempSync(join(tmpdir(), 'arco-project-add-'))
+  mkdirSync(join(root, 'Medtest'))
+  writeFileSync(join(root, 'arquivo.txt'), '')
+
+  it('resolves a relative directory from where the command ran', () => {
+    expect(parseProjectAdd(['Medtest', '--cwd', 'Medtest'], root)).toEqual({
+      name: 'Medtest',
+      cwd: join(root, 'Medtest'),
+      json: false,
+    })
+  })
+
+  it('joins loose words into the name and leaves it out when there is none', () => {
+    expect(parseProjectAdd(['EMR', 'Medtest', '--cwd', '.'], join(root, 'Medtest')).name).toBe(
+      'EMR Medtest',
+    )
+    expect(parseProjectAdd(['--cwd', root], root)).not.toHaveProperty('name')
+  })
+
+  it('expands a quoted ~, which the shell leaves alone', () => {
+    expect(parseProjectAdd(['--cwd', '~'], root).cwd).toBe(homedir())
+  })
+
+  it('drops the trailing slash, so the directory compares with the stored ones', () => {
+    expect(parseProjectAdd(['--cwd', `${root}/Medtest/`], root).cwd).toBe(join(root, 'Medtest'))
+  })
+
+  it('fails loudly when the directory does not exist', () => {
+    expect(() => parseProjectAdd(['X', '--cwd', 'nao-existe'], root)).toThrow(
+      `diretorio nao encontrado: ${join(root, 'nao-existe')}`,
+    )
+  })
+
+  it('fails when the path is a file', () => {
+    expect(() => parseProjectAdd(['X', '--cwd', 'arquivo.txt'], root)).toThrow(/nao e um diretorio/)
+  })
+
+  it('asks for the directory instead of guessing it', () => {
+    expect(() => parseProjectAdd(['Medtest'], root)).toThrow(/--cwd <dir>/)
+    expect(() => parseProjectAdd(['Medtest', '--cwd'], root)).toThrow(/--cwd sem diretorio/)
+  })
+
+  it('refuses an option it does not know', () => {
+    expect(() => parseProjectAdd(['X', '--path', root], root)).toThrow(/opcao desconhecida: --path/)
+  })
+
+  it('reads --json apart from the request', () => {
+    expect(parseProjectAdd(['--cwd', root, '--json'], root).json).toBe(true)
+  })
+})
+
+describe('formatProjectTable', () => {
+  it('prints the short id, name and directory, marking the current and the archived', () => {
+    const table = formatProjectTable([
+      { id: 'bFCQaeVv1234', name: 'Arco', defaultCwd: '/home/mota/projetos/apps/arco' },
+      { id: 'aSnsamlS5678', name: 'mota', defaultCwd: '/home/mota', current: true },
+      { id: 'old98765abcd', name: 'Antigo', defaultCwd: null, archived: true },
+    ])
+
+    expect(table).toBe(
+      [
+        '  bFCQaeVv  Arco    /home/mota/projetos/apps/arco',
+        '* aSnsamlS  mota    /home/mota',
+        '  old98765  Antigo  -  [arquivado]',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('says so when there is nothing to list', () => {
+    expect(formatProjectTable([])).toBe('nenhum projeto\n')
+  })
+})
+
+describe('formatProjectReceipt', () => {
+  it('names the id, the name and the directory it created', () => {
+    expect(
+      formatProjectReceipt('criado', {
+        id: 'Xy12Ab34Cd56',
+        name: 'Medtest',
+        defaultCwd: '/home/mota/projetos/emr/Medtest',
+      }),
+    ).toBe('criado  Xy12Ab34  Medtest  /home/mota/projetos/emr/Medtest\n')
   })
 })

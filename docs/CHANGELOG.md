@@ -10,6 +10,29 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.5.0] — 2026-09-25
+
+### Added
+
+- `arco project add [<name>] --cwd <dir>` creates a project for a directory from the terminal,
+  without opening a session, so an agent can file tasks under a repository that had no project
+  yet. It fails when the directory does not exist, when another project already points at it,
+  or when a project already has that name, and prints the id, name and directory it created.
+  Without a name it takes the folder's.
+- `arco project list` shows every project with its short id, name and directory, marks the one a
+  command run in the current directory lands in, and flags the archived ones.
+
+### Changed
+
+- `--project` on `arco todo add`, `arco todo edit` and `arco session` fails when no project has
+  that name or id. It used to fall back to the project of the current directory, so the task
+  landed in the wrong project and the command still printed that it was created. It now also
+  takes the short id `arco project list` prints.
+- Preferences > Integrations flags the terminal command as out of date when it was installed
+  before a subcommand it does not pass on yet, not only when it points at an older copy of Arco.
+  An `arco` shim installed before this version has to be reinstalled there for `arco project`
+  to reach the app.
+
 ## [3.4.3] — 2026-09-24
 
 ### Changed

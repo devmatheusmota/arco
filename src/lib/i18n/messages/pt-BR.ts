@@ -735,7 +735,7 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.cliUninstall': 'Remover',
   'prefs.cliInstalledAt': 'Instalado em {path}',
   'prefs.cliStale':
-    'O comando instalado aponta pra uma cópia antiga do Arco. Reinstale pra atualizar o caminho.',
+    'O comando instalado está desatualizado: aponta pra uma cópia antiga do Arco, ou não repassa os subcomandos mais novos. Reinstale pra atualizar.',
   'prefs.cliShadowed':
     'Outro arco em {other} vem antes no seu PATH, então é ele que roda — não o deste app. É outra vers\u00e3o e responde a outros subcomandos. Ponha {dir} na frente dele, ou remova o outro.',
   'prefs.cliNotOnPath':
@@ -842,6 +842,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v350.note1':
+    '`arco project add <nome> --cwd <dir>` cria pelo terminal um projeto para um diretório, sem abrir sessão, e `arco project list` mostra todos os projetos com id e diretório. Um agente já consegue criar o projeto de um repositório que não tinha um antes de registrar tarefas nele. O comando falha quando o diretório não existe, quando outro projeto já aponta para ele ou quando já há projeto com esse nome. Para o `arco project` funcionar, reinstale o comando de terminal em Preferências > Integrações > Comando de terminal: o que foi instalado antes desta versão não repassa o subcomando ao app.',
+  'whatsNew.v350.note2':
+    '`--project` em `arco todo add`, `arco todo edit` e `arco session` agora falha quando nenhum projeto tem esse nome. Antes caía no projeto do diretório atual, e a tarefa ia parar no projeto errado enquanto o comando dizia que tinha criado. Ele também aceita o id curto que o `arco project list` mostra.',
   'whatsNew.v343.note1':
     'Pane do Claude acompanha a conversa para onde você foi com `/resume`. Reiniciar o pane ou reabrir o Arco trazia de volta a conversa que ele tinha deixado, porque a conversa retomada já existia e nada novo aparecia para o Arco perceber. Agora o Claude avisa o pane por um hook de SessionStart sempre que começa, limpa ou retoma uma conversa. O hook só entra nos panes que o Arco abre e não escreve nada na sessão.',
   'whatsNew.v343.note2':

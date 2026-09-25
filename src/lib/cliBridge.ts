@@ -6,11 +6,13 @@ import { useUiStore } from '../stores/uiStore'
 import { parseAdoRef } from './adoRef'
 import { deliverToPty, submitKeyFor } from './paneDelivery'
 import { normalizePaneRef } from './paneShortId'
+import { basename, sameCwd } from './paths'
 import { cliReply, type CliResult } from './tauri/cli'
 import { findTodoByRef, normalizeSearchText, parseTodoStatus, TODO_NOTES_MAX_LENGTH } from './todos'
 import type {
   AgentType,
   PaneGroup,
+  Project,
   PtyStatus,
   Terminal,
   TodoAdoRef,
@@ -351,31 +353,92 @@ function normalizeWorktree(value: SessionRequest['worktree']): WorktreeChoice {
 }
 
 /**
+ * The project whose directory holds `cwd`, if any.
+ *
+ * Deepest root wins. A project rooted at the home directory is a prefix of
+ * every other one, so taking the first match hands it every session opened
+ * anywhere on the machine.
+ */
+function projectOwningCwd(projects: Project[], cwd: string): Project | null {
+  if (!cwd) return null
+  const match = projects
+    .map((project) => ({ project, root: project.defaultCwd?.trim() ?? '' }))
+    .filter(({ root }) => root && (cwd === root || cwd.startsWith(`${root}/`)))
+    .sort((a, b) => b.root.length - a.root.length)[0]
+  return match?.project ?? null
+}
+
+/** Id first, because it is the one handle that is never shared. */
+function describeProject(project: Project): string {
+  const where = project.defaultCwd?.trim()
+  const details = [
+    project.id.slice(0, 8),
+    where ? `em ${where}` : '',
+    project.archived ? 'arquivado' : '',
+  ]
+  return `"${project.name}" (${details.filter(Boolean).join(', ')})`
+}
+
+/** Case and accents folded, so `medtest` names the project called "Medtest". */
+function projectNameKey(name: string): string {
+  return normalizeSearchText(name.trim())
+}
+
+/**
+ * The project `--project <nome|id>` names, or why it names none.
+ *
+ * A name that matched nothing used to fall through to the directory the command
+ * ran in, and from there to the active project: `arco todo add --project
+ * Medtest`, with no Medtest project, filed the task under whichever project
+ * owned the tree, printed "criada" and exited 0. The task was on the board, in
+ * the wrong project, and nothing said so.
+ */
+function findProject(wanted: string): { project: Project } | { error: CliResult } {
+  const projects = useProjectsStore.getState().projects
+  const exact = projects.find((project) => project.id === wanted)
+  if (exact) return { project: exact }
+  const key = projectNameKey(wanted)
+  const byName = projects.filter((project) => projectNameKey(project.name) === key)
+  // The listing prints eight characters of the id, so that is what gets typed.
+  const matches =
+    byName.length > 0
+      ? byName
+      : wanted.length >= 3
+        ? projects.filter((project) => project.id.startsWith(wanted))
+        : []
+  if (matches.length === 1) return { project: matches[0] }
+  if (matches.length > 1) {
+    return {
+      error: failure(
+        `"${wanted}" corresponde a ${matches.length} projetos: ${matches.map(describeProject).join('; ')}. Passe o id.`,
+      ),
+    }
+  }
+  return {
+    error: failure(
+      `Nenhum projeto atende por "${wanted}". Veja os projetos com arco project list, ou crie um com arco project add "${wanted}" --cwd <dir>.`,
+    ),
+  }
+}
+
+type ProjectChoice = { projectId: string | null } | { error: CliResult }
+
+/**
  * Resolves which project a request targets: an explicit name or id wins, then the
  * project whose directory matches `cwd` — the common case, since the CLI is
- * usually run from inside the repo — and the active project last.
+ * usually run from inside the repo — and the active project last. A name that
+ * points nowhere is an error, never a reason to guess.
  */
-function resolveProjectId(request: SessionRequest | TodoRequest | TodoEditRequest): string | null {
+function resolveProjectId(request: SessionRequest | TodoRequest): ProjectChoice {
   const { projects, activeProjectId } = useProjectsStore.getState()
-  const wanted = request.project?.trim().toLowerCase()
+  const wanted = request.project?.trim()
   if (wanted) {
-    const match = projects.find(
-      (project) => project.id === request.project || project.name.trim().toLowerCase() === wanted,
-    )
-    if (match) return match.id
+    const found = findProject(wanted)
+    return 'error' in found ? found : { projectId: found.project.id }
   }
-  const cwd = 'cwd' in request ? request.cwd?.trim() : undefined
-  if (cwd) {
-    // Deepest root wins. A project rooted at the home directory is a prefix of
-    // every other one, so taking the first match hands it every session opened
-    // anywhere on the machine.
-    const match = projects
-      .map((project) => ({ project, root: project.defaultCwd?.trim() ?? '' }))
-      .filter(({ root }) => root && (cwd === root || cwd.startsWith(`${root}/`)))
-      .sort((a, b) => b.root.length - a.root.length)[0]
-    if (match) return match.project.id
-  }
-  return activeProjectId ?? projects[0]?.id ?? null
+  const owner = projectOwningCwd(projects, request.cwd?.trim() ?? '')
+  if (owner) return { projectId: owner.id }
+  return { projectId: activeProjectId ?? projects[0]?.id ?? null }
 }
 
 function reportProblem(detail: string) {
@@ -451,7 +514,9 @@ function resolveGroup(request: SessionRequest & SessionScope, projectId: string)
 async function handleSession(request: SessionRequest & SessionScope): Promise<CliResult> {
   const agent = (request.agent ?? 'claude') as AgentType
   if (!AGENTS.includes(agent)) return failure(`Agente desconhecido: ${request.agent}`)
-  const projectId = resolveProjectId(request)
+  const projectChoice = resolveProjectId(request)
+  if ('error' in projectChoice) return projectChoice.error
+  const { projectId } = projectChoice
   if (!projectId) return failure('Nenhum projeto aberto para receber a sessão.')
   const store = useProjectsStore.getState()
   const project = store.projects.find((item) => item.id === projectId)
@@ -1079,8 +1144,10 @@ function handleTodo(request: TodoRequest): CliResult {
     if ('error' in resolved) return resolved.error
     session = resolved.owner
   }
+  const projectChoice = resolveProjectId(request)
+  if ('error' in projectChoice) return projectChoice.error
   const store = useProjectsStore.getState()
-  const todo = store.createTodo(title, request.tags ?? [], resolveProjectId(request) ?? undefined, {
+  const todo = store.createTodo(title, request.tags ?? [], projectChoice.projectId ?? undefined, {
     notes: request.notes,
     priority: request.priority,
     ...(status ? { status } : {}),
@@ -1108,6 +1175,20 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
   const { todo } = found
   const store = useProjectsStore.getState()
 
+  // Resolved before anything is written: a project that does not exist must
+  // fail the edit whole, not after the other fields have already changed.
+  let projectId: string | null | undefined
+  if (request.project !== undefined) {
+    const wanted = request.project.trim()
+    if (wanted) {
+      const target = findProject(wanted)
+      if ('error' in target) return target.error
+      projectId = target.project.id
+    } else {
+      projectId = null
+    }
+  }
+
   if (request.status) {
     const status = parseTodoStatus(request.status)
     if (!status) return failure(`Status desconhecido: ${request.status}`)
@@ -1125,9 +1206,7 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
     store.appendTodoNotes(todo.id, request.appendNotes)
   }
   if (request.priority) store.setTodoPriority(todo.id, request.priority)
-  if (request.project !== undefined) {
-    store.setTodoProject(todo.id, request.project ? resolveProjectId(request) : null)
-  }
+  if (projectId !== undefined) store.setTodoProject(todo.id, projectId)
   if (request.clearAdoRef) {
     store.setTodoAdoRef(todo.id, null)
   } else if (request.adoRefInput) {
@@ -1181,6 +1260,85 @@ function handleTodoDelete(request: TodoRefRequest): CliResult {
 /** `arco todo list` — served from the store, so it never lags behind a write. */
 function handleTodoList(): CliResult {
   return { ok: true, data: { todos: useProjectsStore.getState().todos } }
+}
+
+/** `arco project list` — the directory is where the command ran, to mark the project it lands in. */
+type ProjectListRequest = { cwd?: string }
+
+/** A project as the command line prints it. */
+function projectSnapshot(project: Project, current = false) {
+  return {
+    id: project.id,
+    name: project.name,
+    defaultCwd: project.defaultCwd?.trim() || null,
+    archived: Boolean(project.archived),
+    current,
+  }
+}
+
+/**
+ * `arco project list` — every project, archived ones included.
+ *
+ * An archived project still owns its directory and its name, and `arco project
+ * add` refuses both; leaving it out of the listing would hide the very project
+ * the refusal is about.
+ */
+function handleProjectList(request: ProjectListRequest): CliResult {
+  const { projects } = useProjectsStore.getState()
+  const here = projectOwningCwd(projects, request.cwd?.trim() ?? '')
+  return {
+    ok: true,
+    data: {
+      projects: projects.map((project) => projectSnapshot(project, project.id === here?.id)),
+    },
+  }
+}
+
+/** `arco project add` — the name, and the directory the command line already checked exists. */
+type ProjectAddRequest = { name?: string; cwd?: string }
+
+function isAbsolutePath(path: string): boolean {
+  return path.startsWith('/') || /^[a-z]:[\\/]/i.test(path) || path.startsWith('\\\\')
+}
+
+/**
+ * `arco project add [<nome>] --cwd <dir>` — the project a repository without one
+ * needs before any task can be filed under it.
+ *
+ * Nothing opens: `arco <dir>` is the command that creates and opens a session,
+ * and an agent adding a project for a task has no pane to put in it. Both kinds
+ * of duplicate are refused rather than reused. A second project on the same
+ * directory splits its sessions and tasks between two entries, and two projects
+ * with one name leave `--project <nome>` unable to tell them apart.
+ */
+function handleProjectAdd(request: ProjectAddRequest): CliResult {
+  const cwd = request.cwd?.trim() ?? ''
+  if (!cwd) return failure('Informe o diretório do projeto.')
+  // The command line resolves the path before sending it. A relative one here
+  // would be resolved against the window's own working directory, which is a
+  // place nobody chose.
+  if (!isAbsolutePath(cwd)) return failure(`O diretório precisa ser um caminho absoluto: ${cwd}`)
+  const name = request.name?.trim() || basename(cwd)
+  if (!name) return failure(`Não deu para tirar um nome de ${cwd}: passe o nome do projeto.`)
+
+  const { projects } = useProjectsStore.getState()
+  const sameDir = projects.find(
+    (project) => project.defaultCwd?.trim() && sameCwd(project.defaultCwd, cwd),
+  )
+  if (sameDir) {
+    return failure(
+      `O projeto ${describeProject(sameDir)} já aponta para ${cwd}. Use --project "${sameDir.name}" nas tarefas e sessões dele.`,
+    )
+  }
+  const sameName = projects.find((project) => projectNameKey(project.name) === projectNameKey(name))
+  if (sameName) {
+    return failure(
+      `Já existe um projeto chamado ${describeProject(sameName)}. Passe outro nome: arco project add <nome> --cwd ${cwd}.`,
+    )
+  }
+
+  const project = useProjectsStore.getState().createProject({ name, defaultCwd: cwd })
+  return { ok: true, message: 'criado', data: { project: projectSnapshot(project) } }
 }
 
 /** Resolves a `<ref>` or explains, in one place, why it did not point at a task. */
@@ -1308,6 +1466,14 @@ export async function startCliBridge(): Promise<UnlistenFn> {
     listen<TodoRefRequest & CliRequest>(
       'cli://todo-delete',
       answer<TodoRefRequest & CliRequest>(handleTodoDelete),
+    ),
+    listen<ProjectListRequest & CliRequest>(
+      'cli://project-list',
+      answer<ProjectListRequest & CliRequest>(handleProjectList),
+    ),
+    listen<ProjectAddRequest & CliRequest>(
+      'cli://project-add',
+      answer<ProjectAddRequest & CliRequest>(handleProjectAdd),
     ),
   ])
   return () => unlisteners.forEach((dispose) => dispose())

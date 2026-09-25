@@ -726,7 +726,7 @@ export const en = {
   'prefs.cliUninstall': 'Remove',
   'prefs.cliInstalledAt': 'Installed at {path}',
   'prefs.cliStale':
-    'The installed command points to an older copy of Arco. Reinstall it to update the path.',
+    'The installed command is out of date: it points to an older copy of Arco, or it does not pass the newer subcommands on. Reinstall it to update it.',
   'prefs.cliShadowed':
     'Another arco at {other} comes first on your PATH, so that is the one running — not this app\u2019s. It is a different build and answers to different subcommands. Put {dir} ahead of it, or remove the other one.',
   'prefs.cliNotOnPath':
@@ -830,6 +830,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v350.note1':
+    '`arco project add <name> --cwd <dir>` creates a project for a directory from the terminal, without opening a session, and `arco project list` shows every project with its id and directory. An agent can now set up the project for a repository that had none before filing tasks under it. The command fails when the directory does not exist, when another project already points at it, or when a project already has that name. For `arco project` to work, reinstall the terminal command in Preferences > Integrations > Terminal command: the one installed before this version does not pass it on to the app.',
+  'whatsNew.v350.note2':
+    '`--project` on `arco todo add`, `arco todo edit` and `arco session` now fails when no project has that name. It used to fall back to the project of the current directory, so the task landed in the wrong project while the command reported it as created. It also takes the short id `arco project list` prints.',
   'whatsNew.v343.note1':
     'A Claude pane follows the conversation you move to with `/resume`. Restarting the pane or reopening Arco used to bring back the conversation it had left, because the resumed one already existed and nothing new showed up for Arco to notice. Claude now tells the pane through a SessionStart hook each time it starts, clears or resumes a conversation. The hook is loaded only in the panes Arco starts and prints nothing into the session.',
   'whatsNew.v343.note2':

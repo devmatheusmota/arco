@@ -99,6 +99,17 @@ const state = {
   setTodoPriority: vi.fn(),
   setTodoProject: vi.fn(),
   updateTodoTags: vi.fn(),
+  createProject: vi.fn((args: { name: string; defaultCwd?: string }) => {
+    const project = {
+      id: `proj-${state.projects.length}`,
+      name: args.name,
+      ...(args.defaultCwd ? { defaultCwd: args.defaultCwd } : {}),
+      terminals: [],
+      groups: [],
+    }
+    state.projects = [...state.projects, project] as never
+    return project
+  }),
 }
 
 vi.mock('../stores/projectsStore', () => ({ useProjectsStore: { getState: () => state } }))
@@ -1432,5 +1443,201 @@ describe('finding yourself in the listing', () => {
     const sessions = (result.data as { sessions: Array<{ current: boolean }> }).sessions
 
     expect(sessions.every((s) => !s.current)).toBe(true)
+  })
+})
+
+describe('cli://project-add and cli://project-list', () => {
+  // These add to the project list, so it goes back afterwards or every test
+  // declared later runs against a workspace with extra projects in it.
+  const original = state.projects
+  beforeEach(() => {
+    state.projects = [
+      ...original,
+      {
+        id: 'home1234xyz',
+        name: 'mota',
+        defaultCwd: '/home/mota',
+        terminals: [],
+        groups: [],
+      },
+      {
+        id: 'old98765abc',
+        name: 'Antigo',
+        defaultCwd: '/home/mota/projetos/antigo',
+        archived: true,
+        terminals: [],
+        groups: [],
+      },
+    ] as never
+    state.createProject.mockClear()
+    state.createTodo.mockClear()
+    state.setTodoProject.mockClear()
+    state.setTodoStatus.mockClear()
+  })
+  afterEach(() => {
+    state.projects = original
+  })
+
+  type Snapshot = {
+    id: string
+    name: string
+    defaultCwd: string | null
+    archived: boolean
+    current: boolean
+  }
+
+  it('creates the project with its directory and answers with what it created', async () => {
+    const result = await request('cli://project-add', {
+      name: 'Medtest',
+      cwd: '/home/mota/projetos/emr/Medtest',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(state.createProject).toHaveBeenCalledWith({
+      name: 'Medtest',
+      defaultCwd: '/home/mota/projetos/emr/Medtest',
+    })
+    expect((result.data as { project: Snapshot }).project).toMatchObject({
+      name: 'Medtest',
+      defaultCwd: '/home/mota/projetos/emr/Medtest',
+      archived: false,
+    })
+  })
+
+  it('names the project after its folder when no name is given', async () => {
+    const result = await request('cli://project-add', { cwd: '/home/mota/projetos/emr/Medtest' })
+
+    expect(result.ok).toBe(true)
+    expect((result.data as { project: Snapshot }).project.name).toBe('Medtest')
+  })
+
+  // A second project on the same tree splits its sessions and tasks in two.
+  it('refuses a directory another project already points at, even written differently', async () => {
+    const result = await request('cli://project-add', { name: 'Outro', cwd: '/tmp/arco/' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('"Arco"')
+    expect(result.message).toContain('já aponta')
+    expect(state.createProject).not.toHaveBeenCalled()
+  })
+
+  it('counts an archived project as one that exists', async () => {
+    const result = await request('cli://project-add', {
+      name: 'Novo',
+      cwd: '/home/mota/projetos/antigo',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('arquivado')
+    expect(state.createProject).not.toHaveBeenCalled()
+  })
+
+  // Two projects with one name leave `--project <nome>` unable to tell them apart.
+  it('refuses a name another project already has, ignoring case', async () => {
+    const result = await request('cli://project-add', { name: 'arco', cwd: '/home/mota/outro' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/Já existe um projeto chamado "Arco"/)
+    expect(state.createProject).not.toHaveBeenCalled()
+  })
+
+  it('takes a project nested inside another one, since the deepest root wins', async () => {
+    const result = await request('cli://project-add', {
+      name: 'Medtest',
+      cwd: '/home/mota/projetos/emr/Medtest',
+    })
+
+    expect(result.ok).toBe(true)
+  })
+
+  it('refuses a relative directory instead of resolving it against the window', async () => {
+    const result = await request('cli://project-add', { name: 'Rel', cwd: 'projetos/rel' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/absoluto/)
+    expect(state.createProject).not.toHaveBeenCalled()
+  })
+
+  it('refuses a request with no directory at all', async () => {
+    const result = await request('cli://project-add', { name: 'Sem' })
+
+    expect(result.ok).toBe(false)
+    expect(state.createProject).not.toHaveBeenCalled()
+  })
+
+  it('lists every project, archived ones included, marking the one the directory lands in', async () => {
+    const result = await request('cli://project-list', { cwd: '/home/mota/projetos/emr/Medtest' })
+
+    const projects = (result.data as { projects: Snapshot[] }).projects
+    expect(projects.map((project) => project.name)).toEqual(['Arco', 'mota', 'Antigo'])
+    expect(projects.find((project) => project.current)?.name).toBe('mota')
+    expect(projects.find((project) => project.name === 'Antigo')?.archived).toBe(true)
+  })
+
+  it('marks nothing when no project holds the directory', async () => {
+    const result = await request('cli://project-list', { cwd: '/srv/outro' })
+
+    const projects = (result.data as { projects: Snapshot[] }).projects
+    expect(projects.some((project) => project.current)).toBe(false)
+  })
+
+  // `arco todo add --project Medtest`, with no Medtest project, used to file the
+  // task under the project of the directory, print "criada" and exit 0.
+  it('fails a task for a project that does not exist instead of filing it elsewhere', async () => {
+    const result = await request('cli://todo-add', {
+      title: '[RELEASE] branch de sync',
+      project: 'Medtest',
+      cwd: '/home/mota/projetos/emr/Medtest',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('arco project add "Medtest" --cwd')
+    expect(state.createTodo).not.toHaveBeenCalled()
+  })
+
+  it('files the task once the project exists, by name in any case', async () => {
+    await request('cli://project-add', { name: 'Medtest', cwd: '/home/mota/projetos/emr/Medtest' })
+
+    const result = await request('cli://todo-add', { title: 'x y', project: 'medtest', cwd: '/' })
+
+    expect(result.ok).toBe(true)
+    expect(state.createTodo.mock.calls.at(-1)?.[2]).toBe('proj-3')
+  })
+
+  it('takes the short id the listing prints', async () => {
+    const result = await request('cli://todo-add', { title: 'x y', project: 'home1234' })
+
+    expect(result.ok).toBe(true)
+    expect(state.createTodo.mock.calls.at(-1)?.[2]).toBe('home1234xyz')
+  })
+
+  it('fails an edit to a missing project before changing anything else', async () => {
+    await request('cli://todo-add', { title: 'mover esta' })
+
+    const result = await request('cli://todo-edit', {
+      ref: 'mover esta',
+      status: 'done',
+      project: 'Medtest',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(state.setTodoStatus).not.toHaveBeenCalled()
+    expect(state.setTodoProject).not.toHaveBeenCalled()
+  })
+
+  it('still clears the project of a task with an empty --project', async () => {
+    await request('cli://todo-add', { title: 'soltar esta' })
+
+    const result = await request('cli://todo-edit', { ref: 'soltar esta', project: '' })
+
+    expect(result.ok).toBe(true)
+    expect(state.setTodoProject).toHaveBeenCalledWith(expect.any(String), null)
+  })
+
+  it('fails a session for a project that does not exist', async () => {
+    const result = await request('cli://session-new', { agent: 'claude', project: 'Medtest' })
+
+    expect(result.ok).toBe(false)
+    expect(state.createAgentTerminal).not.toHaveBeenCalled()
   })
 })

@@ -74,6 +74,8 @@ Um pane atende por uma referencia curta: pa-3576. A sua esta em $ARCO_PANE_ID.
   arco group list             as frentes de trabalho abertas
   arco group close <ref>      fecha uma frente e a worktree dela
   arco todo list              as tarefas
+  arco project list           os projetos e o diretorio de cada um
+  arco project add ...        cria um projeto para um diretorio que nao tem
 
 Detalhe de cada um abaixo.
 
@@ -85,7 +87,8 @@ Detalhe de cada um abaixo.
       --agent claude|codex|opencode|shell   (padrao: claude)
       --group <nome|ref>      abre em outra frente; nome que nao existe abre uma
                               frente nova; sem isso, na frente deste pane
-      --project <nome>        projeto alvo; sem isso, deduz pelo diretorio atual
+      --project <nome|id>     projeto alvo; sem isso, deduz pelo diretorio atual;
+                              um projeto que nao existe falha (arco project list)
       --name <rotulo>         nome do pane
       --prompt <texto>        texto enviado ao agente ao abrir
       --worktree              forca worktree nova; recusado quando a frente ja
@@ -135,6 +138,9 @@ Detalhe de cada um abaixo.
                     [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
                     [--session <id|current>]
   arco todo <titulo> [opcoes]     atalho de "add", so para titulo com mais de uma palavra
+      --project <nome|id>     projeto da tarefa; sem isso, o do diretorio atual.
+                              Um projeto que nao existe falha em vez de cair no
+                              projeto do diretorio: confira com arco project list
 
   arco todo edit <ref> [opcoes]   edita uma tarefa existente
       --title <texto>         novo titulo
@@ -154,6 +160,17 @@ Detalhe de cada um abaixo.
 
   arco todo status <ref> <status>   atalho para --status
   arco todo delete <ref> [--yes]    apaga a tarefa; --yes dispensa a confirmacao
+
+  arco project list [--json]
+      lista os projetos: id curto, nome e diretorio padrao. * marca o projeto
+      que recebe o que for criado neste diretorio sem --project; [arquivado]
+      marca os arquivados, que continuam contando como existentes
+
+  arco project add [<nome>] --cwd <dir> [--json]
+      cria um projeto com esse nome e esse diretorio padrao, sem abrir sessao
+      <dir> relativo parte do diretorio atual; sem <nome>, usa o nome da pasta
+      falha se o diretorio nao existe, se outro projeto ja aponta para ele ou
+      se ja ha projeto com esse nome. O nome e o que --project recebe depois
 
 <ref> e o id (inteiro ou o prefixo que aparece em "arco todo list") ou um
 trecho do titulo, desde que so uma tarefa corresponda.
@@ -896,6 +913,96 @@ async function runTodo(rest) {
   writeOut(formatTodoReceipt('criada', result.data?.todo))
 }
 
+/** What `arco project` answers to, named in the error when a bare word is not one of them. */
+const PROJECT_SUBCOMMANDS = 'list, add'
+
+/** The shell expands `~` only at the start of a bare word; a quoted one arrives as typed. */
+function expandHome(dir) {
+  if (dir === '~') return os.homedir()
+  if (dir.startsWith('~/')) return path.join(os.homedir(), dir.slice(2))
+  return dir
+}
+
+/**
+ * `arco project add [<nome>] --cwd <dir> [--json]`.
+ *
+ * The directory is checked here because this is the side that has the
+ * filesystem: the window only holds the list of projects, and a project whose
+ * directory does not exist opens every session it gets somewhere else, without
+ * saying why. The app refuses the duplicates, since it is the one that knows
+ * which projects there are.
+ */
+function parseProjectAdd(args, cwd = process.cwd()) {
+  const words = []
+  let dir = null
+  let json = false
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+    if (arg === '--cwd' || arg === '--dir') dir = args[++index] ?? ''
+    else if (arg === '--json') json = true
+    else if (arg.startsWith('--')) throw new Error(`arco project add: opcao desconhecida: ${arg}`)
+    else words.push(arg)
+  }
+  if (dir === null) throw new Error('arco project add: informe o diretorio com --cwd <dir>')
+  if (!dir.trim()) throw new Error('arco project add: --cwd sem diretorio')
+  const resolved = path.resolve(cwd, expandHome(dir.trim()))
+  let stat
+  try {
+    stat = fs.statSync(resolved)
+  } catch {
+    throw new Error(`arco project add: diretorio nao encontrado: ${resolved}`)
+  }
+  if (!stat.isDirectory()) throw new Error(`arco project add: nao e um diretorio: ${resolved}`)
+  const name = words.join(' ').trim()
+  return { ...(name ? { name } : {}), cwd: resolved, json }
+}
+
+/** `arco project list` as a table, in the shape `formatGroupTable` prints. */
+function formatProjectTable(projects) {
+  if (projects.length === 0) return 'nenhum projeto\n'
+  const rows = projects.map((project) => ({
+    here: project.current ? '*' : '',
+    id: String(project.id ?? '').slice(0, 8),
+    name: String(project.name ?? ''),
+    cwd: String(project.defaultCwd ?? '') || '-',
+    marks: project.archived ? '[arquivado]' : '',
+  }))
+  const width = (key) => Math.max(...rows.map((row) => row[key].length))
+  const hereWidth = width('here')
+  const idWidth = width('id')
+  const nameWidth = width('name')
+  return `${rows
+    .map((row) =>
+      `${hereWidth ? `${row.here.padEnd(hereWidth)} ` : ''}${row.id.padEnd(idWidth)}  ${row.name.padEnd(
+        nameWidth,
+      )}  ${row.cwd}${row.marks ? `  ${row.marks}` : ''}`.trimEnd(),
+    )
+    .join('\n')}\n`
+}
+
+/** One line naming the project a write produced: short id, name and directory. */
+function formatProjectReceipt(verb, project) {
+  if (!project) return `${verb}\n`
+  const id = String(project.id ?? '').slice(0, 8)
+  return `${verb}  ${id}  ${String(project.name ?? '')}  ${String(project.defaultCwd ?? '') || '-'}\n`
+}
+
+async function runProjectList(args) {
+  const unknown = args.find((arg) => arg !== '--json')
+  if (unknown) throw new Error(`arco project list: opcao desconhecida: ${unknown}`)
+  // The directory is what lets the app mark the project a command run here lands in.
+  const result = await post('project/list', { cwd: process.cwd() })
+  const projects = result.data?.projects ?? []
+  writeOut(args.includes('--json') ? `${JSON.stringify(projects)}\n` : formatProjectTable(projects))
+}
+
+async function runProjectAdd(args) {
+  const { json, ...payload } = parseProjectAdd(args)
+  const result = await post('project/add', payload)
+  const project = result.data?.project
+  writeOut(json ? `${JSON.stringify(project ?? null)}\n` : formatProjectReceipt('criado', project))
+}
+
 /**
  * The part of the usage text that answers for one command.
  *
@@ -944,6 +1051,21 @@ async function run(argv) {
     return
   }
 
+  if (command === 'project') {
+    const [subcommand, ...args] = rest
+    if (subcommand === 'list' || subcommand === 'ls') {
+      await runProjectList(args)
+      return
+    }
+    if (subcommand === 'add' || subcommand === 'new' || subcommand === 'create') {
+      await runProjectAdd(args)
+      return
+    }
+    throw new Error(
+      `arco project: subcomando desconhecido: ${subcommand ?? '(nenhum)'} (use: ${PROJECT_SUBCOMMANDS})`,
+    )
+  }
+
   if (command === 'group') {
     const [subcommand, ...args] = rest
     if (subcommand === 'list' || subcommand === 'ls') {
@@ -989,7 +1111,7 @@ async function run(argv) {
   throw new Error(`arco: subcomando desconhecido: ${command}`)
 }
 
-const HANDLED = new Set(['todo', 'session', 'group'])
+const HANDLED = new Set(['todo', 'session', 'group', 'project'])
 const HELP = new Set(['--help', '-h', 'help'])
 const VERSION = new Set(['--version', '-v', 'version'])
 
@@ -1193,6 +1315,9 @@ module.exports = {
   parseSessionSend,
   parseSessionClose,
   parseGroupClose,
+  parseProjectAdd,
+  formatProjectTable,
+  formatProjectReceipt,
   assertSendText,
   SEND_TEXT_MAX,
   parseTodo,
