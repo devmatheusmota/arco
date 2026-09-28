@@ -830,6 +830,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v362.note1':
+    'A Claude pane whose folder name has an underscore, a space or another symbol (a worktree like `cl-uVV6_A`, for one) now comes back to its conversation when Arco reopens. Arco was looking for the conversation in the wrong place, took it for gone and started a blank session, so the only way back was `/resume`. Session history, session cost and handoffs to another agent read from the same place and are fixed too.',
   'whatsNew.v361.note1':
     '`arco todo edit` no longer saves part of an edit it refuses. When the task belonged to another session, the work item reference did not parse or the notes were too long, the status, title and notes had already been written before the error came back, so running the command again added the notes twice. Now every field is checked first, and a refused edit leaves the task as it was.',
   'whatsNew.v360.note1':

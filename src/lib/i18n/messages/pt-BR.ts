@@ -842,6 +842,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v362.note1':
+    'Um pane do Claude numa pasta cujo nome tem sublinhado, espaço ou outro símbolo (um worktree como `cl-uVV6_A`, por exemplo) agora volta para a conversa quando o Arco reabre. O Arco procurava a conversa no lugar errado, achava que ela tinha sumido e abria uma sessão em branco, e o único jeito de voltar era o `/resume`. O histórico de sessões, o custo da sessão e o repasse para outro agente leem do mesmo lugar e também foram corrigidos.',
   'whatsNew.v361.note1':
     '`arco todo edit` não grava mais parte de uma edição que ele recusa. Quando a tarefa era de outra sessão, a referência do card não era reconhecida ou as notas passavam do limite, o status, o título e as notas já tinham sido gravados antes de o erro voltar, e rodar o comando de novo adicionava as notas duas vezes. Agora tudo é conferido antes, e uma edição recusada deixa a tarefa como estava.',
   'whatsNew.v360.note1':

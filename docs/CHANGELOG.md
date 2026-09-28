@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.6.2] — 2026-09-28
+
 ### Fixed
 
 - A Claude pane in a folder whose name has a character other than a letter, digit, `.` or a
