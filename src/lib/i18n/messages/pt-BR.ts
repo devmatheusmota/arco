@@ -842,6 +842,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v361.note1':
+    '`arco todo edit` não grava mais parte de uma edição que ele recusa. Quando a tarefa era de outra sessão, a referência do card não era reconhecida ou as notas passavam do limite, o status, o título e as notas já tinham sido gravados antes de o erro voltar, e rodar o comando de novo adicionava as notas duas vezes. Agora tudo é conferido antes, e uma edição recusada deixa a tarefa como estava.',
   'whatsNew.v360.note1':
     '`arco todo list --project <nome>` lista só as tarefas daquele projeto; também aceita o id curto que o `arco project list` mostra. Um nome que não corresponde a nenhum projeto falha e diz isso. Antes, o `arco todo list` ignorava o `--project` e mostrava todas as tarefas do board, como se fosse uma lista filtrada.',
   'whatsNew.v360.note2':

@@ -830,6 +830,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v361.note1':
+    '`arco todo edit` no longer saves part of an edit it refuses. When the task belonged to another session, the work item reference did not parse or the notes were too long, the status, title and notes had already been written before the error came back, so running the command again added the notes twice. Now every field is checked first, and a refused edit leaves the task as it was.',
   'whatsNew.v360.note1':
     '`arco todo list --project <name>` lists only the tasks of that project; it also takes the short id `arco project list` prints. A name that matches no project fails and says so. Before, `arco todo list` skipped `--project` and printed every task on the board, which looked like a filtered listing.',
   'whatsNew.v360.note2':

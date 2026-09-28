@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.6.1] — 2026-09-28
+
 ### Fixed
 
 - `arco todo edit` no longer saves part of an edit it refuses. A task held by another session, a
