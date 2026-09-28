@@ -11,6 +11,7 @@ const path = require('node:path')
 const { spawn } = require('node:child_process')
 
 const paths = require('./paths.cjs')
+const { claudeProjectDir } = require('./sessions.cjs')
 
 function claudeToken() {
   if (process.env.CLAUDE_OAUTH_TOKEN) return process.env.CLAUDE_OAUTH_TOKEN
@@ -750,13 +751,7 @@ function buildUsageCommands() {
     get_multi_agent_activity: ({ days }) => multiAgentActivity(days),
 
     get_session_cost: ({ agent, cwd, sessionId }) => {
-      const dir = path.join(
-        os.homedir(),
-        '.claude',
-        'projects',
-        (cwd ?? '').replace(/[/\\.]/g, '-'),
-      )
-      const file = path.join(dir, `${sessionId}.jsonl`)
+      const file = path.join(claudeProjectDir(cwd ?? ''), `${sessionId}.jsonl`)
       const { totals, byModel } = sessionCost(file)
       return {
         session_id: sessionId,

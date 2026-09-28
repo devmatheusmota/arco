@@ -1,24 +1,26 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { listClaudeSessions, readSessionMeta } = require('../../electron/commands/sessions.cjs') as {
-  listClaudeSessions: (dir: string) => Array<{
-    id: string
-    title: string | null
-    first_user_prompt: string | null
-    message_count: number
-  }>
-  readSessionMeta: (file: string) => {
-    title: string | null
-    first_user_prompt: string | null
-    message_count: number
+const { claudeProjectDir, listClaudeSessions, readSessionMeta } =
+  require('../../electron/commands/sessions.cjs') as {
+    claudeProjectDir: (cwd: string) => string
+    listClaudeSessions: (dir: string) => Array<{
+      id: string
+      title: string | null
+      first_user_prompt: string | null
+      message_count: number
+    }>
+    readSessionMeta: (file: string) => {
+      title: string | null
+      first_user_prompt: string | null
+      message_count: number
+    }
   }
-}
 
 const user = (text: string) => JSON.stringify({ type: 'user', message: { content: text } })
 const assistant = (text: string) =>
@@ -120,5 +122,28 @@ describe('listClaudeSessions', () => {
   it('keeps every transcript when none of them parsed as a conversation', () => {
     writeSession('stub.jsonl', [aiTitle('Security review')])
     expect(listClaudeSessions(dir).map((session) => session.id)).toEqual(['stub'])
+  })
+})
+
+describe('claudeProjectDir', () => {
+  const dirName = (cwd: string) => basename(claudeProjectDir(cwd))
+
+  it('turns every character that is not a letter or digit into a dash, as Claude does', () => {
+    expect(dirName('/home/mota/projetos/emr/EGA2.0/.arco/worktrees/cl-uVV6_A')).toBe(
+      '-home-mota-projetos-emr-EGA2-0--arco-worktrees-cl-uVV6-A',
+    )
+    expect(dirName('/home/dev/my repo@v2')).toBe('-home-dev-my-repo-v2')
+  })
+
+  it('encodes a Windows path and ignores a trailing separator', () => {
+    expect(dirName('C:\\Users\\dev\\repo\\')).toBe('C--Users-dev-repo')
+    expect(dirName('/home/dev/repo/')).toBe('-home-dev-repo')
+  })
+
+  it('cuts a long path and appends the hash Claude uses to tell them apart', () => {
+    const cwd = `/home/dev/${'deeply_nested.folder/'.repeat(12)}repo`
+    const name = dirName(cwd)
+    expect(name).toHaveLength(207)
+    expect(name.endsWith('-d-d1hkab')).toBe(true)
   })
 })

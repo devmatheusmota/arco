@@ -6,11 +6,34 @@ const os = require('node:os')
 const path = require('node:path')
 const { StringDecoder } = require('node:string_decoder')
 
-/** Claude encodes a project path into a directory name by replacing separators. */
+/** Past this length Claude cuts the directory name and appends a hash of the full path. */
+const CLAUDE_PROJECT_DIR_MAX = 200
+
+/** Java's `String.hashCode`, the hash Claude uses to tell long paths apart. */
+function claudePathHash(value) {
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash).toString(36)
+}
+
+/**
+ * The directory Claude writes a project's transcripts to.
+ *
+ * Every character that is not an ASCII letter or digit becomes `-`, not only
+ * the separators: a worktree named `cl-uVV6_A` lives under `...cl-uVV6-A`.
+ * Missing that directory means every session in it reads as gone, and a pane
+ * that points at one reopens on a blank conversation.
+ */
 function claudeProjectDir(cwd) {
   const trimmed = (cwd ?? '').replace(/[/\\]+$/, '')
-  const encoded = trimmed.replace(/[:\\/.]/g, '-')
-  return path.join(os.homedir(), '.claude', 'projects', encoded)
+  const encoded = trimmed.replace(/[^a-zA-Z0-9]/g, '-')
+  const name =
+    encoded.length <= CLAUDE_PROJECT_DIR_MAX
+      ? encoded
+      : `${encoded.slice(0, CLAUDE_PROJECT_DIR_MAX)}-${claudePathHash(trimmed)}`
+  return path.join(os.homedir(), '.claude', 'projects', name)
 }
 
 /**
@@ -477,6 +500,7 @@ function buildSessionCommands() {
 
 module.exports = {
   buildSessionCommands,
+  claudeProjectDir,
   codexSessionTitle,
   isInteractive,
   listClaudeSessions,

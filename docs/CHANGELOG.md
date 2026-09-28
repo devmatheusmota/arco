@@ -10,6 +10,14 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A Claude pane in a folder whose name has a character other than a letter, digit, `.` or a
+  separator (a worktree like `cl-uVV6_A`, a folder with a space) reopens on its conversation after
+  Arco restarts. Arco was looking for the transcripts under a different directory name than the
+  one Claude writes, so it took the session for gone and started a blank one. The session list,
+  the session cost and the provider handoff read the same directory and are fixed with it.
+
 ## [3.6.1] — 2026-09-28
 
 ### Fixed

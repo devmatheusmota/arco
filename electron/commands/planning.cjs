@@ -11,6 +11,7 @@ const path = require('node:path')
 const { execFile } = require('node:child_process')
 
 const paths = require('./paths.cjs')
+const { claudeProjectDir } = require('./sessions.cjs')
 
 const PLANNING_DIR = '.planning'
 const TODO_TEMPLATE_FILE = 'arco-todo.template.jsonc'
@@ -319,7 +320,7 @@ function renderCapsule(source, target, sessionId, cwd, events) {
 function resolveSourceFile(provider, cwd, sessionId) {
   const roots =
     provider === 'claude'
-      ? [path.join(os.homedir(), '.claude', 'projects', cwd.replace(/[:\\/.]/g, '-'))]
+      ? [claudeProjectDir(cwd)]
       : [path.join(os.homedir(), '.codex', 'sessions')]
   const files = []
   const walk = (dir, depth) => {
