@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CliResult } from './tauri/cli'
+import { TODO_NOTES_MAX_LENGTH } from './todos'
 import type { TodoAdoRef, TodoItem, TodoSessionOwner } from './types'
 
 const handlers = new Map<string, (event: { payload: unknown }) => void>()
@@ -253,6 +254,85 @@ describe('cli://todo-edit', () => {
     const result = await request('cli://todo-edit', { ref: 'id-0', adoRefInput: 'lixo aqui' })
     expect(result.ok).toBe(false)
     expect(state.todos[0].adoRef).toBeUndefined()
+  })
+
+  // A refusal read as "nothing changed" while the notes had already been
+  // stored, so running the same edit again appended them a second time.
+  describe('a refused edit writes nothing', () => {
+    const writes = () => [
+      state.setTodoStatus,
+      state.renameTodo,
+      state.updateTodoNotes,
+      state.appendTodoNotes,
+      state.setTodoPriority,
+      state.setTodoProject,
+      state.setTodoAdoRef,
+      state.setTodoSession,
+      state.updateTodoTags,
+    ]
+    const everything = {
+      ref: 'id-0',
+      status: 'review',
+      title: 'renomeada',
+      notes: 'nota nova',
+      appendNotes: 'mais nota',
+      priority: 'high',
+      project: 'Arco',
+      addTags: ['fix'],
+    }
+
+    beforeEach(async () => {
+      state.projects[0].terminals = [pane('term-1', '/tmp/a'), pane('term-2', '/tmp/b')]
+      await request('cli://todo-add', { title: 'dona', session: 'current', sessionId: 'term-1' })
+      for (const write of writes()) write.mockClear()
+    })
+
+    it('when another session holds the task', async () => {
+      const result = await request('cli://todo-edit', {
+        ...everything,
+        session: 'current',
+        sessionId: 'term-2',
+      })
+      expect(result.ok).toBe(false)
+      expect(result.message).toContain('--force')
+      for (const write of writes()) expect(write).not.toHaveBeenCalled()
+    })
+
+    it('when the work item reference does not parse', async () => {
+      const result = await request('cli://todo-edit', { ...everything, adoRefInput: 'lixo aqui' })
+      expect(result.ok).toBe(false)
+      for (const write of writes()) expect(write).not.toHaveBeenCalled()
+    })
+
+    it('when the notes would pass the limit', async () => {
+      const result = await request('cli://todo-edit', {
+        ...everything,
+        appendNotes: 'x'.repeat(TODO_NOTES_MAX_LENGTH),
+      })
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/Nada foi gravado/)
+      for (const write of writes()) expect(write).not.toHaveBeenCalled()
+    })
+
+    it('when the project does not exist', async () => {
+      const result = await request('cli://todo-edit', { ...everything, project: 'NaoExisteXYZ' })
+      expect(result.ok).toBe(false)
+      for (const write of writes()) expect(write).not.toHaveBeenCalled()
+    })
+
+    it('and the same edit, once valid, writes every field', async () => {
+      const result = await request('cli://todo-edit', {
+        ...everything,
+        session: 'current',
+        sessionId: 'term-2',
+        force: true,
+      })
+      expect(result.ok).toBe(true)
+      for (const write of writes()) {
+        if (write === state.setTodoAdoRef) continue
+        expect(write).toHaveBeenCalledTimes(1)
+      }
+    })
   })
 })
 

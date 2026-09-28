@@ -1168,15 +1168,16 @@ function handleTodo(request: TodoRequest): CliResult {
  * Agents drive this as much as people do — a session started from a task moves
  * it to `in_progress` and to `review` on its own — so an ambiguous reference
  * answers with the candidates instead of picking one.
+ *
+ * Every field is checked before the first write, so a refusal leaves the task
+ * exactly as it was. An edit that stored the notes and then refused the session
+ * read as "nothing changed", and running it again appended the notes twice.
  */
 function handleTodoEdit(request: TodoEditRequest): CliResult {
   const found = resolveTodo(request.ref, 'editar')
   if ('error' in found) return found.error
   const { todo } = found
-  const store = useProjectsStore.getState()
 
-  // Resolved before anything is written: a project that does not exist must
-  // fail the edit whole, not after the other fields have already changed.
   let projectId: string | null | undefined
   if (request.project !== undefined) {
     const wanted = request.project.trim()
@@ -1189,43 +1190,47 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
     }
   }
 
-  if (request.status) {
-    const status = parseTodoStatus(request.status)
-    if (!status) return failure(`Status desconhecido: ${request.status}`)
-    store.setTodoStatus(todo.id, status)
-  }
-  if (request.title?.trim()) store.renameTodo(todo.id, request.title)
+  const status = request.status ? parseTodoStatus(request.status) : null
+  if (request.status && !status) return failure(`Status desconhecido: ${request.status}`)
+
   if (request.notes !== undefined) {
     const problem = notesTooLong(request.notes)
     if (problem) return failure(problem)
-    store.updateTodoNotes(todo.id, request.notes)
   }
   if (request.appendNotes !== undefined) {
-    const problem = notesTooLong(request.appendNotes, todo.notes ?? '')
+    // Appended to what `--notes` is about to write, when both are given.
+    const problem = notesTooLong(request.appendNotes, request.notes ?? todo.notes ?? '')
     if (problem) return failure(problem)
-    store.appendTodoNotes(todo.id, request.appendNotes)
   }
-  if (request.priority) store.setTodoPriority(todo.id, request.priority)
-  if (projectId !== undefined) store.setTodoProject(todo.id, projectId)
-  if (request.clearAdoRef) {
-    store.setTodoAdoRef(todo.id, null)
-  } else if (request.adoRefInput) {
-    const ref = resolveAdoRef(request.adoRefInput)
-    // Stopping here leaves the edits already applied in place, which is the
-    // honest outcome: the answer names what failed instead of reporting a link
-    // that was never written.
-    if (!ref) return failure(adoRefProblem(request.adoRefInput))
-    store.setTodoAdoRef(todo.id, ref, 'merge')
+
+  const adoRef = request.clearAdoRef ? null : resolveAdoRef(request.adoRefInput)
+  if (!request.clearAdoRef && request.adoRefInput && !adoRef) {
+    return failure(adoRefProblem(request.adoRefInput))
   }
-  if (request.clearSession) {
-    store.setTodoSession(todo.id, null)
-  } else if (request.session) {
+
+  let owner: TodoSessionOwner | null = null
+  if (!request.clearSession && request.session) {
     const resolved = resolveSession(request)
     if ('error' in resolved) return resolved.error
     const conflict = sessionConflict(todo, resolved.owner, request.force)
     if (conflict) return conflict
+    owner = resolved.owner
+  }
+
+  const store = useProjectsStore.getState()
+  if (status) store.setTodoStatus(todo.id, status)
+  if (request.title?.trim()) store.renameTodo(todo.id, request.title)
+  if (request.notes !== undefined) store.updateTodoNotes(todo.id, request.notes)
+  if (request.appendNotes !== undefined) store.appendTodoNotes(todo.id, request.appendNotes)
+  if (request.priority) store.setTodoPriority(todo.id, request.priority)
+  if (projectId !== undefined) store.setTodoProject(todo.id, projectId)
+  if (request.clearAdoRef) store.setTodoAdoRef(todo.id, null)
+  else if (adoRef) store.setTodoAdoRef(todo.id, adoRef, 'merge')
+  if (request.clearSession) {
+    store.setTodoSession(todo.id, null)
+  } else if (owner && todo.session?.id !== owner.id) {
     // Linking twice from the same session must not rewrite when it happened.
-    if (todo.session?.id !== resolved.owner.id) store.setTodoSession(todo.id, resolved.owner)
+    store.setTodoSession(todo.id, owner)
   }
 
   const tags = nextTags(todo.tags, request)

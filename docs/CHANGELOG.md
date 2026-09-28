@@ -10,6 +10,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- `arco todo edit` no longer saves part of an edit it refuses. A task held by another session, a
+  work item reference that does not parse or notes past the limit used to fail only after the
+  status, title and notes had been written, so running the command again appended the notes a
+  second time. Every field is now checked first, and a refusal leaves the task as it was.
+
 ## [3.6.0] — 2026-09-25
 
 ### Added
