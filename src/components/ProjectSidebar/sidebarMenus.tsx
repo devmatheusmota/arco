@@ -15,11 +15,11 @@ import {
 
 import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { useT } from '../../lib/i18n'
+import { restartPaneProcess } from '../../lib/ptyRestart'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
-import { getPtyCwd, openInFileExplorer, openInVscode, restartPty } from '../../lib/tauri'
+import { getPtyCwd, openInFileExplorer, openInVscode } from '../../lib/tauri'
 import { agentCliCommand, type PaneGroup, type Project, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
-import { useTerminalsStore } from '../../stores/terminalsStore'
 import { promptText, useUiStore } from '../../stores/uiStore'
 import { type MenuItem } from './ContextMenu'
 
@@ -224,9 +224,8 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
       paneSessionEnv(term),
     )
     const launch = buildAgentLaunch(activeTab.type, runtime.args, activeTab.sessionId)
-    useTerminalsStore.getState().beginRestart(activeTab.ptyId)
     try {
-      await restartPty({
+      await restartPaneProcess({
         id: activeTab.ptyId,
         cols: 80,
         rows: 24,
@@ -235,9 +234,6 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
         extraArgs: launch.args,
         env: runtime.env,
       })
-      window.dispatchEvent(
-        new CustomEvent('arco:terminal-resize-request', { detail: { ptyId: activeTab.ptyId } }),
-      )
     } catch (err) {
       window.alert(
         t('ui.terminal.openFailed', { label: t('ui.terminal.restart'), error: String(err) }),

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 
+import { paneSessionEnv } from '../../lib/agentRuntimeAdapter'
 import { intlLocale, type Locale, type TFunction, useT } from '../../lib/i18n'
+import { restartPaneProcess } from '../../lib/ptyRestart'
 import { withLaunchPreferences } from '../../lib/sessionLaunch'
-import { type ClaudeSessionMeta, listClaudeSessions, restartPty } from '../../lib/tauri'
+import { type ClaudeSessionMeta, listClaudeSessions } from '../../lib/tauri'
 import { agentCliCommand, type AgentType } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import styles from './ClaudeHistoryModal.module.css'
@@ -90,15 +92,19 @@ export function ClaudeHistoryModal({
       }
       const newExtraArgs = withLaunchPreferences(agentType, [...filtered, '--resume', sessionId])
 
-      await restartPty({
+      const pane = useProjectsStore
+        .getState()
+        .projects.find((project) => project.id === projectId)
+        ?.terminals.find((terminal) => terminal.id === terminalId)
+      await restartPaneProcess({
         id: ptyId,
         cols: 80,
         rows: 24,
         command: agentCliCommand(agentType),
         cwd,
         extraArgs: newExtraArgs,
+        env: pane ? paneSessionEnv(pane) : undefined,
       })
-      window.dispatchEvent(new CustomEvent('arco:terminal-resize-request', { detail: { ptyId } }))
 
       useProjectsStore.getState().setSubTabSessionId(projectId, terminalId, tabId, sessionId)
 

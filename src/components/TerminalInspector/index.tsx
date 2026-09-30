@@ -15,14 +15,9 @@ import { type ReactNode, useMemo, useState } from 'react'
 
 import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { useT } from '../../lib/i18n'
+import { restartPaneProcess } from '../../lib/ptyRestart'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
-import {
-  getPtyCwd,
-  openInBrowser,
-  openInFileExplorer,
-  openInVscode,
-  restartPty,
-} from '../../lib/tauri'
+import { getPtyCwd, openInBrowser, openInFileExplorer, openInVscode } from '../../lib/tauri'
 import { agentCliCommand, type SubTab, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
@@ -130,9 +125,8 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
     if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {
       setSubTabSessionId(projectId, terminal.id, activeTab.id, launch.sessionId)
     }
-    useTerminalsStore.getState().beginRestart(activeTab.ptyId)
     try {
-      await restartPty({
+      await restartPaneProcess({
         id: activeTab.ptyId,
         cols: 80,
         rows: 24,
@@ -141,9 +135,6 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
         extraArgs: launch.args,
         env: preparedRuntime.env,
       })
-      window.dispatchEvent(
-        new CustomEvent('arco:terminal-resize-request', { detail: { ptyId: activeTab.ptyId } }),
-      )
     } catch (err) {
       window.alert(
         t('ui.terminal.openFailed', { label: t('ui.terminal.restart'), error: String(err) }),

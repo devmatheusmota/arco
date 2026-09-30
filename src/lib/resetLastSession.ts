@@ -1,11 +1,11 @@
 import { useProjectsStore } from '../stores/projectsStore'
 import { useTerminalsStore } from '../stores/terminalsStore'
+import { restartPaneProcess } from './ptyRestart'
 import { withLaunchPreferences } from './sessionLaunch'
 import { getActiveSessions, saveSession } from './sessionResume'
 import { acquireSpawnSlot, releaseSpawnSlot } from './spawnQueue'
 import {
   getPtyCwd,
-  restartPty,
   snapshotAntigravitySessions,
   snapshotClaudeSessions,
   snapshotCodexSessions,
@@ -172,8 +172,7 @@ export async function resetLastSession(): Promise<ResetLastSessionResult> {
         buildResumeArgs(target.agent, target.extraArgs, sessionId),
       )
 
-      useTerminalsStore.getState().beginRestart(target.ptyId)
-      await restartPty({
+      await restartPaneProcess({
         id: target.ptyId,
         cols: 80,
         rows: 24,
@@ -181,9 +180,6 @@ export async function resetLastSession(): Promise<ResetLastSessionResult> {
         cwd: cwd || undefined,
         extraArgs,
       })
-      window.dispatchEvent(
-        new CustomEvent('arco:terminal-resize-request', { detail: { ptyId: target.ptyId } }),
-      )
 
       saveSession(target.ptyId, {
         sessionId: target.ptyId,

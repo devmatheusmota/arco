@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
 import { intlLocale, type Locale, type TFunction, useT } from '../../lib/i18n'
+import { restartPaneProcess } from '../../lib/ptyRestart'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
-import {
-  type ClaudeSessionMeta,
-  listClaudeSessions,
-  restartPty,
-  snapshotCodexSessions,
-} from '../../lib/tauri'
+import { type ClaudeSessionMeta, listClaudeSessions, snapshotCodexSessions } from '../../lib/tauri'
 import { agentCliCommand, UNRESTRICTED_FLAG } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -170,18 +167,22 @@ export function RecentChatsModal() {
     if (!tab?.ptyId) return
     setBusyId(entry.id)
     try {
-      const launch = buildAgentLaunch(agent, extraArgsFor(agent), entry.id)
-      await restartPty({
+      const runtime = preparePtyRuntimeLaunch(
+        agent,
+        tab.runtimeProfile,
+        extraArgsFor(agent),
+        paneSessionEnv(targetTerminal),
+      )
+      const launch = buildAgentLaunch(agent, runtime.args, entry.id)
+      await restartPaneProcess({
         id: tab.ptyId,
         cols: 80,
         rows: 24,
         command: agentCliCommand(agent),
         cwd: tab.cwd || cwd || undefined,
         extraArgs: launch.args,
+        env: runtime.env,
       })
-      window.dispatchEvent(
-        new CustomEvent('arco:terminal-resize-request', { detail: { ptyId: tab.ptyId } }),
-      )
       setSubTabSessionId(project.id, targetTerminal.id, tab.id, entry.id)
       closeModal()
     } catch (err) {

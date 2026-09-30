@@ -13,7 +13,6 @@ import { agentCliCommand } from '../lib/types'
 import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
-import { useTerminalsStore } from './terminalsStore'
 import { useUiStore } from './uiStore'
 
 function t(key: Parameters<typeof translate>[1], params?: Record<string, string | number>) {
@@ -147,8 +146,9 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
 
       migratingWorktreeProjectIds.add(projectId)
       try {
-        const { worktreeProvision, restartPty, gitStatus, gsdOpenCodePluginWrite } =
+        const { worktreeProvision, gitStatus, gsdOpenCodePluginWrite } =
           await import('../lib/tauri')
+        const { restartPaneProcess } = await import('../lib/ptyRestart')
 
         // o erro cru not_a_git_repository vazando pro toast final).
         let status: Awaited<ReturnType<typeof gitStatus>> | null = null
@@ -211,9 +211,8 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
                 paneSessionEnv(terminal),
               )
               const launch = buildAgentLaunch(tab.type, runtime.args)
-              useTerminalsStore.getState().beginRestart(tab.ptyId)
               try {
-                await restartPty({
+                await restartPaneProcess({
                   id: tab.ptyId,
                   cols: 80,
                   rows: 24,
@@ -222,11 +221,6 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
                   extraArgs: launch.args,
                   env: runtime.env,
                 })
-                window.dispatchEvent(
-                  new CustomEvent('arco:terminal-resize-request', {
-                    detail: { ptyId: tab.ptyId },
-                  }),
-                )
               } catch (restartErr) {
                 console.warn(
                   `[projectsStore] falha reiniciando aba na worktree nova (${terminal.name}):`,

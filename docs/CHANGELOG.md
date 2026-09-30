@@ -10,6 +10,16 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- Restarting a pane brings it back. After "Open here" in the conversation history, or a restart
+  while the pane already read as ended, the pane stayed behind "Process ended" with the old output,
+  and `arco session list` called it offline, while the new process ran underneath; every further
+  click on Restart started another one without showing it. The pane now clears its screen for the
+  new process and tracks its status again.
+- "Open here" and resuming from the Claude history start the agent with the pane's identity
+  (`ARCO_PANE_ID`), so the `arco` command inside it knows which pane it is.
+
 ## [3.7.0] — 2026-09-30
 
 ### Added

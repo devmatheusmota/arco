@@ -35,14 +35,18 @@ describe('restarting a terminal', () => {
     useTerminalsStore.getState().reset()
   })
 
-  it('absorbs the exit of the process a restart replaces', () => {
+  it('reports the new process ending after restarting a live pane', () => {
     const store = useTerminalsStore.getState()
     store.registerPty('pty-1')
 
     store.beginRestart('pty-1')
+    expect(useTerminalsStore.getState().byPtyId['pty-1'].alive).toBe(true)
+
+    // The replaced process's own exit carries `restarted` and never gets here;
+    // this is the new one ending.
     store.markExited('pty-1')
 
-    expect(useTerminalsStore.getState().byPtyId['pty-1'].alive).toBe(true)
+    expect(useTerminalsStore.getState().byPtyId['pty-1'].alive).toBe(false)
   })
 
   it('reports the new process ending when the pane had already ended', () => {

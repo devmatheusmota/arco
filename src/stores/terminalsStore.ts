@@ -25,8 +25,6 @@ export type PtyRuntime = {
   spawnedAt: number
 
   lastIoAt: number
-
-  expectedOldExits: number
   lastFocusedAt?: number
   poolState?: 'ACTIVE' | 'HIBERNATING' | 'HIBERNATED' | 'RESTORING' | 'FAILED'
   snapshot?: TerminalSnapshot | null
@@ -59,7 +57,6 @@ function emptyRuntime(ptyId: string): PtyRuntime {
     parked: false,
     spawnedAt: now,
     lastIoAt: now,
-    expectedOldExits: 0,
     lastFocusedAt: Date.now(),
     poolState: 'ACTIVE',
     snapshot: null,
@@ -77,10 +74,15 @@ export const useTerminalsStore = create<TerminalsState>((set) => ({
       return { byPtyId: { ...state.byPtyId, [ptyId]: emptyRuntime(ptyId) } }
     }),
 
+  // The exit of the process a restart replaces never reaches markExited: it
+  // carries the reason `restarted`, and the pane's listener drops it. Guessing
+  // from `alive` whether that exit was still to come broke whenever `alive` was
+  // stale — the old exit then ended the new process, and every further restart
+  // repeated it.
   beginRestart: (ptyId) =>
     set((state) => {
-      const current = state.byPtyId[ptyId]
-      const base = current ?? emptyRuntime(ptyId)
+      const base = state.byPtyId[ptyId] ?? emptyRuntime(ptyId)
+      const now = Date.now()
       return {
         byPtyId: {
           ...state.byPtyId,
@@ -89,13 +91,9 @@ export const useTerminalsStore = create<TerminalsState>((set) => ({
             alive: true,
             parked: false,
             status: 'waiting',
-            lastTransitionAt: Date.now(),
-            spawnedAt: Date.now(),
-            lastIoAt: Date.now(),
-            // Only a process still running leaves an exit behind. Counting one
-            // for a pane that had already ended swallowed the exit of the new
-            // process instead, so an agent that died at once looked alive.
-            expectedOldExits: base.expectedOldExits + (current?.alive ? 1 : 0),
+            lastTransitionAt: now,
+            spawnedAt: now,
+            lastIoAt: now,
             poolState: 'ACTIVE',
             snapshot: null,
           },
@@ -133,15 +131,6 @@ export const useTerminalsStore = create<TerminalsState>((set) => ({
     set((state) => {
       const current = state.byPtyId[ptyId]
       if (!current) return state
-
-      if (current.expectedOldExits > 0) {
-        return {
-          byPtyId: {
-            ...state.byPtyId,
-            [ptyId]: { ...current, expectedOldExits: current.expectedOldExits - 1 },
-          },
-        }
-      }
       return {
         byPtyId: {
           ...state.byPtyId,

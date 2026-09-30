@@ -18,6 +18,7 @@ import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
 import { measure } from '../../lib/mainThreadBudget'
 import { deliverToPty } from '../../lib/paneDelivery'
 import { isWindows } from '../../lib/platform'
+import { PTY_RESTART_EVENT, type PtyRestartDetail } from '../../lib/ptyRestart'
 import {
   isPtyPanelVisibleNow,
   usePtyPanelFocused,
@@ -982,12 +983,15 @@ export function useXtermSession(params: {
       } catch {}
     }
     const scheduleObservedResize = () => scheduleResize()
-    const onResizeRequest = (event: Event) => {
-      const targetPtyId = (event as CustomEvent<{ ptyId?: string }>).detail?.ptyId
-      if (targetPtyId && targetPtyId !== ptyIdRef.current) return
+    const settleGeometry = () => {
       scheduleResize(true)
       window.setTimeout(() => scheduleResize(true), 120)
       window.setTimeout(() => scheduleResize(true), 320)
+    }
+    const onResizeRequest = (event: Event) => {
+      const targetPtyId = (event as CustomEvent<{ ptyId?: string }>).detail?.ptyId
+      if (targetPtyId && targetPtyId !== ptyIdRef.current) return
+      settleGeometry()
     }
     const ro = new ResizeObserver(scheduleObservedResize)
     ro.observe(container)
@@ -1114,6 +1118,52 @@ export function useXtermSession(params: {
       return true
     }
 
+    const armCompletionMonitor = (id: string) => {
+      completionMonitor?.dispose()
+      completionMonitor = null
+      if (command !== 'claude' && command !== 'codex' && command !== 'opencode') return
+      completionMonitor = new AgentCompletionMonitor({
+        ptyId: id,
+        agent: command,
+        label: command,
+        cwd,
+        onStatusChange: (status) => useTerminalsStore.getState().setStatus(id, status),
+        onComplete: () => onAgentCompleteRef.current?.(),
+      })
+    }
+
+    // A process that replaces another under the same id draws its screen from
+    // the first byte, like any spawn; what the old one left would sit above it.
+    const clearForReplacement = () => {
+      cancelWriteFlush()
+      pendingWrites = []
+      pendingWriteLength = 0
+      hiddenBacklog.reset()
+      try {
+        terminal.reset()
+      } catch {}
+      screenPrimedRef.current = true
+      drainWriteWaiters()
+    }
+
+    // An in-place restart keeps this id, so the stream listeners already carry
+    // the new process's output. The screen, the completion monitor and the
+    // host's output gate still belong to the old one.
+    const onPtyRestart = (event: Event) => {
+      const detail = (event as CustomEvent<PtyRestartDetail>).detail
+      const id = ptyIdRef.current
+      if (disposed || !id || detail?.ptyId !== id) return
+      if (detail.phase === 'begin') {
+        clearForReplacement()
+        return
+      }
+      armCompletionMonitor(id)
+      // The host opens every new session as visible.
+      void setPtyVisible(id, isPanelVisibleRef.current).catch(() => {})
+      settleGeometry()
+    }
+    window.addEventListener(PTY_RESTART_EVENT, onPtyRestart)
+
     const attachExistingPty = async (existingId: string) => {
       trackBootRef.current('attaching', `pty=${existingId} reason=reattached to a live process`)
       ptyIdRef.current = existingId
@@ -1122,16 +1172,7 @@ export function useXtermSession(params: {
 
       void setPtyVisible(existingId, isPanelVisibleRef.current).catch(() => {})
 
-      if (command === 'claude' || command === 'codex' || command === 'opencode') {
-        completionMonitor = new AgentCompletionMonitor({
-          ptyId: existingId,
-          agent: command,
-          label: command,
-          cwd,
-          onStatusChange: (status) => useTerminalsStore.getState().setStatus(existingId, status),
-          onComplete: () => onAgentCompleteRef.current?.(),
-        })
-      }
+      armCompletionMonitor(existingId)
 
       if (isPanelVisibleRef.current) {
         // The backend has to agree with the pane before the recorded bytes are
@@ -1159,7 +1200,7 @@ export function useXtermSession(params: {
           `[pty-launch] ${command ?? 'shell'} EXIT (attach) id=${existingId} code=${payload.code ?? '—'} reason=${payload.reason ?? '—'}`,
         )
         if (payload.reason === 'restarted') {
-          useTerminalsStore.getState().markExited(existingId)
+          clearForReplacement()
           return
         }
         if (payload.reason === 'suspended') {
@@ -1588,16 +1629,7 @@ export function useXtermSession(params: {
           registerSessionClaim(command, cwd, launch.sessionId, response.id)
         }
 
-        if (command === 'claude' || command === 'codex' || command === 'opencode') {
-          completionMonitor = new AgentCompletionMonitor({
-            ptyId: response.id,
-            agent: command,
-            label: command,
-            cwd,
-            onStatusChange: (status) => useTerminalsStore.getState().setStatus(response.id, status),
-            onComplete: () => onAgentCompleteRef.current?.(),
-          })
-        }
+        armCompletionMonitor(response.id)
 
         // spawn vai consumir essa entrada e injetar o resume adequado da CLI.
         if (command && RESUMABLE_AGENTS.includes(command)) {
@@ -1743,7 +1775,7 @@ export function useXtermSession(params: {
             `[pty-launch] ${command ?? 'shell'} EXIT id=${response.id} code=${payload.code ?? '—'} reason=${payload.reason ?? '—'}`,
           )
           if (payload.reason === 'restarted') {
-            useTerminalsStore.getState().markExited(response.id)
+            clearForReplacement()
             return
           }
           if (payload.reason === 'suspended') {
@@ -1870,6 +1902,7 @@ export function useXtermSession(params: {
       container.removeEventListener('contextmenu', onContextMenu)
       window.removeEventListener('arco:zoom-changed', onZoomChanged)
       window.removeEventListener('arco:terminal-resize-request', onResizeRequest)
+      window.removeEventListener(PTY_RESTART_EVENT, onPtyRestart)
       ro.disconnect()
       if (resizeTimer !== null) window.clearTimeout(resizeTimer)
       cancelWriteFlush()

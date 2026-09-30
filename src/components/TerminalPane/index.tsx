@@ -17,6 +17,7 @@ import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeA
 import { buildGhosttyCommand } from '../../lib/ghosttyCommand'
 import { useT } from '../../lib/i18n'
 import { shouldUseNativeBackend } from '../../lib/platform'
+import { restartPaneProcess } from '../../lib/ptyRestart'
 import { checkedResumePointer } from '../../lib/resumePointer'
 import { sessionDisplayLabel } from '../../lib/sessionLabel'
 import { buildAgentLaunch } from '../../lib/sessionLaunch'
@@ -25,7 +26,6 @@ import {
   completeAgentHandoff,
   getPtyCwd,
   openInVscode,
-  restartPty,
   snapshotCodexSessions,
   writeClipboardText,
 } from '../../lib/tauri'
@@ -229,9 +229,8 @@ export const TerminalPane = memo(function TerminalPane({
       setSubTabSessionId(projectId, terminal.id, activeTab.id, launch.sessionId)
     }
 
-    useTerminalsStore.getState().beginRestart(ptyId)
     try {
-      await restartPty({
+      await restartPaneProcess({
         id: ptyId,
         cols: 80,
         rows: 24,
@@ -251,7 +250,6 @@ export const TerminalPane = memo(function TerminalPane({
           timestamp: Date.now(),
         })
       }
-      window.dispatchEvent(new CustomEvent('arco:terminal-resize-request', { detail: { ptyId } }))
       requestPaneFocus(terminal.id)
       window.setTimeout(() => requestPaneFocus(terminal.id), 160)
     } catch (err) {
