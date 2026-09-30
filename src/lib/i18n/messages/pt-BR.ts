@@ -852,6 +852,14 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v380.note1':
+    'O Arco agora roda um servidor MCP, e toda sessão de Claude Code, Codex e OpenCode que ele abre carrega esse servidor. Os agentes movem tarefas e falam com outros panes por ferramentas tipadas, em vez de digitar comandos `arco` no shell, e um valor errado (uma prioridade que não existe, um projeto com erro de digitação) volta como erro em vez de ser trocado sem aviso. O comando `arco` continua funcionando como antes. Sessões já abertas passam a usar o servidor na próxima vez que iniciarem.',
+  'whatsNew.v380.note2':
+    'O botão Reiniciar traz o pane de volta. Um pane que tinha terminado, ou reaberto com "Abrir aqui" pelo histórico de conversas, ficava parado em "Processo encerrado" enquanto o processo novo rodava por baixo, e cada clique a mais subia outro. Agora o pane limpa a tela e mostra o processo novo.',
+  'whatsNew.v380.note3':
+    'Um agente reiniciado sobe do mesmo jeito que o pane subiu da primeira vez. O restart perdia as instruções do `arco` e os servidores do Graphify e da memória de IA, e o agente ficava sem ferramentas que tinha um minuto antes.',
+  'whatsNew.v380.note4':
+    'Fechar uma frente apaga a worktree que ela criou. Antes a worktree ficava no disco e no `git worktree list` sem aviso nenhum. Worktrees que versões anteriores deixaram para trás continuam onde estão; apague à mão as que não servirem mais.',
   'whatsNew.v370.note1':
     'O Arco agora tem um mascote — um companheiro animado que fica no canto da janela e espelha os seus agentes: ele corre enquanto algum agente está trabalhando, pula com um ponto âmbar quando uma sessão terminou e você ainda não viu, e fica parado quando está tudo quieto. Arraste para onde quiser; passe o mouse e ele pula. É experimental e vem desligado: ligue em Preferências → Funcionalidades.',
   'whatsNew.v370.note2':

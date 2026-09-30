@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.8.0] — 2026-09-30
+
 ### Added
 
 - Arco runs an MCP server, and every Claude Code, Codex and OpenCode session it starts loads it.

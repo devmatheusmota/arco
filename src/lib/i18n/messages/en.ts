@@ -840,6 +840,14 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v380.note1':
+    'Arco now runs an MCP server, and every Claude Code, Codex and OpenCode session it starts loads it. Agents move tasks and talk to other panes through typed tools instead of typing `arco` commands into the shell, and a wrong value (a priority that does not exist, a project with a typo) comes back as an error instead of being quietly replaced. The `arco` command keeps working as before. Sessions already open pick it up the next time they start.',
+  'whatsNew.v380.note2':
+    'Restart brings a pane back. A pane that had ended, or one reopened with "Open here" from the conversation history, stayed behind "Process ended" while the new process ran underneath, and every further click started one more. The pane now clears its screen and shows the new process.',
+  'whatsNew.v380.note3':
+    'A restarted agent starts the same way the pane first started it. Restarting used to drop the `arco` instructions and the Graphify and AI memory servers, so the agent lost tools it had a minute before.',
+  'whatsNew.v380.note4':
+    'Closing a front removes the worktree it created. Before, the worktree stayed on disk and in `git worktree list` with no warning. Worktrees left behind by earlier versions stay where they are; remove them by hand if you do not need them.',
   'whatsNew.v370.note1':
     'Arco has a mascot now — a tiny animated companion that sits in the corner of the window and mirrors your agents: it runs while any agent is working, jumps with an amber dot when a session finished and you have not seen it yet, and idles when everything is quiet. Drag it anywhere; hover and it jumps. It is experimental and off by default: turn it on in Preferences → Features.',
   'whatsNew.v370.note2':
