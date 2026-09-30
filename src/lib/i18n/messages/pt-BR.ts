@@ -752,7 +752,7 @@ export const ptBR: Record<MessageKey, string> = {
     '{dir} não está no seu PATH. Adicione no perfil do shell: export PATH="{dir}:$PATH"',
   'prefs.cliContext': 'Contar aos agentes sobre o comando de terminal',
   'prefs.cliContextDesc':
-    'As sessões abertas aqui passam a saber que o `arco` existe: como mover uma tarefa para em andamento, revisão ou concluída, e como abrir um pane ou mandar texto para outro. O Claude Code recebe como instrução de sistema. Codex e OpenCode recusam uma flag aditiva, então só recebem quando a sessão nasce de uma tarefa, na primeira mensagem.',
+    'As sessões abertas aqui passam a saber que o `arco` existe: como mover uma tarefa para em andamento, revisão ou concluída, e como abrir um pane ou mandar texto para outro. O Claude Code recebe como instrução de sistema. Codex e OpenCode recusam uma flag aditiva, então só recebem quando a sessão nasce de uma tarefa, na primeira mensagem. Claude Code, Codex e OpenCode também carregam o servidor MCP do Arco, que oferece o mesmo quadro e os mesmos panes como ferramentas tipadas.',
   'prefs.cliContextOn': 'Ligado',
   'prefs.cliContextOff': 'Desligado',
   'prefs.claudeSkipPermissions': 'Iniciar o Claude Code sem pedir permissão',

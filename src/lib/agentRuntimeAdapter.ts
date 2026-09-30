@@ -1,3 +1,4 @@
+import { withArcoMcp } from './arcoMcp'
 import type { AgentRuntimeProfile, AgentType, Terminal } from './types'
 
 export type AgentRuntimeBackend = 'pty' | 'codex-app-server' | 'claude-agent-sdk'
@@ -67,8 +68,11 @@ export function preparePtyRuntimeLaunch(
   baseArgs: readonly string[] = [],
   baseEnv?: Record<string, string>,
 ): PreparedRuntimeLaunch {
-  const args = [...baseArgs]
-  const env = { ...(baseEnv ?? {}) }
+  // Every launch path comes through here, which is what makes it the place to
+  // hand Codex and OpenCode the app's MCP server, whatever the profile.
+  const wired = withArcoMcp(agent, baseArgs, baseEnv ?? {})
+  const args = wired.args
+  const env = wired.env
 
   if (profile === 'full' || agent === 'shell') {
     return { args, env: Object.keys(env).length > 0 ? env : undefined }

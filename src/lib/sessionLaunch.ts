@@ -1,3 +1,4 @@
+import { arcoMcpClaudeConfig } from './arcoMcp'
 import { type AgentType, UNRESTRICTED_FLAG } from './types'
 
 /**
@@ -93,7 +94,14 @@ export function buildAgentLaunch(
 
   if (agent === 'claude') {
     const clean = withLaunchPreferences('claude', stripClaudeSessionArgs([...baseArgs]))
-    const mcp = (mcpConfigPaths ?? []).flatMap((path) => ['--mcp-config', path])
+    // Arco's own server rides along on every launch — restarts included, which
+    // pass no paths of their own.
+    const arcoConfig = arcoMcpClaudeConfig()
+    const paths = [...(mcpConfigPaths ?? [])]
+    if (arcoConfig && !paths.includes(arcoConfig) && !clean.includes(arcoConfig)) {
+      paths.push(arcoConfig)
+    }
+    const mcp = paths.flatMap((path) => ['--mcp-config', path])
     const hooks = claudeSessionHooks()
     // A launch that brings its own settings — the agent canvas — keeps them.
     if (hooks && !clean.includes('--settings')) mcp.push('--settings', hooks)

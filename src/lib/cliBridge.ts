@@ -21,6 +21,7 @@ import type {
   TodoSessionOwner,
   WorktreeChoice,
 } from './types'
+import { TODO_PRIORITIES } from './types'
 
 /**
  * Bridge for the `arco` command line.
@@ -208,6 +209,31 @@ function sessionOwner(entry: SessionEntry): TodoSessionOwner {
     ...(cwd ? { cwd } : {}),
     linkedAt: Date.now(),
   }
+}
+
+/**
+ * Fills in the directory of the pane a request came from, when it names the
+ * pane and nothing else.
+ *
+ * The command line sends the directory it ran in. The MCP server has none to
+ * send — it only knows which pane is calling — and without this a task it files
+ * would land in the active project, and a session it opens in no front at all.
+ * A request that already carries a directory is left exactly as it came.
+ */
+function withCallerDirectory<T>(request: T): T {
+  const scope = request as SessionScope & { cwd?: string }
+  if (!scope.sessionId || scope.sessionCwd || scope.cwd) return request
+  const entry = sessionEntries().find((item) => item.terminal.id === scope.sessionId)
+  const cwd = entry ? sessionOwner(entry).cwd : undefined
+  return cwd ? { ...request, cwd, sessionCwd: cwd } : request
+}
+
+/** A priority the board knows, or why the one given is not. */
+function priorityProblem(priority: unknown): string | null {
+  if (priority === undefined || priority === null || priority === '') return null
+  return TODO_PRIORITIES.includes(priority as TodoPriority)
+    ? null
+    : `Prioridade desconhecida: ${String(priority)} (use: ${TODO_PRIORITIES.join(' | ')})`
 }
 
 /** How deep inside a pane's tree a directory sits, or -1 when it is outside it. */
@@ -1128,6 +1154,10 @@ function handleTodo(request: TodoRequest): CliResult {
   if (!title) return failure('Tarefa sem título.')
   const status = request.status ? parseTodoStatus(request.status) : null
   if (request.status && !status) return failure(`Status desconhecido: ${request.status}`)
+  // An unknown priority used to be stored as `normal`, and the command said
+  // "criada" as if it had taken.
+  const badPriority = priorityProblem(request.priority)
+  if (badPriority) return failure(badPriority)
   if (request.notes) {
     const problem = notesTooLong(request.notes)
     if (problem) return failure(problem)
@@ -1192,6 +1222,8 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
 
   const status = request.status ? parseTodoStatus(request.status) : null
   if (request.status && !status) return failure(`Status desconhecido: ${request.status}`)
+  const badPriority = priorityProblem(request.priority)
+  if (badPriority) return failure(badPriority)
 
   if (request.notes !== undefined) {
     const problem = notesTooLong(request.notes)
@@ -1435,7 +1467,7 @@ function answer<T extends CliRequest>(
   handler: (request: T) => CliResult | Promise<CliResult>,
 ): (event: { payload?: T }) => void {
   return (event) => {
-    const request = (event.payload ?? {}) as T
+    const request = withCallerDirectory((event.payload ?? {}) as T)
     void (async () => {
       let result: CliResult
       try {

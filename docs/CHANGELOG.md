@@ -10,8 +10,21 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- Arco runs an MCP server, and every Claude Code, Codex and OpenCode session it starts loads it.
+  Agents move tasks and reach other panes through typed tools (`todo_add`, `todo_status`,
+  `session_send`, `session_open` and the rest of what `arco todo`, `arco session`, `arco group
+  list` and `arco project list` cover) instead of composing shell lines. Arguments are checked
+  before anything changes, and a refusal comes back as an error the agent can act on. The server
+  knows which pane is calling, so `current` needs no id. It lives inside the app, so a session
+  costs no extra process. The `arco` command keeps working as before. The "Tell agents about the
+  terminal command" preference turns both off.
+
 ### Fixed
 
+- `arco todo add` and `arco todo edit` refuse a priority other than high, normal or low. An
+  unknown one used to be saved as normal while the command reported success.
 - Restarting a pane brings it back. After "Open here" in the conversation history, or a restart
   while the pane already read as ended, the pane stayed behind "Process ended" with the old output,
   and `arco session list` called it offline, while the new process ran underneath; every further

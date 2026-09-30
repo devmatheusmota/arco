@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 
 import { setCliPathSource } from '../lib/agentCliPath'
+import { setArcoMcpEnabledSource } from '../lib/arcoMcp'
 import { setClaudeSkipPermissionsSource } from '../lib/sessionLaunch'
 import { setStorageNamespace } from '../lib/storageNamespace'
 import {
@@ -745,6 +746,7 @@ setClaudeSkipPermissionsSource(
   () => useProjectsStore.getState().preferences.claudeSkipPermissions === true,
 )
 setCliPathSource(() => useProjectsStore.getState().cliPaths)
+setArcoMcpEnabledSource(() => useProjectsStore.getState().preferences.cliContextInjection !== false)
 
 /** Flushes the debounced document before the native window is destroyed. */
 export async function flushProjectsState(): Promise<void> {

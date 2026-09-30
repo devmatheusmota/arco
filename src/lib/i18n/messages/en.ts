@@ -743,7 +743,7 @@ export const en = {
     '{dir} is not in your PATH. Add it to your shell profile: export PATH="{dir}:$PATH"',
   'prefs.cliContext': 'Tell agents about the terminal command',
   'prefs.cliContextDesc':
-    'Sessions started here learn that `arco` exists: how to move a task to in-progress, review or done, and how to open a pane or send text to another one. Claude Code receives it as a system instruction. Codex and OpenCode reject an additive flag, so they only receive it when the session starts from a task, as its first message.',
+    'Sessions started here learn that `arco` exists: how to move a task to in-progress, review or done, and how to open a pane or send text to another one. Claude Code receives it as a system instruction. Codex and OpenCode reject an additive flag, so they only receive it when the session starts from a task, as its first message. Claude Code, Codex and OpenCode also load Arco\u2019s MCP server, which offers the same board and panes as typed tools.',
   'prefs.cliContextOn': 'On',
   'prefs.cliContextOff': 'Off',
   'prefs.claudeSkipPermissions': 'Start Claude Code without permission prompts',

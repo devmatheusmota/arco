@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event'
 
+import type { ArcoMcpLaunch } from '../arcoMcp'
 import { measure } from '../mainThreadBudget'
 
 // Every event handler is timed so main-thread cost can be attributed by event.
@@ -48,6 +49,11 @@ export async function agentHooksSettingsPath(): Promise<string> {
 /** The `--settings` file that gives a Claude pane its SessionStart hook, or `null` without one. */
 export async function agentSessionHooksPath(): Promise<string | null> {
   return (await invoke<string | null>('agent_session_hooks_path')) ?? null
+}
+
+/** Endpoint, token and Claude config file of the app's MCP server, or `null` before it binds. */
+export async function arcoMcpLaunch(): Promise<ArcoMcpLaunch | null> {
+  return (await invoke<ArcoMcpLaunch | null>('arco_mcp_launch')) ?? null
 }
 
 /** Which conversation a pane's agent moved to, as its SessionStart hook reports it. */

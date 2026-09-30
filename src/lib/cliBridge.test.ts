@@ -1749,3 +1749,57 @@ describe('cli://project-add and cli://project-list', () => {
     expect(state.createAgentTerminal).not.toHaveBeenCalled()
   })
 })
+
+describe('priority', () => {
+  // An unknown priority used to be stored as `normal` while the command said "criada".
+  it('refuses a priority the board does not have, on add and on edit', async () => {
+    const added = await request('cli://todo-add', { title: 'x', priority: 'urgente' })
+    expect(added.ok).toBe(false)
+    expect(added.message).toContain('high | normal | low')
+    expect(state.todos).toHaveLength(0)
+
+    await request('cli://todo-add', { title: 'existe' })
+    state.setTodoPriority.mockClear()
+    const edited = await request('cli://todo-edit', {
+      ref: 'id-0',
+      priority: 'alta',
+      title: 'nova',
+    })
+    expect(edited.ok).toBe(false)
+    expect(state.setTodoPriority).not.toHaveBeenCalled()
+    expect(state.renameTodo).not.toHaveBeenCalledWith('id-0', 'nova')
+  })
+})
+
+// The MCP server knows which pane is calling and nothing else: no directory.
+describe('a request that names its pane and no directory', () => {
+  const other = { id: 'p2', name: 'Outro', defaultCwd: '/tmp/outro', terminals: [], groups: [] }
+
+  afterEach(() => {
+    state.projects = state.projects.filter((project) => project.id !== 'p2')
+  })
+
+  it('files a task under the project that owns the pane directory, not the active one', async () => {
+    state.projects = [...state.projects, other] as never
+    state.projects[0].terminals = [pane('term-1', '/tmp/outro/wt')]
+    const result = await request('cli://todo-add', { title: 'daqui', sessionId: 'term-1' })
+    expect(result.ok).toBe(true)
+    expect(state.todos[0].projectId).toBe('p2')
+  })
+
+  it('opens a session in the directory of the pane that asked', async () => {
+    state.projects[0].terminals = [pane('term-1', '/tmp/arco/wt/a')]
+    await request('cli://session-new', { agent: 'shell', sessionId: 'term-1' })
+    expect(state.createAgentTerminal).toHaveBeenCalledWith(
+      'p1',
+      expect.objectContaining({ cwd: '/tmp/arco/wt/a' }),
+    )
+  })
+
+  it('leaves a directory the command line sent exactly as it came', async () => {
+    state.projects = [...state.projects, other] as never
+    state.projects[0].terminals = [pane('term-1', '/tmp/outro/wt')]
+    await request('cli://todo-add', { title: 'x', sessionId: 'term-1', cwd: '/tmp/arco' })
+    expect(state.todos[0].projectId).toBe('p1')
+  })
+})

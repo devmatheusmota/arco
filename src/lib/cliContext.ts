@@ -51,7 +51,9 @@ export const CLI_CONTEXT_PROMPT = [
   'the board keeps that link after the session ends, which is where it earns its keep.',
   'Every command prints what it did and fails loudly; an unknown subcommand is',
   'refused instead of becoming a new task. Any command takes `--help`.',
-  'Run `arco help` for the full surface. Do not edit the task board any other way.',
+  'Run `arco help` for the full surface. The `arco` MCP server offers the same board and',
+  'panes as typed tools (todo_status, session_send, ...); use them when you have them.',
+  'Do not edit the task board any other way.',
 ].join('\n')
 
 /**

@@ -12,6 +12,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
+const { createMcpServer } = require('../mcp-server.cjs')
 const { unpackedPath } = require('../unpacked-path.cjs')
 
 // Where the `arco` command reads endpoint and token from. The override exists
@@ -34,6 +35,11 @@ const HOOK_EVENTS = [
 // pane has no use for.
 const SESSION_HOOKS_FILE = path.join(path.dirname(SETTINGS_FILE), 'arco-session-hooks.json')
 const SESSION_HOOK_SCRIPT = unpackedPath(path.join(__dirname, '..', 'session-hook.cjs'))
+
+// The `--mcp-config` file for Claude panes. Named after the settings file, so a
+// second listener (a test, a development instance) never writes over the one the
+// installed app's panes load. It carries the token, so only the owner reads it.
+const MCP_CONFIG_FILE = SETTINGS_FILE.replace(/\.json$/, '') + '.mcp.json'
 
 const token = randomBytes(16).toString('hex')
 let port = 0
@@ -114,6 +120,22 @@ function resolveCliReply(requestId, result) {
 }
 
 function startHookListener(send, readTodos) {
+  /**
+   * Hands a `/cli/*` request to the frontend and waits for what it did. `null`
+   * means it never answered — except a listing, which the file on disk serves.
+   */
+  async function dispatch(name, payload) {
+    cliRequestSequence += 1
+    const requestId = `cli-${cliRequestSequence}`
+    const reply = awaitCliReply(requestId)
+    send(CLI_EVENTS[name], { ...payload, requestId })
+    const result = await reply
+    if (!result && name === 'todo/list')
+      return { ok: true, stale: true, data: { todos: readTodos() } }
+    return result
+  }
+  const mcp = createMcpServer({ dispatch, version: appVersion })
+
   const server = http.createServer(async (request, response) => {
     if (request.headers['x-arco-token'] !== token) {
       response.writeHead(403).end('forbidden')
@@ -126,11 +148,7 @@ function startHookListener(send, readTodos) {
     }
     // What `arco --version` compares the binary it ran against.
     if (route === '/version') {
-      let version = null
-      try {
-        version = require('electron').app.getVersion()
-      } catch {}
-      json(response, { ok: true, version })
+      json(response, { ok: true, version: appVersion() })
       return
     }
 
@@ -139,8 +157,7 @@ function startHookListener(send, readTodos) {
     // it actually did — the CLI reports that back and exits accordingly.
     if (route.startsWith('/cli/')) {
       const name = route.slice('/cli/'.length)
-      const event = CLI_EVENTS[name]
-      if (!event) {
+      if (!CLI_EVENTS[name]) {
         json(response, { ok: false, message: `rota /cli/${name} desconhecida` }, 404)
         return
       }
@@ -152,22 +169,25 @@ function startHookListener(send, readTodos) {
         json(response, { ok: false, message: 'payload deve ser JSON' }, 400)
         return
       }
-      cliRequestSequence += 1
-      const requestId = `cli-${cliRequestSequence}`
-      const reply = awaitCliReply(requestId)
-      send(event, { ...payload, requestId })
-      const result = await reply
+      const result = await dispatch(name, payload)
       if (!result) {
-        // The window may not be up yet. A listing can still be served from the
-        // file on disk; an action cannot, and says so instead of vanishing.
-        if (name === 'todo/list') {
-          json(response, { ok: true, stale: true, data: { todos: readTodos() } })
-          return
-        }
         json(response, { ok: false, message: 'o app nao respondeu a tempo' }, 504)
         return
       }
       json(response, result, result.ok === false ? 422 : 200)
+      return
+    }
+
+    // The MCP server the agent panes load: the `/cli/*` surface as typed tools.
+    if (route === '/mcp') {
+      if (request.method !== 'POST') {
+        response.writeHead(405, { Allow: 'POST' }).end()
+        return
+      }
+      const caller = String(request.headers['x-arco-session'] ?? '').trim()
+      const { status, body } = await mcp.handlePost(await readBody(request), caller)
+      if (body === null) response.writeHead(status).end()
+      else json(response, body, status)
       return
     }
 
@@ -212,7 +232,8 @@ function startHookListener(send, readTodos) {
         const current = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'))
         const url = current.hooks?.SubagentStart?.[0]?.hooks?.[0]?.url
         const paneFileGone = nodeBinary && !fs.existsSync(SESSION_HOOKS_FILE)
-        if (url !== `${endpoint()}/hook` || paneFileGone) writeSettings()
+        const mcpFileGone = !fs.existsSync(MCP_CONFIG_FILE)
+        if (url !== `${endpoint()}/hook` || paneFileGone || mcpFileGone) writeSettings()
       } catch {
         try {
           writeSettings()
@@ -223,6 +244,14 @@ function startHookListener(send, readTodos) {
     server.on('close', () => clearInterval(watchdog))
   })
   return server
+}
+
+function appVersion() {
+  try {
+    return require('electron').app.getVersion()
+  } catch {
+    return null
+  }
 }
 
 function endpoint() {
@@ -249,6 +278,7 @@ function writeSettings() {
   }
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
   writeSessionHooks()
+  writeMcpConfig()
   return SETTINGS_FILE
 }
 
@@ -260,11 +290,31 @@ function writeSettings() {
  * started until the watchdog noticed.
  */
 function ensureSessionHooksFile(args) {
-  if (!Array.isArray(args) || !args.includes(SESSION_HOOKS_FILE)) return
-  if (fs.existsSync(SESSION_HOOKS_FILE)) return
+  if (!Array.isArray(args)) return
   try {
-    writeSessionHooks()
+    if (args.includes(SESSION_HOOKS_FILE) && !fs.existsSync(SESSION_HOOKS_FILE)) writeSessionHooks()
+    if (args.includes(MCP_CONFIG_FILE) && !fs.existsSync(MCP_CONFIG_FILE) && port) writeMcpConfig()
   } catch {}
+}
+
+/**
+ * The `--mcp-config` file for Claude panes. The pane's own id is left for
+ * Claude to expand from the environment, so one file serves every pane; the
+ * empty default keeps a launch without it from failing on the expansion.
+ */
+function writeMcpConfig() {
+  const config = {
+    mcpServers: {
+      arco: {
+        type: 'http',
+        url: `${endpoint()}/mcp`,
+        headers: { 'X-Arco-Token': token, 'X-Arco-Session': '${ARCO_SESSION_ID:-}' },
+      },
+    },
+  }
+  fs.writeFileSync(MCP_CONFIG_FILE, JSON.stringify(config, null, 2), { mode: 0o600 })
+  fs.chmodSync(MCP_CONFIG_FILE, 0o600)
+  return MCP_CONFIG_FILE
 }
 
 /** The `--settings` file for Claude panes, or `null` when there is no Node to run the hook. */
@@ -286,6 +336,10 @@ function buildHookCommands() {
     agent_hooks_token: () => token,
     agent_hooks_settings_path: () => writeSettings(),
     agent_session_hooks_path: () => (port ? writeSessionHooks() : null),
+    // What a pane launch needs to load the MCP server: Claude reads the file,
+    // Codex and OpenCode are handed the endpoint and token directly.
+    arco_mcp_launch: () =>
+      port ? { url: `${endpoint()}/mcp`, token, claudeConfig: writeMcpConfig() } : null,
     // The other half of a `/cli/*` request: the frontend reports what it did,
     // and the HTTP response the CLI is still waiting on carries it back.
     cli_reply: (args) => resolveCliReply(args?.requestId, args?.result),
