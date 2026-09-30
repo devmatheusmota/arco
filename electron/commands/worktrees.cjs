@@ -35,6 +35,45 @@ function worktreePath(repo, agentId) {
   return path.join(repo, ...WORKTREE_ROOT, agentId)
 }
 
+/** The id arrives from the renderer and becomes a path component; it must stay one. */
+function checkedAgentId(agentId) {
+  const id = String(agentId ?? '')
+  if (!id || id === '.' || id === '..' || /[\\/\0]/.test(id)) {
+    throw new Error('invalid_worktree_path')
+  }
+  return id
+}
+
+/** `gitWorktree` for a linked worktree, `localCopy` for a copy, null for anything else. */
+function worktreeMode(dir) {
+  try {
+    const marker = fs.statSync(path.join(dir, '.git'))
+    if (marker.isFile()) return 'gitWorktree'
+    if (marker.isDirectory()) return 'localCopy'
+  } catch {}
+  return null
+}
+
+/**
+ * The branch checked out in a worktree, read from its HEAD file. A repository
+ * can hold dozens of these, and a listing that started one git process per
+ * worktree would pay for all of them every time.
+ */
+function currentBranch(dir, mode) {
+  try {
+    let gitDir = path.join(dir, '.git')
+    if (mode === 'gitWorktree') {
+      const pointer = fs.readFileSync(gitDir, 'utf8').match(/^gitdir:\s*(.+)$/m)
+      if (!pointer) return ''
+      gitDir = path.resolve(dir, pointer[1].trim())
+    }
+    const head = fs.readFileSync(path.join(gitDir, 'HEAD'), 'utf8').trim()
+    return head.startsWith('ref: refs/heads/') ? head.slice('ref: refs/heads/'.length) : 'HEAD'
+  } catch {
+    return ''
+  }
+}
+
 function branchName(agentId) {
   return `arco/agent-${agentId}`
 }
@@ -74,7 +113,58 @@ async function info(repo, agentId) {
   try {
     createdAt = fs.statSync(target).birthtimeMs || fs.statSync(target).ctimeMs
   } catch {}
-  return { agentId, path: target, branch: branchName(agentId), createdAt }
+  const mode = worktreeMode(target) ?? 'gitWorktree'
+  return { agentId, path: target, branch: branchName(agentId), mode, createdAt }
+}
+
+/**
+ * The agent worktrees of a repository, one per directory under
+ * `.arco/worktrees/`, named by the id they were provisioned with — the same
+ * layout `provision` writes and `remove` reads. Closing a front looks its
+ * worktree up here by that id; an entry without it reads as "already gone", and
+ * the front closes leaving the worktree on disk.
+ */
+async function list({ repo }) {
+  if (!repo) return []
+  const base = path.join(repo, ...WORKTREE_ROOT)
+  let children
+  try {
+    children = fs.readdirSync(base, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  const entries = []
+  for (const child of children) {
+    if (!child.isDirectory()) continue
+    const dir = path.join(base, child.name)
+    const mode = worktreeMode(dir)
+    if (!mode) continue
+    entries.push({ ...(await info(repo, child.name)), branch: currentBranch(dir, mode) })
+  }
+  return entries.sort((a, b) => a.agentId.localeCompare(b.agentId))
+}
+
+/**
+ * Removes an agent worktree, and says so when it could not.
+ *
+ * Callers tell `worktree_not_found` apart from a real failure: the first means
+ * there is nothing left to clean, the second is a worktree left on disk that
+ * the user has to hear about.
+ */
+async function remove({ repo, agentId, force }) {
+  const target = worktreePath(repo, checkedAgentId(agentId))
+  if (!fs.existsSync(target)) throw new Error('worktree_not_found')
+  const mode = worktreeMode(target)
+  if (mode === 'gitWorktree') {
+    await git(['worktree', 'remove', ...(force ? ['--force'] : []), target], repo)
+  } else if (mode === 'localCopy') {
+    fs.rmSync(target, { recursive: true, force: true })
+  } else {
+    // Neither a worktree nor a copy: an interrupted provision, possibly holding
+    // work. Deleting it is the user's call.
+    throw new Error(`not_a_worktree: ${target}`)
+  }
+  return null
 }
 
 async function provision({ repo, agentId, mode }) {
@@ -137,12 +227,19 @@ function buildWorktreeCommands() {
         throw error
       }
     },
+    worktree_list: list,
     worktree_remove: async ({ repo, agentId, force }) => {
-      const target = worktreePath(repo, agentId)
-      await git(['worktree', 'remove', ...(force ? ['--force'] : []), target], repo).catch(
-        () => null,
-      )
-      return null
+      try {
+        return await remove({ repo, agentId, force })
+      } catch (error) {
+        if (!String(error).includes('worktree_not_found')) {
+          paths.appendLog(
+            'app-events.log',
+            `[worktree.remove.error] repo=${repo} agent=${agentId} error=${String(error)}`,
+          )
+        }
+        throw error
+      }
     },
     worktree_cleanup: async ({ repo }) => {
       await git(['worktree', 'prune'], repo).catch(() => null)
@@ -187,4 +284,4 @@ function buildWorktreeCommands() {
   }
 }
 
-module.exports = { buildWorktreeCommands, excludeArcoLocally, provision }
+module.exports = { buildWorktreeCommands, excludeArcoLocally, list, provision, remove }

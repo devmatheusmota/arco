@@ -6,11 +6,16 @@ import { join } from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+type WorktreeEntry = { agentId: string; path: string; branch: string; mode: string }
+
 const require = createRequire(import.meta.url)
-const { excludeArcoLocally, provision } = require('../../electron/commands/worktrees.cjs') as {
-  excludeArcoLocally: (repo: string) => void
-  provision: (args: { repo: string; agentId: string; mode?: string }) => Promise<unknown>
-}
+const { excludeArcoLocally, list, provision, remove } =
+  require('../../electron/commands/worktrees.cjs') as {
+    excludeArcoLocally: (repo: string) => void
+    list: (args: { repo: string }) => Promise<WorktreeEntry[]>
+    provision: (args: { repo: string; agentId: string; mode?: string }) => Promise<unknown>
+    remove: (args: { repo: string; agentId: string; force?: boolean }) => Promise<null>
+  }
 
 let repo = ''
 const excludeFile = () => join(repo, '.git', 'info', 'exclude')
@@ -96,5 +101,86 @@ describe('provision', () => {
 
     expect(read()).toMatch(/^\.arco\/$/m)
     expect(execFileSync('git', ['status', '--porcelain'], { cwd: repo, encoding: 'utf8' })).toBe('')
+  })
+})
+
+function commitSomething() {
+  writeFileSync(join(repo, 'README.md'), '# repo\n')
+  execFileSync('git', ['add', '-A'], { cwd: repo })
+  execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'first'], {
+    cwd: repo,
+  })
+}
+
+const gitWorktrees = () =>
+  execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, encoding: 'utf8' })
+
+describe('list', () => {
+  // Closing a front finds its worktree here by id. Entries without one read as
+  // "already gone", and the front closed with the worktree left on disk.
+  it('names each worktree by the id it was provisioned with', async () => {
+    commitSomething()
+    await provision({ repo, agentId: 'cl-2' })
+
+    const entries = await list({ repo })
+
+    // Exactly one: the listing is of the repository it was given, not of the
+    // directory the app happens to run in.
+    expect(entries).toEqual([
+      expect.objectContaining({
+        agentId: 'cl-2',
+        path: join(repo, '.arco', 'worktrees', 'cl-2'),
+        branch: 'arco/agent-cl-2',
+        mode: 'gitWorktree',
+      }),
+    ])
+  })
+
+  it('leaves out a directory that is neither a worktree nor a copy', async () => {
+    mkdirSync(join(repo, '.arco', 'worktrees', 'half-made'), { recursive: true })
+
+    expect(await list({ repo })).toEqual([])
+  })
+
+  it('is empty for a repository without worktrees', async () => {
+    expect(await list({ repo })).toEqual([])
+  })
+})
+
+describe('remove', () => {
+  it('takes a clean worktree out of git worktree list', async () => {
+    commitSomething()
+    await provision({ repo, agentId: 'cl-2' })
+    expect(gitWorktrees()).toContain('cl-2')
+
+    await remove({ repo, agentId: 'cl-2', force: true })
+
+    expect(gitWorktrees()).not.toContain('cl-2')
+    expect(await list({ repo })).toEqual([])
+  })
+
+  it('says worktree_not_found when there is nothing to remove', async () => {
+    await expect(remove({ repo, agentId: 'cl-9', force: true })).rejects.toThrow(
+      'worktree_not_found',
+    )
+  })
+
+  // A failure used to be swallowed and reported as done, so the caller never
+  // learned the worktree was still there.
+  it('fails loudly on a directory it will not delete, and keeps it', async () => {
+    const leftover = join(repo, '.arco', 'worktrees', 'half-made')
+    mkdirSync(leftover, { recursive: true })
+    writeFileSync(join(leftover, 'notes.txt'), 'work\n')
+
+    await expect(remove({ repo, agentId: 'half-made', force: true })).rejects.toThrow(
+      'not_a_worktree',
+    )
+    expect(readFileSync(join(leftover, 'notes.txt'), 'utf8')).toBe('work\n')
+  })
+
+  it('refuses an id that climbs out of .arco/worktrees', async () => {
+    await expect(remove({ repo, agentId: '../../x', force: true })).rejects.toThrow(
+      'invalid_worktree_path',
+    )
   })
 })

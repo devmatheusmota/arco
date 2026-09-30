@@ -163,24 +163,6 @@ function buildGitCommands() {
       await git(['clone', url, targetDir], path.dirname(targetDir))
       return targetDir
     },
-
-    // Worktrees: read-only for now, so the UI can list what exists. Creating
-    // and removing them still belongs to the Tauri build.
-    worktree_list: async ({ repoRoot }) => {
-      const out = await git(['worktree', 'list', '--porcelain'], repoRoot).catch(() => '')
-      const entries = []
-      let current = null
-      for (const line of out.split('\n')) {
-        if (line.startsWith('worktree ')) {
-          if (current) entries.push(current)
-          current = { agentId: '', path: line.slice(9), branch: '', createdAt: 0 }
-        } else if (line.startsWith('branch ') && current) {
-          current.branch = line.slice(7).replace('refs/heads/', '')
-        }
-      }
-      if (current) entries.push(current)
-      return entries
-    },
   }
 }
 

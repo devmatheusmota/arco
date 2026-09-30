@@ -19,6 +19,11 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   new process and tracks its status again.
 - "Open here" and resuming from the Claude history start the agent with the pane's identity
   (`ARCO_PANE_ID`), so the `arco` command inside it knows which pane it is.
+- Closing a front removes the worktree it created. The front disappeared, but its worktree stayed
+  on disk and in `git worktree list` with no warning, because Arco never recognized it as the
+  front's. When a worktree cannot be removed, Arco now says so and keeps it in the list of
+  leftover worktrees instead of reporting it gone. Worktrees left behind before this fix stay
+  where they are.
 
 ## [3.7.0] — 2026-09-30
 
