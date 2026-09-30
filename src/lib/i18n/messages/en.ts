@@ -840,6 +840,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v381.note1':
+    'Agents now reach for Arco\u2019s MCP tools first. The instructions every session receives list the tools and keep the `arco` shell command for the few things the tools do not cover, and a message from another pane tells the agent to answer with `session_send` instead of the shell command. Sessions pick this up the next time they start.',
   'whatsNew.v380.note1':
     'Arco now runs an MCP server, and every Claude Code, Codex and OpenCode session it starts loads it. Agents move tasks and talk to other panes through typed tools instead of typing `arco` commands into the shell, and a wrong value (a priority that does not exist, a project with a typo) comes back as an error instead of being quietly replaced. The `arco` command keeps working as before. Sessions already open pick it up the next time they start.',
   'whatsNew.v380.note2':

@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.8.1] — 2026-09-30
+
 ### Changed
 
 - Agents are pointed at Arco's MCP tools first. The instructions every session receives now list

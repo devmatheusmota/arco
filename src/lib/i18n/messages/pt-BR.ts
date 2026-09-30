@@ -852,6 +852,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v381.note1':
+    'Os agentes agora usam primeiro as ferramentas do MCP do Arco. As instruções que toda sessão recebe listam as ferramentas e deixam o comando `arco` no shell só para o pouco que elas não cobrem, e uma mensagem vinda de outro pane manda o agente responder com `session_send` em vez do comando no shell. As sessões passam a seguir isso na próxima vez que iniciarem.',
   'whatsNew.v380.note1':
     'O Arco agora roda um servidor MCP, e toda sessão de Claude Code, Codex e OpenCode que ele abre carrega esse servidor. Os agentes movem tarefas e falam com outros panes por ferramentas tipadas, em vez de digitar comandos `arco` no shell, e um valor errado (uma prioridade que não existe, um projeto com erro de digitação) volta como erro em vez de ser trocado sem aviso. O comando `arco` continua funcionando como antes. Sessões já abertas passam a usar o servidor na próxima vez que iniciarem.',
   'whatsNew.v380.note2':
