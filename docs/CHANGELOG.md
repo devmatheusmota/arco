@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.7.0] — 2026-09-30
+
 ### Added
 
 - An experimental mascot: a tiny animated companion in the corner of the window that mirrors

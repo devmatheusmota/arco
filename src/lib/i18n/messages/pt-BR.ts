@@ -852,6 +852,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v370.note1':
+    'O Arco agora tem um mascote — um companheiro animado que fica no canto da janela e espelha os seus agentes: ele corre enquanto algum agente está trabalhando, pula com um ponto âmbar quando uma sessão terminou e você ainda não viu, e fica parado quando está tudo quieto. Arraste para onde quiser; passe o mouse e ele pula. É experimental e vem desligado: ligue em Preferências → Funcionalidades.',
+  'whatsNew.v370.note2':
+    'Três pets acompanham — Claudino, OpenCode e Gremlin (arte do projeto Orca, MIT) — e dá para enviar a sua própria imagem em Preferências → Funcionalidades. Uma tira horizontal de quadros quadrados é detectada sozinha e animada como sprite sheet.',
   'whatsNew.v362.note1':
     'Um pane do Claude numa pasta cujo nome tem sublinhado, espaço ou outro símbolo (um worktree como `cl-uVV6_A`, por exemplo) agora volta para a conversa quando o Arco reabre. O Arco procurava a conversa no lugar errado, achava que ela tinha sumido e abria uma sessão em branco, e o único jeito de voltar era o `/resume`. O histórico de sessões, o custo da sessão e o repasse para outro agente leem do mesmo lugar e também foram corrigidos.',
   'whatsNew.v361.note1':

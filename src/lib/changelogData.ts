@@ -8,6 +8,11 @@ export type ChangelogRelease = {
 
 export const CHANGELOG_RELEASES: ChangelogRelease[] = [
   {
+    version: '3.7.0',
+    date: '2026-09-30',
+    noteKeys: ['whatsNew.v370.note1', 'whatsNew.v370.note2'],
+  },
+  {
     version: '3.6.2',
     date: '2026-09-28',
     noteKeys: ['whatsNew.v362.note1'],

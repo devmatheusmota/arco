@@ -840,6 +840,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v370.note1':
+    'Arco has a mascot now — a tiny animated companion that sits in the corner of the window and mirrors your agents: it runs while any agent is working, jumps with an amber dot when a session finished and you have not seen it yet, and idles when everything is quiet. Drag it anywhere; hover and it jumps. It is experimental and off by default: turn it on in Preferences → Features.',
+  'whatsNew.v370.note2':
+    'Three pets ship with it — Claudino, OpenCode and Gremlin (artwork from the Orca project, MIT) — and you can upload your own image in Preferences → Features. A horizontal strip of square frames is detected automatically and animated as a sprite sheet.',
   'whatsNew.v362.note1':
     'A Claude pane whose folder name has an underscore, a space or another symbol (a worktree like `cl-uVV6_A`, for one) now comes back to its conversation when Arco reopens. Arco was looking for the conversation in the wrong place, took it for gone and started a blank session, so the only way back was `/resume`. Session history, session cost and handoffs to another agent read from the same place and are fixed too.',
   'whatsNew.v361.note1':
