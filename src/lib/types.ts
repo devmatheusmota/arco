@@ -52,7 +52,10 @@ export type AppIconTheme =
 
 export type VisualStyle = 'normal' | 'clean'
 
-export type FeatureId = 'todos' | 'git' | 'browser' | 'graphify' | 'aiMemory' | 'mcp'
+export type FeatureId = 'todos' | 'git' | 'browser' | 'graphify' | 'aiMemory' | 'mcp' | 'mascot'
+
+/** Bundled mascot characters, plus `custom` for a user-uploaded image. */
+export type MascotPetId = 'claudino' | 'opencode' | 'gremlin' | 'custom'
 
 /** Task urgency. Drives the colored marker and the ordering hint in the sidebar. */
 export type TodoPriority = 'low' | 'normal' | 'high'
@@ -550,6 +553,11 @@ export type Preferences = {
   nodeHeapProfile?: 'conservative' | 'balanced' | 'performance'
 
   gsdSyncModelChain?: string[]
+
+  /** Mascot character shown by the experimental mascot overlay. */
+  mascotPet: MascotPetId
+  /** Data URL of the user-uploaded mascot image; empty when none. */
+  mascotCustomImage: string
 }
 
 export type ResourcePolicyMode = 'smart-lru' | 'manual'
@@ -641,6 +649,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
     graphify: true,
     aiMemory: false,
     mcp: true,
+    mascot: false,
   },
   todoStoragePath: '',
   mcpDefaultScope: 'global',
@@ -671,6 +680,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
     spawnGraceSeconds: 120,
   },
   nodeHeapProfile: 'balanced',
+  mascotPet: 'claudino',
+  mascotCustomImage: '',
 }
 
 export const EMPTY_PROJECTS_FILE: ProjectsFile = {

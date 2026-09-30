@@ -13,6 +13,7 @@ import { FocusOverlay } from './components/FocusOverlay'
 import { AgentIcon } from './components/icons/AgentIcons'
 import { LinkViewerOverlay } from './components/LinkViewerOverlay'
 import { MainMenu } from './components/MainMenu'
+import { MascotOverlay } from './components/MascotOverlay'
 import { MeetingButton } from './components/MeetingButton'
 import { AddBrowserModal } from './components/modals/AddBrowserModal'
 import { AddContentModal } from './components/modals/AddContentModal'
@@ -618,6 +619,7 @@ export default function App() {
       </div>
       <FocusOverlay />
       <LinkViewerOverlay />
+      <MascotOverlay />
       <DictationButton />
       <MeetingButton />
       <MainMenu />

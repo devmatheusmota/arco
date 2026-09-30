@@ -11,6 +11,7 @@ describe('normalizeEnabledFeatures', () => {
       graphify: true,
       aiMemory: false,
       mcp: true,
+      mascot: false,
     })
   })
 
@@ -22,6 +23,7 @@ describe('normalizeEnabledFeatures', () => {
       graphify: true,
       aiMemory: false,
       mcp: true,
+      mascot: false,
     })
   })
 
@@ -33,6 +35,7 @@ describe('normalizeEnabledFeatures', () => {
       graphify: true,
       aiMemory: false,
       mcp: true,
+      mascot: false,
     })
   })
 
@@ -46,10 +49,16 @@ describe('normalizeEnabledFeatures', () => {
       graphify: true,
       aiMemory: true,
       mcp: true,
+      mascot: false,
     })
   })
 
   it('preserves an explicit Graphify preference', () => {
     expect(normalizeEnabledFeatures({ enabledFeatures: { graphify: false } }).graphify).toBe(false)
+  })
+
+  it('keeps the mascot off unless explicitly enabled', () => {
+    expect(normalizeEnabledFeatures({ enabledFeatures: {} }).mascot).toBe(false)
+    expect(normalizeEnabledFeatures({ enabledFeatures: { mascot: true } }).mascot).toBe(true)
   })
 })

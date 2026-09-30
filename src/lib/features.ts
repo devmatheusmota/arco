@@ -33,6 +33,11 @@ export const FEATURES: readonly FeatureDefinition[] = [
     titleKey: 'features.mcp.title',
     descriptionKey: 'features.mcp.description',
   },
+  {
+    id: 'mascot',
+    titleKey: 'features.mascot.title',
+    descriptionKey: 'features.mascot.description',
+  },
 ]
 
 type StoredFeaturePreferences = {
@@ -52,6 +57,7 @@ export function normalizeEnabledFeatures(
       mcp: raw.enabledFeatures.mcp ?? true,
 
       aiMemory: raw.enabledFeatures.aiMemory ?? false,
+      mascot: raw.enabledFeatures.mascot ?? false,
     }
   }
   return {
@@ -61,5 +67,6 @@ export function normalizeEnabledFeatures(
     graphify: true,
     aiMemory: false,
     mcp: true,
+    mascot: false,
   }
 }

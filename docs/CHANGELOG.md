@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- An experimental mascot: a tiny animated companion in the corner of the window that mirrors
+  your agents — it runs while any agent is working, jumps and shows an amber dot when a session
+  finished without being seen, and idles otherwise. Drag it anywhere; hover makes it jump. Pick
+  Claudino, OpenCode or Gremlin, or upload your own image — a horizontal strip of square frames
+  is detected by aspect ratio and animated as a sprite sheet. Off by default; enable it in
+  Preferences → Features. Pet artwork from the Orca project (MIT).
+
 ## [3.6.2] — 2026-09-28
 
 ### Fixed

@@ -1,4 +1,4 @@
-import { BrainCircuit, GitBranch, Globe2, ListTodo, Network, Plug } from 'lucide-react'
+import { BrainCircuit, Cat, GitBranch, Globe2, ListTodo, Network, Plug } from 'lucide-react'
 
 import { FEATURES } from '../../../lib/features'
 import { useT } from '../../../lib/i18n'
@@ -6,6 +6,7 @@ import { useProjectsStore } from '../../../stores/projectsStore'
 import { useUiStore } from '../../../stores/uiStore'
 import controls from '../controls.module.css'
 import styles from '../PreferencesModal.module.css'
+import { MascotSettings } from './MascotSettings'
 
 const FEATURE_ICONS = {
   todos: ListTodo,
@@ -14,6 +15,7 @@ const FEATURE_ICONS = {
   browser: Globe2,
   graphify: Network,
   mcp: Plug,
+  mascot: Cat,
 } as const
 
 export function FeaturesPage() {
@@ -69,6 +71,7 @@ export function FeaturesPage() {
           {t('mcp.runSetup')}
         </button>
       ) : null}
+      {preferences.enabledFeatures.mascot ? <MascotSettings /> : null}
     </div>
   )
 }

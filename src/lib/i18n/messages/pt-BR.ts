@@ -471,6 +471,16 @@ export const ptBR: Record<MessageKey, string> = {
   'features.aiMemory.title': 'AI Memory',
   'features.aiMemory.description':
     'Memória de longo prazo compartilhada entre Claude Code, Codex e OpenCode. Requer o servidor ai-memory instalado.',
+  'features.mascot.title': 'Mascote',
+  'features.mascot.description':
+    'Um pequeno companheiro no canto da janela que reflete o que seus agentes estão fazendo. Experimental.',
+
+  /* ---- mascot ---- */
+  'mascot.pick': 'Personagem do mascote',
+  'mascot.custom': 'Personalizado',
+  'mascot.customLabel': 'Imagem personalizada',
+  'mascot.customHint':
+    'Qualquer imagem funciona. Uma tira horizontal de quadros quadrados é detectada pela proporção e animada como sprite sheet.',
   'aiMemory.notInstalledTitle': 'AI Memory está ligado, mas o ai-memory não foi encontrado',
   'aiMemory.notInstalledBody':
     'Instale o servidor ai-memory para os agentes compartilharem memória de longo prazo. Os agentes iniciam normalmente sem ele.',

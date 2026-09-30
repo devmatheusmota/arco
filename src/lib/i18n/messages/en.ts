@@ -467,6 +467,16 @@ export const en = {
   'features.aiMemory.title': 'AI Memory',
   'features.aiMemory.description':
     'Long-term memory shared across Claude Code, Codex and OpenCode. Requires the ai-memory server installed.',
+  'features.mascot.title': 'Mascot',
+  'features.mascot.description':
+    'A tiny companion in the corner of the window that mirrors what your agents are doing. Experimental.',
+
+  /* ---- mascot ---- */
+  'mascot.pick': 'Mascot character',
+  'mascot.custom': 'Custom',
+  'mascot.customLabel': 'Custom image',
+  'mascot.customHint':
+    'Any image works. A horizontal strip of square frames is detected by its aspect ratio and animated as a sprite sheet.',
   'aiMemory.notInstalledTitle': 'AI Memory is on, but ai-memory was not found',
   'aiMemory.notInstalledBody':
     'Install the ai-memory server so agents can share long-term memory. Agents will start normally without it.',
