@@ -138,6 +138,7 @@ vi.mock('../stores/terminalsStore', () => ({
 }))
 
 const { startCliBridge } = await import('./cliBridge')
+const { setArcoMcpSource } = await import('./arcoMcp')
 
 /** Fires one CLI event and returns the answer the command line would receive. */
 async function request(event: string, payload: Record<string, unknown>): Promise<CliResult> {
@@ -831,6 +832,34 @@ describe('the line that says where a message came from', () => {
     expect(deliveries[0].text).toBe(
       '[de pa-1009 · responda com: arco session send pa-1009 <texto>] roda os testes',
     )
+  })
+
+  // Naming the shell command to an agent that has the tool sent it back to the
+  // shell. An agent that loaded the server is pointed at `session_send`.
+  describe('when the receiving agent has the MCP server', () => {
+    beforeEach(() => {
+      setArcoMcpSource(() => ({ url: 'http://127.0.0.1:1/mcp', token: 't', claudeConfig: null }))
+    })
+    afterEach(() => {
+      setArcoMcpSource(() => null)
+    })
+
+    it('points it at session_send', async () => {
+      await send({ target: 'pa-1004', text: 'roda os testes', sessionId: 'remetente' })
+
+      expect(deliveries[0].text).toBe(
+        '[de pa-1009 · responda com session_send para pa-1009] roda os testes',
+      )
+    })
+
+    it('still names the command to a shell', async () => {
+      state.projects[0].terminals[0].tabs[0].type = 'shell'
+      await send({ target: 'pa-1004', text: 'echo oi', sessionId: 'remetente' })
+
+      expect(deliveries[0].text).toBe(
+        '[de pa-1009 · responda com: arco session send pa-1009 <texto>] echo oi',
+      )
+    })
   })
 
   // A header glued to the first line of a block reads as part of it.

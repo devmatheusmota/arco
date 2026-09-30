@@ -10,6 +10,14 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- Agents are pointed at Arco's MCP tools first. The instructions every session receives now list
+  the tools (`todo_status`, `session_send` and the rest) and keep the `arco` shell command for what
+  the tools leave out, instead of a page of shell commands with the tools as a footnote. A message
+  from another pane names `session_send` as the way to answer when the receiving agent has the
+  tools, and the shell command only when it does not.
+
 ## [3.8.0] — 2026-09-30
 
 ### Added

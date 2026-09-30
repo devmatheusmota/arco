@@ -1,59 +1,49 @@
 import type { AgentType } from './types'
 
 /**
- * What a session started here is told about the `arco` command.
+ * What a session started here is told about Arco's board and panes.
  *
- * An agent has no way to discover the command: it is a shim on PATH that talks
- * to the running app over a local socket, and nothing in the repository hints at
- * it. Without this the task board stays a human-only surface — the agent works
- * on a task it can read but cannot move.
+ * An agent has no way to discover either on its own: nothing in the repository
+ * hints at them. Without this the task board stays a human-only surface — the
+ * agent works on a task it can read but cannot move.
  *
- * It covers the panes as well as the board. Listing only `arco todo` left an
- * agent asked to open a session, or to reach another one, running `arco help`
- * first to find out how — every time, because nothing carried over. The command
- * surface here is the whole of it, minus what an agent has no business doing on
- * its own; anything rarer is one `--help` away.
+ * The MCP server comes first because it is the better door: typed arguments, a
+ * refusal instead of a silent fallback, output that is never cut. Leading with
+ * the shell command kept agents composing `arco` lines even once the tools were
+ * loaded, since a footnote at the end reads as an afterthought. The command is
+ * still named for what the tools leave out, and for when they are missing.
  *
  * Kept short on purpose: it costs context on every session. Grows only when the
- * command line grows — `arcoCliContext.test.ts` fails when the two drift.
+ * surface grows — `arcoCliContext.test.ts` fails when the two drift.
  */
 export const CLI_CONTEXT_PROMPT = [
-  'This session runs inside Arco, and the `arco` command talks to the app that started it.',
-  'Arco holds the work in fronts; each front has panes (agent sessions). A pane answers to a',
-  'short reference like pa-3576, and yours is in $ARCO_PANE_ID.',
+  'This session runs inside Arco, the app that started it. Arco holds the work in fronts;',
+  'each front has panes (agent sessions). A pane answers to a short reference like pa-3576,',
+  'and yours is in $ARCO_PANE_ID.',
   '',
   'Keep the task board honest — move a task to in-progress when you pick it up, and to',
   'review when you hand the work back.',
   '',
-  '  arco todo list [--project <name>]   tasks with their short id, status and tags',
-  '  arco todo show <ref>                one task in full: notes, tags, linked card',
-  '  arco todo add "<title>" [--tag <tag>] [--status <status>] [--session current]',
-  '  arco todo status <ref> <status>     todo | in-progress | review | done',
-  '  arco todo edit <ref> [--title <text>] [--add-tag <tag>] [--remove-tag <tag>]',
-  '                      [--priority high|normal|low] [--notes <text>]',
+  'The `arco` MCP server is how you reach the board and the other panes. Its tools check',
+  'their arguments, never truncate, and already know which pane you are (`current`):',
+  '',
+  '  todo_list, todo_show, todo_add    the tasks, one in full, a new one',
+  '  todo_status, todo_edit            move a task; change its title, tags, notes or priority',
+  '  project_list                      projects and their directories',
+  '  session_list, group_list          the panes open now, and the fronts they sit in',
+  '  session_send                      text for a pane already running',
+  '  session_open, session_close       open a pane, a front or a worktree; close a pane',
+  '',
+  'A pane you send text to answers in its own pane, so say what you need. Text another',
+  'pane sends you starts with a line naming it; answer it with session_send.',
+  '',
+  'The `arco` shell command covers the same ground, plus what the tools leave out. Use it',
+  'for these, or when the tools are missing:',
+  '',
   '  arco todo delete <ref> --yes        removes a task, including one created by mistake',
-  '  arco project list                   projects and their directories; --project takes the name',
   '  arco project add <name> --cwd <dir> a project for a repo that has none, before filing tasks',
   '',
-  'You can also reach the other sessions. A pane you send text to answers in its own pane,',
-  'so say what you need; the delivery already names you and the command to reply.',
-  '',
-  '  arco session list                   who is open now, with the reference of each pane',
-  '  arco session send <ref> <text>      text for a pane already running (--file to send a file)',
-  '  arco session [--agent claude|codex|opencode|shell] [--group <name>] [--todo <ref>]',
-  '                                      opens a pane; a --group name that matches no front',
-  '                                      opens that front, and --worktree isolates it',
-  '  arco session close <ref>            closes one pane; the front stays open',
-  '  arco group list                     the fronts open, and the panes in each',
-  '',
-  '<ref> is the short id from the matching `list`, or a unique piece of a task title.',
-  '`--session current` records that this session owns the task, on `add` or `edit`;',
-  'the board keeps that link after the session ends, which is where it earns its keep.',
-  'Every command prints what it did and fails loudly; an unknown subcommand is',
-  'refused instead of becoming a new task. Any command takes `--help`.',
-  'Run `arco help` for the full surface. The `arco` MCP server offers the same board and',
-  'panes as typed tools (todo_status, session_send, ...); use them when you have them.',
-  'Do not edit the task board any other way.',
+  '`arco help` lists the rest. Do not edit the task board any other way.',
 ].join('\n')
 
 /**

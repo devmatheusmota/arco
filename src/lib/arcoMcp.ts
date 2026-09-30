@@ -30,6 +30,12 @@ function currentLaunch(): ArcoMcpLaunch | null {
   return enabled() ? launchInfo() : null
 }
 
+/** Whether an agent started now gets the server, and so has `session_send` to answer with. */
+export function agentLoadsArcoMcp(agent: AgentType | undefined): boolean {
+  if (agent !== 'claude' && agent !== 'codex' && agent !== 'opencode') return false
+  return currentLaunch() !== null
+}
+
 /** The config file a Claude launch adds to its `--mcp-config` list, when there is one. */
 export function arcoMcpClaudeConfig(): string | null {
   return currentLaunch()?.claudeConfig ?? null

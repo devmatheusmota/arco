@@ -4,6 +4,7 @@ import { useProjectsStore } from '../stores/projectsStore'
 import { useTerminalsStore } from '../stores/terminalsStore'
 import { useUiStore } from '../stores/uiStore'
 import { parseAdoRef } from './adoRef'
+import { agentLoadsArcoMcp } from './arcoMcp'
 import { deliverToPty, submitKeyFor } from './paneDelivery'
 import { normalizePaneRef } from './paneShortId'
 import { basename, sameCwd } from './paths'
@@ -76,12 +77,23 @@ type SessionSendRequest = {
  * own pane and the reply goes nowhere. Naming the sender and the exact command
  * that reaches it back turns a delivery into a two-way channel.
  *
+ * An agent that loaded the MCP server is pointed at `session_send`: naming the
+ * shell command there sent it back to the shell with the tool at hand. Anything
+ * else — a shell, an agent started without the server — gets the command.
+ *
  * Kept to one line, and skipped when the sender has no reference to give, so
  * the text stays what it was.
  */
-export function withSenderLine(text: string, senderRef: string | undefined): string {
+export function withSenderLine(
+  text: string,
+  senderRef: string | undefined,
+  viaTool = false,
+): string {
   if (!senderRef) return text
-  const header = `[de ${senderRef} · responda com: arco session send ${senderRef} <texto>]`
+  const reply = viaTool
+    ? `responda com session_send para ${senderRef}`
+    : `responda com: arco session send ${senderRef} <texto>`
+  const header = `[de ${senderRef} · ${reply}]`
   // Inline for a single line, on its own for anything longer: a header glued
   // to the first line of a block reads as part of it.
   return text.includes('\n') ? `${header}\n${text}` : `${header} ${text}`
@@ -762,7 +774,9 @@ async function handleSessionSend(request: SessionSendRequest & SessionScope): Pr
     : { sessionCwd: request.sessionCwd }
   const senderMatch = request.sessionId || request.sessionCwd ? matchSession(senderScope) : null
   const sender = senderMatch && 'entry' in senderMatch ? senderMatch.entry : undefined
-  const body = request.raw ? text : withSenderLine(text, sender?.terminal.shortId)
+  const body = request.raw
+    ? text
+    : withSenderLine(text, sender?.terminal.shortId, agentLoadsArcoMcp(tab.type))
 
   try {
     await deliverToPty(tab.ptyId, body, submitKeyFor(tab.type, body))

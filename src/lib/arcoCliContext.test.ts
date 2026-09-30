@@ -6,6 +6,7 @@ import { CLI_CONTEXT_PROMPT } from './cliContext'
 
 const require = createRequire(import.meta.url)
 const { USAGE } = require('../../electron/cli.cjs') as { USAGE: string }
+const { TOOLS } = require('../../electron/mcp-server.cjs') as { TOOLS: { name: string }[] }
 
 /**
  * Keeps what agents are told in step with what the command line offers.
@@ -19,6 +20,25 @@ const { USAGE } = require('../../electron/cli.cjs') as { USAGE: string }
  * A release checklist would be the other way to catch this, and it is the one
  * that depends on somebody remembering. This does not.
  */
+
+/**
+ * Commands the context covers through the MCP tool that does the same job. The
+ * context names the tool, not the command: naming both is what kept agents on
+ * the shell once the tools were there.
+ */
+const COVERED_BY_TOOL: Record<string, string> = {
+  'arco todo list': 'todo_list',
+  'arco todo show': 'todo_show',
+  'arco todo add': 'todo_add',
+  'arco todo edit': 'todo_edit',
+  'arco todo status': 'todo_status',
+  'arco project list': 'project_list',
+  'arco session': 'session_open',
+  'arco session list': 'session_list',
+  'arco session send': 'session_send',
+  'arco session close': 'session_close',
+  'arco group list': 'group_list',
+}
 
 /** Commands deliberately left out, with the reason they stay out. */
 const OUT_OF_SCOPE: Record<string, string> = {
@@ -36,15 +56,34 @@ function documentedCommands(): string[] {
 
 describe('the context handed to agents', () => {
   it('mentions every command the CLI documents, or says why it does not', () => {
-    const missing = documentedCommands().filter(
-      (name) => !CLI_CONTEXT_PROMPT.includes(name) && !(name in OUT_OF_SCOPE),
-    )
+    const missing = documentedCommands().filter((name) => {
+      if (name in OUT_OF_SCOPE) return false
+      const tool = COVERED_BY_TOOL[name]
+      return !(tool ? CLI_CONTEXT_PROMPT.includes(tool) : CLI_CONTEXT_PROMPT.includes(name))
+    })
 
     expect(
       missing,
       `These commands exist in the CLI but agents are never told about them: ${missing.join(', ')}. ` +
-        'Add them to CLI_CONTEXT_PROMPT, or to OUT_OF_SCOPE with the reason.',
+        'Name them (or the MCP tool that covers them, in COVERED_BY_TOOL) in CLI_CONTEXT_PROMPT, ' +
+        'or add them to OUT_OF_SCOPE with the reason.',
     ).toEqual([])
+  })
+
+  it('covers commands only through tools the MCP server has', () => {
+    const tools = new Set(TOOLS.map((tool) => tool.name))
+    const ghosts = Object.values(COVERED_BY_TOOL).filter((name) => !tools.has(name))
+    expect(
+      ghosts,
+      `COVERED_BY_TOOL names tools the server does not offer: ${ghosts.join(', ')}`,
+    ).toEqual([])
+  })
+
+  it('names every tool the MCP server offers', () => {
+    const unnamed = TOOLS.map((tool) => tool.name).filter(
+      (name) => !CLI_CONTEXT_PROMPT.includes(name),
+    )
+    expect(unnamed, `Tools agents are never told about: ${unnamed.join(', ')}`).toEqual([])
   })
 
   it('does not promise commands the CLI no longer has', () => {

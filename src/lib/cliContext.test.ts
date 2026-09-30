@@ -20,17 +20,25 @@ describe('buildCliContextArgs', () => {
     expect(buildCliContextArgs('shell', true)).toEqual([])
   })
 
-  it('documents the commands an agent needs to move a task', () => {
-    expect(CLI_CONTEXT_PROMPT).toContain('arco todo status <ref>')
-    expect(CLI_CONTEXT_PROMPT).toContain('arco todo list')
+  it('points the agent at the tools that move a task', () => {
+    expect(CLI_CONTEXT_PROMPT).toContain('todo_status')
+    expect(CLI_CONTEXT_PROMPT).toContain('todo_list')
   })
 
   // Listing only the board left an agent asked to open a pane, or to reach
   // another one, running `arco help` first to find out how — every session.
-  it('documents reaching the other sessions, not only the board', () => {
-    expect(CLI_CONTEXT_PROMPT).toContain('arco session send <ref>')
-    expect(CLI_CONTEXT_PROMPT).toContain('arco session list')
-    expect(CLI_CONTEXT_PROMPT).toContain('arco group list')
+  it('covers reaching the other sessions, not only the board', () => {
+    expect(CLI_CONTEXT_PROMPT).toContain('session_send')
+    expect(CLI_CONTEXT_PROMPT).toContain('session_list')
+    expect(CLI_CONTEXT_PROMPT).toContain('group_list')
+  })
+
+  // A footnote about the MCP server after a page of shell commands left agents
+  // on the shell with the tools loaded.
+  it('leads with the MCP tools, not the shell command', () => {
+    expect(CLI_CONTEXT_PROMPT.indexOf('todo_status')).toBeLessThan(
+      CLI_CONTEXT_PROMPT.indexOf('arco todo'),
+    )
   })
 
   // Without it an agent cannot name itself when it writes to another pane.
