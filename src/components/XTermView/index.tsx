@@ -14,6 +14,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { cliPathMatchesAgent } from '../../lib/agentCliPath'
+import { DEFAULT_RUNTIME_PROFILE } from '../../lib/agentProcessLaunch'
 import { pickFile } from '../../lib/dialog'
 import { getLocale, translate, useT } from '../../lib/i18n'
 import { writeScopedStorage } from '../../lib/storageNamespace'
@@ -97,7 +98,7 @@ export function XTermView({
   trustSessionId,
   readOnly,
 
-  runtimeProfile = 'lean',
+  runtimeProfile = DEFAULT_RUNTIME_PROFILE,
   terminalTheme = 'dark',
   onSpawned,
   onSessionId,

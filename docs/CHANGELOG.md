@@ -32,6 +32,10 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   new process and tracks its status again.
 - "Open here" and resuming from the Claude history start the agent with the pane's identity
   (`ARCO_PANE_ID`), so the `arco` command inside it knows which pane it is.
+- A restarted agent starts the way the pane first started it. Restart, "Open here", resuming
+  from the Claude history and the other ways of restarting a pane used to drop the `arco` context
+  prompt and the Graphify and AI memory MCP servers, and ran the agent under the full
+  runtime profile instead of the lean one, so the agent lost tools it had a minute before.
 - Closing a front removes the worktree it created. The front disappeared, but its worktree stayed
   on disk and in `git worktree list` with no warning, because Arco never recognized it as the
   front's. When a worktree cannot be removed, Arco now says so and keeps it in the list of

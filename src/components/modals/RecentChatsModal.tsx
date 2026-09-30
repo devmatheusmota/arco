@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { paneAgentRequest } from '../../lib/agentProcessLaunch'
 import { intlLocale, type Locale, type TFunction, useT } from '../../lib/i18n'
-import { restartPaneProcess } from '../../lib/ptyRestart'
-import { buildAgentLaunch } from '../../lib/sessionLaunch'
+import { restartPaneAgent } from '../../lib/ptyRestart'
 import { type ClaudeSessionMeta, listClaudeSessions, snapshotCodexSessions } from '../../lib/tauri'
-import { agentCliCommand, UNRESTRICTED_FLAG } from '../../lib/types'
+import { UNRESTRICTED_FLAG } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { ClaudeIcon, CodexIcon } from '../icons/AgentIcons'
@@ -167,22 +166,18 @@ export function RecentChatsModal() {
     if (!tab?.ptyId) return
     setBusyId(entry.id)
     try {
-      const runtime = preparePtyRuntimeLaunch(
-        agent,
-        tab.runtimeProfile,
-        extraArgsFor(agent),
-        paneSessionEnv(targetTerminal),
+      const request = paneAgentRequest(project, targetTerminal, tab)
+      // The pane's own args only mean something to the agent they were written for.
+      const baseArgs = agent === tab.type ? (request.extraArgs ?? []) : []
+      await restartPaneAgent(
+        { id: tab.ptyId, cwd: tab.cwd || cwd || undefined },
+        {
+          ...request,
+          agent,
+          extraArgs: [...new Set([...baseArgs, ...extraArgsFor(agent)])],
+          resumeId: entry.id,
+        },
       )
-      const launch = buildAgentLaunch(agent, runtime.args, entry.id)
-      await restartPaneProcess({
-        id: tab.ptyId,
-        cols: 80,
-        rows: 24,
-        command: agentCliCommand(agent),
-        cwd: tab.cwd || cwd || undefined,
-        extraArgs: launch.args,
-        env: runtime.env,
-      })
       setSubTabSessionId(project.id, targetTerminal.id, tab.id, entry.id)
       closeModal()
     } catch (err) {

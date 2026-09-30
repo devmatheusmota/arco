@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 
-import { paneSessionEnv } from '../../lib/agentRuntimeAdapter'
+import { paneAgentRequestById } from '../../lib/agentProcessLaunch'
 import { intlLocale, type Locale, type TFunction, useT } from '../../lib/i18n'
-import { restartPaneProcess } from '../../lib/ptyRestart'
-import { withLaunchPreferences } from '../../lib/sessionLaunch'
+import { restartPaneAgent } from '../../lib/ptyRestart'
 import { type ClaudeSessionMeta, listClaudeSessions } from '../../lib/tauri'
-import { agentCliCommand, type AgentType } from '../../lib/types'
+import { type AgentType } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import styles from './ClaudeHistoryModal.module.css'
 import { Modal } from './Modal'
@@ -80,31 +79,16 @@ export function ClaudeHistoryModal({
     if (!ptyId) return
     setBusyId(sessionId)
     try {
-      // Drop the old `--resume <id>` and add the new one.
-      const old = extraArgs ?? []
-      const filtered: string[] = []
-      for (let i = 0; i < old.length; i++) {
-        if (old[i] === '--resume') {
-          i++ // skip the old session id
-          continue
-        }
-        filtered.push(old[i])
-      }
-      const newExtraArgs = withLaunchPreferences(agentType, [...filtered, '--resume', sessionId])
-
-      const pane = useProjectsStore
-        .getState()
-        .projects.find((project) => project.id === projectId)
-        ?.terminals.find((terminal) => terminal.id === terminalId)
-      await restartPaneProcess({
-        id: ptyId,
-        cols: 80,
-        rows: 24,
-        command: agentCliCommand(agentType),
+      // The launch drops whatever `--resume` the pane had and resumes this one.
+      const request = paneAgentRequestById(projectId, terminalId, tabId) ?? {
+        agent: agentType,
         cwd,
-        extraArgs: newExtraArgs,
-        env: pane ? paneSessionEnv(pane) : undefined,
-      })
+        extraArgs: extraArgs ?? [],
+      }
+      await restartPaneAgent(
+        { id: ptyId, cwd },
+        { ...request, agent: agentType, resumeId: sessionId },
+      )
 
       useProjectsStore.getState().setSubTabSessionId(projectId, terminalId, tabId, sessionId)
 

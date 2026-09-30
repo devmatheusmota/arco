@@ -2,14 +2,11 @@
 
 import { nanoid } from 'nanoid'
 
-import { paneSessionEnv, preparePtyRuntimeLaunch } from '../lib/agentRuntimeAdapter'
 import { getLocale, translate } from '../lib/i18n'
-import { buildAgentLaunch } from '../lib/sessionLaunch'
 import { collectTerminalPtyIds, getProjectRepoRoot } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import { pruneTodoSessions } from '../lib/todos'
 import type { Project } from '../lib/types'
-import { agentCliCommand } from '../lib/types'
 import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
@@ -148,7 +145,8 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
       try {
         const { worktreeProvision, gitStatus, gsdOpenCodePluginWrite } =
           await import('../lib/tauri')
-        const { restartPaneProcess } = await import('../lib/ptyRestart')
+        const { restartPaneAgent } = await import('../lib/ptyRestart')
+        const { paneAgentRequest } = await import('../lib/agentProcessLaunch')
 
         // o erro cru not_a_git_repository vazando pro toast final).
         let status: Awaited<ReturnType<typeof gitStatus>> | null = null
@@ -204,23 +202,14 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
 
             for (const tab of terminal.tabs) {
               if (!tab.ptyId) continue
-              const runtime = preparePtyRuntimeLaunch(
-                tab.type,
-                tab.runtimeProfile,
-                tab.extraArgs ?? [],
-                paneSessionEnv(terminal),
+              // The pane as it reads once it moves into the worktree below.
+              const request = paneAgentRequest(
+                project,
+                { ...terminal, cwd: info.path },
+                { ...tab, cwd: info.path },
               )
-              const launch = buildAgentLaunch(tab.type, runtime.args)
               try {
-                await restartPaneProcess({
-                  id: tab.ptyId,
-                  cols: 80,
-                  rows: 24,
-                  command: agentCliCommand(tab.type),
-                  cwd: info.path,
-                  extraArgs: launch.args,
-                  env: runtime.env,
-                })
+                await restartPaneAgent({ id: tab.ptyId, cwd: info.path }, request)
               } catch (restartErr) {
                 console.warn(
                   `[projectsStore] falha reiniciando aba na worktree nova (${terminal.name}):`,

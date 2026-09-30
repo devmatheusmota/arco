@@ -13,14 +13,14 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react'
 
 import { usePaneTaskTitle } from '../../hooks/usePaneTaskTitle'
 import { useSidebarChatTitle } from '../../hooks/useSidebarChatTitle'
-import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { graphifyRepoFor, paneAgentRequest, tabLaunchArgs } from '../../lib/agentProcessLaunch'
+import { paneSessionEnv } from '../../lib/agentRuntimeAdapter'
 import { buildGhosttyCommand } from '../../lib/ghosttyCommand'
 import { useT } from '../../lib/i18n'
 import { shouldUseNativeBackend } from '../../lib/platform'
-import { restartPaneProcess } from '../../lib/ptyRestart'
+import { restartPaneAgent } from '../../lib/ptyRestart'
 import { checkedResumePointer } from '../../lib/resumePointer'
 import { sessionDisplayLabel } from '../../lib/sessionLabel'
-import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import { getActiveSessions, savedConversationIdFor, saveSession } from '../../lib/sessionResume'
 import {
   completeAgentHandoff,
@@ -30,7 +30,6 @@ import {
   writeClipboardText,
 } from '../../lib/tauri'
 import {
-  agentCliCommand,
   type AgentType,
   type SubTab,
   type Terminal as TerminalEntry,
@@ -120,11 +119,12 @@ export const TerminalPane = memo(function TerminalPane({
   const useNativeBackend = shouldUseNativeBackend(nativeTerminalMacos)
 
   // The repo to wire the Graphify MCP into; XTermView resolves the config and bootstrap.
-  const graphifyRepo = useProjectsStore((s) => {
-    const p = s.projects.find((p) => p.id === projectId)
-    if (!p?.graphifyEnabled) return null
-    return terminal.cwd || p.terminals[0]?.cwd || null
-  })
+  const graphifyRepo = useProjectsStore((s) =>
+    graphifyRepoFor(
+      s.projects.find((p) => p.id === projectId),
+      terminal,
+    ),
+  )
 
   // XTermView only acts on this for OpenCode (its trigger checks command === 'opencode').
   const gsdWatcherEnabled = useProjectsStore((s) => {
@@ -136,11 +136,10 @@ export const TerminalPane = memo(function TerminalPane({
     () => terminal.tabs.find((tab) => tab.id === terminal.activeTabId) ?? terminal.tabs[0],
     [terminal.tabs, terminal.activeTabId],
   )
-  const runtimeExtraArgs = useMemo(() => {
-    const args = [...(activeTab?.extraArgs ?? [])]
-    if (activeTab?.handoff) args.push('--add-dir', activeTab.handoff.contextDir)
-    return args
-  }, [activeTab?.extraArgs, activeTab?.handoff])
+  const runtimeExtraArgs = useMemo(
+    () => tabLaunchArgs({ extraArgs: activeTab?.extraArgs, handoff: activeTab?.handoff }),
+    [activeTab?.extraArgs, activeTab?.handoff],
+  )
 
   // Keyed by the two fields the env is built from rather than by the pane
   // object, which gets a new reference on every I/O tick.
@@ -218,27 +217,16 @@ export const TerminalPane = memo(function TerminalPane({
         activeTab.id,
       )
     }
-    const preparedRuntime = preparePtyRuntimeLaunch(
-      activeTab.type,
-      activeTab.runtimeProfile,
-      activeTab.extraArgs ?? [],
-      paneSessionEnv(terminal),
-    )
-    const launch = buildAgentLaunch(activeTab.type, preparedRuntime.args, resumeSessionId)
-    if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {
-      setSubTabSessionId(projectId, terminal.id, activeTab.id, launch.sessionId)
-    }
+    const project = useProjectsStore.getState().projects.find((item) => item.id === projectId)
 
     try {
-      await restartPaneProcess({
-        id: ptyId,
-        cols: 80,
-        rows: 24,
-        command: agentCliCommand(activeTab.type),
-        cwd: restartCwd || undefined,
-        extraArgs: launch.args,
-        env: preparedRuntime.env,
-      })
+      const launch = await restartPaneAgent(
+        { id: ptyId, cwd: restartCwd || undefined },
+        { ...paneAgentRequest(project, terminal, activeTab), resumeId: resumeSessionId },
+      )
+      if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {
+        setSubTabSessionId(projectId, terminal.id, activeTab.id, launch.sessionId)
+      }
       if (launch.sessionId) {
         saveSession(activeTab.id, {
           sessionId: ptyId,

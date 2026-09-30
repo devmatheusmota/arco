@@ -13,12 +13,11 @@ import {
   Trash2,
 } from 'lucide-react'
 
-import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { paneAgentRequest } from '../../lib/agentProcessLaunch'
 import { useT } from '../../lib/i18n'
-import { restartPaneProcess } from '../../lib/ptyRestart'
-import { buildAgentLaunch } from '../../lib/sessionLaunch'
+import { restartPaneAgent } from '../../lib/ptyRestart'
 import { getPtyCwd, openInFileExplorer, openInVscode } from '../../lib/tauri'
-import { agentCliCommand, type PaneGroup, type Project, type Terminal } from '../../lib/types'
+import { type PaneGroup, type Project, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { promptText, useUiStore } from '../../stores/uiStore'
 import { type MenuItem } from './ContextMenu'
@@ -217,23 +216,19 @@ export function createSidebarMenus(deps: SidebarMenuDeps) {
   const restartTerminal = async (term: Terminal) => {
     const activeTab = activeTerminalTab(term)
     if (!activeTab?.ptyId || term.disabled) return
-    const runtime = preparePtyRuntimeLaunch(
-      activeTab.type,
-      activeTab.runtimeProfile,
-      activeTab.extraArgs ?? [],
-      paneSessionEnv(term),
-    )
-    const launch = buildAgentLaunch(activeTab.type, runtime.args, activeTab.sessionId)
+    const project = useProjectsStore
+      .getState()
+      .projects.find((item) => item.terminals.some((pane) => pane.id === term.id))
     try {
-      await restartPaneProcess({
-        id: activeTab.ptyId,
-        cols: 80,
-        rows: 24,
-        command: agentCliCommand(activeTab.type),
-        cwd: activeTab.cwd || undefined,
-        extraArgs: launch.args,
-        env: runtime.env,
-      })
+      const launch = await restartPaneAgent(
+        { id: activeTab.ptyId, cwd: activeTab.cwd || undefined },
+        { ...paneAgentRequest(project, term, activeTab), resumeId: activeTab.sessionId },
+      )
+      if (project && launch.sessionId && launch.sessionId !== activeTab.sessionId) {
+        useProjectsStore
+          .getState()
+          .setSubTabSessionId(project.id, term.id, activeTab.id, launch.sessionId)
+      }
     } catch (err) {
       window.alert(
         t('ui.terminal.openFailed', { label: t('ui.terminal.restart'), error: String(err) }),

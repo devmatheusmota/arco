@@ -9,9 +9,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { recordAgentActivityInput } from '../../lib/activityTracker'
 import { cliPathMatchesAgent } from '../../lib/agentCliPath'
 import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
-import { preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
-import { ensureClaudeSessionHooks } from '../../lib/claudeSessionHooks'
-import { buildCliContextArgs } from '../../lib/cliContext'
+import { prepareAgentProcess } from '../../lib/agentProcessLaunch'
 import { getLocale, translate } from '../../lib/i18n'
 import { isAgentSuspendChord, isAppChordInTerminal } from '../../lib/keybindings'
 import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
@@ -32,7 +30,6 @@ import {
   planResume,
   registerSessionClaim,
 } from '../../lib/sessionDiscovery'
-import { buildAgentLaunch } from '../../lib/sessionLaunch'
 import {
   peekSession,
   removeSession,
@@ -42,18 +39,9 @@ import {
 import { waitForSessionHint } from '../../lib/sessionWatch'
 import { acquireSpawnSlot, getSpawnQueueSnapshot, releaseSpawnSlot } from '../../lib/spawnQueue'
 import {
-  aiMemoryCodexConfigWrite,
-  aiMemoryDetect,
-  aiMemoryMcpConfigPath,
-  aiMemoryOpenCodeConfigWrite,
   attachPty,
   clearPtyScrollback,
   findCliLauncher,
-  graphifyCodexConfigWrite,
-  graphifyEnsureGraph,
-  graphifyMcpConfigPath,
-  graphifyOpenCodeConfigWrite,
-  gsdOpenCodePluginWrite,
   killPty,
   listenPtyActivity,
   listenPtyData,
@@ -172,8 +160,6 @@ function isBrowserInputPending(): boolean {
   ).scheduling
   return scheduling?.isInputPending?.() ?? false
 }
-
-let aiMemoryMissingWarned = false
 
 /** `idle` is a session whose process has not been started yet — see `start`. */
 type BootPhase = 'idle' | 'preparing' | 'queued' | 'spawning' | 'attaching' | 'ready'
@@ -1467,83 +1453,19 @@ export function useXtermSession(params: {
           } catch {}
           if (disposed) return
         }
-        const preparedRuntime = command
-          ? preparePtyRuntimeLaunch(command, runtimeProfile, extraArgs ?? [], env)
-          : { args: extraArgs ?? [], env }
-
-        // o spawn.
-        const mcpConfigPaths: string[] = []
-
-        if (
-          graphifyRepo &&
-          (command === 'claude' || command === 'codex' || command === 'opencode')
-        ) {
-          void withTimeout(graphifyEnsureGraph(graphifyRepo), undefined)
-          if (command === 'claude') {
-            const p = await withTimeout(graphifyMcpConfigPath(graphifyRepo), undefined)
-            if (p) mcpConfigPaths.push(p)
-          } else if (command === 'opencode') {
-            await graphifyOpenCodeConfigWrite(graphifyRepo).catch(() => {})
-          } else if (command === 'codex') {
-            await graphifyCodexConfigWrite(graphifyRepo).catch(() => {})
-          }
-          if (disposed) return
-        }
-
-        const aiMemoryEnabled = useProjectsStore.getState().preferences.enabledFeatures.aiMemory
-        if (
-          aiMemoryEnabled &&
-          cwd &&
-          (command === 'claude' || command === 'codex' || command === 'opencode')
-        ) {
-          const status = await withTimeout(aiMemoryDetect(), undefined)
-          if (status?.installed) {
-            if (command === 'claude') {
-              const p = await withTimeout(aiMemoryMcpConfigPath(cwd), undefined)
-              if (p) mcpConfigPaths.push(p)
-            } else if (command === 'opencode') {
-              await aiMemoryOpenCodeConfigWrite(cwd).catch(() => {})
-            } else if (command === 'codex') {
-              await aiMemoryCodexConfigWrite(cwd).catch(() => {})
-            }
-          } else if (!aiMemoryMissingWarned) {
-            aiMemoryMissingWarned = true
-            useUiStore.getState().pushToast({
-              title: translate(getLocale(), 'aiMemory.notInstalledTitle'),
-              body: translate(getLocale(), 'aiMemory.notInstalledBody'),
-            })
-          }
-          if (disposed) return
-        }
-
-        if (command === 'opencode' && cwd && gsdWatcherEnabled) {
-          const modelChain = useProjectsStore.getState().preferences.gsdSyncModelChain ?? []
-
-          await gsdOpenCodePluginWrite(cwd, modelChain).catch((error) => {
-            console.error(`[pty-launch] gsdOpenCodePluginWrite falhou pra ${cwd}:`, error)
-          })
-          if (disposed) return
-        }
-
-        // Asked once per run; every later launch already has the answer.
-        if (command === 'claude') {
-          await withTimeout(ensureClaudeSessionHooks(), null)
-          if (disposed) return
-        }
-
-        const launch = command
-          ? buildAgentLaunch(command, preparedRuntime.args, resumeId, undefined, mcpConfigPaths)
-          : { args: preparedRuntime.args, sessionId: undefined, createdSession: false }
-        // Every session started here is told the `arco` command exists, unless
-        // the preference says to leave the agent exactly as it starts elsewhere.
-        const cliContextArgs = command
-          ? buildCliContextArgs(
-              command,
-              useProjectsStore.getState().preferences.cliContextInjection !== false,
-            )
-          : []
-        const allArgs = [...launch.args, ...cliContextArgs]
-        const spawnArgs = allArgs.length > 0 ? allArgs : undefined
+        // The same assembly every restart of this pane goes through.
+        const launch = await prepareAgentProcess({
+          agent: command ?? 'shell',
+          cwd,
+          extraArgs,
+          env,
+          runtimeProfile,
+          resumeId,
+          graphifyRepo,
+          gsdWatcherEnabled,
+        })
+        if (disposed) return
+        const spawnArgs = launch.args.length > 0 ? launch.args : undefined
         if (command && command !== 'shell') {
           console.info(
             `[pty-launch] ${command} args=${JSON.stringify(spawnArgs ?? [])} resumeId=${resumeId ?? '—'} launcherOverride=${launcherOverride ?? '(auto/PATH)'}`,
@@ -1600,7 +1522,7 @@ export function useXtermSession(params: {
             cwd: cwd ?? undefined,
             extraArgs: spawnArgs,
             launcherOverride,
-            env: preparedRuntime.env,
+            env: launch.env,
           })
         } finally {
           releaseSpawnSlot()

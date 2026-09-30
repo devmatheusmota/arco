@@ -13,12 +13,11 @@ import {
 } from 'lucide-react'
 import { type ReactNode, useMemo, useState } from 'react'
 
-import { paneSessionEnv, preparePtyRuntimeLaunch } from '../../lib/agentRuntimeAdapter'
+import { paneAgentRequest } from '../../lib/agentProcessLaunch'
 import { useT } from '../../lib/i18n'
-import { restartPaneProcess } from '../../lib/ptyRestart'
-import { buildAgentLaunch } from '../../lib/sessionLaunch'
+import { restartPaneAgent } from '../../lib/ptyRestart'
 import { getPtyCwd, openInBrowser, openInFileExplorer, openInVscode } from '../../lib/tauri'
-import { agentCliCommand, type SubTab, type Terminal } from '../../lib/types'
+import { type SubTab, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -115,26 +114,15 @@ function InspectorBody({ projectId, terminal }: { projectId: string; terminal: T
 
   const onRestart = async () => {
     if (!activeTab?.ptyId || terminal.disabled) return
-    const preparedRuntime = preparePtyRuntimeLaunch(
-      activeTab.type,
-      activeTab.runtimeProfile,
-      activeTab.extraArgs ?? [],
-      paneSessionEnv(terminal),
-    )
-    const launch = buildAgentLaunch(activeTab.type, preparedRuntime.args, activeTab.sessionId)
-    if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {
-      setSubTabSessionId(projectId, terminal.id, activeTab.id, launch.sessionId)
-    }
+    const project = useProjectsStore.getState().projects.find((item) => item.id === projectId)
     try {
-      await restartPaneProcess({
-        id: activeTab.ptyId,
-        cols: 80,
-        rows: 24,
-        command: agentCliCommand(activeTab.type),
-        cwd: activeTab.cwd || undefined,
-        extraArgs: launch.args,
-        env: preparedRuntime.env,
-      })
+      const launch = await restartPaneAgent(
+        { id: activeTab.ptyId, cwd: activeTab.cwd || undefined },
+        { ...paneAgentRequest(project, terminal, activeTab), resumeId: activeTab.sessionId },
+      )
+      if (launch.sessionId && launch.sessionId !== activeTab.sessionId) {
+        setSubTabSessionId(projectId, terminal.id, activeTab.id, launch.sessionId)
+      }
     } catch (err) {
       window.alert(
         t('ui.terminal.openFailed', { label: t('ui.terminal.restart'), error: String(err) }),
