@@ -144,6 +144,70 @@ async function list({ repo }) {
   return entries.sort((a, b) => a.agentId.localeCompare(b.agentId))
 }
 
+/** Whether git still lists `target` as a worktree; `true` when it cannot say, so nothing is deleted by hand. */
+async function stillRegistered(repo, target) {
+  const listing = await git(['worktree', 'list', '--porcelain'], repo).catch(() => null)
+  if (listing === null) return true
+  const canonical = (dir) => {
+    try {
+      return fs.realpathSync(dir)
+    } catch {
+      return path.resolve(dir)
+    }
+  }
+  const wanted = canonical(target)
+  return listing
+    .split('\n')
+    .some((line) => line.startsWith('worktree ') && canonical(line.slice(9).trim()) === wanted)
+}
+
+/** Gives the owner write access to every folder below `dir`; a read-only folder keeps its files. */
+function makeWritable(dir) {
+  const stack = [dir]
+  while (stack.length > 0) {
+    const current = stack.pop()
+    let entries
+    try {
+      fs.chmodSync(current, fs.statSync(current).mode | 0o700)
+      entries = fs.readdirSync(current, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      const full = path.join(current, entry.name)
+      if (entry.isDirectory()) stack.push(full)
+      // Windows refuses to delete a read-only file; elsewhere only the folder matters.
+      else if (process.platform === 'win32' && entry.isFile()) {
+        try {
+          fs.chmodSync(full, 0o666)
+        } catch {}
+      }
+    }
+  }
+}
+
+/**
+ * Deletes what is left of a worktree git has already let go of.
+ *
+ * `git worktree remove` drops the registration even when it could not delete
+ * every file — folders a package manager left read-only, files another user
+ * owns — and what stays is a directory no `.git` points at, which every later
+ * removal refused as "not a worktree". Git had decided the tree goes; this
+ * finishes the job, and names the command when the files are not this user's
+ * to delete.
+ */
+function finishRemoval(target) {
+  makeWritable(target)
+  try {
+    fs.rmSync(target, { recursive: true, force: true })
+  } catch (error) {
+    throw new Error(
+      `not_removable: ${target} keeps files this user cannot delete (owned by another user?). Remove it with: sudo rm -rf ${target}`,
+      { cause: error },
+    )
+  }
+}
+
 /**
  * Removes an agent worktree, and says so when it could not.
  *
@@ -156,15 +220,52 @@ async function remove({ repo, agentId, force }) {
   if (!fs.existsSync(target)) throw new Error('worktree_not_found')
   const mode = worktreeMode(target)
   if (mode === 'gitWorktree') {
-    await git(['worktree', 'remove', ...(force ? ['--force'] : []), target], repo)
+    try {
+      await git(['worktree', 'remove', ...(force ? ['--force'] : []), target], repo)
+    } catch (error) {
+      // Refused before anything went — a locked tree, changes without --force:
+      // the worktree is whole and still registered, and the refusal stands.
+      if (fs.existsSync(target) && (await stillRegistered(repo, target))) throw error
+      if (fs.existsSync(target)) finishRemoval(target)
+      await git(['worktree', 'prune'], repo).catch(() => null)
+    }
   } else if (mode === 'localCopy') {
-    fs.rmSync(target, { recursive: true, force: true })
+    try {
+      fs.rmSync(target, { recursive: true, force: true })
+    } catch {
+      finishRemoval(target)
+    }
   } else {
     // Neither a worktree nor a copy: an interrupted provision, possibly holding
     // work. Deleting it is the user's call.
     throw new Error(`not_a_worktree: ${target}`)
   }
   return null
+}
+
+/**
+ * What removing a worktree would lose: entries git status lists, and commits
+ * no remote-tracking branch has. `null` where git could not say, which callers
+ * read as "something might be lost".
+ */
+async function inspect({ repo, agentId }) {
+  const target = worktreePath(repo, checkedAgentId(agentId))
+  if (!fs.existsSync(target)) throw new Error('worktree_not_found')
+  const pendingChanges = await git(['status', '--porcelain'], target).then(
+    (out) => out.split('\n').filter((line) => line.trim()).length,
+    () => null,
+  )
+  const unpushedCommits = await git(
+    ['rev-list', '--count', 'HEAD', '--not', '--remotes'],
+    target,
+  ).then(
+    (out) => {
+      const count = Number.parseInt(out.trim(), 10)
+      return Number.isFinite(count) ? count : null
+    },
+    () => null,
+  )
+  return { pendingChanges, unpushedCommits }
 }
 
 async function provision({ repo, agentId, mode }) {
@@ -241,6 +342,7 @@ function buildWorktreeCommands() {
         throw error
       }
     },
+    worktree_inspect: inspect,
     worktree_cleanup: async ({ repo }) => {
       await git(['worktree', 'prune'], repo).catch(() => null)
       return null
@@ -284,4 +386,4 @@ function buildWorktreeCommands() {
   }
 }
 
-module.exports = { buildWorktreeCommands, excludeArcoLocally, list, provision, remove }
+module.exports = { buildWorktreeCommands, excludeArcoLocally, inspect, list, provision, remove }

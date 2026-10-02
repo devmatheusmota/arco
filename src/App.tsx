@@ -55,6 +55,7 @@ import { useKeybindings } from './hooks/useKeybindings'
 import { useMcpIntroPrompt } from './hooks/useMcpIntroPrompt'
 import { useRemoteControlService } from './hooks/useRemoteControlService'
 import { useResourceSupervisor } from './hooks/useResourceSupervisor'
+import { useWorktreeSweep } from './hooks/useWorktreeSweep'
 import { rendersWorkspace } from './lib/activeView'
 import { startActivityTracker } from './lib/activityTracker'
 import { APP_SHELL_ID } from './lib/appShell'
@@ -249,6 +250,7 @@ export default function App() {
   useCliOpenRequests(hydrated)
   useClaudeSessionFollow(hydrated)
   useAdoRefRepair(hydrated)
+  useWorktreeSweep(hydrated)
 
   useEffect(() => {
     void hydrate()

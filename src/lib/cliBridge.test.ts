@@ -1020,6 +1020,23 @@ describe('cli://session-close', () => {
       expect(state.closeGroupWithWorktree).not.toHaveBeenCalled()
     })
 
+    // The pane that opened the front carries the front's worktree id as well.
+    it('does not ask to delete a worktree the front owns', async () => {
+      state.projects[0].groups = [
+        { id: 'g-solo', name: 'solo', createdAt: 1, worktreeAgentId: 'cl-7', cwd: '/wt/7' },
+      ]
+      state.projects[0].terminals = [
+        { ...pane('unico', '/wt/7'), groupId: 'g-solo', worktreeAgentId: 'cl-7' },
+      ]
+
+      const result = await close({ target: 'pa-1005' })
+
+      expect(result.ok).toBe(true)
+      expect(result.message).toMatch(/^Fechando pa-1005\. A frente "solo" ficou sem panes/)
+      expect(result.message).toMatch(/com a worktree cl-7 no disco/)
+      expect(result.data).toMatchObject({ worktree: null })
+    })
+
     it('says the worktree of the front is still on disk', async () => {
       state.projects[0].groups = [
         { id: 'g-solo', name: 'solo', createdAt: 1, worktreeAgentId: 'cl-7', cwd: '/wt/7' },

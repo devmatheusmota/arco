@@ -2225,11 +2225,20 @@ export const ptBR: Record<MessageKey, string> = {
   'multiAgent.cleaningOrphans': 'Limpando…',
   'multiAgent.orphanCleanupTitle': 'Limpeza de worktrees órfãs',
   'multiAgent.orphanCleanupSummary':
-    '{cleaned} totalmente limpos, {partial} parcialmente limpos, {waiting} aguardando unlock manual, {failed} falhas.',
+    '{cleaned} totalmente limpos, {kept} mantidos porque guardam trabalho, {partial} parcialmente limpos, {waiting} aguardando unlock manual, {failed} falhas.',
   'multiAgent.orphanAdminLocked':
     'Travada administrativamente pelo motivo: {reason}. Execute "git worktree unlock" para liberar.',
   'multiAgent.orphanManualRemoval':
     'A limpeza automática falhou repetidamente. Recomenda-se remoção manual.',
+  'multiAgent.orphanHoldsWork':
+    'Mantida: {changes} alteração(ões) não commitada(s), {commits} commit(s) fora de qualquer remoto. Remova pela lista de worktrees acima se não precisar delas.',
+  'multiAgent.orphanUnknownWork':
+    'Mantida: o git não conseguiu dizer se ela guarda trabalho não commitado ou não enviado.',
+  'multiAgent.orphanUntracked': 'Nenhuma frente ou sessão usa esta worktree.',
+  'toast.untrackedWorktreesTitle': 'Worktrees sem ninguém usando',
+  'toast.untrackedWorktreesBody':
+    '{count} worktree(s) em {project} não pertencem a nenhuma frente ou sessão e continuam ocupando disco. Limpe nas configurações do projeto, em Worktrees.',
+  'toast.untrackedWorktreesAction': 'Revisar',
 
   'ui.terminal.suspended': 'Suspenso',
   'ui.terminal.suspendedTooltip': 'Terminal suspenso — clique para reativar',

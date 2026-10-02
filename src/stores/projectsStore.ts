@@ -122,10 +122,17 @@ export type ProjectsState = ProjectsFile & {
 
   cleanupOrphanWorktrees: (projectId: string) => Promise<{
     cleaned: number
+    /** Left on disk because removing them would lose uncommitted or unpushed work. */
+    kept: number
     partial: number
     awaitingUnlock: number
     failed: number
   }>
+  /**
+   * Lists, as leftovers of their project, the worktrees on disk that no front
+   * or pane holds. Answers how many each project gained.
+   */
+  sweepUntrackedWorktrees: () => Promise<Array<{ projectId: string; count: number }>>
 
   deleteProject: (id: string) => void
   setActiveProject: (id: string | null) => void

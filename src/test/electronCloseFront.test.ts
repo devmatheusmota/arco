@@ -94,8 +94,32 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
+  // A test leaves read-only folders behind when the code under test fails.
+  execFileSync('chmod', ['-R', 'u+w', repo])
   rmSync(repo, { recursive: true, force: true })
 })
+
+/** A worktree on disk that no front or pane in the workspace holds. */
+async function unheldWorktree(id: string) {
+  await provision({ repo, agentId: id })
+  return join(repo, '.arco', 'worktrees', id)
+}
+
+/** Publishes the repository's history, so nothing in it counts as unpushed. */
+function publish() {
+  const remote = mkdtempSync(join(tmpdir(), 'arco-close-front-remote-'))
+  execFileSync('git', ['init', '-q', '--bare'], { cwd: remote })
+  execFileSync('git', ['remote', 'add', 'origin', remote], { cwd: repo })
+  execFileSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/main'], { cwd: repo })
+  return remote
+}
+
+/** Two hours from now, so a worktree made during the test is old enough to sweep. */
+function later() {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(Date.now() + 2 * 60 * 60 * 1000)
+}
 
 describe('closing a front on the Electron build', () => {
   it('removes its clean worktree from disk and from git worktree list', async () => {
@@ -121,5 +145,103 @@ describe('closing a front on the Electron build', () => {
     expect(pushToast).toHaveBeenCalled()
     const project = useProjectsStore.getState().projects[0]
     expect(project.orphanWorktrees?.map((orphan) => orphan.path)).toEqual([worktree()])
+  })
+
+  // `git worktree remove` drops the registration even when a read-only folder
+  // keeps some files, and what stayed was refused by every later removal.
+  it('finishes the removal when a folder in the tree is read-only', async () => {
+    const locked = join(worktree(), 'node_modules', 'pkg')
+    execFileSync('mkdir', ['-p', locked])
+    writeFileSync(join(locked, 'index.js'), '')
+    execFileSync('chmod', ['0555', locked])
+
+    await useProjectsStore.getState().closeGroupWithWorktree('p1', 'g-wt')
+
+    expect(existsSync(worktree())).toBe(false)
+    expect(gitWorktrees()).not.toContain('cl-1')
+    expect(useProjectsStore.getState().projects[0].orphanWorktrees ?? []).toEqual([])
+  })
+})
+
+describe('what removing a worktree would lose', () => {
+  it('counts uncommitted entries and commits no remote has', async () => {
+    writeFileSync(join(worktree(), 'notes.md'), 'draft\n')
+
+    const loss = await handlers.worktree_inspect({ repo, agentId: 'cl-1' })
+
+    // No remote at all: the first commit is on none.
+    expect(loss).toEqual({ pendingChanges: 1, unpushedCommits: 1 })
+  })
+
+  it('finds nothing to lose in a clean, published worktree', async () => {
+    const remote = publish()
+    try {
+      expect(await handlers.worktree_inspect({ repo, agentId: 'cl-1' })).toEqual({
+        pendingChanges: 0,
+        unpushedCommits: 0,
+      })
+    } finally {
+      rmSync(remote, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('worktrees nothing holds', () => {
+  it('are listed on their project, and the held one is left alone', async () => {
+    const loose = await unheldWorktree('cl-2')
+    later()
+
+    const gained = await useProjectsStore.getState().sweepUntrackedWorktrees()
+
+    expect(gained).toEqual([{ projectId: 'p1', count: 1 }])
+    const orphans = useProjectsStore.getState().projects[0].orphanWorktrees ?? []
+    expect(orphans).toEqual([
+      expect.objectContaining({ path: loose, untracked: true, pendingChanges: 0 }),
+    ])
+  })
+
+  it('wait an hour, since a session may still be starting in one', async () => {
+    await unheldWorktree('cl-2')
+
+    expect(await useProjectsStore.getState().sweepUntrackedWorktrees()).toEqual([])
+  })
+
+  it('are not listed twice', async () => {
+    await unheldWorktree('cl-2')
+    later()
+    await useProjectsStore.getState().sweepUntrackedWorktrees()
+
+    expect(await useProjectsStore.getState().sweepUntrackedWorktrees()).toEqual([])
+  })
+
+  it('are cleaned up when they hold nothing that would be lost', async () => {
+    const remote = publish()
+    try {
+      const loose = await unheldWorktree('cl-2')
+      later()
+      await useProjectsStore.getState().sweepUntrackedWorktrees()
+
+      const summary = await useProjectsStore.getState().cleanupOrphanWorktrees('p1')
+
+      expect(summary).toMatchObject({ cleaned: 1, kept: 0, failed: 0 })
+      expect(existsSync(loose)).toBe(false)
+      expect(existsSync(worktree())).toBe(true)
+    } finally {
+      rmSync(remote, { recursive: true, force: true })
+    }
+  })
+
+  it('stay on disk, saying why, when they hold unpushed work', async () => {
+    const loose = await unheldWorktree('cl-2')
+    later()
+    await useProjectsStore.getState().sweepUntrackedWorktrees()
+
+    const summary = await useProjectsStore.getState().cleanupOrphanWorktrees('p1')
+
+    expect(summary).toMatchObject({ cleaned: 0, kept: 1 })
+    expect(existsSync(loose)).toBe(true)
+    expect(useProjectsStore.getState().projects[0].orphanWorktrees).toEqual([
+      expect.objectContaining({ path: loose, unpushedCommits: 1 }),
+    ])
   })
 })

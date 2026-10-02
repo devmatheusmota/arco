@@ -145,6 +145,53 @@ describe('closing a pane that owns a worktree', () => {
   })
 })
 
+// The first pane of a front provisions the front's worktree and keeps its id.
+// Closing that pane removed the worktree with the front still open on it.
+describe('closing a pane whose worktree is not its alone', () => {
+  const withFront = () =>
+    useProjectsStore.setState((state) => ({
+      projects: state.projects.map((p) => ({
+        ...p,
+        groups: [
+          {
+            id: 'g1',
+            name: 'review',
+            createdAt: 1,
+            worktreeAgentId: 'cl-1',
+            cwd: '/repo/.arco/worktrees/cl-1',
+          },
+        ],
+        terminals: p.terminals.map((t) => (t.id === 'isolado' ? { ...t, groupId: 'g1' } : t)),
+      })),
+    }))
+
+  it('leaves the worktree to the front that owns it', async () => {
+    withFront()
+
+    await useProjectsStore.getState().deleteTerminalWithWorktreeCleanup('p1', 'isolado')
+
+    expect(worktreeRemove).not.toHaveBeenCalled()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(paneIds()).toEqual(['comum'])
+  })
+
+  it('leaves it while another pane still works inside it', async () => {
+    useProjectsStore.setState((state) => ({
+      projects: state.projects.map((p) => ({
+        ...p,
+        terminals: p.terminals.map((t) =>
+          t.id === 'comum' ? { ...t, cwd: '/repo/.arco/worktrees/cl-1/apps/api' } : t,
+        ),
+      })),
+    }))
+
+    await useProjectsStore.getState().deleteTerminalWithWorktreeCleanup('p1', 'isolado')
+
+    expect(worktreeRemove).not.toHaveBeenCalled()
+    expect(paneIds()).toEqual(['comum'])
+  })
+})
+
 describe('closing a pane that works on the project tree', () => {
   it('takes nothing off disk', async () => {
     await useProjectsStore.getState().deleteTerminalWithWorktreeCleanup('p1', 'comum')

@@ -24,6 +24,7 @@ import type {
   WorktreeChoice,
 } from './types'
 import { TODO_PRIORITIES } from './types'
+import { worktreeHeldBeyondPane, worktreeRepoOf } from './worktreeOwnership'
 
 /**
  * Bridge for the `arco` command line.
@@ -1056,7 +1057,11 @@ function handleSessionClose(request: SessionCloseRequest & SessionScope): CliRes
   // takes uncommitted work with it. The window would ask, but `window.confirm`
   // blocks the whole renderer and nobody is looking at it, so the question is
   // refused back to the terminal instead and `--yes` is the answer.
-  const ownsWorktree = Boolean(terminal.worktreeAgentId)
+  // The first pane of a front carries the front's worktree id too; that one is
+  // the front's, and closing the pane leaves it where it is.
+  const ownsWorktree =
+    Boolean(terminal.worktreeAgentId) &&
+    !worktreeHeldBeyondPane(useProjectsStore.getState().projects, terminal)
   if (ownsWorktree && !request.confirmed) {
     return failure(
       `${label} tem worktree própria (${terminal.worktreeAgentId}) e fechá-lo apaga ela com --force. Repita com --yes se for isso mesmo.`,
@@ -1095,7 +1100,7 @@ function handleSessionClose(request: SessionCloseRequest & SessionScope): CliRes
     data: {
       sessionId: terminal.id,
       ref: terminal.shortId ?? null,
-      worktree: terminal.worktreeAgentId ?? null,
+      worktree: ownsWorktree ? (terminal.worktreeAgentId ?? null) : null,
       ...(group ? { groupId: group.id, groupEmpty: leavesFrontEmpty } : {}),
     },
   }
@@ -1123,11 +1128,7 @@ function worktreeHome(
   projectRoot: string,
 ): { repo: string; path: string } {
   const path = cwd?.trim() || `${projectRoot}/.arco/worktrees/${agentId}`
-  // Read off the worktree's own path: the project's directory is not always the
-  // repository the worktree was provisioned from, and a worktree opened inside
-  // another one belongs to that inner tree.
-  const at = path.replace(/\\/g, '/').lastIndexOf('/.arco/worktrees/')
-  return { repo: at > 0 ? path.slice(0, at) : projectRoot, path }
+  return { repo: worktreeRepoOf(path, projectRoot), path }
 }
 
 /** The worktree's entry when it is still on disk, `null` when gone, `undefined` when git could not say. */

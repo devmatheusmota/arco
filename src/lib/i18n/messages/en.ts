@@ -2206,11 +2206,20 @@ export const en = {
   'multiAgent.cleaningOrphans': 'Cleaning up…',
   'multiAgent.orphanCleanupTitle': 'Orphaned worktree cleanup',
   'multiAgent.orphanCleanupSummary':
-    '{cleaned} fully cleaned, {partial} partially cleaned, {waiting} awaiting manual unlock, {failed} failed.',
+    '{cleaned} fully cleaned, {kept} kept because they hold work, {partial} partially cleaned, {waiting} awaiting manual unlock, {failed} failed.',
   'multiAgent.orphanAdminLocked':
     'Administratively locked: {reason}. Run "git worktree unlock" to release it.',
   'multiAgent.orphanManualRemoval':
     'Automatic cleanup has failed repeatedly. Manual removal is recommended.',
+  'multiAgent.orphanHoldsWork':
+    'Kept: {changes} uncommitted change(s), {commits} commit(s) on no remote. Remove it from the worktree list above if you do not need them.',
+  'multiAgent.orphanUnknownWork':
+    'Kept: git could not say whether it holds uncommitted or unpushed work.',
+  'multiAgent.orphanUntracked': 'No front or session holds this worktree.',
+  'toast.untrackedWorktreesTitle': 'Worktrees with nothing holding them',
+  'toast.untrackedWorktreesBody':
+    '{count} worktree(s) in {project} belong to no front or session and still take up disk. Clean them up in the project settings, under Worktrees.',
+  'toast.untrackedWorktreesAction': 'Review',
 
   /* ---- pool / hibernation ---- */
   'ui.terminal.suspended': 'Suspended',

@@ -3,11 +3,16 @@
 import { nanoid } from 'nanoid'
 
 import { getLocale, translate } from '../lib/i18n'
-import { collectTerminalPtyIds, getProjectRepoRoot } from '../lib/terminalFactory'
+import {
+  collectTerminalPtyIds,
+  getProjectRepoRoot,
+  isInsideArcoWorktree,
+} from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import { pruneTodoSessions } from '../lib/todos'
-import type { Project } from '../lib/types'
+import type { OrphanWorktree, Project } from '../lib/types'
 import { sanitizeWorkspaceSnapshot } from '../lib/workspaceNavigation'
+import { anyWithin, heldWorktrees, worktreeRepoOf } from '../lib/worktreeOwnership'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
 import { useUiStore } from './uiStore'
@@ -17,6 +22,9 @@ function t(key: Parameters<typeof translate>[1], params?: Record<string, string 
 }
 
 const migratingWorktreeProjectIds = new Set<string>()
+
+/** How old an unheld worktree must be before a sweep calls it a leftover. */
+const UNTRACKED_WORKTREE_GRACE_MS = 60 * 60 * 1000
 
 type ProjectsSlice = Pick<
   ProjectsState,
@@ -42,6 +50,7 @@ type ProjectsSlice = Pick<
   | 'removeOrphanWorktree'
   | 'setCleaningOrphans'
   | 'cleanupOrphanWorktrees'
+  | 'sweepUntrackedWorktrees'
   | 'deleteProject'
   | 'reorderProject'
 >
@@ -296,29 +305,50 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
     setCleaningOrphans: (isCleaningOrphans) => update(() => ({ isCleaningOrphans })),
 
     cleanupOrphanWorktrees: async (projectId) => {
-      const summary = { cleaned: 0, partial: 0, awaitingUnlock: 0, failed: 0 }
+      const summary = { cleaned: 0, kept: 0, partial: 0, awaitingUnlock: 0, failed: 0 }
       const project = get().projects.find((p) => p.id === projectId)
-      const repoPath = project?.terminals[0]?.cwd
       const orphans = project?.orphanWorktrees ?? []
-      if (!project || !repoPath || orphans.length === 0) return summary
+      if (!project || orphans.length === 0) return summary
+      // Each leftover names its own repository in its path. The first pane's
+      // directory used to stand in for it, and when that pane worked in a
+      // worktree every removal looked inside the wrong tree and failed.
+      const fallbackRepo = getProjectRepoRoot(project) || project.defaultCwd?.trim() || ''
 
-      const { worktreeCleanup, worktreeRemove } = await import('../lib/tauri')
+      const { worktreeCleanup, worktreeInspect, worktreeRemove } = await import('../lib/tauri')
       set({ isCleaningOrphans: true })
 
       for (const orphan of orphans) {
+        const repoPath = worktreeRepoOf(orphan.path, fallbackRepo)
         try {
+          if (!repoPath) throw new Error('no repository for this worktree')
           if (orphan.pruneOnly) {
-            // fantasma do git.
+            // A registration git keeps for a directory that is already gone.
             await worktreeCleanup(repoPath)
             get().removeOrphanWorktree(projectId, orphan.path)
             summary.cleaned++
             continue
           }
 
-          // requiresRawDeletion (ou nenhuma flag ainda — primeira tentativa):
-
           const agentId = orphan.path.split(/[\\/]/).filter(Boolean).pop() ?? ''
-          await worktreeRemove(repoPath, agentId, true)
+          // Removal runs with --force, and nobody confirmed these one by one.
+          // Work that would be lost keeps the worktree, and the list says why.
+          const loss = await worktreeInspect(repoPath, agentId).catch((error: unknown) =>
+            String(error).includes('worktree_not_found') ? 'gone' : null,
+          )
+          if (loss !== 'gone') {
+            const pending = loss?.pendingChanges ?? null
+            const unpushed = loss?.unpushedCommits ?? null
+            if (pending !== 0 || unpushed !== 0) {
+              get().addOrphanWorktree(projectId, {
+                ...orphan,
+                pendingChanges: pending,
+                unpushedCommits: unpushed,
+              })
+              summary.kept++
+              continue
+            }
+            await worktreeRemove(repoPath, agentId, true)
+          }
 
           try {
             await worktreeCleanup(repoPath)
@@ -357,6 +387,56 @@ export function createProjectsSlice({ set, get, update, updateProject }: SliceCt
 
       set({ isCleaningOrphans: false })
       return summary
+    },
+
+    /**
+     * Finds the worktrees nothing in the workspace answers for any more.
+     *
+     * A worktree only reached the leftover list when a removal failed. One whose
+     * front simply vanished from the workspace — a reset profile, a removal bug,
+     * a crash between closing and cleaning — stayed on disk with nobody to
+     * report it, and dozens of them piled up unseen. This reads the folders
+     * themselves, once per repository, and lists the ones no front or pane
+     * holds. It removes nothing: cleanup is the user's click, and it still
+     * keeps any worktree with work that would be lost.
+     */
+    sweepUntrackedWorktrees: async () => {
+      const { worktreeInspect, worktreeList } = await import('../lib/tauri')
+      const projects = get().projects
+      const held = heldWorktrees(projects)
+      const listed = new Set(
+        projects.flatMap((project) => (project.orphanWorktrees ?? []).map((item) => item.path)),
+      )
+      // One project answers for each repository: two projects can share one.
+      const repos = new Map<string, string>()
+      for (const project of projects) {
+        const root = getProjectRepoRoot(project) || project.defaultCwd?.trim() || ''
+        if (root && !isInsideArcoWorktree(root) && !repos.has(root)) repos.set(root, project.id)
+      }
+
+      const now = Date.now()
+      const gained = new Map<string, number>()
+      for (const [repo, projectId] of repos) {
+        const entries = await worktreeList(repo).catch(() => [])
+        for (const entry of entries) {
+          if (held.ids.has(entry.agentId) || anyWithin(held.dirs, entry.path)) continue
+          if (listed.has(entry.path)) continue
+          // A worktree exists for a moment before the pane opened in it is
+          // saved; a young one is somebody's session still starting.
+          if (!entry.createdAt || now - entry.createdAt < UNTRACKED_WORKTREE_GRACE_MS) continue
+          const loss = await worktreeInspect(repo, entry.agentId).catch(() => null)
+          const orphan: OrphanWorktree = {
+            path: entry.path,
+            mode: entry.mode,
+            untracked: true,
+            pendingChanges: loss?.pendingChanges ?? null,
+            unpushedCommits: loss?.unpushedCommits ?? null,
+          }
+          get().addOrphanWorktree(projectId, orphan)
+          gained.set(projectId, (gained.get(projectId) ?? 0) + 1)
+        }
+      }
+      return [...gained].map(([projectId, count]) => ({ projectId, count }))
     },
 
     deleteProject: (id) =>

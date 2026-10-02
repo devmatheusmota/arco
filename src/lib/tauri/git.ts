@@ -105,6 +105,13 @@ export async function worktreeRemove(repo: string, agentId: string, force: boole
   await invoke('worktree_remove', { repo, agentId, force })
 }
 
+/** What removing a worktree would lose; `null` where git could not say. */
+export type WorktreeLoss = { pendingChanges: number | null; unpushedCommits: number | null }
+
+export async function worktreeInspect(repo: string, agentId: string): Promise<WorktreeLoss> {
+  return invoke<WorktreeLoss>('worktree_inspect', { repo, agentId })
+}
+
 export async function worktreeCleanup(repo: string): Promise<void> {
   await invoke('worktree_cleanup', { repo })
 }

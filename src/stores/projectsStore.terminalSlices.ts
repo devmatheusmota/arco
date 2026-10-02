@@ -23,6 +23,7 @@ import {
 } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import type { PaneGroup, Terminal } from '../lib/types'
+import { worktreeHeldBeyondPane } from '../lib/worktreeOwnership'
 import type { ProjectsState } from './projectsStore'
 import type { SliceCtx } from './projectsStore.slices'
 import { useUiStore } from './uiStore'
@@ -339,7 +340,9 @@ export function createTerminalsSlice({
       // Before the confirm: asking about a removal that is going to be refused
       // anyway is worse than not asking.
       if (terminal?.pinned) return
-      if (!terminal?.worktreeAgentId) {
+      // A worktree the front, or another pane, still works in stays: it goes
+      // with its last holder.
+      if (!terminal?.worktreeAgentId || worktreeHeldBeyondPane(get().projects, terminal)) {
         get().deleteTerminal(projectId, terminalId)
         return
       }

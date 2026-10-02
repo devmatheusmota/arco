@@ -272,8 +272,14 @@ export type OrphanWorktree = {
   pruneOnly?: boolean
 
   cleanAttempts?: number
-  /** Motivo do lock administrativo (`git worktree lock`), se for esse o bloqueio atual. */
+  /** Reason for the administrative lock (`git worktree lock`), when that is what blocks it. */
   adminLockReason?: string
+  /** Found on disk with nothing in the workspace holding it, not left by a failed removal. */
+  untracked?: boolean
+  /** Uncommitted entries at the last look; `null` when git could not say. Cleanup skips it while above zero. */
+  pendingChanges?: number | null
+  /** Commits no remote has at the last look; `null` when git could not say. Same rule. */
+  unpushedCommits?: number | null
 }
 
 /**

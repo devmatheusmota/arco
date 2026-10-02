@@ -9,7 +9,8 @@ import {
   worktreeProvision,
   worktreeRemove,
 } from '../../lib/tauri'
-import { type AgentType, PROJECT_COLORS } from '../../lib/types'
+import { getProjectRepoRoot } from '../../lib/terminalFactory'
+import { type AgentType, type Project, PROJECT_COLORS } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { ColorPalettePopover } from './ColorPalettePopover'
@@ -19,10 +20,23 @@ import styles from './EditProjectModal.module.css'
 import { ImageInput } from './ImageInput'
 import { Modal } from './Modal'
 
+/**
+ * The repository the project's worktrees live in. The first pane's directory
+ * stood in for it, and when that pane worked in a worktree the list showed the
+ * wrong tree, or nothing.
+ */
+function projectRepo(project: Project | null): string {
+  return getProjectRepoRoot(project) || project?.defaultCwd?.trim() || ''
+}
+
 export function EditProjectModal() {
   const t = useT()
   const open = useUiStore((s) => s.openModal === 'editProject')
-  const context = useUiStore((s) => s.modalContext) as { projectId?: string } | null
+  const context = useUiStore((s) => s.modalContext) as {
+    projectId?: string
+    /** Opens on this tab instead of the first, for a notice that points at it. */
+    tab?: 'focus' | 'agents' | 'worktrees'
+  } | null
   const closeModal = useUiStore((s) => s.closeModal)
   const pushToast = useUiStore((s) => s.pushToast)
 
@@ -96,21 +110,21 @@ export function EditProjectModal() {
     setConflictModelState(project.conflictAgentModel ?? '')
     setGraphifyEnabledState(project.graphifyEnabled ?? false)
     setAutoWorktreeState(project.autoWorktree ?? true)
-    setActiveTab('focus')
+    setActiveTab(context?.tab ?? 'focus')
     setIsColorPopoverOpen(false)
 
-    const repoPath = project.terminals[0]?.cwd
+    const repoPath = projectRepo(project)
     if (repoPath) {
       void loadWorktrees(repoPath)
     } else {
       setWorktrees([])
     }
-  }, [open, project])
+  }, [open, project, context?.tab])
 
   if (!project) return null
 
   const handleRemoveWorktree = async (agentId: string) => {
-    const repoPath = project.terminals[0]?.cwd
+    const repoPath = projectRepo(project)
     if (!repoPath) return
     if (confirm(`Tem certeza que deseja excluir o ambiente do agente "${agentId}"?`)) {
       try {
@@ -124,7 +138,7 @@ export function EditProjectModal() {
   }
 
   const handleCreateAgentEnv = async () => {
-    const repoPath = project?.terminals[0]?.cwd
+    const repoPath = projectRepo(project)
     const name = newAgentName.trim().replace(/[^A-Za-z0-9_-]/g, '-')
     if (!project || !repoPath || !name) return
     setCreatingAgent(true)
@@ -151,12 +165,13 @@ export function EditProjectModal() {
       title: t('multiAgent.orphanCleanupTitle'),
       body: t('multiAgent.orphanCleanupSummary', {
         cleaned: summary.cleaned,
+        kept: summary.kept,
         partial: summary.partial,
         waiting: summary.awaitingUnlock,
         failed: summary.failed,
       }),
     })
-    const repoPath = project.terminals[0]?.cwd
+    const repoPath = projectRepo(project)
     if (repoPath) void loadWorktrees(repoPath)
   }
 
@@ -200,7 +215,7 @@ export function EditProjectModal() {
 
     if (gsdWatcherEnabled !== project.gsdWatcherEnabled) {
       setGsdWatcherEnabled(project.id, gsdWatcherEnabled)
-      const repoPath = project.terminals[0]?.cwd
+      const repoPath = projectRepo(project)
       if (repoPath) {
         if (gsdWatcherEnabled) {
           startGsdWatcher(project.id, repoPath).catch(console.error)
@@ -514,6 +529,21 @@ export function EditProjectModal() {
                     <div style={{ marginTop: 2, color: 'var(--status-stopped)' }}>
                       {t('multiAgent.orphanManualRemoval')}
                     </div>
+                  ) : orphan.pendingChanges === null || orphan.unpushedCommits === null ? (
+                    <div style={{ marginTop: 2, color: 'var(--status-stopped)' }}>
+                      {t('multiAgent.orphanUnknownWork')}
+                    </div>
+                  ) : (orphan.pendingChanges ?? 0) > 0 || (orphan.unpushedCommits ?? 0) > 0 ? (
+                    <div style={{ marginTop: 2, color: 'var(--status-stopped)' }}>
+                      {t('multiAgent.orphanHoldsWork', {
+                        changes: orphan.pendingChanges ?? 0,
+                        commits: orphan.unpushedCommits ?? 0,
+                      })}
+                    </div>
+                  ) : orphan.untracked ? (
+                    <div style={{ marginTop: 2, color: 'var(--fg-muted)' }}>
+                      {t('multiAgent.orphanUntracked')}
+                    </div>
                   ) : null}
                 </div>
               ))}
@@ -554,7 +584,7 @@ export function EditProjectModal() {
             <button
               type="button"
               className={`${controls.btn} ${controls.btnPrimary}`}
-              disabled={!newAgentName.trim() || creatingAgent || !project.terminals[0]?.cwd}
+              disabled={!newAgentName.trim() || creatingAgent || !projectRepo(project)}
               onClick={() => void handleCreateAgentEnv()}
             >
               {creatingAgent ? t('multiAgent.creatingEnv') : t('multiAgent.createEnv')}
