@@ -10,6 +10,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- A session started with "Start a session for this task" is now recorded as the task's session.
+  Before, only the task's jump-back link knew about it, so `arco todo list --json`, the MCP task
+  rows and `arco session list` showed the task with no session while its pane was open. Tasks
+  started this way before the fix pick up their session the next time Arco opens.
+
 ## [3.8.1] — 2026-09-30
 
 ### Changed

@@ -651,6 +651,19 @@ describe('cli://session-list', () => {
     expect((await list())[0]).toMatchObject({ todo: 'id-0', worktree: 'cl-a1b2c3' })
   })
 
+  // A session started from the task's button carried the jump-back link alone,
+  // and the listing only read the owner: the pane showed no task at all.
+  it('names the task a session was started from when it holds only the jump-back link', async () => {
+    state.projects[0].terminals = [pane('pela-task', '/tmp/arco')]
+    await request('cli://todo-add', { title: 'atualizar períodos' })
+    state.todos = state.todos.map((todo) => ({
+      ...todo,
+      sessions: [{ projectId: 'p1', terminalId: 'pela-task', agent: 'claude', startedAt: 1 }],
+    }))
+
+    expect((await list())[0]).toMatchObject({ todo: 'id-0', todoTitle: 'atualizar períodos' })
+  })
+
   it('answers with an empty list rather than an error when nothing is open', async () => {
     expect(await list()).toEqual([])
   })

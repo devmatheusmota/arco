@@ -688,7 +688,11 @@ function handleSessionList(request: SessionScope = {}): CliResult {
   )
   const sessions = sessionEntries().map(({ terminal, projectId }) => {
     const tab = terminal.tabs.find((item) => item.id === terminal.activeTabId) ?? terminal.tabs[0]
-    const todo = todos.find((item) => item.session?.id === terminal.id)
+    // The owner first: a pane can be the jump-back link of one task and the
+    // owner of another, and the owner is the one it claimed.
+    const todo =
+      todos.find((item) => item.session?.id === terminal.id) ??
+      todos.find((item) => item.sessions?.some((link) => link.terminalId === terminal.id))
     const { status, parked } = paneStatus(terminal)
     const worktree =
       terminal.worktreeAgentId ?? groupsById.get(terminal.groupId ?? '')?.worktreeAgentId

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { isPaneShortId } from '../lib/paneShortId'
 import { DEFAULT_PREFERENCES, EMPTY_PROJECTS_FILE } from '../lib/types'
-import { migrate, normalizePreferences } from './projectsStore.migrations'
+import { migrate, normalizePreferences, normalizeTodos } from './projectsStore.migrations'
 
 describe('preference normalization', () => {
   it('preserves persisted sidebar visibility and widths', () => {
@@ -36,6 +36,38 @@ describe('preference normalization', () => {
       mode: 'manual',
       automaticParkingOptIn: false,
     })
+  })
+})
+
+describe('task session owner', () => {
+  const link = (terminalId: string, startedAt: number) => ({
+    terminalId,
+    projectId: 'p1',
+    agent: 'claude',
+    startedAt,
+  })
+
+  // Starting a session from the task's own button wrote the jump-back link and
+  // never the owner, so the task read as unclaimed to `arco todo list --json`.
+  it('takes the newest jump-back link as the owner of a task that has none', () => {
+    const [todo] = normalizeTodos([
+      { id: 't1', title: 'task', sessions: [link('old', 1), link('new', 5)] },
+    ])
+
+    expect(todo.session).toEqual({ id: 'new', projectId: 'p1', agent: 'claude', linkedAt: 5 })
+  })
+
+  it('keeps the owner a task already has', () => {
+    const owner = { id: 'cli', name: 'Claude Code', cwd: '/tmp', linkedAt: 9 }
+    const [todo] = normalizeTodos([
+      { id: 't1', title: 'task', sessions: [link('ui', 5)], session: owner },
+    ])
+
+    expect(todo.session).toEqual(owner)
+  })
+
+  it('leaves a task with no session unclaimed', () => {
+    expect(normalizeTodos([{ id: 't1', title: 'task' }])[0]).not.toHaveProperty('session')
   })
 })
 

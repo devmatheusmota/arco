@@ -149,6 +149,22 @@ export function normalizeTodoSessionOwner(value: unknown): TodoSessionOwner | nu
 }
 
 /**
+ * The owner a jump-back link stands for, for tasks that only ever got the link.
+ *
+ * Starting a session from the task used to write `sessions` alone, so the task
+ * read as unclaimed to everything that asks `session`: `arco todo list --json`,
+ * the MCP rows, and whatever outside the app maps a pane back to its task.
+ */
+export function todoSessionOwnerFromLink(link: TodoSessionLink): TodoSessionOwner {
+  return {
+    id: link.terminalId,
+    projectId: link.projectId,
+    agent: link.agent,
+    linkedAt: link.startedAt,
+  }
+}
+
+/**
  * Every session a task points at, newest first.
  *
  * A task can be tied to a session two ways, and only one of them was ever

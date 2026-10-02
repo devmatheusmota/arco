@@ -12,6 +12,7 @@ import {
   normalizeTodoStatus,
   normalizeTodoTags,
   normalizeTodoTitle,
+  todoSessionOwnerFromLink,
 } from '../lib/todos'
 import {
   DEFAULT_PREFERENCES,
@@ -165,7 +166,11 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
     seen.add(id)
     const notes = normalizeTodoNotes(item?.notes)
     const sessions = normalizeTodoSessions(item?.sessions)
-    const session = normalizeTodoSessionOwner(item?.session)
+    // A task started from its own button before that button claimed it carries
+    // the jump-back link alone; the newest one is the session that took it.
+    const session =
+      normalizeTodoSessionOwner(item?.session) ??
+      (sessions[0] ? todoSessionOwnerFromLink(sessions[0]) : null)
     const adoRef = normalizeAdoRef(item?.adoRef)
     const completed = Boolean(item?.completed)
     result.push({

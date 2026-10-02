@@ -147,11 +147,23 @@ export function TaskSessionModal() {
           cwd: terminal.cwd,
         })
       }
+      // Both links, as `arco session --todo` writes them: the jump-back one goes
+      // when the pane closes, and the owner is what `arco todo list --json` and
+      // anything outside the app read to tell which task a pane is on.
+      const startedAt = Date.now()
+      store.setTodoSession(todo.id, {
+        id: terminal.id,
+        projectId: project.id,
+        agent,
+        ...(terminal.name?.trim() ? { name: terminal.name.trim() } : {}),
+        ...(terminal.cwd?.trim() ? { cwd: terminal.cwd.trim() } : {}),
+        linkedAt: startedAt,
+      })
       store.linkTodoSession(todo.id, {
         projectId: project.id,
         terminalId: terminal.id,
         agent,
-        startedAt: Date.now(),
+        startedAt,
       })
       if (!todo.projectId) store.setTodoProject(todo.id, project.id)
       // Starting work is what "in progress" means. Without this the board and
