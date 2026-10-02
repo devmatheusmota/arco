@@ -852,6 +852,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3100.note1':
+    'O Arco agora encontra worktrees que nenhuma frente ou sessão usa. Pouco depois de abrir, ele lista essas worktrees nas configurações do projeto, em Worktrees, e mostra um aviso com um botão que leva até lá. Nada é apagado até você clicar para limpar, e worktree com alteração não commitada ou commit que nunca chegou a um remoto fica, com o motivo ao lado.',
+  'whatsNew.v3100.note2':
+    'Fechar o primeiro pane de uma frente não apaga mais a worktree em que a frente ainda está trabalhando. A worktree agora sai junto com a frente, ou com a última sessão que usa ela.',
+  'whatsNew.v3100.note3':
+    'Remover uma worktree não deixa mais metade dela para trás quando tem pasta somente leitura dentro. Quando parte dos arquivos é de outro usuário, o Arco avisa, com o comando `sudo rm -rf` que remove.',
   'whatsNew.v390.note1':
     'Os agentes podem fechar uma frente pelas ferramentas do MCP do Arco com `group_close`, inclusive a frente em que o próprio pane está, então uma sessão arruma a frente dela no fim da tarefa sem passar pelo shell. Frente com worktree própria só fecha quando o agente passa `confirm: true`, porque fechar a frente apaga a worktree. As sessões veem a ferramenta nova na próxima vez que iniciarem.',
   'whatsNew.v390.note2':

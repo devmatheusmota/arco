@@ -10,6 +10,33 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.10.0] — 2026-10-02
+
+### Added
+
+- Arco looks for worktrees nothing holds. Half a minute after it opens, it reads each project's
+  `.arco/worktrees` folder and lists every worktree no front or session uses (and that is more than
+  an hour old) under the project's leftover worktrees, with one notice per project and a button that
+  opens the list. Nothing is removed until you clean them up there. Before, a worktree only reached
+  that list when a removal failed, and dozens whose fronts disappeared some other way stayed on disk
+  unseen.
+
+### Fixed
+
+- Closing the first pane of a front no longer deletes the front's worktree. That pane carries the
+  front's worktree as well, and closing it removed the worktree while the front and its other panes
+  were still working in it. A worktree now goes with the last front or pane that holds it, and
+  `arco session close` no longer asks for `--yes` on such a pane.
+- Removing a worktree with read-only folders inside, the kind package managers leave, no longer
+  leaves half of it on disk. Git dropped the worktree's registration but kept the files, and every
+  later cleanup refused the directory. Arco now finishes the removal, and when files belong to
+  another user it says so with the `sudo rm -rf` command that clears them.
+- Cleaning up leftover worktrees keeps any that hold uncommitted changes or commits no remote has,
+  and says why next to each one. It also looks in the right repository: it used the first session's
+  directory, which for most fronts pointed inside a worktree and made the cleanup fail.
+- The worktree list in the project settings reads the project's repository instead of the first
+  session's directory.
+
 ## [3.9.0] — 2026-10-02
 
 ### Added
