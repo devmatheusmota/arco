@@ -852,6 +852,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v390.note1':
+    'Os agentes podem fechar uma frente pelas ferramentas do MCP do Arco com `group_close`, inclusive a frente em que o próprio pane está, então uma sessão arruma a frente dela no fim da tarefa sem passar pelo shell. Frente com worktree própria só fecha quando o agente passa `confirm: true`, porque fechar a frente apaga a worktree. As sessões veem a ferramenta nova na próxima vez que iniciarem.',
+  'whatsNew.v390.note2':
+    'Fechar uma frente agora diz o que aconteceu com a worktree dela. `arco group close` e `group_close` conferem o disco depois que a frente fecha e dizem se a worktree saiu ou ficou para trás, com o caminho e o comando `git worktree remove` que a remove. Antes, a resposta dizia que a worktree tinha saído antes de qualquer coisa rodar.',
   'whatsNew.v382.note1':
     'Uma sessão aberta pelo "Iniciar uma sessão para esta tarefa" agora fica ligada à tarefa. Antes, só a linha da tarefa sabia dela: `arco todo list --json`, as ferramentas do MCP e `arco session list` mostravam a tarefa sem sessão com o pane aberto, e quem lia esses dados caía no nome da frente. Tarefas abertas assim antes da atualização recuperam a sessão na próxima vez que o Arco abrir.',
   'whatsNew.v381.note1':

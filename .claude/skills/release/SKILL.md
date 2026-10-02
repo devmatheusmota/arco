@@ -75,8 +75,10 @@ release incoerente consigo mesma:
 
 O teste `src/lib/arcoCliContext.test.ts` falha quando o `USAGE` ganha um comando
 que o preâmbulo não menciona — o gate roda sozinho, mas a decisão de **o que**
-contar ao agente é sua: comando destrutivo (`group close`) fica de fora, na lista
-`OUT_OF_SCOPE`, com o motivo escrito.
+contar ao agente é sua: comando que não é trabalho de agente (`session rename`) fica
+de fora, na lista `OUT_OF_SCOPE`, com o motivo escrito; comando destrutivo só entra
+como tool que exige confirmação no argumento (`group_close` pede `confirm: true` para
+apagar a worktree).
 
 ## 5. Cortar
 

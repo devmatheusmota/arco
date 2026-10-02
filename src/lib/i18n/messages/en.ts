@@ -840,6 +840,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v390.note1':
+    'Agents can close a front through Arco\u2019s MCP tools with `group_close`, including the front their own pane is in, so a session can tidy up its front at the end of a task without the shell. A front with its own worktree is only closed when the agent passes `confirm: true`, since closing it deletes the worktree. Sessions see the new tool the next time they start.',
+  'whatsNew.v390.note2':
+    'Closing a front now tells you what happened to its worktree. `arco group close` and `group_close` check the disk after the front closes and say the worktree is gone, or that it stayed behind, with its path and the `git worktree remove` command that clears it. Before, the answer said the worktree was removed before anything had run.',
   'whatsNew.v382.note1':
     'A session started with "Start a session for this task" now stays tied to the task. Before, only the task row knew about it: `arco todo list --json`, the MCP tools and `arco session list` showed the task with no session while its pane was open, and anything reading them fell back to the front name. Tasks you started this way before the update get their session back the next time Arco opens.',
   'whatsNew.v381.note1':

@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.9.0] — 2026-10-02
+
 ### Added
 
 - Arco's MCP server has a `group_close` tool, so an agent can close a front without falling back
