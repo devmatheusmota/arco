@@ -38,12 +38,12 @@ const COVERED_BY_TOOL: Record<string, string> = {
   'arco session send': 'session_send',
   'arco session close': 'session_close',
   'arco group list': 'group_list',
+  'arco group close': 'group_close',
 }
 
 /** Commands deliberately left out, with the reason they stay out. */
 const OUT_OF_SCOPE: Record<string, string> = {
   'arco session rename': 'renaming its own pane is noise, not work an agent is asked for',
-  'arco group close': 'closes the front and deletes its worktree — not an agent decision',
   'arco todo': 'the bare form is the shortcut for `arco todo add`, already listed',
 }
 

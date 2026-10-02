@@ -10,6 +10,24 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Added
+
+- Arco's MCP server has a `group_close` tool, so an agent can close a front without falling back
+  to the shell, including the front its own pane sits in, at the end of a task. It takes the same
+  references `arco group close` does: the front's id, a piece of its name, or a pane inside it. A
+  front with a worktree of its own needs `confirm: true`, since closing it deletes the worktree.
+
+### Fixed
+
+- Closing a front now says what happened to its worktree. `arco group close` and `group_close`
+  wait for the front to close and then check the disk: the answer says the worktree is gone, or
+  that it stayed behind, with its path and the `git worktree remove` command that clears it. It
+  used to report the worktree as removed before anything had run, and a worktree that survived
+  stayed registered in git with nothing saying so.
+- `arco group close` no longer reports "nothing leaves the disk" for an older front whose worktree
+  belongs to a pane inside it. It says that worktree stays on disk, the way `arco group list`
+  already showed it as the front's.
+
 ## [3.8.2] — 2026-10-02
 
 ### Fixed

@@ -21,6 +21,18 @@ vi.mock('./tauri/cli', () => ({
   },
 }))
 
+/** What `worktree_list` finds on disk, and the repositories it was asked about. */
+const worktreesOnDisk: Array<Record<string, unknown>> = []
+const listedRepos: string[] = []
+let worktreeListError: Error | null = null
+vi.mock('./tauri/git', () => ({
+  worktreeList: async (repo: string) => {
+    listedRepos.push(repo)
+    if (worktreeListError) throw worktreeListError
+    return worktreesOnDisk
+  },
+}))
+
 const toasts: string[] = []
 vi.mock('../stores/uiStore', () => ({
   useUiStore: {
@@ -176,6 +188,9 @@ beforeEach(async () => {
   deliveryError = null
   replies.length = 0
   toasts.length = 0
+  worktreesOnDisk.length = 0
+  listedRepos.length = 0
+  worktreeListError = null
   state.renameTerminal.mockClear()
   state.createGroup.mockClear()
   state.adoptGroupWorktree.mockClear()
@@ -1100,7 +1115,7 @@ describe('cli://group-list and cli://group-close', () => {
 
   // A group id is a nanoid nobody reads; the reference is the id a person has.
   it('closes the front a session belongs to, named by that session', async () => {
-    const result = await request('cli://group-close', { target: 'pa-1004' })
+    const result = await request('cli://group-close', { target: 'pa-1004', confirmed: true })
 
     expect(result.ok).toBe(true)
     expect(result.message).toMatch(/cpf opcional/)
@@ -1143,7 +1158,7 @@ describe('cli://group-list and cli://group-close', () => {
   it('takes a piece of the name only one front has, whatever the case and accents', async () => {
     state.projects[0].groups = [...state.projects[0].groups, front('g-vazia', 'Revisão do PR')]
 
-    const byCase = await request('cli://group-close', { target: 'OPCIONAL' })
+    const byCase = await request('cli://group-close', { target: 'OPCIONAL', confirmed: true })
     const byAccent = await request('cli://group-close', { target: 'revisao' })
 
     expect(byCase.data).toMatchObject({ groupId: 'g-wt' })
@@ -1195,7 +1210,7 @@ describe('cli://group-list and cli://group-close', () => {
     expect(bare.message).toContain('g-wt')
     expect(bare.message).toContain('g-pr')
 
-    const prefixed = await request('cli://group-close', { target: 'pa-1004' })
+    const prefixed = await request('cli://group-close', { target: 'pa-1004', confirmed: true })
     expect(prefixed.data).toMatchObject({ groupId: 'g-wt' })
   })
 
@@ -1205,13 +1220,17 @@ describe('cli://group-list and cli://group-close', () => {
       front('g-wt', 'lado 1004', { worktreeAgentId: 'cl-1', cwd: '/wt/1' }),
     ]
 
-    const result = await request('cli://group-close', { target: '1004' })
+    const result = await request('cli://group-close', { target: '1004', confirmed: true })
 
     expect(result.data).toMatchObject({ groupId: 'g-wt' })
   })
 
   it('still closes the front of the pane the command runs in', async () => {
-    const result = await request('cli://group-close', { target: 'current', sessionId: 'lado' })
+    const result = await request('cli://group-close', {
+      target: 'current',
+      sessionId: 'lado',
+      confirmed: true,
+    })
 
     expect(result.data).toMatchObject({ groupId: 'g-wt' })
   })
@@ -1231,6 +1250,149 @@ describe('cli://group-list and cli://group-close', () => {
 
     expect(sessions.map((s) => s.group)).toEqual(['cpf opcional', 'cpf opcional', 'Arco'])
     expect(sessions.map((s) => s.pinned)).toEqual([true, false, false])
+  })
+})
+
+// Closing a front deletes its worktree with `--force`, and the answer used to
+// claim the worktree went before anything had run. One stayed on disk,
+// registered in git, and was found by accident days later.
+describe('cli://group-close and the worktree it removes', () => {
+  beforeEach(() => {
+    state.projects[0].groups = [
+      {
+        id: 'g-wt',
+        name: 'PR 11450',
+        createdAt: 1,
+        worktreeAgentId: 'cl-9',
+        cwd: '/repo/.arco/worktrees/cl-9',
+      },
+    ]
+    state.projects[0].terminals = [
+      { ...pane('lado', '/repo/.arco/worktrees/cl-9', 'review'), groupId: 'g-wt' },
+    ]
+  })
+
+  it('refuses a front with a worktree until the caller confirms', async () => {
+    const result = await request('cli://group-close', { target: 'pa-1004' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/worktree própria \(cl-9\)/)
+    expect(result.message).toMatch(/--yes/)
+    expect(state.closeGroupWithWorktree).not.toHaveBeenCalled()
+  })
+
+  it('says the worktree left the disk once it is gone', async () => {
+    const result = await request('cli://group-close', { target: 'pa-1004', confirmed: true })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/a worktree cl-9 saiu do disco/)
+    expect(result.data).toMatchObject({ worktree: { id: 'cl-9', state: 'removed' } })
+    expect(state.closeGroupWithWorktree).toHaveBeenCalledWith('p1', 'g-wt', {
+      assumeConfirmed: true,
+    })
+  })
+
+  // The project's directory is not always the repository the worktree came from.
+  it('looks for the worktree in the repository its own path names', async () => {
+    await request('cli://group-close', { target: 'pa-1004', confirmed: true })
+
+    expect(listedRepos).toEqual(['/repo'])
+  })
+
+  it('says when the worktree stayed on disk, and how to remove it', async () => {
+    worktreesOnDisk.push({
+      agentId: 'cl-9',
+      path: '/repo/.arco/worktrees/cl-9',
+      mode: 'gitWorktree',
+    })
+
+    const result = await request('cli://group-close', { target: 'pa-1004', confirmed: true })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/ficou no disco em \/repo\/\.arco\/worktrees\/cl-9/)
+    expect(result.message).toMatch(
+      /git -C \/repo worktree remove --force \/repo\/\.arco\/worktrees\/cl-9$/,
+    )
+    expect(result.data).toMatchObject({ worktree: { id: 'cl-9', state: 'left' } })
+  })
+
+  it('says it could not tell when git does not answer', async () => {
+    worktreeListError = new Error('git morreu')
+
+    const result = await request('cli://group-close', { target: 'pa-1004', confirmed: true })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/Não consegui conferir se a worktree cl-9/)
+    expect(result.data).toMatchObject({ worktree: { state: 'unknown' } })
+  })
+
+  // The case it was asked for: a pane closing its own front at the end of a task.
+  it('closes the front the calling pane sits in, named by the front id', async () => {
+    const result = await request('cli://group-close', {
+      target: 'g-wt',
+      sessionId: 'lado',
+      confirmed: true,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(state.closeGroupWithWorktree).toHaveBeenCalledWith('p1', 'g-wt', {
+      assumeConfirmed: true,
+    })
+  })
+
+  // A front from before fronts owned worktrees: the pane holds it, closing the
+  // front leaves it, and `arco group list` shows it as the front's.
+  it('reports the worktree of a pane in an older front as left behind', async () => {
+    state.projects[0].groups = [{ id: 'g-old', name: 'antiga', createdAt: 1 }]
+    state.projects[0].terminals = [
+      {
+        ...pane('lado', '/repo/.arco/worktrees/cl-3', 'review'),
+        groupId: 'g-old',
+        worktreeAgentId: 'cl-3',
+      },
+    ]
+    worktreesOnDisk.push({
+      agentId: 'cl-3',
+      path: '/repo/.arco/worktrees/cl-3',
+      mode: 'gitWorktree',
+    })
+
+    const result = await request('cli://group-close', { target: 'antiga' })
+
+    expect(result.ok).toBe(true)
+    expect(result.message).toMatch(/a worktree cl-3 ficou no disco/)
+  })
+
+  it('reports a close that threw instead of claiming it went through', async () => {
+    state.closeGroupWithWorktree.mockImplementationOnce(async () => {
+      throw new Error('kill falhou')
+    })
+
+    const result = await request('cli://group-close', { target: 'pa-1004', confirmed: true })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/falhou: Error: kill falhou/)
+  })
+
+  // Removing a large worktree can outlast the request. The answer comes before
+  // the timeout and says the removal is still running, not that it finished.
+  it('answers before the request times out when the removal runs long', async () => {
+    vi.useFakeTimers()
+    try {
+      state.closeGroupWithWorktree.mockImplementationOnce(() => new Promise(() => {}))
+      handlers.get('cli://group-close')!({
+        payload: { target: 'pa-1004', confirmed: true, requestId: 'lento' },
+      })
+      await vi.advanceTimersByTimeAsync(5000)
+
+      const result = replies.find((reply) => reply.requestId === 'lento')?.result
+      expect(result?.ok).toBe(true)
+      expect(result?.message).toMatch(/ainda está saindo do disco/)
+      expect(result?.data).toMatchObject({ worktree: { state: 'pending' } })
+      expect(listedRepos).toEqual([])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 

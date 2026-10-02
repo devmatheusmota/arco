@@ -109,6 +109,23 @@ const TOOLS = [
     result: (data) => ({ groups: data?.groups ?? [] }),
   },
   {
+    name: 'group_close',
+    description:
+      'Closes a front and every pane in it, the calling pane included when it sits there. A front with a worktree of its own deletes it too, and needs `confirm: true`. The answer says when the worktree stayed on disk.',
+    destructive: true,
+    properties: {
+      target: string(
+        'Front: its id from group_list, a piece of its name no other front has, or the reference of a pane inside it (pa-3576, or "current" for yours)',
+        { minLength: 1 },
+      ),
+      confirm: flag('Also delete the worktree the front owns'),
+    },
+    required: ['target'],
+    route: 'group/close',
+    payload: (args) => ({ target: args.target, ...(args.confirm ? { confirmed: true } : {}) }),
+    result: (data) => data ?? {},
+  },
+  {
     name: 'todo_list',
     description: 'Tasks on the board, with the short id the other todo tools take.',
     readOnly: true,
@@ -320,8 +337,8 @@ function validate(tool, args) {
 
 /**
  * The frontend words its refusals for the command line. The flags that map one
- * to one onto a tool argument are renamed, so the fix it suggests is one the
- * caller can type.
+ * to one onto a tool argument are renamed, and so are the commands a tool
+ * covers, so the fix it suggests is one the caller can type.
  */
 function forTools(message) {
   return String(message ?? '')
@@ -329,6 +346,11 @@ function forTools(message) {
     .replace(/--force\b/g, '`force: true`')
     .replace(/--clear-session\b/g, '`clearSession: true`')
     .replace(/--session <id>/g, '`session: "<id>"`')
+    .replace(/\barco group list\b/g, 'group_list')
+    .replace(/\barco group close ("[^"]*"|[^\s"]+?)(?=[.,;:]?(?:\s|$))/g, (_, handle) => {
+      const quoted = handle.startsWith('"') ? handle : `"${handle}"`
+      return `group_close with \`target: ${quoted}\``
+    })
 }
 
 function toolError(text) {

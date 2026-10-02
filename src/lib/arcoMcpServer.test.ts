@@ -136,6 +136,7 @@ describe('the MCP handshake', () => {
     const { body } = await rpc('tools/list', {})
     const tools = body.result.tools as Array<{ name: string; inputSchema: Record<string, unknown> }>
     expect(tools.map((tool) => tool.name).sort()).toEqual([
+      'group_close',
       'group_list',
       'project_list',
       'session_close',
@@ -217,6 +218,56 @@ describe('tool calls', () => {
     const result = await call('session_close', { target: 'pa-1', confirm: true })
     expect(sent[0].payload).toMatchObject({ target: 'pa-1', confirmed: true })
     expect(result.data).toEqual({ message: 'Fechando pa-1.' })
+  })
+
+  it('closes a front with the request the command line sends, naming the calling pane', async () => {
+    reply = () => ({
+      ok: true,
+      message: 'Frente "PR 1" fechada: 1 sessão(ões), e a worktree cl-1 saiu do disco.',
+      data: { groupId: 'g1', panes: 1, worktree: { id: 'cl-1', state: 'removed' } },
+    })
+    const result = await call('group_close', { target: 'current', confirm: true }, 'pane-7')
+    expect(sent[0].event).toBe('cli://group-close')
+    expect(sent[0].payload).toMatchObject({
+      target: 'current',
+      confirmed: true,
+      sessionId: 'pane-7',
+    })
+    expect(result.error).toBe(false)
+    expect(result.data).toMatchObject({
+      groupId: 'g1',
+      worktree: { state: 'removed' },
+      message: expect.stringContaining('saiu do disco'),
+    })
+  })
+
+  it('leaves confirm out of the request unless the caller passed it', async () => {
+    reply = () => ({
+      ok: false,
+      message: 'tem worktree própria. Repita com --yes se for isso mesmo.',
+    })
+    const result = await call('group_close', { target: 'g1' })
+    expect(sent[0].payload).not.toHaveProperty('confirmed')
+    expect(result.error).toBe(true)
+    expect(result.text).toContain('`confirm: true`')
+  })
+
+  it('spells a suggested command as the tool that runs it', async () => {
+    reply = () => ({
+      ok: true,
+      message:
+        'Fechando pa-1. A frente "PR 1" ficou sem panes e segue aberta. Para fechá-la: arco group close "PR 1"',
+    })
+    const closed = await call('session_close', { target: 'pa-1' })
+    expect(closed.data?.message).toContain('group_close with `target: "PR 1"`')
+
+    reply = () => ({ ok: false, message: 'pa-9 é o orquestrador: arco group close pa-9.' })
+    const refused = await call('session_close', { target: 'pa-9' })
+    expect(refused.text).toContain('group_close with `target: "pa-9"`.')
+
+    reply = () => ({ ok: false, message: 'Veja as frentes abertas com arco group list.' })
+    const missing = await call('group_close', { target: 'nada' })
+    expect(missing.text).toContain('com group_list.')
   })
 
   it('filters a listing by status the way it prints it', async () => {

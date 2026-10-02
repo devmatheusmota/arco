@@ -9,6 +9,7 @@ import { deliverToPty, submitKeyFor } from './paneDelivery'
 import { normalizePaneRef } from './paneShortId'
 import { basename, sameCwd } from './paths'
 import { cliReply, type CliResult } from './tauri/cli'
+import { type WorktreeInfo, worktreeList } from './tauri/git'
 import { findTodoByRef, normalizeSearchText, parseTodoStatus, TODO_NOTES_MAX_LENGTH } from './todos'
 import type {
   AgentType,
@@ -1107,32 +1108,161 @@ type GroupCloseRequest = {
 }
 
 /**
+ * How long `arco group close` waits for the front to finish closing.
+ *
+ * Under the eight seconds the request has, so the answer can say what happened
+ * to the worktree instead of timing out. A removal that runs longer keeps going
+ * after the answer, and the window raises its own warning if it fails.
+ */
+const GROUP_CLOSE_WAIT_MS = 5000
+
+/** Where a worktree under `.arco/worktrees/` lives, and the repository it belongs to. */
+function worktreeHome(
+  agentId: string,
+  cwd: string | undefined,
+  projectRoot: string,
+): { repo: string; path: string } {
+  const path = cwd?.trim() || `${projectRoot}/.arco/worktrees/${agentId}`
+  // Read off the worktree's own path: the project's directory is not always the
+  // repository the worktree was provisioned from, and a worktree opened inside
+  // another one belongs to that inner tree.
+  const at = path.replace(/\\/g, '/').lastIndexOf('/.arco/worktrees/')
+  return { repo: at > 0 ? path.slice(0, at) : projectRoot, path }
+}
+
+/** The worktree's entry when it is still on disk, `null` when gone, `undefined` when git could not say. */
+async function worktreeLeftOnDisk(
+  agentId: string,
+  repo: string,
+): Promise<WorktreeInfo | null | undefined> {
+  if (!repo) return undefined
+  try {
+    const entries = await worktreeList(repo)
+    return entries.find((entry) => entry.agentId === agentId) ?? null
+  } catch {
+    return undefined
+  }
+}
+
+/** What `promise` resolved to within `ms`, or `null` past it, without leaving a timer behind. */
+function resultWithin<T>(promise: Promise<T>, ms: number): Promise<{ value: T } | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms)
+  })
+  return Promise.race([promise.then((value) => ({ value })), deadline]).finally(() =>
+    clearTimeout(timer),
+  )
+}
+
+/**
  * `arco group close <ref>` — closes a front of work and what it owns.
  *
  * The front is named by its own id or name, or by the reference of any session
- * inside it — see `resolveFront` for the order those are tried in.
+ * inside it — see `resolveFront` for the order those are tried in. The caller
+ * may sit in that front: closing it kills the caller with the rest, and the
+ * close runs here, in the window, whether or not anyone is left to read the
+ * answer.
  *
- * The command answers as soon as the decision is made. Removing a worktree
- * runs git twice with a wait in between and can outlast the eight seconds the
- * request has, and a front that closed is not made less closed by the CLI
- * having stopped listening.
+ * A front with a worktree of its own needs `confirmed`, the way
+ * `handleSessionClose` does: removal runs `git worktree remove --force`, which
+ * takes uncommitted work with it, and the window must not block on a
+ * `window.confirm` nobody is looking at.
+ *
+ * The answer waits for the close and then looks at the disk. A front used to
+ * answer "and the worktree" the moment the decision was made, and a worktree
+ * that stayed behind — registered in git, with nobody holding it — was only
+ * found by accident later. What the store believes it removed is not checked
+ * against; the directory is.
  */
-function handleGroupClose(request: GroupCloseRequest & SessionScope): CliResult {
+async function handleGroupClose(request: GroupCloseRequest & SessionScope): Promise<CliResult> {
   const match = resolveFront(request)
   if ('error' in match) return match.error
 
   const { group, projectId } = match.front
-  const panes = paneCount(match.front)
-  void useProjectsStore
-    .getState()
+  if (group.worktreeAgentId && !request.confirmed) {
+    return failure(
+      `A frente "${group.name}" tem worktree própria (${group.worktreeAgentId}) e fechá-la apaga ela com --force, ` +
+        'alterações não commitadas incluídas. Repita com --yes se for isso mesmo.',
+    )
+  }
+
+  const store = useProjectsStore.getState()
+  const project = store.projects.find((item) => item.id === projectId)
+  const members = (project?.terminals ?? []).filter((pane) => pane.groupId === group.id)
+  const panes = members.length
+  // A front from before fronts owned worktrees has none of its own while a pane
+  // in it does — `arco group list` shows that one as the front's. Closing the
+  // front does not remove it, and the answer has to say so.
+  const owner = group.worktreeAgentId ? undefined : members.find((pane) => pane.worktreeAgentId)
+  const worktreeId = group.worktreeAgentId ?? owner?.worktreeAgentId
+  const home = worktreeId
+    ? worktreeHome(
+        worktreeId,
+        group.worktreeAgentId ? group.cwd : owner?.cwd,
+        project?.defaultCwd?.trim() ?? '',
+      )
+    : null
+
+  // Resolves to the error when the close threw, `null` when it went through.
+  const closing = store
     .closeGroupWithWorktree(projectId, group.id, { assumeConfirmed: request.confirmed })
+    .then(
+      () => null,
+      (error: unknown) => String(error ?? 'erro desconhecido'),
+    )
+  const outcome = await resultWithin(closing, GROUP_CLOSE_WAIT_MS)
+  const finished = outcome !== null
+
   const what = panes === 0 ? 'nenhuma sessão, a frente estava vazia' : `${panes} sessão(ões)`
+  const data = { groupId: group.id, name: group.name, panes }
+  if (outcome?.value) {
+    return failure(
+      `O fechamento de "${group.name}" falhou: ${outcome.value.slice(0, 160)}. Confira o que sobrou com arco group list.`,
+    )
+  }
+  if (!worktreeId || !home) {
+    return {
+      ok: true,
+      message: `Frente "${group.name}" fechada: ${what}. Nada sai do disco.`,
+      data: { ...data, worktree: null },
+    }
+  }
+  if (!finished) {
+    return {
+      ok: true,
+      message:
+        `Fechando "${group.name}": ${what}. A worktree ${worktreeId} ainda está saindo do disco; ` +
+        'se não sair, a janela do Arco avisa e a lista entre as worktrees órfãs.',
+      data: { ...data, worktree: { id: worktreeId, path: home.path, state: 'pending' } },
+    }
+  }
+
+  const left = await worktreeLeftOnDisk(worktreeId, home.repo)
+  if (left === null) {
+    return {
+      ok: true,
+      message: `Frente "${group.name}" fechada: ${what}, e a worktree ${worktreeId} saiu do disco.`,
+      data: { ...data, worktree: { id: worktreeId, path: home.path, state: 'removed' } },
+    }
+  }
+  if (left === undefined) {
+    return {
+      ok: true,
+      message:
+        `Frente "${group.name}" fechada: ${what}. Não consegui conferir se a worktree ${worktreeId} ` +
+        `saiu do disco; veja com git -C ${home.repo} worktree list.`,
+      data: { ...data, worktree: { id: worktreeId, path: home.path, state: 'unknown' } },
+    }
+  }
+  const removal =
+    left.mode === 'gitWorktree'
+      ? `, ainda registrada no git. Para removê-la: git -C ${home.repo} worktree remove --force ${left.path}`
+      : '.'
   return {
     ok: true,
-    message: group.worktreeAgentId
-      ? `Fechando "${group.name}": ${what}, e a worktree ${group.worktreeAgentId}.`
-      : `Fechando "${group.name}": ${what}. Nada sai do disco.`,
-    data: { groupId: group.id, name: group.name, panes },
+    message: `Frente "${group.name}" fechada: ${what}, mas a worktree ${worktreeId} ficou no disco em ${left.path}${removal}`,
+    data: { ...data, worktree: { id: worktreeId, path: left.path, state: 'left' } },
   }
 }
 

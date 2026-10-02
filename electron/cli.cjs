@@ -110,7 +110,8 @@ Detalhe de cada um abaixo.
       <ref> e a frente: o id dela (a primeira coluna de "arco group list") ou
       um trecho do nome que so ela tenha; ou uma sessao dela (pa-3576, current).
       Assim tambem fecha uma frente que ficou sem panes. Um <ref> que serve a
-      mais de uma frente falha e lista as candidatas
+      mais de uma frente falha e lista as candidatas. A resposta confere o disco
+      e diz se a worktree ficou para tras, com o comando que a remove
 
   arco session send <ref> <texto>
       manda texto para um pane que ja esta aberto; entra quando o agente ficar ocioso
