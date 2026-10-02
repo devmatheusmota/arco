@@ -840,6 +840,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v382.note1':
+    'A session started with "Start a session for this task" now stays tied to the task. Before, only the task row knew about it: `arco todo list --json`, the MCP tools and `arco session list` showed the task with no session while its pane was open, and anything reading them fell back to the front name. Tasks you started this way before the update get their session back the next time Arco opens.',
   'whatsNew.v381.note1':
     'Agents now reach for Arco\u2019s MCP tools first. The instructions every session receives list the tools and keep the `arco` shell command for the few things the tools do not cover, and a message from another pane tells the agent to answer with `session_send` instead of the shell command. Sessions pick this up the next time they start.',
   'whatsNew.v380.note1':

@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.8.2] — 2026-10-02
+
 ### Fixed
 
 - A session started with "Start a session for this task" is now recorded as the task's session.

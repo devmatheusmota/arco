@@ -852,6 +852,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v382.note1':
+    'Uma sessão aberta pelo "Iniciar uma sessão para esta tarefa" agora fica ligada à tarefa. Antes, só a linha da tarefa sabia dela: `arco todo list --json`, as ferramentas do MCP e `arco session list` mostravam a tarefa sem sessão com o pane aberto, e quem lia esses dados caía no nome da frente. Tarefas abertas assim antes da atualização recuperam a sessão na próxima vez que o Arco abrir.',
   'whatsNew.v381.note1':
     'Os agentes agora usam primeiro as ferramentas do MCP do Arco. As instruções que toda sessão recebe listam as ferramentas e deixam o comando `arco` no shell só para o pouco que elas não cobrem, e uma mensagem vinda de outro pane manda o agente responder com `session_send` em vez do comando no shell. As sessões passam a seguir isso na próxima vez que iniciarem.',
   'whatsNew.v380.note1':
