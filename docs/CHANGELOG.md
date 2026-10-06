@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.10.2] — 2026-10-06
+
+### Fixed
+
+- A Claude pane closed before anyone typed in it comes back empty when Arco reopens. It used to come
+  back with the most recent conversation from the same folder, often one that belonged to another
+  pane. When a pane's saved conversation cannot be resumed, Arco now only falls back to a
+  conversation that pane held before.
+
 ## [3.10.1] — 2026-10-06
 
 ### Fixed

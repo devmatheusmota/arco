@@ -852,6 +852,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3102.note1':
+    'Um pane do Claude que você abriu e fechou sem digitar nada agora volta vazio quando o Arco reabre. Antes, ele podia voltar com a conversa de outro pane da mesma pasta. Quando a conversa de um pane não pode ser retomada, ele agora só volta para uma que ele mesmo já teve.',
   'whatsNew.v3101.note1':
     'A barra lateral agora marca só a frente que está na tela. Antes, toda frente com aba no topo ficava destacada, e não dava para saber em qual você estava. Enquanto uma frente está marcada, a linha do projeto acima dela fica sem destaque.',
   'whatsNew.v3100.note1':
