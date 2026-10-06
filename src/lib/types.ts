@@ -155,6 +155,12 @@ export type SubTab = {
   completionUnread?: boolean
 
   sessionId?: string
+  /**
+   * Conversations this tab held before `sessionId`, newest first. A restore whose
+   * pointer has nothing to resume falls back to one of these, never to another
+   * pane's conversation.
+   */
+  previousSessionIds?: string[]
   /** Args extras passados pro launcher (ex: --dangerously-skip-permissions). */
   extraArgs?: string[]
 

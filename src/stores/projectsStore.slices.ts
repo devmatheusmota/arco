@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 import type { StoreApi } from 'zustand'
 
 import { mergeAdoRef, normalizeAdoRef } from '../lib/adoRef'
+import { rememberPreviousSession } from '../lib/sessionDiscovery'
 import { resolveTerminalCwd, touchTerminalUsage } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
 import {
@@ -370,7 +371,14 @@ export function createSubTabsSlice({ updateTerminal, updateSubTab }: SliceCtx): 
       }),
 
     setSubTabSessionId: (projectId, terminalId, tabId, sessionId) =>
-      updateSubTab(projectId, terminalId, tabId, (s) => ({ ...s, sessionId })),
+      updateSubTab(projectId, terminalId, tabId, (s) => {
+        const previousSessionIds = rememberPreviousSession(
+          s.previousSessionIds,
+          s.sessionId,
+          sessionId,
+        )
+        return { ...s, sessionId, previousSessionIds }
+      }),
 
     setSubTabInitialInput: (projectId, terminalId, tabId, initialInput) =>
       updateSubTab(projectId, terminalId, tabId, (s) => ({ ...s, initialInput })),

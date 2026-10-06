@@ -46,22 +46,37 @@ export type ResumePlan = {
   replacement?: SessionSnapshot
 }
 
+export type ResumeFallback = {
+  /**
+   * Conversations the pane held before its current pointer, newest first. The
+   * only ones a bad pointer may fall back to.
+   */
+  previousIds?: readonly string[]
+  /** False for a session another pane is already writing to. */
+  isUsable?: (session: SessionSnapshot) => boolean
+}
+
 /**
  * What a pane should resume when its saved pointer names a session it must not
  * come back to, or `null` when the pointer is fine.
  *
- * Three ways a pointer goes bad, and all of them bury the conversation the pane
- * was in: the session is gone from disk — a transcript deleted by hand, a
- * worktree removed, a cleaned-up `~/.claude` — or it never got a transcript
- * because the agent created the directory and nothing else, or it names an
- * automated run such as `/security-review`, which shares the per-project
- * directory. Falling straight to a new session in any of those cases loses the
- * pointer to the real conversation, since the new id is what gets saved over it.
+ * Three ways a pointer goes bad: the session is gone from disk — a transcript
+ * deleted by hand, a worktree removed, a cleaned-up `~/.claude` — or it never got
+ * a transcript because the agent created the directory and nothing else, or it
+ * names an automated run such as `/security-review`, which shares the
+ * per-project directory. When the pointer replaced a conversation the pane was
+ * in, falling straight to a new session would bury that conversation, so the
+ * pane goes back to it.
+ *
+ * Only to one the pane itself held. A pane opened and closed before anyone typed
+ * in it has a pointer with no transcript and nothing behind it; picking "the
+ * newest conversation in the directory" for it handed the pane a conversation
+ * from another pane, possibly one that was still waiting to boot.
  */
 export function planResume(
   pointerId: string,
   sessions: readonly SessionSnapshot[],
-  isUsable: (session: SessionSnapshot) => boolean = () => true,
+  { previousIds = [], isUsable = () => true }: ResumeFallback = {},
 ): ResumePlan | null {
   const match = sessions.find((session) => session.id === pointerId)
   const problem: PointerProblem | null = !match
@@ -72,16 +87,32 @@ export function planResume(
         ? 'pointed-session-empty'
         : null
   if (!problem) return null
-  const replacement = sessions
-    .filter(
-      (session) =>
-        session.id !== pointerId &&
-        hasTranscript(session) &&
-        isInteractiveSession(session) &&
-        isUsable(session),
+  const replacement = previousIds
+    .filter((id) => id !== pointerId)
+    .map((id) => sessions.find((session) => session.id === id))
+    .find(
+      (session): session is SessionSnapshot =>
+        !!session && hasTranscript(session) && isInteractiveSession(session) && isUsable(session),
     )
-    .sort((a, b) => b.modified_at_ms - a.modified_at_ms)[0]
   return replacement ? { problem, replacement } : { problem }
+}
+
+/** How many earlier conversations a tab remembers for {@link planResume}. */
+const PREVIOUS_SESSION_LIMIT = 8
+
+/**
+ * The tab's earlier conversations once its pointer moves from `current` to
+ * `next`, newest first.
+ */
+export function rememberPreviousSession(
+  previousIds: readonly string[] | undefined,
+  current: string | undefined,
+  next: string | undefined,
+): string[] | undefined {
+  const kept = (previousIds ?? []).filter((id) => id !== next && id !== current)
+  const updated = current && current !== next ? [current, ...kept] : kept
+  const limited = updated.slice(0, PREVIOUS_SESSION_LIMIT)
+  return limited.length > 0 ? limited : undefined
 }
 
 const claimedIds = new Map<string, Set<string>>()

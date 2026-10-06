@@ -171,6 +171,7 @@ export function useXtermSession(params: {
   extraArgs?: string[]
   initialInput?: string
   sessionId?: string
+  previousSessionIds?: readonly string[]
   env?: Record<string, string>
   graphifyRepo?: string | null
 
@@ -216,6 +217,7 @@ export function useXtermSession(params: {
     extraArgs,
     initialInput,
     sessionId,
+    previousSessionIds,
     env,
     graphifyRepo,
     gsdWatcherEnabled,
@@ -1404,11 +1406,11 @@ export function useXtermSession(params: {
             const plan =
               command === 'opencode'
                 ? null
-                : planResume(
-                    resumeId,
-                    existing,
-                    (session) => !isSessionClaimed(command, cwd, session.id, sessionPersistenceKey),
-                  )
+                : planResume(resumeId, existing, {
+                    previousIds: previousSessionIds,
+                    isUsable: (session) =>
+                      !isSessionClaimed(command, cwd, session.id, sessionPersistenceKey),
+                  })
 
             if (plan) {
               const noOther = plan.replacement ? '' : '-and-no-other'

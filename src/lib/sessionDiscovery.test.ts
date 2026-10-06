@@ -8,6 +8,7 @@ import {
   planResume,
   registerSessionClaim,
   releaseSessionClaim,
+  rememberPreviousSession,
   resetSessionClaimsForTests,
 } from './sessionDiscovery'
 
@@ -149,13 +150,34 @@ describe('a pane closed and reopened while another pane watches the same directo
     // listing — built from `*.jsonl` — does not have it at all.
     registerSessionClaim('claude', cwd, watcherOwn.id, 'pane-watching')
 
-    const plan = planResume(
-      '20952054',
-      [conversation, watcherOwn],
-      (session) => !isSessionClaimed('claude', cwd, session.id, 'pane-reopened'),
-    )
+    const plan = planResume('20952054', [conversation, watcherOwn], {
+      previousIds: [conversation.id],
+      isUsable: (session) => !isSessionClaimed('claude', cwd, session.id, 'pane-reopened'),
+    })
 
     expect(plan).toEqual({ problem: 'not-listed', replacement: conversation })
+  })
+})
+
+// A front opened with a fresh Claude pane, closed before anyone typed in it.
+// The pane's pointer names a session that never got a transcript, and the
+// directory holds conversations from other panes, one of them still waiting to
+// boot and so not yet claimed.
+describe('a pane that never had a conversation', () => {
+  const cwd = '/home/mota/projetos/emr/EGA2.0'
+  const idleGame = { id: '6dda870d', modified_at_ms: 100, size_bytes: 649_244, interactive: true }
+  const sibling = { id: '760e8263', modified_at_ms: 200, size_bytes: 511_087, interactive: true }
+
+  beforeEach(() => {
+    resetSessionClaimsForTests()
+  })
+
+  it('comes back empty instead of adopting a conversation from the same directory', () => {
+    const plan = planResume('46fdc8a5', [sibling, idleGame], {
+      isUsable: (session) => !isSessionClaimed('claude', cwd, session.id, 'pane-empty'),
+    })
+
+    expect(plan).toEqual({ problem: 'not-listed' })
   })
 })
 
@@ -194,45 +216,106 @@ describe('planResume', () => {
     expect(planResume('minha-conversa', [real, older])).toBeNull()
   })
 
-  it('falls back to the newest conversation when the transcript is gone from disk', () => {
-    const plan = planResume('apagada', [older, real])
+  it('falls back to the conversation the pane held when the transcript is gone from disk', () => {
+    const plan = planResume('apagada', [older, real], { previousIds: ['minha-conversa'] })
 
     expect(plan?.problem).toBe('not-listed')
     expect(plan?.replacement?.id).toBe('minha-conversa')
   })
 
   it('falls back when the pointer names an automated run', () => {
-    const plan = planResume('security-review', [
-      { id: 'security-review', modified_at_ms: 300, size_bytes: 500, interactive: false },
-      real,
-    ])
+    const plan = planResume(
+      'security-review',
+      [{ id: 'security-review', modified_at_ms: 300, size_bytes: 500, interactive: false }, real],
+      { previousIds: ['minha-conversa'] },
+    )
 
     expect(plan?.problem).toBe('pointed-session-automated')
     expect(plan?.replacement?.id).toBe('minha-conversa')
   })
 
   it('falls back when the pointer names a session that never got a transcript', () => {
-    const plan = planResume('vazia', [
-      { id: 'vazia', modified_at_ms: 300, size_bytes: 0, interactive: true },
-      real,
-    ])
+    const plan = planResume(
+      'vazia',
+      [{ id: 'vazia', modified_at_ms: 300, size_bytes: 0, interactive: true }, real],
+      { previousIds: ['minha-conversa'] },
+    )
 
     expect(plan?.problem).toBe('pointed-session-empty')
     expect(plan?.replacement?.id).toBe('minha-conversa')
   })
 
+  it('never falls back to a conversation the pane did not hold', () => {
+    const plan = planResume('vazia', [real, older])
+
+    expect(plan).toEqual({ problem: 'not-listed' })
+  })
+
+  it('prefers the conversation the pane held most recently', () => {
+    const plan = planResume('apagada', [real, older], {
+      previousIds: ['conversa-antiga', 'minha-conversa'],
+    })
+
+    expect(plan?.replacement?.id).toBe('conversa-antiga')
+  })
+
+  it('skips an earlier conversation that is gone or empty', () => {
+    const plan = planResume(
+      'apagada',
+      [{ id: 'vazia', modified_at_ms: 300, size_bytes: 0, interactive: true }, older],
+      { previousIds: ['sumiu', 'vazia', 'conversa-antiga'] },
+    )
+
+    expect(plan?.replacement?.id).toBe('conversa-antiga')
+  })
+
   it('reports no replacement when the directory holds nothing worth resuming', () => {
-    const plan = planResume('apagada', [
-      { id: 'security-review', modified_at_ms: 300, size_bytes: 500, interactive: false },
-      { id: 'vazia', modified_at_ms: 200, size_bytes: 0, interactive: true },
-    ])
+    const plan = planResume(
+      'apagada',
+      [
+        { id: 'security-review', modified_at_ms: 300, size_bytes: 500, interactive: false },
+        { id: 'vazia', modified_at_ms: 200, size_bytes: 0, interactive: true },
+      ],
+      { previousIds: ['security-review', 'vazia'] },
+    )
 
     expect(plan).toEqual({ problem: 'not-listed' })
   })
 
   it('leaves a conversation another pane is already writing to alone', () => {
-    const plan = planResume('apagada', [real, older], (session) => session.id !== 'minha-conversa')
+    const plan = planResume('apagada', [real, older], {
+      previousIds: ['minha-conversa', 'conversa-antiga'],
+      isUsable: (session) => session.id !== 'minha-conversa',
+    })
 
     expect(plan?.replacement?.id).toBe('conversa-antiga')
+  })
+})
+
+describe('rememberPreviousSession', () => {
+  it('keeps the conversation a pane moves away from, newest first', () => {
+    expect(rememberPreviousSession(['a'], 'b', 'c')).toEqual(['b', 'a'])
+  })
+
+  it('remembers nothing for a pane that had no pointer', () => {
+    expect(rememberPreviousSession(undefined, undefined, 'novo')).toBeUndefined()
+  })
+
+  it('drops the conversation the pane moves back to', () => {
+    expect(rememberPreviousSession(['a', 'b'], 'c', 'a')).toEqual(['c', 'b'])
+  })
+
+  it('keeps the list unchanged when the pointer does not move', () => {
+    expect(rememberPreviousSession(['a'], 'b', 'b')).toEqual(['a'])
+  })
+
+  it('keeps the conversation when the pointer is cleared', () => {
+    expect(rememberPreviousSession(undefined, 'a', undefined)).toEqual(['a'])
+  })
+
+  it('stays bounded', () => {
+    const many = Array.from({ length: 20 }, (_, index) => `s${index}`)
+
+    expect(rememberPreviousSession(many, 'atual', 'novo')).toHaveLength(8)
   })
 })

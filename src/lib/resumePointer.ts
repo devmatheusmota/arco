@@ -34,6 +34,7 @@ export async function checkedResumePointer(
   cwd: string,
   pointer: string,
   owner: string,
+  previousIds: readonly string[] = [],
   list: ListSessions = listSessions,
 ): Promise<string | undefined> {
   const listing = list(agent, cwd)
@@ -44,11 +45,10 @@ export async function checkedResumePointer(
   } catch {
     return pointer
   }
-  const plan = planResume(
-    pointer,
-    sessions,
-    (session) => !isSessionClaimed(agent, cwd, session.id, owner),
-  )
+  const plan = planResume(pointer, sessions, {
+    previousIds,
+    isUsable: (session) => !isSessionClaimed(agent, cwd, session.id, owner),
+  })
   if (!plan) return pointer
   const replacement = plan.replacement?.id
   void recordAppEvent(

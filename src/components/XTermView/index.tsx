@@ -53,6 +53,8 @@ export type XTermViewProps = {
   initialInput?: string
   /** Identidade persistida da conversa deste pane. */
   sessionId?: string
+  /** Conversations the pane held before `sessionId`, newest first. */
+  previousSessionIds?: readonly string[]
 
   sessionKey?: string
 
@@ -91,6 +93,7 @@ export function XTermView({
   extraArgs,
   initialInput,
   sessionId,
+  previousSessionIds,
   sessionKey,
   env,
   graphifyRepo,
@@ -315,6 +318,7 @@ export function XTermView({
     extraArgs,
     initialInput,
     sessionId,
+    previousSessionIds,
     env,
     graphifyRepo,
     gsdWatcherEnabled,

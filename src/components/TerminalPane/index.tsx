@@ -215,6 +215,7 @@ export const TerminalPane = memo(function TerminalPane({
         restartCwd,
         resumeSessionId,
         activeTab.id,
+        activeTab.previousSessionIds,
       )
     }
     const project = useProjectsStore.getState().projects.find((item) => item.id === projectId)
@@ -472,6 +473,7 @@ export const TerminalPane = memo(function TerminalPane({
                   initialInput={activeTab.initialInput}
                   runtimeProfile={activeTab.runtimeProfile}
                   sessionId={activeTab.sessionId}
+                  previousSessionIds={activeTab.previousSessionIds}
                   graphifyRepo={graphifyRepo}
                   gsdWatcherEnabled={gsdWatcherEnabled}
                   trustSessionId={terminal.gsdSyncViewer}
