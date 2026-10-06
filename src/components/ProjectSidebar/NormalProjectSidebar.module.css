@@ -176,7 +176,8 @@
   box-shadow: inset 2px 0 0 var(--state-selected-rail);
 }
 
-.projectRowActive .projectName {
+.projectRowActive .projectName,
+.projectRowCurrent .projectName {
   font-weight: var(--font-weight-medium);
 }
 
@@ -434,10 +435,16 @@
 }
 
 /* The front whose sessions are on screen. Without it the sidebar gives no sign
-   of where you are, now that the panes are not listed under it. */
-.groupRowOpen {
-  background: var(--panel-hover);
-  box-shadow: inset 2px 0 0 var(--accent);
+   of where you are, now that the panes are not listed under it. Same treatment
+   as any selected row, so it never reads as a hover. */
+.groupRowOpen,
+.groupRowOpen:hover {
+  background: var(--state-selected);
+  box-shadow: inset 2px 0 0 var(--state-selected-rail);
+}
+
+.groupRowOpen .groupLead {
+  color: var(--fg-muted);
 }
 
 .groupLead {

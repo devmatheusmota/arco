@@ -27,13 +27,14 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { frontShortcuts, orderedFronts } from '../../lib/frontOrder'
 import { useT } from '../../lib/i18n'
+import { panesOnScreen } from '../../lib/paneLayout'
 import { formatShortcut } from '../../lib/platform'
 import {
   sidebarDragKind,
   type SidebarDropIndicator,
   sidebarInsertionIndex,
 } from '../../lib/sidebarDrag'
-import { type Project } from '../../lib/types'
+import { type Project, type Terminal } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { EmptyState } from '../EmptyState'
@@ -159,6 +160,22 @@ export function NormalProjectSidebar() {
   }, [containers])
 
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
+  // Every front of a project has a tab once it is open, so "has a pane in the
+  // container" lights them all. Only the front of the active session is on
+  // screen, and it is picked by the same rule the workspace draws with.
+  const onScreenGroupIds = useMemo(() => {
+    const map: Record<string, string | null> = {}
+    for (const c of containers) {
+      const project = projectsById.get(c.projectId)
+      if (!project) continue
+      const byId = new Map(project.terminals.map((term) => [term.id, term]))
+      const panes = c.paneIds
+        .map((id) => byId.get(id))
+        .filter((term): term is Terminal => Boolean(term))
+      map[c.projectId] = panesOnScreen(panes, c).activePane?.groupId ?? null
+    }
+    return map
+  }, [containers, projectsById])
   const frontShortcutLabels = useMemo(
     () => frontShortcuts(orderedFronts(projectOrder, projects)),
     [projectOrder, projects],
@@ -276,6 +293,7 @@ export function NormalProjectSidebar() {
       project={p}
       isActive={p.id === activeProjectId}
       openPanes={openPaneSets[p.id]}
+      onScreenGroupId={onScreenGroupIds[p.id] ?? null}
       frontShortcuts={frontShortcutLabels}
       onActivate={() => {
         activateProject(p)

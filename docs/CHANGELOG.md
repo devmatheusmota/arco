@@ -10,6 +10,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- The sidebar marks only the front you are looking at. Every front with a tab at the top of the
+  workspace used to light up, so a project with three fronts showed three selected rows and no way
+  to tell which one was on screen. The project row also drops its highlight while a front inside it
+  carries the selection.
+
 ## [3.10.0] — 2026-10-02
 
 ### Added
