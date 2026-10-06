@@ -852,6 +852,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3101.note1':
+    'A barra lateral agora marca só a frente que está na tela. Antes, toda frente com aba no topo ficava destacada, e não dava para saber em qual você estava. Enquanto uma frente está marcada, a linha do projeto acima dela fica sem destaque.',
   'whatsNew.v3100.note1':
     'O Arco agora encontra worktrees que nenhuma frente ou sessão usa. Pouco depois de abrir, ele lista essas worktrees nas configurações do projeto, em Worktrees, e mostra um aviso com um botão que leva até lá. Nada é apagado até você clicar para limpar, e worktree com alteração não commitada ou commit que nunca chegou a um remoto fica, com o motivo ao lado.',
   'whatsNew.v3100.note2':

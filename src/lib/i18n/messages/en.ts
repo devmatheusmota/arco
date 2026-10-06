@@ -840,6 +840,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3101.note1':
+    'The sidebar now marks only the front you are looking at. Before, every front with a tab at the top lit up, so it was hard to tell which one was on screen. While a front is marked, the project row above it stays plain.',
   'whatsNew.v3100.note1':
     'Arco now finds worktrees that no front or session uses. A little after it opens, it lists them in the project settings, under Worktrees, and shows a notice with a button that takes you there. Nothing is deleted until you click to clean them up, and any worktree with uncommitted changes or commits that never reached a remote is kept, with the reason next to it.',
   'whatsNew.v3100.note2':

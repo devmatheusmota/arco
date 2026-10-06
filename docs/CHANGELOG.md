@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.10.1] — 2026-10-06
+
 ### Fixed
 
 - The sidebar marks only the front you are looking at. Every front with a tab at the top of the
