@@ -34,6 +34,7 @@ export const CLI_CONTEXT_PROMPT = [
   '  session_send                      text for a pane already running',
   '  session_open, session_close       open a pane, a front or a worktree; close a pane',
   '  group_close                       close a front, its panes and its worktree, when asked to',
+  '  open_url                          a web page in the browser, brought in front of Arco',
   '',
   'A pane you send text to answers in its own pane, so say what you need. Text another',
   'pane sends you starts with a line naming it; answer it with session_send.',

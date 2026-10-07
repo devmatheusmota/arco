@@ -10,6 +10,9 @@
 // Stateless: no `Mcp-Session-Id`, no server-initiated stream. The caller names
 // its own pane through the `X-Arco-Session` header, which is how `current`
 // resolves without a working directory.
+//
+// A tool with `run` instead of `route` is answered in the main process: it acts
+// on the desktop, not on the workspace the frontend owns.
 
 const SUPPORTED_PROTOCOLS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']
 
@@ -227,6 +230,26 @@ const TOOLS = [
     result: todoResult,
   },
   {
+    name: 'open_url',
+    description:
+      'Opens a web page in the default browser and brings the browser to the front, like the "Open in browser" item of the link menu. Only http and https addresses.',
+    openWorld: true,
+    properties: {
+      url: string('Address to open, starting with http:// or https://', { minLength: 1 }),
+    },
+    required: ['url'],
+    run: async (args, { openUrl }) => {
+      const address = webAddress(args.url)
+      if (address.problem) return toolError(`open_url: ${address.problem}`)
+      try {
+        await openUrl(address.href)
+      } catch (error) {
+        return toolError(`open_url: the browser did not open: ${error?.message ?? error}`)
+      }
+      return toolResult({ opened: address.href })
+    },
+  },
+  {
     name: 'project_list',
     description:
       'Projects and their directories; `current: true` marks the one owning the caller directory. Other tools take the name as `project`.',
@@ -266,6 +289,26 @@ function todoRow(todo) {
   }
 }
 
+/**
+ * The address `open_url` hands the browser, or why it does not.
+ *
+ * The URL usually comes from data nobody here wrote (a pull request link read
+ * from Azure DevOps), and the system opener would run a `file:` path or any
+ * scheme a desktop app registered. Only web pages go through.
+ */
+function webAddress(value) {
+  let parsed
+  try {
+    parsed = new URL(value)
+  } catch {
+    return { problem: `"${value}" is not a URL` }
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { problem: `only http and https addresses open (got ${parsed.protocol})` }
+  }
+  return { href: parsed.href }
+}
+
 function todoResult(data) {
   const todo = data?.todo
   return { todo: todo ? { ...todoRow(todo), notes: todo.notes ?? '' } : null }
@@ -284,7 +327,7 @@ function toolSchema(tool) {
     annotations: {
       readOnlyHint: Boolean(tool.readOnly),
       destructiveHint: Boolean(tool.destructive),
-      openWorldHint: false,
+      openWorldHint: Boolean(tool.openWorld),
     },
   }
 }
@@ -368,15 +411,17 @@ function toolResult(structured) {
  * Builds the handler the listener calls for `POST /mcp`.
  *
  * `dispatch(route, payload)` is the `/cli/*` path: it resolves to what the
- * frontend answered, or `null` when it did not answer in time.
+ * frontend answered, or `null` when it did not answer in time. `openUrl(href)`
+ * hands an address to the system browser.
  */
-function createMcpServer({ dispatch, version }) {
+function createMcpServer({ dispatch, version, openUrl }) {
   async function callTool(params, caller) {
     const tool = TOOLS_BY_NAME.get(params?.name)
     if (!tool) return { error: { code: -32602, message: `Unknown tool: ${params?.name}` } }
     const args = params.arguments ?? {}
     const problem = validate(tool, args)
     if (problem) return { result: toolError(`${tool.name}: ${problem}`) }
+    if (tool.run) return { result: await tool.run(args, { openUrl }) }
 
     const payload = { ...tool.payload(args), ...(caller ? { sessionId: caller } : {}) }
     const answer = await dispatch(tool.route, payload)

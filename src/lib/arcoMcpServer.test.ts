@@ -16,6 +16,7 @@ const { startHookListener, buildHookCommands } = require('../../electron/command
   startHookListener: (
     send: (event: string, payload: Record<string, unknown>) => void,
     readTodos: () => unknown[],
+    options?: { openUrl?: (href: string) => Promise<void> },
   ) => { close: () => void }
   buildHookCommands: () => {
     arco_mcp_launch: () => { url: string; token: string; claudeConfig: string } | null
@@ -28,6 +29,8 @@ type Reply = { ok?: boolean; message?: string; data?: unknown; stale?: boolean }
 const commands = buildHookCommands()
 const sent: Array<{ event: string; payload: Record<string, unknown> }> = []
 let reply: ((payload: Record<string, unknown>) => Reply | null) | null = null
+const opened: string[] = []
+let browserFails = false
 let server: { close: () => void }
 let launch: { url: string; token: string; claudeConfig: string }
 
@@ -39,6 +42,12 @@ beforeAll(async () => {
       if (result) commands.cli_reply({ requestId: String(payload.requestId), result })
     },
     () => [{ id: 'do-disco', title: 'lida do arquivo', status: 'todo' }],
+    {
+      openUrl: async (href) => {
+        if (browserFails) throw new Error('xdg-open exited with 3')
+        opened.push(href)
+      },
+    },
   )
   await new Promise((resolve) => setTimeout(resolve, 50))
   launch = commands.arco_mcp_launch()!
@@ -47,6 +56,8 @@ beforeAll(async () => {
 beforeEach(() => {
   reply = null
   sent.length = 0
+  opened.length = 0
+  browserFails = false
 })
 
 afterAll(() => {
@@ -138,6 +149,7 @@ describe('the MCP handshake', () => {
     expect(tools.map((tool) => tool.name).sort()).toEqual([
       'group_close',
       'group_list',
+      'open_url',
       'project_list',
       'session_close',
       'session_list',
@@ -308,6 +320,66 @@ describe('tool calls', () => {
   it('refuses an unknown tool as a protocol error', async () => {
     const { body } = await rpc('tools/call', { name: 'todo_delete', arguments: {} })
     expect(body.error.code).toBe(-32602)
+  })
+})
+
+describe('open_url', () => {
+  it('hands a web address to the browser without going through the window', async () => {
+    const result = await call('open_url', {
+      url: 'https://dev.azure.com/emr/Plataforma/_git/soa/pullrequest/9174',
+    })
+    expect(result.error).toBe(false)
+    expect(opened).toEqual(['https://dev.azure.com/emr/Plataforma/_git/soa/pullrequest/9174'])
+    expect(result.data).toEqual({
+      opened: 'https://dev.azure.com/emr/Plataforma/_git/soa/pullrequest/9174',
+    })
+    expect(sent).toHaveLength(0)
+  })
+
+  it('opens the address as the URL parser reads it', async () => {
+    await call('open_url', { url: '  HTTP://Example.com/a b  ' })
+    expect(opened).toEqual(['http://example.com/a%20b'])
+  })
+
+  it('refuses every scheme that is not a web page', async () => {
+    for (const url of [
+      'file:///etc/passwd',
+      'javascript:alert(1)',
+      'vscode://file/home/x',
+      'ftp://example.com',
+      'data:text/html,<p>x</p>',
+    ]) {
+      const result = await call('open_url', { url })
+      expect(result.error, url).toBe(true)
+      expect(result.text).toContain('only http and https')
+    }
+    expect(opened).toEqual([])
+  })
+
+  it('refuses what is not a URL at all', async () => {
+    const result = await call('open_url', { url: 'dev.azure.com/emr' })
+    expect(result.error).toBe(true)
+    expect(result.text).toContain('is not a URL')
+    expect(opened).toEqual([])
+  })
+
+  it('reports a browser that failed to open as a tool error', async () => {
+    browserFails = true
+    const result = await call('open_url', { url: 'https://example.com' })
+    expect(result.error).toBe(true)
+    expect(result.text).toContain('xdg-open exited with 3')
+  })
+
+  it('tells the client it reaches outside Arco', async () => {
+    const { body } = await rpc('tools/list', {})
+    const tool = (
+      body.result.tools as Array<{ name: string; annotations: Record<string, boolean> }>
+    ).find((entry) => entry.name === 'open_url')!
+    expect(tool.annotations).toEqual({
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: true,
+    })
   })
 })
 

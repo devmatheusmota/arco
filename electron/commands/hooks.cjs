@@ -119,7 +119,18 @@ function resolveCliReply(requestId, result) {
   return true
 }
 
-function startHookListener(send, readTodos) {
+/**
+ * Opens an address in the system browser from the main process. It is the call
+ * behind the link menu's "Open in browser": on Wayland, Electron asks the
+ * compositor for an activation token off the window's last input, so the
+ * browser comes to the front. `xdg-open` run from a pane has no such token, and
+ * the page opens behind Arco.
+ */
+function openInBrowser(href) {
+  return require('electron').shell.openExternal(href)
+}
+
+function startHookListener(send, readTodos, { openUrl = openInBrowser } = {}) {
   /**
    * Hands a `/cli/*` request to the frontend and waits for what it did. `null`
    * means it never answered — except a listing, which the file on disk serves.
@@ -134,7 +145,7 @@ function startHookListener(send, readTodos) {
       return { ok: true, stale: true, data: { todos: readTodos() } }
     return result
   }
-  const mcp = createMcpServer({ dispatch, version: appVersion })
+  const mcp = createMcpServer({ dispatch, version: appVersion, openUrl })
 
   const server = http.createServer(async (request, response) => {
     if (request.headers['x-arco-token'] !== token) {
