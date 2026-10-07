@@ -852,6 +852,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3110.note1':
+    'Agentes num pane agora conseguem abrir uma página no navegador e trazer o navegador para a frente do Arco, pela nova tool `open_url`. Antes, a página que um agente abria com `xdg-open` ficava atrás do Arco no GNOME com Wayland, e você precisava ir atrás dela. Só endereços http e https abrem. Os panes iniciados depois da atualização já têm a tool.',
   'whatsNew.v3102.note1':
     'Um pane do Claude que você abriu e fechou sem digitar nada agora volta vazio quando o Arco reabre. Antes, ele podia voltar com a conversa de outro pane da mesma pasta. Quando a conversa de um pane não pode ser retomada, ele agora só volta para uma que ele mesmo já teve.',
   'whatsNew.v3101.note1':

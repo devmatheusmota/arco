@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.11.0] — 2026-10-07
+
+### Added
+
+- The `arco` MCP server has an `open_url` tool that opens a web page in the default browser and
+  brings the browser in front of Arco, the same way the link menu's "Open in browser" does. A
+  browser started by `xdg-open` from inside a pane opens behind Arco on GNOME under Wayland. Only
+  `http` and `https` addresses are accepted.
+
 ## [3.10.2] — 2026-10-06
 
 ### Fixed

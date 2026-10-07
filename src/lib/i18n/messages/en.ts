@@ -840,6 +840,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3110.note1':
+    'Agents in a pane can now open a web page in your browser and bring the browser in front of Arco, through the new `open_url` tool. Before, a page an agent opened with `xdg-open` landed behind Arco on GNOME under Wayland, and you had to go find it. Only http and https addresses open. Panes started after the update have the tool.',
   'whatsNew.v3102.note1':
     'A Claude pane you opened and closed without typing in it now comes back empty when Arco reopens. Before, it could come back with a conversation from another pane in the same folder. A pane whose conversation cannot be resumed now only goes back to one it had before.',
   'whatsNew.v3101.note1':
