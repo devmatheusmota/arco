@@ -44,6 +44,33 @@ function reportRenderer(kind: TerminalRendererKind, detail?: string): void {
   void recordAppEvent('terminal.renderer', detail ? `${kind}: ${detail}` : kind).catch(() => {})
 }
 
+/**
+ * Stops the cursor blink timer the WebGL renderer leaves running.
+ *
+ * In @xterm/addon-webgl 0.18 the renderer keeps its blink state in a disposable
+ * it never registers, so disposing the addon leaves a 600 ms interval alive for
+ * the life of the page. That timer holds the renderer and, through it, the
+ * terminal with its whole scrollback: every pane hidden or closed while it had
+ * focus left one behind, and a long session piled them up by the dozen. The
+ * fields are private, so a version that renames them turns this into a no-op
+ * instead of an error.
+ */
+export function stopWebglCursorBlink(addon: unknown): void {
+  try {
+    const renderer = (
+      addon as { _renderer?: { _cursorBlinkStateManager?: { clear?: () => void } } } | null
+    )?._renderer
+    renderer?._cursorBlinkStateManager?.clear?.()
+  } catch {}
+}
+
+/**
+ * Set once WebGL2 has failed to start in this page. A renderer whose constructor
+ * throws has already registered its listeners and started its cursor timer, so
+ * trying again on every attach leaked one per attempt on a machine without it.
+ */
+let webglUnavailable = false
+
 function rendererOverride(): TerminalRendererKind | null {
   const value = (window as Window & { __ARCO_TERMINAL_RENDERER__?: string })
     .__ARCO_TERMINAL_RENDERER__
@@ -77,16 +104,23 @@ export function attachTerminalRenderer(
     }
   }
   try {
+    if (webglUnavailable) throw new Error('WebGL2 failed earlier in this page')
     const addon = new WebglAddon()
     // A lost context leaves the pane blank. Dropping the addon falls the pane
     // back to the DOM renderer, which is slow but always draws.
     addon.onContextLoss(() => {
+      stopWebglCursorBlink(addon)
       try {
         addon.dispose()
       } catch {}
       onContextLoss?.()
     })
-    terminal.loadAddon(addon)
+    try {
+      terminal.loadAddon(addon)
+    } catch (error) {
+      webglUnavailable = true
+      throw error
+    }
     reportRenderer('webgl')
     return { kind: 'webgl', addon }
   } catch (webglError) {
@@ -139,6 +173,7 @@ export function detachTerminalRenderer(
   // Read the canvases while they are still in the DOM: disposing the addon is
   // what takes them out of it.
   const canvases = renderer.kind === 'webgl' && terminal ? paneCanvases(terminal) : []
+  if (renderer.kind === 'webgl') stopWebglCursorBlink(renderer.addon)
   try {
     renderer.addon.dispose()
   } catch {}

@@ -20,8 +20,12 @@ vi.mock('@xterm/addon-webgl', () => ({ WebglAddon: FakeWebglAddon }))
 vi.mock('@xterm/addon-canvas', () => ({ CanvasAddon: class {} }))
 vi.mock('../../lib/tauri', () => ({ recordAppEvent: vi.fn(() => Promise.resolve()) }))
 
-const { attachTerminalRenderer, attachTerminalRendererWhenSized, detachTerminalRenderer } =
-  await import('./terminalRenderer')
+const {
+  attachTerminalRenderer,
+  attachTerminalRendererWhenSized,
+  detachTerminalRenderer,
+  stopWebglCursorBlink,
+} = await import('./terminalRenderer')
 
 function fakeTerminal(): Terminal {
   return { loadAddon: vi.fn(), element: document.createElement('div') } as unknown as Terminal
@@ -110,5 +114,56 @@ describe('detachTerminalRenderer', () => {
 
     expect(webglDispose).toHaveBeenCalledOnce()
     expect(loseContext).toHaveBeenCalledOnce()
+  })
+})
+
+describe('the WebGL cursor blink timer', () => {
+  /** The renderer keeps its blink state where the addon never disposes it. */
+  function withBlinkState(addon: unknown, order: string[]) {
+    const clear = vi.fn(() => order.push('blink stopped'))
+    ;(addon as { _renderer: unknown })._renderer = { _cursorBlinkStateManager: { clear } }
+    webglDispose.mockImplementation(() => order.push('addon disposed'))
+    return clear
+  }
+
+  it('is stopped before the addon goes, when the pane releases its renderer', () => {
+    const terminal = fakeTerminal()
+    const renderer = attachTerminalRenderer(terminal)
+    const order: string[] = []
+    const clear = withBlinkState(renderer.addon, order)
+
+    detachTerminalRenderer(renderer, terminal)
+
+    expect(clear).toHaveBeenCalledOnce()
+    expect(order).toEqual(['blink stopped', 'addon disposed'])
+  })
+
+  it('is stopped when the GPU context is lost', () => {
+    const renderer = attachTerminalRenderer(fakeTerminal())
+    const clear = withBlinkState(renderer.addon, [])
+
+    lostContext?.()
+
+    expect(clear).toHaveBeenCalledOnce()
+  })
+
+  it('does nothing on an addon that does not have one', () => {
+    expect(() => stopWebglCursorBlink({})).not.toThrow()
+    expect(() => stopWebglCursorBlink(null)).not.toThrow()
+  })
+})
+
+// Last: the failure is remembered for the rest of the page.
+describe('a WebGL setup that failed', () => {
+  it('is not tried again on the next attach', () => {
+    const failing = fakeTerminal()
+    vi.mocked(failing.loadAddon).mockImplementationOnce(() => {
+      throw new Error('WebGL2 not supported')
+    })
+    expect(attachTerminalRenderer(failing).kind).toBe('canvas')
+    const triesBefore = webglConstructed
+
+    expect(attachTerminalRenderer(fakeTerminal()).kind).toBe('canvas')
+    expect(webglConstructed).toBe(triesBefore)
   })
 })

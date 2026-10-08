@@ -5,10 +5,13 @@ import { configuredLauncherFor } from '../agentCliPath'
 import { measure } from '../mainThreadBudget'
 
 // Every event handler is timed so main-thread cost can be attributed by event.
-const listen = <T>(event: string, handler: (payload: { payload: T }) => void) =>
-  tauriListen<T>(event, (received) =>
-    measure(`ev:${event.split('/')[0]}`, () => handler(received as { payload: T })),
+// The label is built once per subscription, not on every chunk of output.
+const listen = <T>(event: string, handler: (payload: { payload: T }) => void) => {
+  const label = `ev:${event.split('/')[0]}`
+  return tauriListen<T>(event, (received) =>
+    measure(label, () => handler(received as { payload: T })),
   )
+}
 
 export type SpawnPtyArgs = {
   cols: number

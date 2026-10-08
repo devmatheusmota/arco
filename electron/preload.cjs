@@ -40,6 +40,11 @@ function addListener(event, handlerId) {
 function removeListener(event, eventId) {
   const forEvent = listeners.get(event)
   if (!forEvent) return
+  // The handler goes with its subscription. Keeping it held every closure a
+  // listener ever had — a pane's terminal and everything it referenced — for
+  // the life of the window.
+  const handlerId = forEvent.get(eventId)
+  if (handlerId !== undefined) callbacks.delete(handlerId)
   forEvent.delete(eventId)
   if (forEvent.size === 0) listeners.delete(event)
 }
@@ -83,6 +88,22 @@ contextBridge.exposeInMainWorld('__TAURI_EVENT_PLUGIN_INTERNALS__', {
 
 // Marks the shell for code that needs to branch on it.
 contextBridge.exposeInMainWorld('__ARCO_SHELL__', 'electron')
+
+// Diagnostic switches, read from the environment the app was started with — the
+// same ones the Rust build injected. Without them the latency traces in
+// `keyTrace.ts`, `mainThreadBudget.ts` and `ipcBench.ts` could not be turned on.
+const RENDERER_OVERRIDES = new Set(['canvas', 'dom', 'webgl'])
+const env = process.env ?? {}
+if (RENDERER_OVERRIDES.has(env.ARCO_TERMINAL_RENDERER)) {
+  contextBridge.exposeInMainWorld('__ARCO_TERMINAL_RENDERER__', env.ARCO_TERMINAL_RENDERER)
+}
+for (const [variable, global] of [
+  ['ARCO_KEY_TRACE', '__ARCO_KEY_TRACE__'],
+  ['ARCO_IPC_BENCH', '__ARCO_IPC_BENCH__'],
+  ['ARCO_DROP_TERMINAL_WRITES', '__ARCO_DROP_TERMINAL_WRITES__'],
+]) {
+  if (env[variable] === '1') contextBridge.exposeInMainWorld(global, true)
+}
 
 // Window dragging.
 //

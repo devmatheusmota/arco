@@ -10,6 +10,7 @@ import { recordAgentActivityInput } from '../../lib/activityTracker'
 import { cliPathMatchesAgent } from '../../lib/agentCliPath'
 import { AgentCompletionMonitor } from '../../lib/agentCompletionMonitor'
 import { prepareAgentProcess } from '../../lib/agentProcessLaunch'
+import { claudeSessionHooksActive } from '../../lib/claudeSessionHooks'
 import { getLocale, translate } from '../../lib/i18n'
 import { isAgentSuspendChord, isAppChordInTerminal } from '../../lib/keybindings'
 import { traceKeyData, traceKeyDown } from '../../lib/keyTrace'
@@ -103,6 +104,8 @@ import { getXtermTheme, type LinkActionState } from './xtermThemes'
 const EARLY_EXIT_MS = 4000
 
 const PANEL_RESYNC_DEBOUNCE_MS = 80
+/** Size of one write of a scrollback replay; xterm yields to input between writes. */
+const REPLAY_SLICE_CHARS = 64 * 1024
 
 const OVERFLOW_PROBE_INTERVAL_MS = 1000
 
@@ -290,6 +293,10 @@ export function useXtermSession(params: {
   const isFirstVisibilityRunRef = useRef(true)
 
   const resyncTerminalRef = useRef<(() => Promise<void>) | null>(null)
+  /** Fits the pane again, forced; the visibility effect calls it for a resize it held back. */
+  const requestResizeRef = useRef<(() => void) | null>(null)
+  /** Set when the pane's box changed while it was hidden and the fit was held back. */
+  const resizeDeferredRef = useRef(false)
   /** Writes what the pane missed while hidden; false when only a full resync can recover it. */
   const flushHiddenBacklogRef = useRef<(() => boolean) | null>(null)
   /**
@@ -494,7 +501,13 @@ export function useXtermSession(params: {
     // scroll, to bring xterm's off-screen helper textarea into view — which is
     // what leaves the whole workspace shifted sideways, sidebar cut off. Only
     // the horizontal offset is reset: vertical scrolling is legitimate.
-    const clampAncestorScroll = () => {
+    const clampAncestorScroll = (event?: Event) => {
+      // Only a scroll of the page or of an ancestor can shift this pane. Every
+      // pane listens on the document, and the viewport of each terminal fires
+      // scroll events while output streams; walking the ancestors and reading
+      // their scroll offsets for those was layout work per pane per frame.
+      const target = event?.target
+      if (target instanceof Element && !target.contains(container)) return
       let node: HTMLElement | null = container.parentElement
       while (node && node !== document.body) {
         if (node.scrollLeft !== 0) node.scrollLeft = 0
@@ -632,15 +645,32 @@ export function useXtermSession(params: {
     // budget: a few MB of history split into 16 KB slices costs one rendered
     // frame each, which is what made switching panes crawl from the top of the
     // buffer down to the prompt.
+    //
+    // They are still handed over in slices, all in the same tick. xterm parses
+    // one write without stopping and only yields between writes, so a replay
+    // given as a single string was one long task that held every keystroke
+    // until it finished. Its parser carries an escape sequence or a surrogate
+    // pair split across two writes, so a slice can end anywhere.
     const writeReplayAtOnce = (replay: string): Promise<void> =>
       new Promise((resolve) => {
+        const done = () => {
+          try {
+            terminal.scrollToBottom()
+          } catch {}
+          resolve()
+        }
+        if (!replay) {
+          done()
+          return
+        }
         try {
-          terminal.write(replay, () => {
-            try {
-              terminal.scrollToBottom()
-            } catch {}
-            resolve()
-          })
+          for (let offset = 0; offset < replay.length; offset += REPLAY_SLICE_CHARS) {
+            const last = offset + REPLAY_SLICE_CHARS >= replay.length
+            terminal.write(
+              replay.slice(offset, offset + REPLAY_SLICE_CHARS),
+              last ? done : undefined,
+            )
+          }
         } catch {
           resolve()
         }
@@ -889,6 +919,15 @@ export function useXtermSession(params: {
         scheduleResize(forceNextResize)
         return
       }
+      // A hidden pane keeps its box, so every window or sidebar resize reached
+      // all of them: a fit, a full repaint and a new size for the process, which
+      // makes the agent inside redraw its whole screen for nobody. An observed
+      // resize waits until the pane is shown; a forced one (before a spawn or a
+      // replay, a zoom change) still runs.
+      if (!isPanelVisibleRef.current && !forceNextResize) {
+        resizeDeferredRef.current = true
+        return
+      }
 
       const rect = container.getBoundingClientRect()
       if (rect.width < 50 || rect.height < 30) return
@@ -1063,6 +1102,7 @@ export function useXtermSession(params: {
       }
     }
     resyncTerminalRef.current = doResync
+    requestResizeRef.current = () => scheduleResize(true)
 
     // Registra os dois listeners de streaming: `data` (canal caro — escreve
 
@@ -1580,11 +1620,16 @@ export function useXtermSession(params: {
               const before = new Set((await discoveredSessionsBeforePromise).map((s) => s.id))
               if (launch.sessionId) before.add(launch.sessionId)
 
-              // reivindicada/persistida (perdia resume ao reabrir o pane). Primeiras
-
+              // Polls fast for the first passes, so a session the agent creates
+              // right after starting is adopted before anything can lose it. A
+              // Claude pane with the SessionStart hook hears about every new
+              // conversation as it starts, and the hint below wakes this loop for
+              // it, so the scan is only a backstop there and stays on the slow
+              // timer from the start.
+              const hookedClaude = command === 'claude' && claudeSessionHooksActive()
               let attempt = 0
               while (!disposed) {
-                const delayMs = attempt < 10 ? 3000 : 15000
+                const delayMs = attempt < 10 && !hookedClaude ? 3000 : 15000
                 if (command === 'codex' || command === 'claude') {
                   await Promise.race([
                     new Promise((resolve) => setTimeout(resolve, delayMs)),
@@ -1851,6 +1896,7 @@ export function useXtermSession(params: {
       if (terminalRef.current === terminal) terminalRef.current = null
       ptyIdRef.current = null
       if (resyncTerminalRef.current === doResync) resyncTerminalRef.current = null
+      requestResizeRef.current = null
       terminal.dispose()
     }
 
@@ -1903,6 +1949,10 @@ export function useXtermSession(params: {
     // output than the host itself retains — or the pane never had a screen to
     // apply it to, because it attached to its session while hidden.
     const recovered = isPanelVisible && !wasVisible ? flushHiddenBacklogRef.current?.() : true
+    if (isPanelVisible && !wasVisible && resizeDeferredRef.current) {
+      resizeDeferredRef.current = false
+      requestResizeRef.current?.()
+    }
 
     void setPtyVisible(ptyId, isPanelVisible)
       .catch(() => false)
