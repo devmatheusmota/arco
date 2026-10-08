@@ -16,6 +16,7 @@ const { configureSessionHook } = require('./commands/hooks.cjs')
 const githubSync = require('./commands/github-sync.cjs')
 const { publishEvent } = require('./commands/telemetry.cjs')
 const paths = require('./commands/paths.cjs')
+const { pruneScrollback } = require('./commands/scrollback-prune.cjs')
 const { collectFromArgv } = require('./pending-open.cjs')
 const { applyLoginEnv } = require('./login-env.cjs')
 const { explainHostFailure } = require('./pty-host-failure.cjs')
@@ -191,13 +192,20 @@ function startPtyHost(send) {
   let nextRequestId = 1
   let buffer = ''
 
+  // Decoded as a stream: a character split across two pipe reads used to turn
+  // into replacement glyphs in the middle of a box drawing or an accent.
+  child.stdout.setEncoding('utf8')
   child.stdout.on('data', (chunk) => {
-    buffer += chunk.toString()
-    let index = buffer.indexOf('\n')
+    // Only the new text can hold a newline. Searching the whole buffer again on
+    // every read made a large replay quadratic.
+    let index = chunk.indexOf('\n')
+    if (index !== -1) index += buffer.length
+    buffer += chunk
+    let from = 0
     while (index !== -1) {
-      const line = buffer.slice(0, index)
-      buffer = buffer.slice(index + 1)
-      index = buffer.indexOf('\n')
+      const line = buffer.slice(from, index)
+      from = index + 1
+      index = buffer.indexOf('\n', from)
       if (!line.trim()) continue
       let message
       try {
@@ -221,6 +229,7 @@ function startPtyHost(send) {
         appendLog('app-events.log', `[${message.kind}] ${message.message}`)
       }
     }
+    if (from > 0) buffer = buffer.slice(from)
   })
 
   // A dead host used to leave every caller waiting forever, which the UI shows
@@ -378,6 +387,20 @@ app.whenReady().then(() => {
   // renderer cannot have its interval throttled out of existence.
   githubSync.startAutoSync({ publishEvent })
   app.on('before-quit', () => githubSync.stopAutoSync())
+
+  // Once per run, well after the panes have started and saved their ids: the
+  // records nothing points at any more go.
+  setTimeout(() => {
+    void (async () => {
+      const live = await ptyHost.request('list_pty_processes', {}).catch(() => [])
+      const removed = await pruneScrollback({
+        dir: path.join(paths.appLocalDataDir(), 'profiles', 'default', 'scrollback'),
+        profilesDir: path.join(paths.appLocalDataDir(), 'profiles'),
+        liveIds: live.map((entry) => entry.id),
+      })
+      if (removed > 0) appendLog('app-events.log', `[scrollback.prune] removed=${removed}`)
+    })().catch(() => {})
+  }, 60_000).unref()
 
   // Quitting the window leaves the host running otherwise: it is reparented to
   // init and keeps every terminal — and the agents inside them — alive for the

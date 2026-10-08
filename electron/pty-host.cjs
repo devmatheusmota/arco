@@ -11,7 +11,8 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { loginEnv, mergePath } = require('./login-env.cjs')
 const { clearInheritedAgentSession, stripAppImageEnv } = require('./pty-env.cjs')
-const { modePreamble, trimScrollback } = require('./terminal-modes.cjs')
+const { modePreamble } = require('./terminal-modes.cjs')
+const { ScrollbackBuffer } = require('./scrollback-buffer.cjs')
 const {
   inspectSpawnHelper,
   prepareSpawnHelper,
@@ -22,6 +23,14 @@ const pty = require('@homebridge/node-pty-prebuilt-multiarch')
 
 const SCROLLBACK_CAP_BYTES = 512 * 1024
 const FLUSH_INTERVAL_MS = 250
+// How often a terminal's record is written to disk while it runs. The record is
+// what a pane replays after the app restarts, and the exit and shutdown paths
+// write it in full, so the timer only bounds what a crash of this host loses.
+// Rewriting half a megabyte per terminal four times a second was megabytes per
+// second of disk writes for output nobody would ever replay.
+const PERSIST_INTERVAL_MS = 5_000
+// Hidden panes get their output as a digest at most this often.
+const ACTIVITY_INTERVAL_MS = 450
 // How long a terminal has to leave on its own before it is killed.
 const KILL_GRACE_MS = 2_000
 
@@ -47,18 +56,77 @@ function scrollbackPath(id) {
   return path.join(scrollbackDir, `${id}.bin`)
 }
 
+/**
+ * Writes a running terminal's record, off the event loop and atomically, at most
+ * once per `PERSIST_INTERVAL_MS`. A write that a synchronous one overtook (the
+ * terminal exited, the host is shutting down) is dropped instead of renamed
+ * over the newer file.
+ */
 function persist(session) {
-  if (!session.dirty) return
+  if (!session.dirty || session.persisting) return
+  const now = Date.now()
+  if (now - session.persistedAt < PERSIST_INTERVAL_MS) return
   session.dirty = false
+  session.persisting = true
+  session.persistedAt = now
+  const generation = ++session.persistGeneration
+  const target = scrollbackPath(session.id)
+  const tmp = `${target}.tmp`
+  const text = session.scrollback.text()
+  fs.promises
+    .mkdir(scrollbackDir, { recursive: true })
+    .then(() => fs.promises.writeFile(tmp, text))
+    .then(() =>
+      generation === session.persistGeneration
+        ? fs.promises.rename(tmp, target)
+        : fs.promises.unlink(tmp),
+    )
+    .catch(() => {
+      session.dirty = true
+    })
+    .finally(() => {
+      session.persisting = false
+    })
+}
+
+/** Writes the record now. For the exit and shutdown paths, where nothing runs after. */
+function persistNow(session) {
+  // A write still in flight may never land once this returns, so it is redone.
+  if (!session.dirty && !session.persisting) return
+  session.dirty = false
+  session.persistGeneration += 1
   try {
     fs.mkdirSync(scrollbackDir, { recursive: true })
-    fs.writeFileSync(scrollbackPath(session.id), session.scrollback)
+    fs.writeFileSync(scrollbackPath(session.id), session.scrollback.text())
   } catch {}
+}
+
+/** Sends the output gathered in this turn of the event loop as one message. */
+function flushData(session) {
+  if (session.dataScheduled) {
+    clearImmediate(session.dataScheduled)
+    session.dataScheduled = null
+  }
+  if (!session.pendingData) return
+  const data = session.pendingData
+  session.pendingData = ''
+  send({ type: 'data', id: session.id, data })
+}
+
+function flushActivity(session) {
+  if (session.activityTimer) {
+    clearTimeout(session.activityTimer)
+    session.activityTimer = null
+  }
+  if (!session.pendingActivity) return
+  session.lastActivityAt = Date.now()
+  send({ type: 'activity', id: session.id, data: session.pendingActivity })
+  session.pendingActivity = ''
 }
 
 function readScrollback(id) {
   const session = sessions.get(id)
-  if (session) return session.scrollback
+  if (session) return session.scrollback.text()
   try {
     return fs.readFileSync(scrollbackPath(id), 'utf8')
   } catch {
@@ -211,9 +279,15 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
     cwd: spawnCwd,
     command: command ?? 'shell',
     visible: true,
-    scrollback: '',
+    scrollback: new ScrollbackBuffer(SCROLLBACK_CAP_BYTES),
     dirty: false,
+    persisting: false,
+    persistedAt: 0,
+    persistGeneration: 0,
+    pendingData: '',
+    dataScheduled: null,
     pendingActivity: '',
+    activityTimer: null,
     lastActivityAt: 0,
   }
   sessions.set(id, session)
@@ -223,26 +297,39 @@ function spawn({ id, command, args, cwd, env, cols, rows, launcherOverride }) {
   )
 
   child.onData((data) => {
-    session.scrollback = trimScrollback(session.scrollback + data, SCROLLBACK_CAP_BYTES)
+    session.scrollback.append(data)
     session.dirty = true
     if (session.visible) {
-      send({ type: 'data', id, data })
+      // node-pty can hand over several reads in one turn of the loop; they go
+      // out as one message instead of one JSON line and one IPC hop each.
+      session.pendingData += data
+      session.dataScheduled ??= setImmediate(() => {
+        session.dataScheduled = null
+        flushData(session)
+      })
       return
     }
     // Hidden panes get a throttled digest, matching the backend's behaviour of
     // not paying for a repaint nobody sees.
     session.pendingActivity += data
-    const now = Date.now()
-    if (now - session.lastActivityAt >= 450) {
-      session.lastActivityAt = now
-      send({ type: 'activity', id, data: session.pendingActivity })
-      session.pendingActivity = ''
+    const wait = ACTIVITY_INTERVAL_MS - (Date.now() - session.lastActivityAt)
+    if (wait <= 0) {
+      flushActivity(session)
+      return
     }
+    // The last chunk of a burst used to wait for the next one, however long
+    // that took; a pane finishing its work in the background never said so.
+    session.activityTimer ??= setTimeout(() => {
+      session.activityTimer = null
+      flushActivity(session)
+    }, wait)
   })
 
   const startedAt = Date.now()
   child.onExit(({ exitCode }) => {
-    persist(session)
+    flushData(session)
+    flushActivity(session)
+    persistNow(session)
     sessions.delete(id)
     // An agent that dies in its first seconds leaves a pane that looks like it
     // never started at all; the elapsed time is what tells the two apart.
@@ -287,14 +374,24 @@ const handlers = {
     setTimeout(() => killGroup(pid, 'SIGKILL'), KILL_GRACE_MS).unref()
     return true
   },
-  attach_pty: ({ id }) => readScrollback(id),
+  attach_pty({ id }) {
+    // Output already in the record goes out before the reply. The pane drops
+    // the part of the replay it saw arrive while it waited; a chunk sent after
+    // the reply would be written twice.
+    const session = sessions.get(id)
+    if (session) flushData(session)
+    return readScrollback(id)
+  },
   clear_pty_scrollback({ id }) {
     const session = sessions.get(id)
     if (session) {
+      flushData(session)
       // The output goes; the modes the agent switched on at start stay, or the
       // next replay of this pane would come back without them.
-      session.scrollback = modePreamble(session.scrollback)
+      session.scrollback.reset(modePreamble(session.scrollback.text()))
       session.dirty = true
+      // A write in flight holds the output just cleared; it must not land.
+      session.persistGeneration += 1
     }
     try {
       fs.unlinkSync(scrollbackPath(id))
@@ -304,10 +401,19 @@ const handlers = {
   set_pty_visible({ id, visible }) {
     const session = sessions.get(id)
     if (!session) return false
+    // What was gathered under the old visibility goes out first, so output
+    // never reaches the pane out of order.
+    flushData(session)
+    if (session.activityTimer) {
+      clearTimeout(session.activityTimer)
+      session.activityTimer = null
+    }
     session.visible = visible
     if (visible && session.pendingActivity) {
       send({ type: 'data', id, data: session.pendingActivity })
       session.pendingActivity = ''
+    } else if (!visible) {
+      flushActivity(session)
     }
     return true
   },
@@ -327,13 +433,18 @@ const handlers = {
 // waiting on a pane rather than on the spawn that would have failed.
 prepareSpawnHelper((message) => log('pty.helper', message))
 
+// Decoded as a stream, so a character split across two pipe reads arrives whole.
+process.stdin.setEncoding('utf8')
 let buffer = ''
 process.stdin.on('data', (chunk) => {
-  buffer += chunk.toString()
-  let index = buffer.indexOf('\n')
+  // Only the new text can hold a newline: the rest was searched already.
+  let index = chunk.indexOf('\n')
+  if (index !== -1) index += buffer.length
+  buffer += chunk
+  let from = 0
   while (index !== -1) {
-    const line = buffer.slice(0, index)
-    buffer = buffer.slice(index + 1)
+    const line = buffer.slice(from, index)
+    from = index + 1
     if (line.trim()) {
       let request
       try {
@@ -353,8 +464,9 @@ process.stdin.on('data', (chunk) => {
         }
       }
     }
-    index = buffer.indexOf('\n')
+    index = buffer.indexOf('\n', from)
   }
+  if (from > 0) buffer = buffer.slice(from)
 })
 
 // Unref'd so the timer alone never keeps the process alive: stdin is what holds
@@ -405,7 +517,7 @@ function shutdown(code = 0) {
   shuttingDown = true
   const groups = []
   for (const session of sessions.values()) {
-    persist(session)
+    persistNow(session)
     groups.push(hangUp(session))
   }
   // Whatever ignored the hangup — a wedged agent, an MCP server that outlives
@@ -425,7 +537,7 @@ for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(signal, () => s
 // this is a single synchronous pass and nothing more.
 process.on('exit', () => {
   for (const session of sessions.values()) {
-    persist(session)
+    persistNow(session)
     killGroup(session.child?.pid, 'SIGKILL')
     try {
       session.child.kill()
