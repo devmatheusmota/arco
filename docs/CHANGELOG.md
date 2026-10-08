@@ -10,6 +10,35 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- Arco no longer freezes for a moment every 15 seconds while Claude panes are open. Finding which
+  conversation a pane is in read every transcript of the project in full, on the process that
+  carries every keystroke; it now reads the start of each transcript once.
+- Clicking a pane, a tab or a sidebar row no longer rewrites the whole workspace file. It is saved
+  only when something in it changed, and in a compact form.
+- Terminal output is no longer written to disk four times a second per terminal. The record a pane
+  replays after a restart is saved every few seconds and when the terminal ends, and records that
+  no pane points at are removed after a week.
+- The activity graph on Home loads several times faster and rereads only the conversations that
+  changed. The animated Home background takes about half the CPU it did.
+- Mermaid and the Markdown renderer load only when something needs them, so the app starts with
+  less to load.
+- Resizing the window or a sidebar no longer resizes the terminals of hidden panes, which made
+  every agent behind them redraw its screen. They catch up when they are shown.
+- Switching to a pane with a long history no longer holds the keyboard while the history is drawn.
+
+### Fixed
+
+- Hiding or closing a terminal pane kept the whole terminal and its history in memory for the rest
+  of the session, so the app grew and slowed down the longer it ran.
+- The last output of a pane in the background arrived only when more output followed it.
+- An accented letter or a box-drawing character could come out garbled when it fell between two
+  reads of the terminal output.
+- The latency traces started with `ARCO_KEY_TRACE`, `ARCO_IPC_BENCH` and `ARCO_TERMINAL_RENDERER`
+  had no effect in the desktop app. They work again, and `npm run perf:sample` measures the running
+  app from outside.
+
 ## [3.11.1] — 2026-10-08
 
 ### Changed
