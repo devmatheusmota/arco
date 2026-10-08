@@ -198,7 +198,7 @@ function buildSystemCommands({ ptyHost, send }) {
     watch_file: ({ path: target }) => {
       if (watchers.has(target)) return null
       try {
-        const watcher = fs.watch(target, { persistent: false }, () => {
+        const watcher = fs.watch(paths.expandHome(target), { persistent: false }, () => {
           send(WATCH_EVENT, { path: target })
         })
         watcher.on('error', () => {})
@@ -227,13 +227,16 @@ function buildSystemCommands({ ptyHost, send }) {
       throw new Error('VS Code is not installed')
     },
     open_in_file_explorer: async ({ path: target }) => {
-      const stat = fs.existsSync(target) ? fs.statSync(target) : null
-      if (stat?.isDirectory()) await shell.openPath(target)
-      else shell.showItemInFolder(target)
+      const resolved = paths.expandHome(target)
+      const stat = fs.existsSync(resolved) ? fs.statSync(resolved) : null
+      // showItemInFolder fails silently, so a missing path would read as a dead button.
+      if (!stat) throw new Error(`${target} does not exist`)
+      if (stat.isDirectory()) await shell.openPath(resolved)
+      else shell.showItemInFolder(resolved)
       return null
     },
     open_in_browser: async ({ target }) => {
-      await shell.openExternal(target)
+      await shell.openExternal(paths.expandHome(target))
       return null
     },
     open_data_folder: async () => {

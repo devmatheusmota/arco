@@ -27,6 +27,19 @@ function logsDir() {
   return path.join(appLocalDataDir(), 'logs')
 }
 
+/**
+ * `~` and `~/…` resolved to the home directory. Terminal output prints paths
+ * that way and the renderer passes them through as typed, but no filesystem
+ * call expands the tilde on its own.
+ */
+function expandHome(target) {
+  if (target === '~') return os.homedir()
+  if (typeof target === 'string' && target.startsWith('~/')) {
+    return path.join(os.homedir(), target.slice(2))
+  }
+  return target
+}
+
 function ensureDir(dir) {
   try {
     fs.mkdirSync(dir, { recursive: true })
@@ -70,6 +83,7 @@ module.exports = {
   profilesRegistryPath,
   profileDir,
   logsDir,
+  expandHome,
   ensureDir,
   appendLog,
   readJson,

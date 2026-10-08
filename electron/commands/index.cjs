@@ -313,15 +313,19 @@ function buildCommands({ ptyHost, mainWindow, send }) {
     },
     read_text_file: (args) => {
       try {
-        return fs.readFileSync(args.path, 'utf8')
+        return fs.readFileSync(paths.expandHome(args.path), 'utf8')
       } catch {
         return null
       }
     },
     write_text_file: (args) => {
-      try {
-        fs.writeFileSync(args.path, args.contents ?? '')
-      } catch {}
+      const file = paths.expandHome(args.path)
+      // Same contract as the Rust command: overwrite an existing file, never create one,
+      // and let a failed write reach the editor instead of reading as saved.
+      if (!fs.statSync(file, { throwIfNoEntry: false })?.isFile()) {
+        throw new Error('file not found')
+      }
+      fs.writeFileSync(file, args.content)
       return null
     },
 
