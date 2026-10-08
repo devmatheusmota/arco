@@ -10,6 +10,21 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.11.1] — 2026-10-08
+
+### Changed
+
+- A new front of work no longer asks for its own worktree by default. Tick "Give it its own
+  worktree" when the front should work on a checkout of its own.
+
+### Fixed
+
+- Saving an edited Markdown pane wrote an empty file, since 2.0.0. It now saves what is in the
+  editor, and a save that fails shows an error instead of looking saved.
+- "Open in folder" on a terminal path that starts with `~/` did nothing. Paths written that way now
+  open in the file manager, in the Markdown viewer and sidebar, and in the default app, and a path
+  that no longer exists shows an error.
+
 ## [3.11.0] — 2026-10-07
 
 ### Added

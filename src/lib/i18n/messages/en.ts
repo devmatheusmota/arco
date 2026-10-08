@@ -840,6 +840,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3111.note1':
+    'Saving an edited Markdown pane now keeps what you wrote. Before, the save emptied the file on disk while the pane still showed your text. This happened since version 2.0.0: if you saved a Markdown file from Arco since then, check that it still has its content.',
+  'whatsNew.v3111.note2':
+    '"Open in folder" now works on terminal paths that start with `~/`, and so do the Markdown viewer, the sidebar and "Open in default app". A path that no longer exists shows an error instead of doing nothing.',
+  'whatsNew.v3111.note3':
+    'A new front of work now starts on the project tree. Tick "Give it its own worktree" when you want it on a checkout of its own.',
   'whatsNew.v3110.note1':
     'Agents in a pane can now open a web page in your browser and bring the browser in front of Arco, through the new `open_url` tool. Before, a page an agent opened with `xdg-open` landed behind Arco on GNOME under Wayland, and you had to go find it. Only http and https addresses open. Panes started after the update have the tool.',
   'whatsNew.v3102.note1':

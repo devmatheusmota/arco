@@ -852,6 +852,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3111.note1':
+    'Salvar um pane de Markdown editado agora mantém o que você escreveu. Antes, o salvar esvaziava o arquivo no disco enquanto o pane ainda mostrava seu texto. Isso acontecia desde a versão 2.0.0: se você salvou um Markdown pelo Arco desde então, confira se ele ainda tem o conteúdo.',
+  'whatsNew.v3111.note2':
+    '"Abrir na pasta" agora funciona com caminhos do terminal que começam com `~/`, assim como o visualizador de Markdown, a barra lateral e "Abrir no app padrão". Um caminho que não existe mais mostra um erro em vez de não fazer nada.',
+  'whatsNew.v3111.note3':
+    'Uma frente de trabalho nova agora começa na árvore do projeto. Marque "Dar uma worktree própria a ela" quando quiser que ela trabalhe num checkout separado.',
   'whatsNew.v3110.note1':
     'Agentes num pane agora conseguem abrir uma página no navegador e trazer o navegador para a frente do Arco, pela nova tool `open_url`. Antes, a página que um agente abria com `xdg-open` ficava atrás do Arco no GNOME com Wayland, e você precisava ir atrás dela. Só endereços http e https abrem. Os panes iniciados depois da atualização já têm a tool.',
   'whatsNew.v3102.note1':
