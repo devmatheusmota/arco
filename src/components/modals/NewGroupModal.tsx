@@ -32,7 +32,7 @@ export function NewGroupModal() {
   const openPane = useProjectsStore((s) => s.openPane)
 
   const [name, setName] = useState('')
-  const [isolate, setIsolate] = useState(true)
+  const [isolate, setIsolate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
