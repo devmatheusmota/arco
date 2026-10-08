@@ -840,6 +840,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3112.note1':
+    'Arco no longer freezes for a moment every 15 seconds while Claude panes are open: it was reading every conversation of the project in full to find which one a pane was in, on the same process that carries your keystrokes. Clicking a pane no longer rewrites the whole workspace file, and terminal output is no longer written to disk four times a second.',
+  'whatsNew.v3112.note2':
+    'A pane you hid or closed stayed in memory with its whole history for the rest of the session, so Arco grew and slowed down the longer it ran. Restart Arco after updating and it stays the size of what is open.',
+  'whatsNew.v3112.note3':
+    'Arco starts with less to load, the Home background takes about half the CPU, resizing the window no longer makes the agents in hidden panes redraw their screens, and switching to a pane with a long history no longer holds the keyboard while it is drawn.',
   'whatsNew.v3111.note1':
     'Saving an edited Markdown pane now keeps what you wrote. Before, the save emptied the file on disk while the pane still showed your text. This happened since version 2.0.0: if you saved a Markdown file from Arco since then, check that it still has its content.',
   'whatsNew.v3111.note2':

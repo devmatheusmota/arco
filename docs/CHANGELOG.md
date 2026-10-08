@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.11.2] — 2026-10-08
+
 ### Changed
 
 - Arco no longer freezes for a moment every 15 seconds while Claude panes are open. Finding which

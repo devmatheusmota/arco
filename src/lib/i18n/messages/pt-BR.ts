@@ -852,6 +852,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3112.note1':
+    'O Arco não trava mais por um instante a cada 15 segundos com panes do Claude abertos: ele lia todas as conversas do projeto por inteiro para descobrir em qual delas cada pane estava, no mesmo processo que leva o que você digita. Clicar num pane não regrava mais o arquivo inteiro do workspace, e a saída dos terminais não é mais gravada em disco quatro vezes por segundo.',
+  'whatsNew.v3112.note2':
+    'Um pane escondido ou fechado ficava na memória com todo o histórico até o fim da sessão, então o Arco crescia e ficava mais lento quanto mais tempo ficava aberto. Reinicie o Arco depois de atualizar e ele passa a ocupar só o que está aberto.',
+  'whatsNew.v3112.note3':
+    'O Arco abre com menos coisa para carregar, o fundo da Home gasta cerca de metade da CPU, redimensionar a janela não faz mais os agentes de panes escondidos redesenharem a tela, e trocar para um pane com histórico longo não segura mais o teclado enquanto ele é desenhado.',
   'whatsNew.v3111.note1':
     'Salvar um pane de Markdown editado agora mantém o que você escreveu. Antes, o salvar esvaziava o arquivo no disco enquanto o pane ainda mostrava seu texto. Isso acontecia desde a versão 2.0.0: se você salvou um Markdown pelo Arco desde então, confira se ele ainda tem o conteúdo.',
   'whatsNew.v3111.note2':
