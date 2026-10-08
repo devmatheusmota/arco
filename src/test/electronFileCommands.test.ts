@@ -15,6 +15,7 @@ const showItemInFolder = vi.fn()
 const openPath = vi.fn(async () => '')
 const openExternal = vi.fn(async () => {})
 require.cache[require.resolve('electron')] = {
+  loaded: true,
   exports: { app: {}, shell: { showItemInFolder, openPath, openExternal } },
 } as unknown as NodeJS.Module
 
