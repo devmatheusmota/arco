@@ -77,24 +77,66 @@ export function computeVisibleFocusedPtyIds(): PtyVisibilitySets {
   return { visible, focused }
 }
 
+let cached: PtyVisibilitySets | null = null
+
+/** Everything `computeVisibleFocusedPtyIds` reads. */
+function visibilityInputs(): unknown[] {
+  const projects = useProjectsStore.getState()
+  const ui = useUiStore.getState()
+  return [
+    projects.projects,
+    projects.workspace.containers,
+    ui.activeView,
+    ui.focusedTerminalId,
+    ui.activeTerminal,
+    ui.keptAlivePaneIds,
+    ui.agentCanvasSession,
+  ]
+}
+
+let lastInputs: unknown[] = []
+const visibilityListeners = new Set<() => void>()
+let stopWatchingStores: (() => void) | null = null
+
+/**
+ * One subscription for every pane. Each pane used to subscribe to both stores
+ * on its own and clear the cache in its own callback, so a single store change
+ * recomputed the sets twice per mounted pane — and the resource sampler alone
+ * changes the UI store three times every five seconds, for fields that decide
+ * nothing here.
+ */
+function onStoreChange(): void {
+  const inputs = visibilityInputs()
+  if (inputs.every((value, index) => value === lastInputs[index])) return
+  lastInputs = inputs
+  cached = null
+  for (const listener of visibilityListeners) listener()
+}
+
 function subscribePtyVisibility(callback: () => void): () => void {
-  const unsubProjects = useProjectsStore.subscribe(() => {
+  visibilityListeners.add(callback)
+  if (!stopWatchingStores) {
+    lastInputs = visibilityInputs()
     cached = null
-    callback()
-  })
-  const unsubUi = useUiStore.subscribe(() => {
-    cached = null
-    callback()
-  })
+    const unsubProjects = useProjectsStore.subscribe(onStoreChange)
+    const unsubUi = useUiStore.subscribe(onStoreChange)
+    stopWatchingStores = () => {
+      unsubProjects()
+      unsubUi()
+    }
+  }
   return () => {
-    unsubProjects()
-    unsubUi()
+    visibilityListeners.delete(callback)
+    if (visibilityListeners.size === 0 && stopWatchingStores) {
+      stopWatchingStores()
+      stopWatchingStores = null
+    }
   }
 }
 
-let cached: PtyVisibilitySets | null = null
-
 function visibilitySets(): PtyVisibilitySets {
+  // With nobody subscribed nothing clears the cache, so nothing is kept.
+  if (!stopWatchingStores) return computeVisibleFocusedPtyIds()
   if (!cached) cached = computeVisibleFocusedPtyIds()
   return cached
 }

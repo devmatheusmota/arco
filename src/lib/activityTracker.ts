@@ -137,6 +137,33 @@ function syncTrackedAgents(): void {
   }
 }
 
+/**
+ * What the tracked set depends on: the projects, the agent canvas session and
+ * which terminals are alive. The terminals store also changes on every
+ * throttled I/O tick, and the UI store on every resource sample — neither of
+ * those moves an agent in or out of the set.
+ */
+let lastSyncInputs: unknown[] = []
+
+function syncInputsChanged(): boolean {
+  const inputs: unknown[] = [
+    useProjectsStore.getState().projects,
+    useUiStore.getState().agentCanvasSession,
+  ]
+  for (const runtime of Object.values(useTerminalsStore.getState().byPtyId)) {
+    inputs.push(runtime.ptyId, runtime.alive)
+  }
+  const changed =
+    inputs.length !== lastSyncInputs.length ||
+    inputs.some((value, index) => value !== lastSyncInputs[index])
+  lastSyncInputs = inputs
+  return changed
+}
+
+function onTrackedInputsChange(): void {
+  if (syncInputsChanged()) scheduleSyncTrackedAgents()
+}
+
 let syncDebounceTimer: number | null = null
 function scheduleSyncTrackedAgents(): void {
   if (syncDebounceTimer !== null) return
@@ -229,9 +256,10 @@ export function startActivityTracker(): () => void {
   )
   const sampleTimer = window.setInterval(sample, SAMPLE_MS)
   const flushTimer = window.setInterval(() => void flush(), FLUSH_MS)
-  const unsubTerminals = useTerminalsStore.subscribe(scheduleSyncTrackedAgents)
-  const unsubProjects = useProjectsStore.subscribe(scheduleSyncTrackedAgents)
-  const unsubUi = useUiStore.subscribe(scheduleSyncTrackedAgents)
+  const unsubTerminals = useTerminalsStore.subscribe(onTrackedInputsChange)
+  const unsubProjects = useProjectsStore.subscribe(onTrackedInputsChange)
+  const unsubUi = useUiStore.subscribe(onTrackedInputsChange)
+  syncInputsChanged()
   syncTrackedAgents()
 
   let unlistenBridge: (() => void) | null = null

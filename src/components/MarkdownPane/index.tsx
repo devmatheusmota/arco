@@ -145,12 +145,14 @@ export const MarkdownPane = memo(function MarkdownPane({
     return () => window.cancelAnimationFrame(frame)
   }, [content, filePath])
 
-  // Foco vindo da sidebar — scroll into view.
-  const focusReq = useUiStore((s) => s.focusRequest)
+  // A focus request from the sidebar for this pane scrolls it into view.
+  const focusReqAt = useUiStore((s) =>
+    s.focusRequest?.terminalId === terminal.id ? s.focusRequest.ts : null,
+  )
   useEffect(() => {
-    if (!focusReq || focusReq.terminalId !== terminal.id) return
+    if (focusReqAt === null) return
     paneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
-  }, [focusReq, terminal.id])
+  }, [focusReqAt])
 
   const onDelete = () => {
     if (window.confirm(t('ui.markdown.confirmClose', { name: terminal.name }))) {

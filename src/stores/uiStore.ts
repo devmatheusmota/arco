@@ -250,7 +250,14 @@ export const useUiStore = create<UiState>((set, get) => ({
   setAntigravityUsage: (value) => set({ antigravityUsage: value }),
   setFocusedTerminal: (id) => set({ focusedTerminalId: id }),
   requestPaneFocus: (terminalId) => set({ focusRequest: { terminalId, ts: Date.now() } }),
-  setActiveTerminal: (projectId, terminalId) => set({ activeTerminal: { projectId, terminalId } }),
+  // Called on every pointerdown in a pane; a new object for the same pane would
+  // re-render everything that reads it.
+  setActiveTerminal: (projectId, terminalId) =>
+    set((s) =>
+      s.activeTerminal?.projectId === projectId && s.activeTerminal.terminalId === terminalId
+        ? s
+        : { activeTerminal: { projectId, terminalId } },
+    ),
   setActiveView: (v) => set((s) => (s.activeView === v ? s : { activeView: v })),
   toggleHome: () => set((s) => ({ activeView: s.activeView === 'home' ? 'workspace' : 'home' })),
   openMarkdownSidebar: (path, title) =>

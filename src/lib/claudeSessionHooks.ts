@@ -18,4 +18,13 @@ export function ensureClaudeSessionHooks(): Promise<string | null> {
   return pending
 }
 
+/**
+ * Whether Claude panes load the SessionStart hook. With it, the app hears about
+ * every conversation change as it happens, and the directory scan is only a
+ * backstop.
+ */
+export function claudeSessionHooksActive(): boolean {
+  return path !== null
+}
+
 setClaudeSessionHooksSource(() => path)

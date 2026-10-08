@@ -40,6 +40,55 @@ function projectsPath() {
 }
 
 /**
+ * The file the last save left on disk and how many projects it held.
+ *
+ * The guard against an empty save needs the count already on disk. Reading and
+ * parsing the whole file for it on every save put a megabyte of JSON through the
+ * main process each time the workspace changed; the count is only read back when
+ * the file is not the one this process wrote last (a profile switch, a restore
+ * from the gist).
+ */
+let lastWritten = null
+
+function projectCountOnDisk(target) {
+  let stats
+  try {
+    stats = fs.statSync(target)
+  } catch {
+    return 0
+  }
+  if (
+    lastWritten &&
+    lastWritten.target === target &&
+    lastWritten.mtimeMs === stats.mtimeMs &&
+    lastWritten.size === stats.size
+  ) {
+    return lastWritten.projectCount
+  }
+  try {
+    return JSON.parse(fs.readFileSync(target, 'utf8'))?.projects?.length ?? 0
+  } catch {
+    return 0
+  }
+}
+
+/** Saves land one after another, so two writes never share the temp file. */
+let saveChain = Promise.resolve()
+
+async function writeProjects(target, content, projectCount) {
+  paths.ensureDir(path.dirname(target))
+  const tmp = `${target}.tmp`
+  await fs.promises.writeFile(tmp, content)
+  await fs.promises.rename(tmp, target)
+  try {
+    const stats = fs.statSync(target)
+    lastWritten = { target, mtimeMs: stats.mtimeMs, size: stats.size, projectCount }
+  } catch {
+    lastWritten = null
+  }
+}
+
+/**
  * Resolves a CLI the way a login shell would. The app is launched from a
  * desktop entry as often as from a terminal, and those two have different
  * PATHs — agent CLIs installed under ~/.local/bin or a Node version manager are
@@ -149,31 +198,42 @@ function buildCommands({ ptyHost, mainWindow, send }) {
     save_projects: (args) => {
       const content = typeof args.content === 'string' ? args.content : JSON.stringify(args.content)
       const target = projectsPath()
-      // Refuse a save that would wipe a populated workspace. A shell still
-      // being ported can fail to hydrate, and losing every project to that is
-      // not a recoverable mistake.
-      try {
-        const incoming = JSON.parse(content)
-        const current = JSON.parse(fs.readFileSync(target, 'utf8'))
-        const incomingCount = incoming?.projects?.length ?? 0
-        const currentCount = current?.projects?.length ?? 0
-        if (incomingCount === 0 && currentCount > 0) {
-          fs.writeFileSync(`${target}.electron-refused`, content)
-          appendLog(
-            'app-events.log',
-            `[electron.guard] refused save: 0 projects would replace ${currentCount}`,
-          )
-          return null
+      // The renderer says how many projects it is saving, so the content is not
+      // parsed again here; an older caller that does not is parsed as before.
+      let incomingCount = Number.isInteger(args.projectCount) ? args.projectCount : null
+      if (incomingCount === null) {
+        try {
+          incomingCount = JSON.parse(content)?.projects?.length ?? 0
+        } catch {
+          incomingCount = null
         }
-        if (!fs.existsSync(`${target}.electron-backup`)) {
-          fs.copyFileSync(target, `${target}.electron-backup`)
+      }
+      const run = async () => {
+        // Refuse a save that would wipe a populated workspace. A shell still
+        // being ported can fail to hydrate, and losing every project to that
+        // is not a recoverable mistake.
+        if (incomingCount !== null) {
+          const currentCount = projectCountOnDisk(target)
+          if (incomingCount === 0 && currentCount > 0) {
+            fs.writeFileSync(`${target}.electron-refused`, content)
+            appendLog(
+              'app-events.log',
+              `[electron.guard] refused save: 0 projects would replace ${currentCount}`,
+            )
+            return null
+          }
+          try {
+            if (currentCount > 0 && !fs.existsSync(`${target}.electron-backup`)) {
+              fs.copyFileSync(target, `${target}.electron-backup`)
+            }
+          } catch {}
         }
-      } catch {}
-      paths.ensureDir(path.dirname(target))
-      const tmp = `${target}.tmp`
-      fs.writeFileSync(tmp, content)
-      fs.renameSync(tmp, target)
-      return null
+        await writeProjects(target, content, incomingCount ?? 0)
+        return null
+      }
+      const result = saveChain.then(run, run)
+      saveChain = result.catch(() => null)
+      return result
     },
     list_profiles: () =>
       paths.readJson(paths.profilesRegistryPath(), {

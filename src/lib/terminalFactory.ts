@@ -196,6 +196,32 @@ export function touchTerminalUsage(terminal: Terminal, tabId = terminal.activeTa
   }
 }
 
+/** How long a use stays current. Touching the same pane again inside it changes no ordering. */
+export const USAGE_TOUCH_INTERVAL_MS = 60_000
+
+/**
+ * Whether marking a pane used again would change nothing anyone reads: it is
+ * already the most recently used pane of its project, its active tab is the most
+ * recent of its tabs, and that was moments ago. Every pointerdown on the pane
+ * being read used to rewrite the whole workspace file.
+ */
+export function isFreshestUse(
+  terminals: Terminal[],
+  terminalId: string,
+  now = Date.now(),
+): boolean {
+  const terminal = terminals.find((candidate) => candidate.id === terminalId)
+  const usedAt = terminal?.lastUsedAt
+  if (!terminal || !usedAt || now - usedAt >= USAGE_TOUCH_INTERVAL_MS) return false
+  if (terminals.some((other) => other.id !== terminalId && (other.lastUsedAt ?? 0) >= usedAt)) {
+    return false
+  }
+  const active = terminal.tabs.find((tab) => tab.id === terminal.activeTabId)
+  const activeUsedAt = active?.lastUsedAt
+  if (!active || !activeUsedAt) return false
+  return terminal.tabs.every((tab) => tab.id === active.id || (tab.lastUsedAt ?? 0) < activeUsedAt)
+}
+
 export function pickMostRecentTab(terminal: Terminal, excludeTabId?: string): SubTab | null {
   const candidates = terminal.tabs.filter((tab) => tab.id !== excludeTabId)
   if (candidates.length === 0) return null

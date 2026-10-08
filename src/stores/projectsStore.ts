@@ -373,6 +373,46 @@ export type ProjectsState = ProjectsFile & {
   setCliPath: (agent: AgentType, path: string | null) => void
 }
 
+/** `items` with `fn` applied where `matches`; the same array when nothing changed. */
+export function replaceWhere<T>(
+  items: T[],
+  matches: (item: T) => boolean,
+  fn: (item: T) => T,
+): T[] {
+  let next: T[] | null = null
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index]
+    if (!matches(item)) continue
+    const replaced = fn(item)
+    if (replaced === item) continue
+    next ??= items.slice()
+    next[index] = replaced
+  }
+  return next ?? items
+}
+
+/** Whether an update result only repeats what the state already holds. */
+function unchangedFields(state: ProjectsState, result: Partial<ProjectsState>): boolean {
+  const current = state as unknown as Record<string, unknown>
+  return Object.entries(result).every(([key, value]) => current[key] === value)
+}
+
+function sameContainers(a: WorkspaceContainer[], b: WorkspaceContainer[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+function sameSnapshot(a: WorkspaceViewSnapshot, b: WorkspaceViewSnapshot | undefined): boolean {
+  if (!b) return false
+  return (
+    a.activeProjectId === b.activeProjectId &&
+    a.focusedTerminalId === b.focusedTerminalId &&
+    a.fullscreenContainerId === b.fullscreenContainerId &&
+    sameContainers(a.containers, b.containers)
+  )
+}
+
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 let pendingSave = false
 let lastSaveErrorLoggedAt = 0
@@ -397,6 +437,27 @@ function projectsPayload(state: ProjectsState): ProjectsFile {
   }
 }
 
+/**
+ * The persisted fields as the last save sent them. The store keeps references
+ * stable for anything that did not change, so a save whose fields are all the
+ * same objects has nothing new to write.
+ */
+let lastSavedPayload: ProjectsFile | null = null
+
+function samePersistedFields(a: ProjectsFile | null, b: ProjectsFile): boolean {
+  if (!a) return false
+  return (Object.keys(b) as Array<keyof ProjectsFile>).every((key) => a[key] === b[key])
+}
+
+/**
+ * Serializes the document for disk. Compact on purpose: with the task notes in
+ * it the file passes a megabyte, and the indentation added both bytes and time
+ * to every save without anyone reading the file by hand.
+ */
+function serializeProjects(payload: ProjectsFile): string {
+  return JSON.stringify(payload)
+}
+
 function scheduleSave(getState: () => ProjectsState) {
   if (!getState().hydrated) return
   pendingSave = true
@@ -407,7 +468,15 @@ function scheduleSave(getState: () => ProjectsState) {
     pendingSave = false
     const state = getState()
     const payload = projectsPayload(state)
-    void saveProjectsFile(JSON.stringify(payload, null, 2), nextWriteSequence()).catch((error) => {
+    if (samePersistedFields(lastSavedPayload, payload)) return
+    const previousSaved = lastSavedPayload
+    lastSavedPayload = payload
+    void saveProjectsFile(
+      serializeProjects(payload),
+      nextWriteSequence(),
+      payload.projects.length,
+    ).catch((error) => {
+      lastSavedPayload = previousSaved
       pendingSave = true
       console.error('Failed to persist projects.json; retrying.', error)
       const now = Date.now()
@@ -430,7 +499,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     let changed = false
     set((state) => {
       let result = mutator(state)
-      if (!result || Object.keys(result).length === 0) return state
+      if (!result || unchangedFields(state, result)) return state
       const workspaceChanged = Boolean(result.workspace)
       const visualPreferencesChanged = Boolean(
         result.preferences &&
@@ -452,26 +521,45 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
             }),
             activeTab.projectId,
           )
-          const updatedTab: WorkspaceTab = { ...activeTab, snapshot, updatedAt: Date.now() }
-          const tabs = nextState.workspace.tabs.map((tab) =>
-            tab.id === activeTab.id ? updatedTab : tab,
+          // Most updates that touch the workspace leave what the tab shows as it
+          // was. Rebuilding the tab, its history entry and the containers anyway
+          // handed every subscriber new objects for an identical layout and
+          // queued a save of the whole document.
+          const snapshotUnchanged = sameSnapshot(snapshot, activeTab.snapshot)
+          const containersInScope = sameContainers(
+            nextState.workspace.containers,
+            snapshot.containers,
           )
-          // activeProjectId is left alone: the sidebar may select a project without opening it.
-          result = {
-            ...result,
-            workspace: {
-              ...nextState.workspace,
-              containers: cloneWorkspaceSnapshot(snapshot).containers,
-              tabs,
-              history: replaceCurrentHistorySnapshot(
-                nextState.workspace.history,
-                nextState.workspace.historyIndex,
-                updatedTab,
-              ),
-            },
+          if (!snapshotUnchanged || !containersInScope) {
+            const updatedTab: WorkspaceTab = snapshotUnchanged
+              ? activeTab
+              : { ...activeTab, snapshot, updatedAt: Date.now() }
+            // activeProjectId is left alone: the sidebar may select a project without opening it.
+            result = {
+              ...result,
+              workspace: {
+                ...nextState.workspace,
+                containers: containersInScope
+                  ? nextState.workspace.containers
+                  : cloneWorkspaceSnapshot(snapshot).containers,
+                tabs: snapshotUnchanged
+                  ? nextState.workspace.tabs
+                  : nextState.workspace.tabs.map((tab) =>
+                      tab.id === activeTab.id ? updatedTab : tab,
+                    ),
+                history: snapshotUnchanged
+                  ? nextState.workspace.history
+                  : replaceCurrentHistorySnapshot(
+                      nextState.workspace.history,
+                      nextState.workspace.historyIndex,
+                      updatedTab,
+                    ),
+              },
+            }
           }
         }
       }
+      if (unchangedFields(state, result)) return state
       changed = true
       return result
     })
@@ -487,16 +575,19 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     }
   }
 
+  // Each helper hands back the very same object when `fn` changed nothing, all
+  // the way up, so `update` sees no change: no re-render, no save.
   const updateProject = (projectId: string, fn: (p: Project) => Project) =>
-    update((state) => ({
-      projects: state.projects.map((p) => (p.id === projectId ? fn(p) : p)),
-    }))
+    update((state) => {
+      const projects = replaceWhere(state.projects, (p) => p.id === projectId, fn)
+      return projects === state.projects ? undefined : { projects }
+    })
 
   const updateTerminal = (projectId: string, terminalId: string, fn: (t: Terminal) => Terminal) =>
-    updateProject(projectId, (p) => ({
-      ...p,
-      terminals: p.terminals.map((t) => (t.id === terminalId ? fn(t) : t)),
-    }))
+    updateProject(projectId, (p) => {
+      const terminals = replaceWhere(p.terminals, (t) => t.id === terminalId, fn)
+      return terminals === p.terminals ? p : { ...p, terminals }
+    })
 
   const updateSubTab = (
     projectId: string,
@@ -504,18 +595,22 @@ export const useProjectsStore = create<ProjectsState>((set, get) => {
     tabId: string,
     fn: (s: SubTab) => SubTab,
   ) =>
-    updateTerminal(projectId, terminalId, (t) => ({
-      ...t,
-      tabs: t.tabs.map((s) => (s.id === tabId ? fn(s) : s)),
-    }))
+    updateTerminal(projectId, terminalId, (t) => {
+      const tabs = replaceWhere(t.tabs, (s) => s.id === tabId, fn)
+      return tabs === t.tabs ? t : { ...t, tabs }
+    })
 
   const updateContainer = (projectId: string, fn: (c: WorkspaceContainer) => WorkspaceContainer) =>
-    update((state) => ({
-      workspace: {
-        ...state.workspace,
-        containers: state.workspace.containers.map((c) => (c.projectId === projectId ? fn(c) : c)),
-      },
-    }))
+    update((state) => {
+      const containers = replaceWhere(
+        state.workspace.containers,
+        (c) => c.projectId === projectId,
+        fn,
+      )
+      return containers === state.workspace.containers
+        ? undefined
+        : { workspace: { ...state.workspace, containers } }
+    })
 
   const makeSnapshot = (
     state: ProjectsState,
@@ -764,7 +859,9 @@ export async function flushProjectsState(): Promise<void> {
   pendingSave = false
   const state = useProjectsStore.getState()
   if (!state.hydrated) return
-  await saveProjectsFile(JSON.stringify(projectsPayload(state), null, 2), nextWriteSequence())
+  const payload = projectsPayload(state)
+  lastSavedPayload = payload
+  await saveProjectsFile(serializeProjects(payload), nextWriteSequence(), payload.projects.length)
 }
 
 /* ------------ selectors ------------ */

@@ -99,8 +99,16 @@ export async function loadProjectsFile(): Promise<string | null> {
   return invoke<string | null>('load_projects')
 }
 
-export async function saveProjectsFile(content: string, sequence: number): Promise<void> {
-  await invoke('save_projects', { content, sequence })
+/**
+ * `projectCount` spares the main process from parsing a megabyte of JSON to
+ * learn it: the guard against saving an empty workspace only needs the count.
+ */
+export async function saveProjectsFile(
+  content: string,
+  sequence: number,
+  projectCount: number,
+): Promise<void> {
+  await invoke('save_projects', { content, sequence, projectCount })
 }
 
 export async function recordFrontendError(

@@ -72,9 +72,12 @@ export const TerminalPane = memo(function TerminalPane({
   }
 
   // A focus request from the sidebar: scroll the pane into view and focus xterm's input.
-  const focusReq = useUiStore((s) => s.focusRequest)
+  // Only this pane's requests: every pane re-rendered on every focus request.
+  const focusReqAt = useUiStore((s) =>
+    s.focusRequest?.terminalId === terminal.id ? s.focusRequest.ts : null,
+  )
   useEffect(() => {
-    if (!focusReq || focusReq.terminalId !== terminal.id) return
+    if (focusReqAt === null) return
     const node = paneRef.current
     if (!node) return
     node.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
@@ -91,7 +94,7 @@ export const TerminalPane = memo(function TerminalPane({
       window.clearTimeout(shortRetry)
       window.clearTimeout(layoutRetry)
     }
-  }, [focusReq, terminal.id])
+  }, [focusReqAt])
 
   const setTerminalDisabled = useProjectsStore((s) => s.setTerminalDisabled)
   const markTerminalUsed = useProjectsStore((s) => s.markTerminalUsed)
@@ -109,8 +112,9 @@ export const TerminalPane = memo(function TerminalPane({
   const setActiveTerminal = useUiStore((s) => s.setActiveTerminal)
   const requestPaneFocus = useUiStore((s) => s.requestPaneFocus)
   const pushToast = useUiStore((s) => s.pushToast)
-  const claudeUsage = useUiStore((s) => s.claudeUsage)
-  const codexUsage = useUiStore((s) => s.codexUsage)
+  // Booleans, so a usage poll re-renders a pane only when its limit flips.
+  const claudeLimitReached = useUiStore((s) => (s.claudeUsage?.five_hour.utilization ?? 0) >= 100)
+  const codexRateLimited = useUiStore((s) => s.codexUsage?.rate_limited === true)
   const terminalTheme = useProjectsStore(
     (s) => s.preferences.terminalTheme ?? s.preferences.uiTheme,
   )
@@ -161,8 +165,8 @@ export const TerminalPane = memo(function TerminalPane({
   )
   const canHandoff = activeTab?.type === 'claude' || activeTab?.type === 'codex'
   const handoffSuggested =
-    (activeTab?.type === 'claude' && (claudeUsage?.five_hour.utilization ?? 0) >= 100) ||
-    (activeTab?.type === 'codex' && codexUsage?.rate_limited === true)
+    (activeTab?.type === 'claude' && claudeLimitReached) ||
+    (activeTab?.type === 'codex' && codexRateLimited)
 
   const copyPaneRef = async () => {
     if (!paneShortId) return

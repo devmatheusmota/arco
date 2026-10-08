@@ -228,39 +228,65 @@ function cpuPercent(pid, ticks) {
   return Math.max(0, Math.min(100, (used / elapsedSeconds) * 100))
 }
 
-/** Every pid in the tree rooted at `pid`, itself included. */
-function processTree(pid) {
-  const children = new Map()
-  const link = (parentPid, child) => {
-    if (!parentPid) return
-    if (!children.has(parentPid)) children.set(parentPid, [])
-    children.get(parentPid).push(child)
-  }
-
+/**
+ * Name, parent and CPU ticks of every process on the machine.
+ *
+ * Read once per sample and shared by every terminal's tree. Scanning `/proc`
+ * per terminal multiplied a few hundred reads by the number of panes, every
+ * five seconds, on the process that also relays every keystroke.
+ */
+function processTable() {
+  const table = new Map()
   if (!USES_PROC) {
-    for (const [child, entry] of psTable()) link(entry.parentPid, child)
-  } else {
-    let entries
-    try {
-      entries = fs.readdirSync('/proc')
-    } catch {
-      return []
+    for (const [pid, entry] of psTable()) {
+      table.set(pid, { name: entry.name, parentPid: entry.parentPid, cpuTicks: null })
     }
-    for (const entry of entries) {
-      if (!/^\d+$/.test(entry)) continue
-      link(processInfo(entry)?.parentPid, Number(entry))
-    }
+    return table
   }
+  let entries
+  try {
+    entries = fs.readdirSync('/proc')
+  } catch {
+    return table
+  }
+  for (const entry of entries) {
+    if (!/^\d+$/.test(entry)) continue
+    const info = processInfo(entry)
+    if (info) table.set(Number(entry), info)
+  }
+  return table
+}
+
+function childrenByParent(table) {
+  const children = new Map()
+  for (const [pid, info] of table) {
+    if (!info.parentPid) continue
+    let list = children.get(info.parentPid)
+    if (!list) children.set(info.parentPid, (list = []))
+    list.push(pid)
+  }
+  return children
+}
+
+/** Every pid in the tree rooted at `pid`, itself included. */
+function processTree(pid, children) {
   const tree = [pid]
-  const queue = [pid]
-  while (queue.length > 0) {
-    for (const child of children.get(queue.shift()) ?? []) {
-      if (tree.includes(child)) continue
+  const seen = new Set(tree)
+  for (let index = 0; index < tree.length; index += 1) {
+    for (const child of children.get(tree[index]) ?? []) {
+      if (seen.has(child)) continue
+      seen.add(child)
       tree.push(child)
-      queue.push(child)
     }
   }
   return tree
+}
+
+/** Drops what the caches hold for processes that no longer exist. */
+function pruneCaches(table) {
+  for (const cache of [cpuCache, privateCache]) {
+    for (const pid of cache.keys()) if (!table.has(Number(pid))) cache.delete(pid)
+  }
 }
 
 /** What Chromium says its own processes cost — browser, renderers, GPU. */
@@ -281,15 +307,17 @@ function buildResourceCommands({ ptyHost }) {
   const sample = async () => {
     const budget = { remaining: PRIVATE_PER_CYCLE }
     const list = await ptyHost.request('list_pty_processes', {}).catch(() => [])
+    const table = processTable()
+    const children = childrenByParent(table)
     const ptys = []
     for (const entry of list) {
       if (!entry?.pid) continue
-      const tree = processTree(entry.pid)
+      const tree = processTree(entry.pid, children)
       const processes = []
       let working = 0
       let priv = 0
       for (const pid of tree) {
-        const info = processInfo(pid)
+        const info = table.get(pid)
         if (!info) continue
         const pidWorking = workingSetMb(pid)
         const pidPrivate = privateCommitMb(pid, budget)
@@ -316,6 +344,8 @@ function buildResourceCommands({ ptyHost }) {
         processes,
       })
     }
+
+    pruneCaches(table)
 
     const chromium = appMemoryMb()
     const ptysMb = ptys.reduce((total, entry) => total + entry.effectiveMemoryMb, 0)
@@ -429,7 +459,7 @@ function buildResourceCommands({ ptyHost }) {
       const pid = list.find((entry) => entry.id === id)?.pid
       if (!pid) return null
       const nice = active ? 0 : 5
-      for (const target of processTree(pid)) {
+      for (const target of processTree(pid, childrenByParent(processTable()))) {
         try {
           os.setPriority(target, nice)
         } catch {}

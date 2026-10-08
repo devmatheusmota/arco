@@ -429,8 +429,14 @@ export function createPreferencesSlice({ update }: SliceCtx): PreferencesSlice {
     setOnboardingDone: (done) =>
       update((state) => ({ preferences: { ...state.preferences, onboardingDone: done } })),
 
+    // Panel resizes and toggles call this with values the preferences often
+    // already hold; a patch that changes nothing leaves the object alone.
     setPreferences: (patch) =>
-      update((state) => ({ preferences: { ...state.preferences, ...patch } })),
+      update((state) => {
+        const current = state.preferences as Record<string, unknown>
+        const changed = Object.entries(patch).some(([key, value]) => current[key] !== value)
+        return changed ? { preferences: { ...state.preferences, ...patch } } : undefined
+      }),
 
     setCliPath: (agent, path) =>
       update((state) => {

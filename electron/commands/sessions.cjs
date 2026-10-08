@@ -48,7 +48,10 @@ const HEADER_CHARS = 4 * 1024
 
 const RECORD_TYPE = /"type":"(user|assistant|ai-title)"/
 
-/** Reads a file line by line, capping each line, without loading it whole. */
+/**
+ * Reads a file line by line, capping each line, without loading it whole.
+ * `onLine` returning `true` stops the read there.
+ */
 function forEachLine(file, onLine) {
   let fd
   try {
@@ -70,15 +73,16 @@ function forEachLine(file, onLine) {
     line += part.slice(0, MAX_LINE_CHARS - line.length)
     truncated = true
   }
+  let stopped = false
   const flush = () => {
-    if (line) onLine(line, truncated)
+    if (line && onLine(line, truncated) === true) stopped = true
     line = ''
     truncated = false
   }
 
   try {
     let read
-    while ((read = fs.readSync(fd, chunk, 0, chunk.length, null)) > 0) {
+    while (!stopped && (read = fs.readSync(fd, chunk, 0, chunk.length, null)) > 0) {
       const text = decoder.write(chunk.subarray(0, read))
       let from = 0
       for (;;) {
@@ -86,12 +90,15 @@ function forEachLine(file, onLine) {
         if (index === -1) break
         append(text.slice(from, index))
         flush()
+        if (stopped) break
         from = index + 1
       }
-      append(text.slice(from))
+      if (!stopped) append(text.slice(from))
     }
-    append(decoder.end())
-    flush()
+    if (!stopped) {
+      append(decoder.end())
+      flush()
+    }
   } catch {
     // A transcript written while it is read can fail mid-scan; keep what the
     // scan already collected instead of dropping the session from the list.
@@ -166,11 +173,112 @@ function readSessionMeta(file) {
   return { title, first_user_prompt: firstUserPrompt, message_count: messageCount }
 }
 
+/**
+ * Feeds `onLine` every complete line of `file` from byte `start`, and returns the
+ * byte offset just past the last one. A line longer than `MAX_LINE_CHARS` bytes
+ * arrives cut, flagged as such; the partial line at the end is left for the next
+ * call, since the writer is still appending it.
+ */
+function forEachLineFrom(file, start, onLine) {
+  let fd
+  try {
+    fd = fs.openSync(file, 'r')
+  } catch {
+    return start
+  }
+  const chunk = Buffer.allocUnsafe(64 * 1024)
+  let position = start
+  let consumed = start
+  let carry = []
+  let carryLength = 0
+  let truncated = false
+  try {
+    let read
+    while ((read = fs.readSync(fd, chunk, 0, chunk.length, position)) > 0) {
+      let from = 0
+      for (;;) {
+        const index = chunk.indexOf(10, from)
+        if (index === -1 || index >= read) break
+        const tail = chunk.subarray(from, index)
+        const line = carryLength > 0 ? Buffer.concat([...carry, tail]) : tail
+        onLine(line, truncated)
+        consumed = position + index + 1
+        carry = []
+        carryLength = 0
+        truncated = false
+        from = index + 1
+      }
+      if (from < read) {
+        const room = MAX_LINE_CHARS - carryLength
+        if (room > 0) {
+          const kept = Buffer.from(chunk.subarray(from, Math.min(read, from + room)))
+          carry.push(kept)
+          carryLength += kept.length
+        }
+        if (read - from > room) truncated = true
+      }
+      position += read
+    }
+  } catch {
+    // Keep what was read; the next call resumes from `consumed`.
+  } finally {
+    fs.closeSync(fd)
+  }
+  return consumed
+}
+
+/**
+ * What the title scan learned of each transcript, and how far it read.
+ *
+ * Transcripts only grow, and the sidebar asks for a title again on every mount
+ * of a pane and on a backoff while a session has none. Reading a 50 MB
+ * conversation from the top each time, on the main process, is what that used
+ * to cost; now each call reads the bytes appended since the last one.
+ */
+const titleScans = new Map()
+
+function scanTitle(file) {
+  let stats
+  try {
+    stats = fs.statSync(file)
+  } catch {
+    titleScans.delete(file)
+    return { title: null, first_user_prompt: null }
+  }
+  let scan = titleScans.get(file)
+  // Shorter than what was read: rewritten, not appended. Start over.
+  if (!scan || stats.size < scan.offset) {
+    scan = { offset: 0, title: null, first_user_prompt: null }
+  }
+  if (stats.size > scan.offset) {
+    scan.offset = forEachLineFrom(file, scan.offset, (buffer, truncated) => {
+      const head = buffer.toString('utf8', 0, Math.min(buffer.length, HEADER_CHARS))
+      const match = RECORD_TYPE.exec(head)
+      if (!match || truncated) return
+      if (match[1] === 'ai-title') {
+        try {
+          const entry = JSON.parse(buffer.toString('utf8'))
+          const value = (entry.aiTitle ?? entry.ai_title ?? '').trim()
+          if (value) scan.title = value
+        } catch {
+          // The header matched text inside a payload, not a record of its own.
+        }
+        return
+      }
+      if (match[1] !== 'user' || scan.first_user_prompt !== null) return
+      const text = firstTextBlock(buffer.toString('utf8'))
+      if (text && isTypedPrompt(text)) scan.first_user_prompt = text.slice(0, 240)
+    })
+  }
+  titleScans.set(file, scan)
+  return scan
+}
+
 /** The name a session shows in the sidebar. */
 function sessionTitle(cwd, sessionId) {
   if (!sessionId || /[/\\.]/.test(sessionId)) return null
-  const meta = readSessionMeta(path.join(claudeProjectDir(cwd), `${sessionId}.jsonl`))
-  return meta.title ?? meta.first_user_prompt
+  const scan = scanTitle(path.join(claudeProjectDir(cwd), `${sessionId}.jsonl`))
+  return scan.title ?? scan.first_user_prompt
 }
 
 // ── Codex transcripts ─────────────────────────────────────────────────────
@@ -360,19 +468,29 @@ function codexSessionTitle(sessionId) {
   return file ? codexFirstPrompt(file) : null
 }
 
-function readJsonl(file, limit = 40) {
-  try {
-    const lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean)
-    return lines.slice(0, limit).map((line) => {
-      try {
-        return JSON.parse(line)
-      } catch {
-        return null
-      }
-    })
-  } catch {
-    return []
-  }
+/** How far into a transcript the snapshot looks for its first prompt. */
+const HEAD_RECORDS = 20
+
+/**
+ * The records at the head of a transcript, up to and including the first one
+ * someone sent. That record is all `isInteractive` and `firstUserText` read, so
+ * the scan stops there instead of loading the rest: a project's transcripts add
+ * up to hundreds of MB, and this runs on the main process, where every
+ * keystroke and every byte of terminal output waits for it.
+ */
+function readHeadEntries(file, limit = HEAD_RECORDS) {
+  const entries = []
+  forEachLine(file, (line) => {
+    let entry = null
+    try {
+      entry = JSON.parse(line)
+    } catch {
+      // A capped line is not valid JSON; it still counts toward the limit.
+    }
+    entries.push(entry)
+    return entry?.type === 'user' || entries.length >= limit
+  })
+  return entries
 }
 
 /**
@@ -408,14 +526,43 @@ function firstUserText(entries) {
   return ''
 }
 
+/**
+ * What the head of each transcript said, per directory and file name.
+ *
+ * The first prompt of a transcript never changes once it is written, so a file
+ * whose head already held one is never opened again; one that did not yet is
+ * read again only when it has grown. The snapshot runs on every pane spawn and
+ * again on a timer for as long as a Claude pane is open, so after the first
+ * pass it costs a directory listing and a stat per file.
+ */
+const headCache = new Map()
+
+function transcriptHead(cache, file, size) {
+  const cached = cache.get(file)
+  if (cached && (cached.settled || cached.size === size)) return cached
+  const entries = readHeadEntries(file)
+  const head = {
+    size,
+    settled: entries.some((entry) => entry?.type === 'user'),
+    preview: firstUserText(entries),
+    interactive: isInteractive(entries),
+  }
+  cache.set(file, head)
+  return head
+}
+
 function snapshotDir(dir, extension = '.jsonl') {
   let names
   try {
     names = fs.readdirSync(dir).filter((name) => name.endsWith(extension))
   } catch {
+    headCache.delete(dir)
     return []
   }
-  return names
+  const previous = headCache.get(dir) ?? new Map()
+  // Rebuilt from this listing, so a transcript deleted from disk leaves the cache too.
+  const current = new Map()
+  const sessions = names
     .map((name) => {
       const file = path.join(dir, name)
       let stats
@@ -424,18 +571,20 @@ function snapshotDir(dir, extension = '.jsonl') {
       } catch {
         return null
       }
-      const entries = readJsonl(file, 20)
+      const head = transcriptHead(previous, file, stats.size)
+      current.set(file, head)
       return {
         id: path.basename(name, extension),
-        preview: firstUserText(entries),
+        preview: head.preview,
         modified_at_ms: stats.mtimeMs,
-        message_count: entries.length,
         size_bytes: stats.size,
-        interactive: isInteractive(entries),
+        interactive: head.interactive,
       }
     })
     .filter(Boolean)
     .sort((a, b) => b.modified_at_ms - a.modified_at_ms)
+  headCache.set(dir, current)
+  return sessions
 }
 
 /**
@@ -505,5 +654,7 @@ module.exports = {
   isInteractive,
   listClaudeSessions,
   readSessionMeta,
+  sessionTitle,
+  snapshotClaudeDir: snapshotDir,
   snapshotCodexSessions,
 }

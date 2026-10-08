@@ -49,10 +49,25 @@ export function MeetingButton() {
     }
   }, [])
 
+  // Every read starts a `meetscribe` process from the main process. While the
+  // window is in the background nobody is looking at the button, so the poll
+  // waits, and coming back to the window reads the state at once.
   useEffect(() => {
+    const looking = () => document.visibilityState === 'visible' && document.hasFocus()
     void read()
-    const timer = window.setInterval(() => void read(), POLL_MS)
-    return () => window.clearInterval(timer)
+    const timer = window.setInterval(() => {
+      if (looking()) void read()
+    }, POLL_MS)
+    const onReturn = () => {
+      if (looking()) void read()
+    }
+    window.addEventListener('focus', onReturn)
+    document.addEventListener('visibilitychange', onReturn)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', onReturn)
+      document.removeEventListener('visibilitychange', onReturn)
+    }
   }, [read])
 
   useEffect(() => {

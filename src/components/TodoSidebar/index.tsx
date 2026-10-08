@@ -36,6 +36,8 @@ import {
   sortTodosByPriority,
   TODO_NOTES_MAX_LENGTH,
   TODO_TITLE_MAX_LENGTH,
+  type TodoSearchContext,
+  type TodoSearchIndex,
   todoSessionLinks,
 } from '../../lib/todos'
 import {
@@ -83,6 +85,22 @@ function isTerminalWorking(
   byPtyId: Record<string, { status: string }>,
 ): boolean {
   return terminal.tabs.some((tab) => tab.ptyId && byPtyId[tab.ptyId]?.status === 'working')
+}
+
+/**
+ * A task's search words, kept per task object. Tasks are replaced, never
+ * mutated, so an entry stays valid until its task changes; a list rebuilt after
+ * one edit splits that one task again instead of every note of every task.
+ */
+const searchIndexCache = new WeakMap<TodoItem, { context: string; index: TodoSearchIndex }>()
+
+function cachedSearchIndex(todo: TodoItem, context: TodoSearchContext): TodoSearchIndex {
+  const key = `${context.projectName ?? ''}\u0000${context.statusLabel ?? ''}\u0000${context.priorityLabel ?? ''}`
+  const cached = searchIndexCache.get(todo)
+  if (cached && cached.context === key) return cached.index
+  const index = buildTodoSearchIndex(todo, context)
+  searchIndexCache.set(todo, { context: key, index })
+  return index
 }
 
 function GsdSyncSection() {
@@ -708,14 +726,29 @@ export function TodoSidebar() {
   const addInputRef = useRef<HTMLInputElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // One word list per task, rebuilt only when the tasks themselves change: typing
+  // Project names as one string, so renaming a project rebuilds the index and a
+  // pane click — which replaces `projects` — does not.
+  const projectNamesKey = useProjectsStore((state) =>
+    state.projects.map((project) => `${project.id}\u0000${project.name}`).join('\u0001'),
+  )
+  const searchTerms = useMemo(() => parseSearchTerms(query), [query])
+  const searching = searchTerms.length > 0
+
+  // One word list per task, built when a search starts and kept per task: typing
   // a query then compares words already split, instead of walking every field.
+  // Nothing is built while the box is empty, which is almost always.
   const searchIndex = useMemo(() => {
-    const projectNames = new Map(projects.map((project) => [project.id, project.name]))
+    if (!searching) return null
+    const projectNames = new Map(
+      projectNamesKey
+        .split('\u0001')
+        .filter(Boolean)
+        .map((entry) => entry.split('\u0000') as [string, string]),
+    )
     return new Map(
       todos.map((todo) => [
         todo.id,
-        buildTodoSearchIndex(todo, {
+        cachedSearchIndex(todo, {
           projectName: todo.projectId ? projectNames.get(todo.projectId) : undefined,
           statusLabel: translate(
             language,
@@ -728,9 +761,7 @@ export function TodoSidebar() {
         }),
       ]),
     )
-  }, [language, projects, todos])
-  const searchTerms = useMemo(() => parseSearchTerms(query), [query])
-  const searching = searchTerms.length > 0
+  }, [language, projectNamesKey, searching, todos])
 
   // Notes are searched only when nothing else answered. They are prose, and a
   // task whose note says "meu papel" is not an answer to `MEU PR` while a task
@@ -739,7 +770,7 @@ export function TodoSidebar() {
   const search = useMemo(() => {
     if (!searching) return { items: todos, fromNotes: false }
     const match = (todo: TodoItem, includeNotes: boolean) => {
-      const index = searchIndex.get(todo.id)
+      const index = searchIndex?.get(todo.id)
       return index ? matchesTodoSearch(index, searchTerms, { includeNotes }) : false
     }
     const fields = todos.filter((todo) => match(todo, false))
@@ -763,12 +794,24 @@ export function TodoSidebar() {
     .filter((section) => section.items.length > 0)
   const unassigned = sortTodosByPriority(active.filter((todo) => !todo.projectId))
 
+  // The panes each task points at, resolved once per change of tasks or panes.
+  // The count below runs on every terminal status and I/O tick, so it only
+  // checks those panes instead of resolving every task's sessions again.
+  const linkedTerminals = useMemo(
+    () =>
+      todos
+        .map((todo) =>
+          resolveSessions(todo, projects).flatMap((session) =>
+            session.terminal ? [session.terminal] : [],
+          ),
+        )
+        .filter((terminals) => terminals.length > 0),
+    [projects, todos],
+  )
   const runningCount = useTerminalsStore(
     (state) =>
-      todos.filter((todo) =>
-        resolveSessions(todo, projects).some(
-          (session) => session.terminal && isTerminalWorking(session.terminal, state.byPtyId),
-        ),
+      linkedTerminals.filter((terminals) =>
+        terminals.some((terminal) => isTerminalWorking(terminal, state.byPtyId)),
       ).length,
   )
 

@@ -1,14 +1,22 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { claudeProjectDir, listClaudeSessions, readSessionMeta } =
+const nodeFs = require('node:fs') as typeof import('node:fs')
+const { claudeProjectDir, listClaudeSessions, readSessionMeta, sessionTitle, snapshotClaudeDir } =
   require('../../electron/commands/sessions.cjs') as {
     claudeProjectDir: (cwd: string) => string
+    sessionTitle: (cwd: string, sessionId: string) => string | null
+    snapshotClaudeDir: (dir: string) => Array<{
+      id: string
+      preview: string
+      size_bytes: number
+      interactive: boolean
+    }>
     listClaudeSessions: (dir: string) => Array<{
       id: string
       title: string | null
@@ -40,6 +48,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.restoreAllMocks()
   rmSync(dir, { recursive: true, force: true })
 })
 
@@ -122,6 +131,113 @@ describe('listClaudeSessions', () => {
   it('keeps every transcript when none of them parsed as a conversation', () => {
     writeSession('stub.jsonl', [aiTitle('Security review')])
     expect(listClaudeSessions(dir).map((session) => session.id)).toEqual(['stub'])
+  })
+})
+
+describe('snapshotClaudeDir', () => {
+  const sdkPrompt = (text: string) =>
+    JSON.stringify({ type: 'user', message: { content: text }, entrypoint: 'sdk-cli' })
+
+  it('stops reading a transcript at its first prompt', () => {
+    const tail = assistant('x'.repeat(64 * 1024))
+    writeSession('review.jsonl', [
+      JSON.stringify({ type: 'mode' }),
+      sdkPrompt('run the security review'),
+      ...Array.from({ length: 64 }, () => tail),
+    ])
+    const readSync = vi.spyOn(nodeFs, 'readSync')
+    const [session] = snapshotClaudeDir(dir)
+    expect(session).toMatchObject({
+      id: 'review',
+      preview: 'run the security review',
+      interactive: false,
+    })
+    // 4 MB of transcript behind the prompt; one 64 KB read reaches it.
+    expect(readSync.mock.calls.length).toBeGreaterThan(0)
+    expect(readSync.mock.calls.length).toBeLessThanOrEqual(2)
+  })
+
+  it('does not open a transcript again once its first prompt is known', () => {
+    const file = writeSession('a.jsonl', [user('hello')])
+    snapshotClaudeDir(dir)
+    appendFileSync(file, `${assistant('a reply that grows the file')}\n`)
+    const openSync = vi.spyOn(nodeFs, 'openSync')
+    const [session] = snapshotClaudeDir(dir)
+    expect(openSync).not.toHaveBeenCalled()
+    expect(session).toMatchObject({ preview: 'hello', interactive: true })
+  })
+
+  it('reads a transcript again when it grew before its first prompt arrived', () => {
+    const file = writeSession('new.jsonl', [JSON.stringify({ type: 'mode' })])
+    expect(snapshotClaudeDir(dir)[0]).toMatchObject({ preview: '', interactive: true })
+
+    const openSync = vi.spyOn(nodeFs, 'openSync')
+    snapshotClaudeDir(dir)
+    expect(openSync).not.toHaveBeenCalled()
+
+    appendFileSync(file, `${sdkPrompt('automated run')}\n`)
+    expect(snapshotClaudeDir(dir)[0]).toMatchObject({
+      preview: 'automated run',
+      interactive: false,
+    })
+  })
+
+  it('forgets a transcript deleted from disk', () => {
+    writeSession('gone.jsonl', [user('soon deleted')])
+    writeSession('kept.jsonl', [user('still here')])
+    expect(snapshotClaudeDir(dir)).toHaveLength(2)
+    rmSync(join(dir, 'gone.jsonl'))
+    expect(snapshotClaudeDir(dir).map((session) => session.id)).toEqual(['kept'])
+  })
+})
+
+describe('sessionTitle', () => {
+  // The title lookup resolves the directory from the cwd, so the transcript has
+  // to live where Claude would put it for that cwd.
+  let home: string
+  let previousHome: string | undefined
+
+  beforeEach(() => {
+    previousHome = process.env.HOME
+    home = mkdtempSync(join(tmpdir(), 'arco-title-'))
+    process.env.HOME = home
+  })
+
+  afterEach(() => {
+    if (previousHome === undefined) delete process.env.HOME
+    else process.env.HOME = previousHome
+    rmSync(home, { recursive: true, force: true })
+  })
+
+  function transcript(cwd: string, id: string): string {
+    const projectDir = claudeProjectDir(cwd)
+    mkdirSync(projectDir, { recursive: true })
+    return join(projectDir, `${id}.jsonl`)
+  }
+
+  it('follows a transcript as it grows, reading only what was appended', () => {
+    const file = transcript('/repo/app', 's1')
+    writeFileSync(file, `${user('first question')}\n`)
+    expect(sessionTitle('/repo/app', 's1')).toBe('first question')
+
+    // A record written in two pieces: the first call sees half a line.
+    const titled = aiTitle('Naming the session')
+    appendFileSync(file, titled.slice(0, 10))
+    expect(sessionTitle('/repo/app', 's1')).toBe('first question')
+    appendFileSync(file, `${titled.slice(10)}\n`)
+
+    const readSync = vi.spyOn(nodeFs, 'readSync')
+    expect(sessionTitle('/repo/app', 's1')).toBe('Naming the session')
+    const bytesRead = readSync.mock.results.reduce((sum, r) => sum + Number(r.value), 0)
+    expect(bytesRead).toBeLessThan(titled.length + 16)
+  })
+
+  it('starts over when the file was rewritten shorter', () => {
+    const file = transcript('/repo/app', 's2')
+    writeFileSync(file, `${user('a long first conversation here')}\n${aiTitle('Old name')}\n`)
+    expect(sessionTitle('/repo/app', 's2')).toBe('Old name')
+    writeFileSync(file, `${user('new')}\n`)
+    expect(sessionTitle('/repo/app', 's2')).toBe('new')
   })
 })
 

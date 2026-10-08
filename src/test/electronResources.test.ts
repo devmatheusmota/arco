@@ -2,18 +2,35 @@ import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { freemem, platform, totalmem } from 'node:os'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { parsePsTable, systemAvailableMb } = require('../../electron/commands/resources.cjs') as {
-  parsePsTable: (
-    output: string,
-  ) => Map<
-    number,
-    { parentPid: number | null; workingSetMb: number; cpuPercent: number; name: string }
-  >
-  systemAvailableMb: () => number
-}
+
+// The module reads `app` from electron at load time; outside the app that
+// require resolves to the binary path, so the stub has to be in the cache first.
+require.cache[require.resolve('electron')] = {
+  loaded: true,
+  exports: { app: { getAppMetrics: () => [] } },
+} as unknown as NodeJS.Module
+
+const nodeFs = require('node:fs') as typeof import('node:fs')
+const { buildResourceCommands, parsePsTable, systemAvailableMb } =
+  require('../../electron/commands/resources.cjs') as {
+    buildResourceCommands: (ctx: {
+      ptyHost: { request: (cmd: string, args: unknown) => Promise<unknown> }
+    }) => Record<string, (args?: Record<string, unknown>) => Promise<unknown>>
+    parsePsTable: (
+      output: string,
+    ) => Map<
+      number,
+      { parentPid: number | null; workingSetMb: number; cpuPercent: number; name: string }
+    >
+    systemAvailableMb: () => number
+  }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 // `ps -axo pid=,ppid=,rss=,pcpu=,comm=` as macOS prints it: right-aligned
 // columns, resident size in kilobytes, and the executable's full path.
@@ -82,5 +99,22 @@ describe('systemAvailableMb', () => {
     // MemFree excludes the page cache the kernel hands back on demand, so it is
     // always the smaller of the two on a machine that has been up a while.
     expect(systemAvailableMb()).toBeGreaterThanOrEqual(freemem() / 1048576 - 512)
+  })
+})
+
+describe.runIf(platform() === 'linux')('get_runtime_snapshot', () => {
+  it('scans the process table once per sample, however many terminals there are', async () => {
+    const ptys = ['a', 'b', 'c'].map((id) => ({ id, pid: process.pid }))
+    const commands = buildResourceCommands({ ptyHost: { request: async () => ptys } })
+    const readdirSync = vi.spyOn(nodeFs, 'readdirSync')
+
+    const snapshot = (await commands.get_runtime_snapshot()) as {
+      ptys: Array<{ id: string; processCount: number }>
+    }
+
+    const procScans = readdirSync.mock.calls.filter(([target]) => target === '/proc')
+    expect(procScans).toHaveLength(1)
+    expect(snapshot.ptys.map((entry) => entry.id)).toEqual(['a', 'b', 'c'])
+    expect(snapshot.ptys.every((entry) => entry.processCount >= 1)).toBe(true)
   })
 })

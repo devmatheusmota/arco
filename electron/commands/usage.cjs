@@ -217,41 +217,95 @@ function breathe() {
   return new Promise((resolve) => setImmediate(resolve))
 }
 
-const YIELD_EVERY_LINES = 500
+const TYPE_USER = Buffer.from('"type":"user"')
+const TYPE_ASSISTANT = Buffer.from('"type":"assistant"')
+const TIMESTAMP = Buffer.from('"timestamp":"')
+
+/** Bytes scanned between two yields of the event loop. */
+const YIELD_EVERY_BYTES = 4 * 1024 * 1024
 
 /**
- * Messages of one Claude transcript, added to `counts` by the day each was
- * written. The record's own timestamp is what dates it — a transcript touched
- * today holds messages from every day the conversation ran.
+ * The day a transcript record was written, when it is a message.
+ *
+ * Parsing every record of a quarter of a year of transcripts took seconds of
+ * the main process. The two facts the heatmap needs sit in fixed places: the
+ * record's own `type`, which a nested payload cannot imitate because quotes
+ * inside a JSON string are escaped, and the record's `timestamp`, which is the
+ * last one on the line. The line is searched as bytes, so a transcript is never
+ * decoded; only a line naming both types is parsed in full.
  */
-async function countClaudeMessages(file, counts) {
-  let lines
-  try {
-    lines = (await fs.promises.readFile(file, 'utf8')).split('\n')
-  } catch {
-    return
-  }
-  for (let i = 0; i < lines.length; i++) {
-    if (i > 0 && i % YIELD_EVERY_LINES === 0) await breathe()
-    const line = lines[i]
-    if (!line) continue
+function messageDay(line) {
+  const user = line.includes(TYPE_USER)
+  const assistant = line.includes(TYPE_ASSISTANT)
+  if (!user && !assistant) return null
+  let timestamp
+  if (user && assistant) {
     let entry
     try {
-      entry = JSON.parse(line)
+      entry = JSON.parse(line.toString('utf8'))
     } catch {
-      continue
+      return null
     }
-    if (entry?.type !== 'user' && entry?.type !== 'assistant') continue
-    const timestamp = entry.timestamp
-    if (typeof timestamp !== 'string' || timestamp.length < 10) continue
-    const date = timestamp.slice(0, 10)
-    if (date[4] !== '-' || date[7] !== '-') continue
-    counts.set(date, (counts.get(date) ?? 0) + 1)
+    if (entry?.type !== 'user' && entry?.type !== 'assistant') return null
+    timestamp = entry.timestamp
+  } else {
+    const at = line.lastIndexOf(TIMESTAMP)
+    if (at === -1) return null
+    const from = at + TIMESTAMP.length
+    timestamp = line.toString('latin1', from, Math.min(from + 10, line.length))
+  }
+  if (typeof timestamp !== 'string' || timestamp.length < 10) return null
+  const date = timestamp.slice(0, 10)
+  return date[4] === '-' && date[7] === '-' ? date : null
+}
+
+/**
+ * Messages per day of each transcript, keyed by path and checked against the
+ * file's size and mtime. Only a transcript that changed is read again, so a
+ * second visit to Home reads the conversations still running and nothing else.
+ */
+const transcriptDays = new Map()
+
+/** Messages of one Claude transcript, by the day each was written. */
+async function claudeMessageDays(file, stats) {
+  const cached = transcriptDays.get(file)
+  if (cached && cached.size === stats.size && cached.mtimeMs === stats.mtimeMs) return cached.days
+  const days = new Map()
+  let buffer
+  try {
+    buffer = await fs.promises.readFile(file)
+  } catch {
+    return days
+  }
+  let start = 0
+  let sinceYield = 0
+  while (start < buffer.length) {
+    let end = buffer.indexOf(10, start)
+    if (end === -1) end = buffer.length
+    if (end > start) {
+      const date = messageDay(buffer.subarray(start, end))
+      if (date) days.set(date, (days.get(date) ?? 0) + 1)
+    }
+    sinceYield += end - start + 1
+    start = end + 1
+    if (sinceYield >= YIELD_EVERY_BYTES) {
+      sinceYield = 0
+      await breathe()
+    }
+  }
+  transcriptDays.set(file, { size: stats.size, mtimeMs: stats.mtimeMs, days })
+  return days
+}
+
+async function countClaudeMessages(file, stats, counts) {
+  for (const [date, count] of await claudeMessageDays(file, stats)) {
+    counts.set(date, (counts.get(date) ?? 0) + count)
   }
 }
 
 /** Every Claude transcript touched inside the window. */
 async function forEachClaudeTranscript(cutoffMs, visit) {
+  const seen = new Set()
   for (const dir of claudeProjectDirs()) {
     let names
     try {
@@ -261,6 +315,7 @@ async function forEachClaudeTranscript(cutoffMs, visit) {
     }
     for (const name of names) {
       const file = path.join(dir, name)
+      seen.add(file)
       let stats
       try {
         stats = fs.statSync(file)
@@ -268,17 +323,19 @@ async function forEachClaudeTranscript(cutoffMs, visit) {
         continue
       }
       if (stats.mtimeMs < cutoffMs) continue
-      await visit(file)
+      await visit(file, stats)
       await breathe()
     }
   }
+  // A transcript deleted from disk leaves the cache too.
+  for (const file of transcriptDays.keys()) if (!seen.has(file)) transcriptDays.delete(file)
 }
 
 async function claudeActivity(days) {
   const window = Math.min(Math.max(days ?? 91, 1), 366)
   const counts = new Map()
-  await forEachClaudeTranscript(Date.now() - window * DAY_MS, (file) =>
-    countClaudeMessages(file, counts),
+  await forEachClaudeTranscript(Date.now() - window * DAY_MS, (file, stats) =>
+    countClaudeMessages(file, stats, counts),
   )
   return activityWindow(window, counts)
 }
@@ -351,7 +408,7 @@ async function multiAgentActivity(days) {
   const window = Math.min(Math.max(days ?? 91, 1), 366)
   const cutoffMs = Date.now() - window * DAY_MS
   const counts = new Map()
-  await forEachClaudeTranscript(cutoffMs, (file) => countClaudeMessages(file, counts))
+  await forEachClaudeTranscript(cutoffMs, (file, stats) => countClaudeMessages(file, stats, counts))
   countCodexSessions(cutoffMs, counts)
   countOpenCodeMessages(cutoffMs, counts)
   return activityWindow(window, counts)

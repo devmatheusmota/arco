@@ -11,6 +11,7 @@ import {
   collectTerminalPtyIds,
   getProjectDefaultCwd,
   getProjectRepoRoot,
+  isFreshestUse,
   isInsideArcoWorktree,
   makeDefaultTerminal,
   makeDiffPane,
@@ -499,8 +500,11 @@ export function createTerminalsSlice({
     setTerminalRemoteExcluded: (projectId, terminalId, excluded) =>
       updateTerminal(projectId, terminalId, (t) => ({ ...t, remoteExcluded: excluded })),
 
-    markTerminalUsed: (projectId, terminalId) =>
-      updateTerminal(projectId, terminalId, (t) => touchTerminalUsage(t)),
+    markTerminalUsed: (projectId, terminalId) => {
+      const project = get().projects.find((p) => p.id === projectId)
+      if (project && isFreshestUse(project.terminals, terminalId)) return
+      updateTerminal(projectId, terminalId, (t) => touchTerminalUsage(t))
+    },
 
     /* ------------ workspace containers ------------ */
   }

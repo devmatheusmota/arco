@@ -17,7 +17,7 @@ import {
   Workflow,
   X,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { requestAppClose } from '../../hooks/useCloseConfirmation'
 import { getCachedAntigravityUsage } from '../../lib/antigravityUsageCache'
@@ -49,7 +49,10 @@ function formatPct(value: number): string {
   return `${value.toFixed(0)}%`
 }
 
-function MemoryPillButton({ ramMb }: { ramMb: number }) {
+// Reads the sample itself, rounded to what it shows, so the title bar around it
+// does not re-render on every resource sample.
+function MemoryPillButton() {
+  const ramMb = useUiStore((s) => Math.round(s.ramMb ?? 0))
   const memoryStats = useUiStore((s) => s.memoryStats)
   const openModal = useUiStore((s) => s.openModal_)
   const t = useT()
@@ -85,7 +88,7 @@ export function TitleBar() {
   const agentCanvasSession = useUiStore((s) => s.agentCanvasSession)
   const setAgentCanvasSession = useUiStore((s) => s.setAgentCanvasSession)
   const setActiveView = useUiStore((s) => s.setActiveView)
-  const ramMb = useUiStore((s) => s.ramMb)
+  const hasRamSample = useUiStore((s) => s.ramMb !== null)
   const claudeUsage = useUiStore((s) => s.claudeUsage)
   const codexUsage = useUiStore((s) => s.codexUsage)
   const antigravityUsage = useUiStore((s) => s.antigravityUsage)
@@ -133,7 +136,13 @@ export function TitleBar() {
 
   const activeRef = useRef(true)
 
+  // Nothing can connect while remote control is off, so nothing is asked.
+  const remoteEnabled = preferences.remoteEnabled
   useEffect(() => {
+    if (!remoteEnabled) {
+      setRemoteConnectedDevices(0)
+      return
+    }
     let cancelled = false
     const refreshRemoteDevices = async () => {
       if (!activeRef.current) return
@@ -155,7 +164,7 @@ export function TitleBar() {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [])
+  }, [remoteEnabled])
 
   useEffect(() => {
     let cancelled = false
@@ -261,7 +270,9 @@ export function TitleBar() {
     }
   }, [setAntigravityUsage])
 
-  const win = getCurrentWindow()
+  // One handle for the life of the bar. A new one per render re-subscribed the
+  // focus listener and sent the window title over IPC on every re-render.
+  const win = useMemo(() => getCurrentWindow(), [])
 
   useEffect(() => {
     const update = (focused: boolean) => {
@@ -657,9 +668,7 @@ export function TitleBar() {
                 </div>
               </div>
             ) : null}
-            {preferences.topbarShowMemory && ramMb !== null ? (
-              <MemoryPillButton ramMb={ramMb} />
-            ) : null}
+            {preferences.topbarShowMemory && hasRamSample ? <MemoryPillButton /> : null}
             <button
               type="button"
               className={styles.editWidgets}

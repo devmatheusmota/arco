@@ -1,11 +1,19 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  appendFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
+const nodeFs = require('node:fs') as typeof import('node:fs')
 const { applySample, buildUsageCommands, emptyDay } =
   require('../../electron/commands/usage.cjs') as {
     applySample: (day: DayStats, sample: Record<string, unknown>) => void
@@ -125,6 +133,40 @@ describe('activity heatmap', () => {
     const days = await buildUsageCommands().get_multi_agent_activity({ days: 2 })
 
     expect(days[1].count).toBe(1)
+  })
+
+  it('is not fooled by record text that looks like a type or a timestamp', async () => {
+    writeTranscript('-repo-app', 'session', [
+      {
+        type: 'user',
+        message: { content: 'paste: {"type":"assistant","timestamp":"1999-01-01T00:00:00Z"}' },
+        timestamp: `${today()}T10:00:00.000Z`,
+      },
+    ])
+
+    const days = await buildUsageCommands().get_multi_agent_activity({ days: 2 })
+
+    expect(days[1]).toEqual({ date: today(), count: 1 })
+  })
+
+  it('reads a transcript again only once it has changed', async () => {
+    writeTranscript('-repo-app', 'session', [
+      { type: 'user', timestamp: `${today()}T10:00:00.000Z` },
+    ])
+    const commands = buildUsageCommands()
+    await commands.get_multi_agent_activity({ days: 2 })
+
+    const readFile = vi.spyOn(nodeFs.promises, 'readFile')
+    expect((await commands.get_multi_agent_activity({ days: 2 }))[1].count).toBe(1)
+    expect(readFile).not.toHaveBeenCalled()
+
+    appendFileSync(
+      join(home, '.claude', 'projects', '-repo-app', 'session.jsonl'),
+      `${JSON.stringify({ type: 'assistant', timestamp: `${today()}T10:00:05.000Z` })}\n`,
+    )
+    expect((await commands.get_multi_agent_activity({ days: 2 }))[1].count).toBe(2)
+    expect(readFile).toHaveBeenCalledTimes(1)
+    readFile.mockRestore()
   })
 })
 

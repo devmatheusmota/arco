@@ -214,6 +214,10 @@ function startHookListener(send, readTodos, { openUrl = openInBrowser } = {}) {
             source: typeof source === 'string' ? source : null,
             cwd: typeof cwd === 'string' ? cwd : null,
           })
+          // Wakes the panes waiting for a new transcript right away, the way
+          // the directory watcher of the Rust build did, so they need not poll
+          // the project directory on a short timer.
+          send('session://new', { agent: 'claude' })
         }
       } catch {}
       json(response, {})
