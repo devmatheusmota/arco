@@ -140,6 +140,21 @@ regardless. The suites were merged back into one in August 2026; when adding a t
 (no DOM), just colocate it like everything else — Vitest handles logic-only tests fine without extra
 setup.
 
+### Measuring performance
+
+Speed is judged on the real app with several sessions open, not on a green test run. Two tools
+measure it there:
+
+- `npm run perf:sample [seconds]` samples the Arco that is running (Linux): CPU of each process,
+  what the main process reads from disk and what the PTY host writes, second by second. Every
+  keystroke and every byte of terminal output passes through the main process, so a second in
+  which it reads hundreds of megabytes or sits at full CPU is a second in which typing stalls.
+- Starting the app with `ARCO_KEY_TRACE=1` writes `key.trace` (a keystroke's latency split into
+  queueing, xterm handling and the next frame) and `main.budget` (where the renderer's main thread
+  goes) to `app-events.log` under `~/.local/share/com.mota.arco/logs/`. `ARCO_IPC_BENCH=1` adds
+  `ipc.bench`, the keystroke round trip to the PTY and back. `ARCO_TERMINAL_RENDERER=canvas`,
+  `dom` or `webgl` forces a terminal renderer.
+
 ## How the project is laid out
 
 ```text

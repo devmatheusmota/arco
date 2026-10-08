@@ -37,6 +37,9 @@ import styles from './HomeView.module.css'
 import { TimeAnalytics } from './TimeAnalytics'
 import { UsageStrip } from './UsageStrip'
 
+/** A stable array: the effect restarts its animation whenever its colors prop changes identity. */
+const ASCII_BACKDROP_COLORS = ['var(--fg-muted)', 'var(--fg)']
+
 const RECENT_PROJECTS_LIMIT = 6
 const NOTIFICATIONS_LIMIT = 5
 const REPOSITORY_URL = 'https://github.com/Kc1t/agent-canva'
@@ -277,7 +280,7 @@ export function HomeView() {
           mouseStrength={16}
           scale={1}
           fit="cover"
-          colors={['var(--fg-muted)', 'var(--fg)']}
+          colors={ASCII_BACKDROP_COLORS}
           backgroundColor="transparent"
         />
       </div>

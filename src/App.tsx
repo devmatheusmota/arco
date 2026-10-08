@@ -1,12 +1,19 @@
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Bell, X } from 'lucide-react'
-import { type CSSProperties, lazy, Suspense, useEffect, useRef } from 'react'
+import {
+  type CSSProperties,
+  lazy,
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { Group as PanelGroup, Panel, Separator, usePanelRef } from 'react-resizable-panels'
 
 import styles from './App.module.css'
 import homeBackground from './assets/home-bg-right.png'
-import { AgentSandbox } from './components/AgentSandbox'
 import { DictationButton } from './components/DictationButton'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { FocusOverlay } from './components/FocusOverlay'
@@ -22,7 +29,6 @@ import { EditProjectModal } from './components/modals/EditProjectModal'
 import { FindJumpModal } from './components/modals/FindJumpModal'
 import { HandoffModal } from './components/modals/HandoffModal'
 import { McpIntroModal } from './components/modals/McpIntroModal'
-import { McpManagerModal } from './components/modals/McpManagerModal'
 import { NewGroupModal } from './components/modals/NewGroupModal'
 import { NewProjectModal } from './components/modals/NewProjectModal'
 import { NewSubTabModal } from './components/modals/NewSubTabModal'
@@ -70,6 +76,9 @@ import { checkForUpdate } from './lib/updater'
 import { useProjectsStore } from './stores/projectsStore'
 import { type InAppToast, useUiStore } from './stores/uiStore'
 
+/** A stable array: the effect restarts its animation whenever its colors prop changes identity. */
+const ASCII_BACKDROP_COLORS = ['var(--fg-muted)', 'var(--fg)']
+
 const AgentCanvasPOC = lazy(() =>
   import('./components/AgentCanvasPOC').then((module) => ({ default: module.AgentCanvasPOC })),
 )
@@ -79,11 +88,45 @@ const BoardView = lazy(() =>
 const HomeView = lazy(() =>
   import('./components/HomeView').then((module) => ({ default: module.HomeView })),
 )
+// Only loaded when opened: the skills browser in it renders Markdown with
+// Mermaid, and a static import put that whole library in the startup bundle.
+const McpManagerModal = lazy(() =>
+  import('./components/modals/McpManagerModal').then((module) => ({
+    default: module.McpManagerModal,
+  })),
+)
+// Behind a feature flag that ships off; it has no business in the startup bundle.
+const AgentSandbox = lazy(() =>
+  import('./components/AgentSandbox').then((module) => ({ default: module.AgentSandbox })),
+)
 const MemoryAnalyticsModal = lazy(() =>
   import('./components/modals/MemoryAnalyticsModal').then((module) => ({
     default: module.MemoryAnalyticsModal,
   })),
 )
+
+type ModalKey = Exclude<ReturnType<typeof useUiStore.getState>['openModal'], null>
+
+/**
+ * Mounts a modal only while it is the open one. These subscribe to the whole
+ * project or task list to build what they show, and mounted closed they did that
+ * work on every change of either — a click on a pane included.
+ */
+function WhenOpen({ modal, children }: { modal: ModalKey; children: ReactNode }) {
+  const open = useUiStore((s) => s.openModal === modal)
+  return open ? <Suspense fallback={null}>{children}</Suspense> : null
+}
+
+/**
+ * Loads a modal the first time it opens and keeps it mounted after that, for
+ * one that remembers where it was (a tab, a selection) between openings.
+ */
+function OnceOpened({ modal, children }: { modal: ModalKey; children: ReactNode }) {
+  const open = useUiStore((s) => s.openModal === modal)
+  const [opened, setOpened] = useState(open)
+  if (open && !opened) setOpened(true)
+  return opened ? <Suspense fallback={null}>{children}</Suspense> : null
+}
 
 function LoadingScreen() {
   const t = useT()
@@ -104,7 +147,7 @@ function LoadingScreen() {
           mouseStrength={16}
           scale={1}
           fit="cover"
-          colors={['var(--fg-muted)', 'var(--fg)']}
+          colors={ASCII_BACKDROP_COLORS}
           backgroundColor="transparent"
         />
       </div>
@@ -628,15 +671,21 @@ export default function App() {
       <ErrorBoundary label="modals">
         <NewProjectModal />
         <EditProjectModal />
-        <NewTerminalModal />
+        <WhenOpen modal="newTerminal">
+          <NewTerminalModal />
+        </WhenOpen>
         <NewGroupModal />
         <AddContentModal />
         <AddBrowserModal />
         <NewSubTabModal />
         <PreferencesModal />
-        <ProfilesModal />
+        <WhenOpen modal="profiles">
+          <ProfilesModal />
+        </WhenOpen>
         <SyncModal />
-        <FindJumpModal />
+        <WhenOpen modal="findJump">
+          <FindJumpModal />
+        </WhenOpen>
         <OnboardingModal />
         <WelcomeModal />
         {openModal === 'memoryAnalytics' ? (
@@ -646,14 +695,22 @@ export default function App() {
         ) : null}
         <ThemePickerModal />
         <TodoSettingsModal />
-        <TaskSessionModal />
+        <WhenOpen modal="taskSession">
+          <TaskSessionModal />
+        </WhenOpen>
         <TopbarSettingsModal />
         <AiUsageModal />
         <UpdateModal />
         <WhatsNewModal />
-        <RecentChatsModal />
-        <HandoffModal />
-        <McpManagerModal />
+        <WhenOpen modal="recentChats">
+          <RecentChatsModal />
+        </WhenOpen>
+        <WhenOpen modal="handoff">
+          <HandoffModal />
+        </WhenOpen>
+        <OnceOpened modal="mcpManager">
+          <McpManagerModal />
+        </OnceOpened>
         <McpIntroModal />
         <RemoteControlModal />
         <PromptModal />

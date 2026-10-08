@@ -1,4 +1,4 @@
-import { useEffect, useRef, type HTMLAttributes, type PointerEvent } from 'react'
+import { type HTMLAttributes, type PointerEvent, useEffect, useRef } from 'react'
 
 import styles from './AsciiEffect.module.css'
 
@@ -132,11 +132,25 @@ export function AsciiEffect({
     let glitchBands = new Map<number, number>()
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    const draw = (now: number) => {
-      if (!loaded || !width || !height) return
-      pointer.current.x += (pointer.current.targetX - pointer.current.x) * 0.08
-      pointer.current.y += (pointer.current.targetY - pointer.current.y) * 0.08
+    // The image, its luminance and the dithering depend only on the size, so
+    // they are sampled once per resize instead of on every frame — reading the
+    // pixels back from a canvas stalls the GPU each time.
+    type Sample = {
+      columns: number
+      rows: number
+      cellWidth: number
+      cellHeight: number
+      pixels: Uint8ClampedArray
+      luminance: Float32Array
+    }
+    let sample: Sample | null = null
+    // Colors come from theme variables and are resolved about once a second, so
+    // a theme switch still reaches the effect without a style lookup per frame.
+    const PALETTE_STEPS = 64
+    let palette: string[] = []
+    let paletteAt = -Infinity
 
+    const buildSample = (): Sample => {
       const cellHeight = Math.max(4, fontSize * Math.max(0.5, lineHeight))
       context.font = `${fontWeight} ${fontSize}px ${fontFamily}`
       const cellWidth = Math.max(
@@ -199,6 +213,18 @@ export function AsciiEffect({
         })
       }
 
+      return { columns, rows, cellWidth, cellHeight, pixels, luminance }
+    }
+
+    const draw = (now: number) => {
+      if (!loaded || !width || !height) return
+      pointer.current.x += (pointer.current.targetX - pointer.current.x) * 0.08
+      pointer.current.y += (pointer.current.targetY - pointer.current.y) * 0.08
+
+      sample ??= buildSample()
+      const { columns, rows, cellWidth, cellHeight, pixels, luminance } = sample
+      context.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+
       if (variant === 'glitch' && !reduceMotion && glitchFrequency > 0 && now >= nextGlitchAt) {
         glitchBands = new Map()
         const count = Math.max(1, Math.round(clamp(glitchIntensity) * 4))
@@ -211,7 +237,13 @@ export function AsciiEffect({
       }
       if (now > glitchUntil) glitchBands.clear()
 
-      const resolvedColors = colors.map((color) => resolveColor(container, color))
+      if (now - paletteAt > 1000) {
+        paletteAt = now
+        const resolvedColors = colors.map((color) => resolveColor(container, color))
+        palette = Array.from({ length: PALETTE_STEPS }, (_, step) =>
+          gradientColor(resolvedColors, step / (PALETTE_STEPS - 1)),
+        )
+      }
       const resolvedBackground = resolveColor(container, backgroundColor)
       context.clearRect(0, 0, width, height)
       if (resolvedBackground !== 'transparent') {
@@ -267,7 +299,7 @@ export function AsciiEffect({
           context.fillStyle =
             colorMode === 'source'
               ? `rgb(${pixels[pixel]}, ${pixels[pixel + 1]}, ${pixels[pixel + 2]})`
-              : gradientColor(resolvedColors, value)
+              : palette[Math.round(value * (PALETTE_STEPS - 1))]
           context.fillText(
             character,
             column * cellWidth - cellWidth + (glitchBands.get(row) ?? 0),
@@ -278,6 +310,7 @@ export function AsciiEffect({
     }
 
     const resize = () => {
+      sample = null
       const rect = container.getBoundingClientRect()
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       width = Math.max(1, rect.width)
@@ -289,7 +322,7 @@ export function AsciiEffect({
     }
 
     const animate = (now: number) => {
-      if (now - lastFrameAt >= 1000 / 30) {
+      if (now - lastFrameAt >= 1000 / 24) {
         lastFrameAt = now
         draw(now)
       }
