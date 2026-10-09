@@ -196,7 +196,7 @@ function buildCommands({ ptyHost, mainWindow, send }) {
     ...buildHookCommands(),
     ...buildDictationCommands(send),
     ...buildMeetingCommands(),
-    ...buildPlatformCommands({ which }),
+    ...buildPlatformCommands(),
     ...buildSystemCommands({ ptyHost, send }),
     ...buildPlanningCommands(),
     ...buildSkillsCommands(),

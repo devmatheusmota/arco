@@ -1,24 +1,13 @@
-import { AlertTriangle, CircleCheck, GitBranch } from 'lucide-react'
+import { AlertTriangle, GitBranch } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { readableError } from '../../lib/errors'
 import { useT } from '../../lib/i18n'
-import { discoverProviderModels, gitInit, gitStatus } from '../../lib/tauri'
-import { AGENT_TYPE_LABELS, ALL_AGENT_TYPES, type AgentType } from '../../lib/types'
+import { gitInit, gitStatus } from '../../lib/tauri'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
-import { AgentIcon } from '../icons/AgentIcons'
-import { ModelSearchablePicker, type ModelOption } from './ModelSearchablePicker'
 import controls from './controls.module.css'
 import styles from './EditProjectModal.module.css'
-
-const ALL_AGENTS: { type: AgentType; label: string }[] = ALL_AGENT_TYPES.map((type) => ({
-  type,
-  label: AGENT_TYPE_LABELS[type],
-}))
-
-// Module-level so it survives a tab switch or a remount of this component.
-const globalModelsCache: Record<string, ModelOption[]> = {}
 
 export function EditProjectAgentSettings({
   projectId,
@@ -27,10 +16,6 @@ export function EditProjectAgentSettings({
   onWorktreeModeChange,
   validationCommandsStr,
   onValidationCommandsChange,
-  conflictProvider,
-  onConflictProviderChange,
-  conflictModel,
-  onConflictModelChange,
   autoWorktree,
   onAutoWorktreeChange,
   graphifyEnabled,
@@ -44,10 +29,6 @@ export function EditProjectAgentSettings({
   onWorktreeModeChange: (mode: 'gitWorktree' | 'localCopy') => void
   validationCommandsStr: string
   onValidationCommandsChange: (value: string) => void
-  conflictProvider: AgentType
-  onConflictProviderChange: (provider: AgentType) => void
-  conflictModel: string
-  onConflictModelChange: (modelId: string) => void
   autoWorktree: boolean
   onAutoWorktreeChange: (enabled: boolean) => void
   graphifyEnabled: boolean
@@ -57,19 +38,10 @@ export function EditProjectAgentSettings({
 }) {
   const t = useT()
   const pushToast = useUiStore((s) => s.pushToast)
-  const enabledAgents = useProjectsStore((s) => s.preferences.enabledAgents)
-  const terminalTheme = useProjectsStore(
-    (s) => s.preferences.terminalTheme ?? s.preferences.uiTheme,
-  )
   const migrateProjectTerminalsToWorktrees = useProjectsStore(
     (s) => s.migrateProjectTerminalsToWorktrees,
   )
 
-  const availableAgents = ALL_AGENTS.filter((a) => enabledAgents[a.type])
-  const conflictAgents = availableAgents.length > 0 ? availableAgents : ALL_AGENTS
-
-  const [discoveredModels, setDiscoveredModels] = useState<ModelOption[]>([])
-  const [loadingModels, setLoadingModels] = useState(false)
   const [migratingWorktrees, setMigratingWorktrees] = useState(false)
 
   const [hasGit, setHasGit] = useState<boolean | null>(null)
@@ -110,28 +82,6 @@ export function EditProjectAgentSettings({
       setGitInitBusy(false)
     }
   }
-
-  useEffect(() => {
-    let active = true
-    const targetProvider = conflictProvider
-    const cached = globalModelsCache[targetProvider]
-    setDiscoveredModels(cached ?? [])
-    setLoadingModels(!cached)
-    discoverProviderModels(targetProvider)
-      .then((list) => {
-        if (!active) return
-        globalModelsCache[targetProvider] = list ?? []
-        setDiscoveredModels(list ?? [])
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (active) setLoadingModels(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [conflictProvider])
 
   return (
     <>
@@ -194,44 +144,6 @@ export function EditProjectAgentSettings({
           placeholder={t('crud.editProjectValidationPlaceholder')}
           value={validationCommandsStr}
           onChange={(e) => onValidationCommandsChange(e.target.value)}
-        />
-      </div>
-
-      {/* SELETOR ESTRUTURADO DE AGENTE DE CONFLITOS (CARDS COM ÍCONES) */}
-      <div className={controls.field}>
-        <label className={controls.label}>{t('merge.providerLabel')}</label>
-        <div className={controls.agentGrid}>
-          {conflictAgents.map((agent) => {
-            const active = conflictProvider === agent.type
-            return (
-              <button
-                key={agent.type}
-                type="button"
-                className={`${controls.agentCard} ${active ? controls.agentCardActive : ''}`}
-                onClick={() => onConflictProviderChange(agent.type)}
-              >
-                <span className={controls.agentIcon}>
-                  <AgentIcon type={agent.type} size={20} theme={terminalTheme} />
-                </span>
-                <span className={controls.agentLabel}>{agent.label}</span>
-                {active ? <CircleCheck size={16} className={controls.selectedIcon} /> : null}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* SELETOR DE MODELO PESQUISÁVEL E ROLÁVEL */}
-      <div className={controls.field} style={{ marginTop: 10 }}>
-        <label className={controls.label}>
-          {t('merge.modelLabel', { provider: AGENT_TYPE_LABELS[conflictProvider] })}
-        </label>
-        <ModelSearchablePicker
-          value={conflictModel}
-          onChange={onConflictModelChange}
-          options={discoveredModels}
-          loading={loadingModels}
-          providerName={AGENT_TYPE_LABELS[conflictProvider]}
         />
       </div>
 

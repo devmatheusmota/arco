@@ -10,6 +10,11 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Removed
+
+- The "Conflict resolution agent" section in Edit project → Agents, with its agent model picker.
+  Nothing in the app opens that agent since the move to Electron, so the choice had no effect.
+
 ## [3.13.3] — 2026-10-09
 
 ### Fixed

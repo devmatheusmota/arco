@@ -10,7 +10,7 @@ import {
   worktreeRemove,
 } from '../../lib/tauri'
 import { getProjectRepoRoot } from '../../lib/terminalFactory'
-import { type AgentType, type Project, PROJECT_COLORS } from '../../lib/types'
+import { type Project, PROJECT_COLORS } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { ColorPalettePopover } from './ColorPalettePopover'
@@ -46,8 +46,6 @@ export function EditProjectModal() {
   const setWorktreeMode = useProjectsStore((s) => s.setWorktreeMode)
   const setValidationCommands = useProjectsStore((s) => s.setValidationCommands)
   const setGsdWatcherEnabled = useProjectsStore((s) => s.setGsdWatcherEnabled)
-  const setConflictAgentProvider = useProjectsStore((s) => s.setConflictAgentProvider)
-  const setConflictAgentModel = useProjectsStore((s) => s.setConflictAgentModel)
   const setGraphifyEnabled = useProjectsStore((s) => s.setGraphifyEnabled)
   const setAutoWorktree = useProjectsStore((s) => s.setAutoWorktree)
   const cleanupOrphanWorktrees = useProjectsStore((s) => s.cleanupOrphanWorktrees)
@@ -66,8 +64,6 @@ export function EditProjectModal() {
   const [gsdWatcherEnabled, setGsdWatcherEnabledState] = useState(false)
   const [worktrees, setWorktrees] = useState<any[]>([])
   const [loadingWorktrees, setLoadingWorktrees] = useState(false)
-  const [conflictProvider, setConflictProviderState] = useState<AgentType>('claude')
-  const [conflictModel, setConflictModelState] = useState('')
   const [graphifyEnabled, setGraphifyEnabledState] = useState(false)
   const [autoWorktree, setAutoWorktreeState] = useState(true)
   const [newAgentName, setNewAgentName] = useState('')
@@ -106,8 +102,6 @@ export function EditProjectModal() {
     setValidationCommandsStr((project.validationCommands ?? []).join('\n'))
     setGsdWatcherEnabledState(project.gsdWatcherEnabled ?? false)
 
-    setConflictProviderState(project.conflictAgentProvider ?? 'claude')
-    setConflictModelState(project.conflictAgentModel ?? '')
     setGraphifyEnabledState(project.graphifyEnabled ?? false)
     setAutoWorktreeState(project.autoWorktree ?? true)
     setActiveTab(context?.tab ?? 'focus')
@@ -195,14 +189,6 @@ export function EditProjectModal() {
     const originalCmds = project.validationCommands ?? []
     if (JSON.stringify(cmds) !== JSON.stringify(originalCmds)) {
       setValidationCommands(project.id, cmds)
-    }
-
-    if (conflictProvider !== (project.conflictAgentProvider ?? 'claude')) {
-      setConflictAgentProvider(project.id, conflictProvider)
-    }
-
-    if (conflictModel !== (project.conflictAgentModel ?? '')) {
-      setConflictAgentModel(project.id, conflictModel)
     }
 
     if (graphifyEnabled !== (project.graphifyEnabled ?? false)) {
@@ -404,10 +390,6 @@ export function EditProjectModal() {
             onWorktreeModeChange={setWorktreeModeState}
             validationCommandsStr={validationCommandsStr}
             onValidationCommandsChange={setValidationCommandsStr}
-            conflictProvider={conflictProvider}
-            onConflictProviderChange={setConflictProviderState}
-            conflictModel={conflictModel}
-            onConflictModelChange={setConflictModelState}
             autoWorktree={autoWorktree}
             onAutoWorktreeChange={setAutoWorktreeState}
             graphifyEnabled={graphifyEnabled}

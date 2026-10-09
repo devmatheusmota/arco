@@ -95,12 +95,6 @@ export async function uninstallAgent(folder: string, name: string, force = true)
   await invoke('uninstall_agent', { folder, name, force })
 }
 
-export type DiscoveredModel = { id: string; label: string }
-
-export async function discoverProviderModels(provider: string): Promise<DiscoveredModel[]> {
-  return invoke<DiscoveredModel[]>('discover_provider_models', { provider })
-}
-
 export type OpenCodeBridgeStatus = {
   directory: string
   state: 'working' | 'idle'
