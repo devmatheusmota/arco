@@ -4,12 +4,7 @@ import { useEffect, useState } from 'react'
 import { readableError } from '../../lib/errors'
 import { useT } from '../../lib/i18n'
 import { discoverProviderModels, gitInit, gitStatus } from '../../lib/tauri'
-import {
-  AGENT_TYPE_LABELS,
-  ALL_AGENT_TYPES,
-  PROVIDER_MODELS,
-  type AgentType,
-} from '../../lib/types'
+import { AGENT_TYPE_LABELS, ALL_AGENT_TYPES, type AgentType } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
 import { AgentIcon } from '../icons/AgentIcons'
@@ -22,8 +17,7 @@ const ALL_AGENTS: { type: AgentType; label: string }[] = ALL_AGENT_TYPES.map((ty
   label: AGENT_TYPE_LABELS[type],
 }))
 
-// Cache module-level (sobrevive a troca de aba/remount deste componente) —
-
+// Module-level so it survives a tab switch or a remount of this component.
 const globalModelsCache: Record<string, ModelOption[]> = {}
 
 export function EditProjectAgentSettings({
@@ -120,27 +114,16 @@ export function EditProjectAgentSettings({
   useEffect(() => {
     let active = true
     const targetProvider = conflictProvider
-    const fallback = PROVIDER_MODELS[targetProvider] ?? []
-    const cached = globalModelsCache[targetProvider] || fallback
-    setDiscoveredModels(cached)
-
-    setLoadingModels(true)
+    const cached = globalModelsCache[targetProvider]
+    setDiscoveredModels(cached ?? [])
+    setLoadingModels(!cached)
     discoverProviderModels(targetProvider)
       .then((list) => {
         if (!active) return
-        if (list && list.length > 0) {
-          globalModelsCache[targetProvider] = list
-          setDiscoveredModels(list)
-        } else {
-          globalModelsCache[targetProvider] = fallback
-          setDiscoveredModels(fallback)
-        }
+        globalModelsCache[targetProvider] = list ?? []
+        setDiscoveredModels(list ?? [])
       })
-      .catch(() => {
-        if (!active) return
-        globalModelsCache[targetProvider] = fallback
-        setDiscoveredModels(fallback)
-      })
+      .catch(() => {})
       .finally(() => {
         if (active) setLoadingModels(false)
       })
@@ -241,14 +224,14 @@ export function EditProjectAgentSettings({
       {/* SELETOR DE MODELO PESQUISÁVEL E ROLÁVEL */}
       <div className={controls.field} style={{ marginTop: 10 }}>
         <label className={controls.label}>
-          {t('merge.modelLabel', { provider: conflictProvider.toUpperCase() })}
+          {t('merge.modelLabel', { provider: AGENT_TYPE_LABELS[conflictProvider] })}
         </label>
         <ModelSearchablePicker
           value={conflictModel}
           onChange={onConflictModelChange}
           options={discoveredModels}
           loading={loadingModels}
-          providerName={conflictProvider.toUpperCase()}
+          providerName={AGENT_TYPE_LABELS[conflictProvider]}
         />
       </div>
 

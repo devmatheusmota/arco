@@ -10,6 +10,14 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Fixed
+
+- The model picker for the conflict resolution agent, under Edit project → Agents, no longer
+  offers models from 2024. Codex lists the models from its own catalog, OpenCode lists what
+  `opencode models` reports, and Claude offers Fable, Opus, Sonnet and Haiku, which always point at
+  the newest model of each family. "Agent default" is now a real choice, and the picker follows the
+  interface language.
+
 ## [3.12.0] — 2026-10-09
 
 ### Changed

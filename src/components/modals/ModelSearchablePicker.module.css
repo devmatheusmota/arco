@@ -155,3 +155,11 @@
   color: var(--fg);
   background: var(--clean-active-bg);
 }
+
+.optionHint {
+  font-size: var(--font-size-1);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

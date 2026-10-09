@@ -10,7 +10,7 @@ const fs = require('node:fs')
 const net = require('node:net')
 const os = require('node:os')
 const path = require('node:path')
-const { spawn } = require('node:child_process')
+const { execFile, spawn } = require('node:child_process')
 
 const githubSync = require('./github-sync.cjs')
 const paths = require('./paths.cjs')
@@ -281,7 +281,38 @@ function economyFile(folder) {
   return path.join(folder ?? os.homedir(), '.arco', 'economy-agents.json')
 }
 
-function buildPlatformCommands() {
+// ── provider models ─────────────────────────────────────────────────────────
+
+/**
+ * Claude Code has no catalog to read, but its `--model` takes aliases that
+ * always resolve to the newest model of each family, so this list does not go
+ * stale the way a list of full model names did.
+ */
+const CLAUDE_MODEL_ALIASES = [
+  { id: 'fable', label: 'Fable' },
+  { id: 'opus', label: 'Opus' },
+  { id: 'sonnet', label: 'Sonnet' },
+  { id: 'haiku', label: 'Haiku' },
+]
+
+/** The models Codex offers in its own picker, from the catalog it caches. */
+function codexModels(catalog) {
+  return (catalog?.models ?? [])
+    .filter((model) => model?.slug && model.visibility === 'list')
+    .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
+    .map((model) => ({ id: model.slug, label: model.display_name || model.slug }))
+}
+
+/** `opencode models` prints one `provider/model` per line. */
+function opencodeModels(stdout) {
+  return String(stdout ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => /^[\w.-]+\/\S+$/.test(line))
+    .map((id) => ({ id, label: id }))
+}
+
+function buildPlatformCommands({ which } = {}) {
   return {
     mcp_capabilities: () => MCP_CAPABILITIES,
     mcp_health_check: async ({ agent }) => {
@@ -344,32 +375,24 @@ function buildPlatformCommands() {
       return agents
     },
 
-    /** Models a provider actually offers, asked of the provider itself. */
+    /** Models an agent CLI accepts, read from the CLI's own catalog. */
     discover_provider_models: async ({ provider }) => {
-      const endpoints = {
-        anthropic: {
-          url: 'https://api.anthropic.com/v1/models',
-          headers: {
-            'x-api-key': process.env.ANTHROPIC_API_KEY ?? '',
-            'anthropic-version': '2023-06-01',
-          },
-          pick: (body) => (body.data ?? []).map((model) => ({ id: model.id, name: model.id })),
-        },
-        openai: {
-          url: 'https://api.openai.com/v1/models',
-          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ''}` },
-          pick: (body) => (body.data ?? []).map((model) => ({ id: model.id, name: model.id })),
-        },
+      if (provider === 'claude') return CLAUDE_MODEL_ALIASES
+      if (provider === 'codex') {
+        return codexModels(
+          paths.readJson(path.join(os.homedir(), '.codex', 'models_cache.json'), null),
+        )
       }
-      const config = endpoints[provider]
-      if (!config) return []
-      try {
-        const response = await fetch(config.url, { headers: config.headers })
-        if (!response.ok) return []
-        return config.pick(await response.json())
-      } catch {
-        return []
+      if (provider === 'opencode') {
+        const binary = which ? await which('opencode') : null
+        if (!binary) return []
+        return new Promise((resolve) => {
+          execFile(binary, ['models'], { timeout: 10_000 }, (error, stdout) =>
+            resolve(error ? [] : opencodeModels(stdout)),
+          )
+        })
       }
+      return []
     },
 
     /** Warns about env vars a compose/env file declares but does not define. */
@@ -423,4 +446,4 @@ function buildPlatformCommands() {
   }
 }
 
-module.exports = { buildPlatformCommands }
+module.exports = { buildPlatformCommands, codexModels, opencodeModels }

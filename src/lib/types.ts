@@ -730,39 +730,6 @@ export const PROJECT_COLORS = [
   '#10b981',
 ] as const
 
-export const PROVIDER_MODELS: Record<AgentType, { id: string; label: string }[]> = {
-  claude: [
-    { id: 'claude-3-7-sonnet', label: 'Claude 3.7 Sonnet (Padrão)' },
-    { id: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
-    { id: 'claude-3-5-haiku', label: 'Claude 3.5 Haiku' },
-    { id: 'claude-3-opus', label: 'Claude 3 Opus' },
-  ],
-  codex: [
-    { id: 'gpt-4o', label: 'GPT-4o (Padrão)' },
-    { id: 'o3-mini', label: 'o3-mini (Raciocínio)' },
-    { id: 'o1', label: 'o1 (Avançado)' },
-    { id: 'gpt-4o-mini', label: 'GPT-4o mini' },
-  ],
-  copilot: [],
-  opencode: [
-    { id: 'deepseek/deepseek-r1', label: 'DeepSeek R1 (Raciocínio)' },
-    { id: 'deepseek/deepseek-chat', label: 'DeepSeek V3' },
-    { id: 'qwen/qwen-2.5-coder-32b', label: 'Qwen 2.5 Coder 32B' },
-    { id: 'meta-llama/llama-3.3-70b', label: 'Llama 3.3 70B' },
-  ],
-  antigravity: [
-    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Padrão)' },
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-    { id: 'claude-3.7-sonnet', label: 'Claude 3.7 Sonnet' },
-  ],
-  mimo: [
-    { id: 'mimo-pro', label: 'Mimo Pro' },
-    { id: 'mimo-flash', label: 'Mimo Flash' },
-  ],
-  freebuff: [{ id: 'freebuff-auto', label: 'Freebuff Auto' }],
-  shell: [{ id: 'default', label: 'Shell Padrão' }],
-}
-
 export type McpScope = 'global' | 'project'
 
 export type McpAgent = Extract<AgentType, 'claude' | 'codex' | 'opencode' | 'antigravity'>
