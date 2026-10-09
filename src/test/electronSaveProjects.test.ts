@@ -21,10 +21,11 @@ const { buildCommands } = require('../../electron/commands/index.cjs') as {
   buildCommands: (ctx: Record<string, unknown>) => Record<string, Handler>
 }
 
+// No `send`: with it, buildCommands starts the hook listener, which this suite
+// does not need and which writes the hook and MCP config every pane reads.
 const handlers = buildCommands({
   ptyHost: { request: async () => [] },
   mainWindow: null,
-  send: () => {},
 })
 
 let dataHome: string

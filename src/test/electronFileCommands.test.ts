@@ -26,10 +26,11 @@ const { expandHome } = require('../../electron/commands/paths.cjs') as {
   expandHome: (target: string) => string
 }
 
+// No `send`: with it, buildCommands starts the hook listener, which this suite
+// does not need and which writes the hook and MCP config every pane reads.
 const handlers = buildCommands({
   ptyHost: { request: async () => [] },
   mainWindow: null,
-  send: () => {},
 })
 
 // The renderer's wrappers reach the handlers exactly as the preload hands them
