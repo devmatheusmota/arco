@@ -10,6 +10,19 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- A new front of work opened from the project starts on the project tree; its own worktree is now
+  opt-in there. Starting a task still offers one by default.
+- Naming a new front is optional. Left blank, it is called "Main", then "Main 2", "Main 3", and so
+  on.
+
+### Fixed
+
+- A project's folder no longer changes on its own. Opening a pane in another folder, such as one
+  picked from "Recent folders", used to make that folder the project's default, so every new front
+  started there. The folder now changes only when you edit the project.
+
 ## [3.11.2] — 2026-10-08
 
 ### Changed

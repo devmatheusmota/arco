@@ -212,8 +212,8 @@ export const en = {
   'ui.group.closeWithWorktree': 'Close front and delete its worktree',
   'ui.group.confirmClose': 'Close "{name}" and its {count} session(s)?',
   'ui.group.creating': 'Opening…',
-  'ui.group.nameLabel': 'What is this front of work?',
-  'ui.group.namePlaceholder': 'cpf opcional no cadastro',
+  'ui.group.nameLabel': 'What is this front of work? (optional)',
+  'ui.group.defaultName': 'Main',
   'ui.group.isolate': 'Give it its own worktree',
   'ui.group.isolate.desc':
     'Everything in this front edits a checkout of its own, and closing the front deletes it. Without this it works on the project tree, shared with everything else.',

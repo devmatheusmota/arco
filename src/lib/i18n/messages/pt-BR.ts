@@ -212,8 +212,8 @@ export const ptBR: Record<MessageKey, string> = {
   'ui.group.closeWithWorktree': 'Fechar frente e apagar a worktree dela',
   'ui.group.confirmClose': 'Fechar "{name}" e as {count} sessão(ões) dela?',
   'ui.group.creating': 'Abrindo…',
-  'ui.group.nameLabel': 'Qual é esta frente de trabalho?',
-  'ui.group.namePlaceholder': 'cpf opcional no cadastro',
+  'ui.group.nameLabel': 'Qual é esta frente de trabalho? (opcional)',
+  'ui.group.defaultName': 'Principal',
   'ui.group.isolate': 'Dar uma worktree própria a ela',
   'ui.group.isolate.desc':
     'Tudo nesta frente edita um checkout só dela, e fechar a frente apaga esse checkout. Sem isso, ela trabalha na árvore do projeto, dividida com todo o resto.',

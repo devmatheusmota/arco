@@ -1,13 +1,14 @@
 import { GitBranch, Info } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { nextDefaultGroupName } from '../../lib/groupNames'
 import { useT } from '../../lib/i18n'
 import { getProjectDefaultCwd, getProjectRepoRoot } from '../../lib/terminalFactory'
 import { AGENT_TYPE_LABELS } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useUiStore } from '../../stores/uiStore'
-import { Modal } from './Modal'
 import controls from './controls.module.css'
+import { Modal } from './Modal'
 import styles from './NewGroupModal.module.css'
 
 /**
@@ -16,6 +17,10 @@ import styles from './NewGroupModal.module.css'
  * The worktree question belongs here rather than on each session, because the
  * worktree is what the front is: everything running in it edits the same tree,
  * and closing the front is what takes that tree off disk.
+ *
+ * A front opened from here starts on the project tree. Isolated work usually
+ * starts from a task, whose modal offers the worktree by default instead. The
+ * name is optional: left blank, the front is numbered after the others.
  */
 export function NewGroupModal() {
   const t = useT()
@@ -40,23 +45,25 @@ export function NewGroupModal() {
   useEffect(() => {
     if (!open) return
     setName('')
-    setIsolate(true)
+    setIsolate(false)
     setError(null)
     setCreating(false)
-    // The name is the whole point of a front, so the caret starts in it.
     window.setTimeout(() => inputRef.current?.focus(), 0)
   }, [open])
 
   const repoRoot = getProjectRepoRoot(project) || getProjectDefaultCwd(project)
+  const defaultName = useMemo(
+    () => nextDefaultGroupName(project?.groups ?? [], t('ui.group.defaultName')),
+    [project?.groups, t],
+  )
 
   const submit = async () => {
     const projectId = context?.projectId
-    const trimmed = name.trim()
-    if (!projectId || !trimmed || creating) return
+    if (!projectId || creating) return
     setCreating(true)
     setError(null)
     try {
-      const group = createGroup(projectId, { name: trimmed })
+      const group = createGroup(projectId, { name: name.trim() || defaultName })
       // `createAgentTerminal` provisions the worktree and hands back the pane
       // that lives in it; the group takes that worktree as its own, so closing
       // the front is what removes it.
@@ -97,7 +104,7 @@ export function NewGroupModal() {
             type="button"
             className={`${controls.btn} ${controls.btnPrimary}`}
             onClick={() => void submit()}
-            disabled={!name.trim() || creating}
+            disabled={creating}
           >
             {creating ? t('ui.group.creating') : t('common.create')}
           </button>
@@ -113,7 +120,7 @@ export function NewGroupModal() {
           ref={inputRef}
           className={controls.input}
           value={name}
-          placeholder={t('ui.group.namePlaceholder')}
+          placeholder={defaultName}
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') void submit()
