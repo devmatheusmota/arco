@@ -162,11 +162,16 @@ export function createTerminalsSlice({
             ? {
                 ...p,
                 ...(bornGroup ? { groups: [...(p.groups ?? []), bornGroup] } : {}),
-                // A worktree is never the project's home. The old guard asked
-                // whether the pane owned one, which a session opened inside a
-                // front's worktree does not — so the project's root quietly
-                // became a directory that gets deleted with that front.
-                ...(!args.worktreeAgentId && finalCwd && !isInsideArcoWorktree(finalCwd)
+                // The first pane gives a project without a root its home; after
+                // that only editing the project moves it. Following every new
+                // pane let a folder picked once from "recent folders" become the
+                // root, and a project rooted at the home directory ended up
+                // owning another repository. A worktree is never the home: it
+                // gets deleted with its front.
+                ...(!sourceProject?.defaultCwd?.trim() &&
+                !args.worktreeAgentId &&
+                finalCwd &&
+                !isInsideArcoWorktree(finalCwd)
                   ? { defaultCwd: finalCwd }
                   : {}),
                 terminals: [...p.terminals, terminal],

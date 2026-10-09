@@ -284,6 +284,32 @@ describe('a pane created with no front named', () => {
   })
 })
 
+describe("a pane opened outside the project's root", () => {
+  // A project rooted at the home directory, with a pane opened in a repository
+  // picked from "recent folders", used to take that repository as its root.
+  it('leaves the root where it was', () => {
+    useProjectsStore.getState().createTerminal('p1', {
+      name: 'fora',
+      cwd: '/outro/repo',
+      firstTab: { type: 'claude', cwd: '/outro/repo' },
+    })
+
+    expect(project().defaultCwd).toBe('/repo')
+  })
+
+  it('gives a project with no root its first directory', () => {
+    useProjectsStore.setState({ projects: [{ ...project(), defaultCwd: undefined }] })
+
+    useProjectsStore.getState().createTerminal('p1', {
+      name: 'primeiro',
+      cwd: '/outro/repo',
+      firstTab: { type: 'claude', cwd: '/outro/repo' },
+    })
+
+    expect(project().defaultCwd).toBe('/outro/repo')
+  })
+})
+
 describe('the orchestrator of a front', () => {
   // It goes when its front goes. Every other route in has to refuse it.
   it('is refused by both close paths', async () => {
