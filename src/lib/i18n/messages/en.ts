@@ -882,6 +882,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3131.note1':
+    'arco todo add --kind now creates the task with that kind. In 3.13.0 the option was ignored, so the task came out as General and a stage such as review-pending was refused.',
   'whatsNew.v3130.note1':
     'Tasks now have a kind (Review, My PR, Task, Refinement, Release, Investigation, General), and each kind has its own stages: a pull request you reviewed reads "Waiting on author", one of yours "Waiting on review", a release "Waiting on DevOps". Your existing tasks were sorted by the bucket at the start of their title, and tags like aguardando-autor became the stage they stood for. The file from before the change is kept as projects.json.pre-v13.',
   'whatsNew.v3130.note2':

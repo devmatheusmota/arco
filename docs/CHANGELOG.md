@@ -10,6 +10,13 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.13.1] — 2026-10-09
+
+### Fixed
+
+- `arco todo add --kind` creates the task with that kind. 3.13.0 read the option and never sent it,
+  so the task was created as General and a stage like `--status review-pending` was refused.
+
 ## [3.13.0] — 2026-10-09
 
 ### Changed

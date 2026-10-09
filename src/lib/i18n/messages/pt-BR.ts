@@ -894,6 +894,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3131.note1':
+    'O arco todo add --kind agora cria a tarefa com esse tipo. Na 3.13.0 a opção era ignorada, então a tarefa saía como Geral e uma etapa como review-pending era recusada.',
   'whatsNew.v3130.note1':
     'As tarefas agora têm um tipo (Review, Meu PR, Task, Refinamento, Release, Investigação, Geral), e cada tipo tem as próprias etapas: um PR que você revisou fica "Aguardando autor", um seu fica "Aguardando review", uma release fica "Aguardando DevOps". As tarefas que você já tinha foram separadas pelo balde do começo do título, e tags como aguardando-autor viraram a etapa que representavam. O arquivo de antes da mudança fica guardado como projects.json.pre-v13.',
   'whatsNew.v3130.note2':
