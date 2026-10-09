@@ -10,6 +10,14 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.13.2] — 2026-10-09
+
+### Fixed
+
+- Closing a front with a worktree of its own also deletes the worktree's `arco/agent-*` branch, as
+  long as that branch holds no commit that is not on a remote or another branch. Before, every
+  removed worktree left its branch behind, and a repository collected one per front ever opened.
+
 ## [3.13.1] — 2026-10-09
 
 ### Fixed

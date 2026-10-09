@@ -894,6 +894,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3132.note1':
+    'Fechar uma frente com worktree própria agora apaga também a branch da worktree (arco/agent-...), quando ela não tem commit que só exista nela. Antes, cada frente fechada deixava a branch para trás no repositório.',
   'whatsNew.v3131.note1':
     'O arco todo add --kind agora cria a tarefa com esse tipo. Na 3.13.0 a opção era ignorada, então a tarefa saía como Geral e uma etapa como review-pending era recusada.',
   'whatsNew.v3130.note1':

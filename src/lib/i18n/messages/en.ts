@@ -882,6 +882,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3132.note1':
+    'Closing a front with its own worktree now deletes the worktree branch (arco/agent-...) too, when that branch has no commit found nowhere else. Before, every closed front left its branch behind in the repository.',
   'whatsNew.v3131.note1':
     'arco todo add --kind now creates the task with that kind. In 3.13.0 the option was ignored, so the task came out as General and a stage such as review-pending was refused.',
   'whatsNew.v3130.note1':
