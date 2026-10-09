@@ -840,6 +840,10 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3120.note1':
+    'A new front of work opened from a project now starts on the project tree; tick the box if it should get its own worktree. Starting a task still offers one by default. The name is optional too: left blank, the front is called "Main", then "Main 2", "Main 3".',
+  'whatsNew.v3120.note2':
+    'A project\'s folder no longer moves to wherever you last opened a pane, such as a folder picked from "Recent folders". If a project already starts its fronts in the wrong place, set its folder once in Edit project and it stays there.',
   'whatsNew.v3112.note1':
     'Arco no longer freezes for a moment every 15 seconds while Claude panes are open: it was reading every conversation of the project in full to find which one a pane was in, on the same process that carries your keystrokes. Clicking a pane no longer rewrites the whole workspace file, and terminal output is no longer written to disk four times a second.',
   'whatsNew.v3112.note2':

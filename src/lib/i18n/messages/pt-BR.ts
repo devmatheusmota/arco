@@ -852,6 +852,10 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3120.note1':
+    'Uma frente de trabalho nova aberta pelo projeto agora começa na árvore do projeto; marque a opção se ela precisar de uma worktree própria. Iniciar uma tarefa continua oferecendo a worktree por padrão. O nome também ficou opcional: em branco, a frente se chama "Principal", depois "Principal 2", "Principal 3".',
+  'whatsNew.v3120.note2':
+    'A pasta de um projeto não muda mais para onde você abriu o último pane, como uma pasta escolhida em "Pastas recentes". Se um projeto já abre as frentes no lugar errado, ajuste a pasta dele uma vez em Editar projeto e ela fica lá.',
   'whatsNew.v3112.note1':
     'O Arco não trava mais por um instante a cada 15 segundos com panes do Claude abertos: ele lia todas as conversas do projeto por inteiro para descobrir em qual delas cada pane estava, no mesmo processo que leva o que você digita. Clicar num pane não regrava mais o arquivo inteiro do workspace, e a saída dos terminais não é mais gravada em disco quatro vezes por segundo.',
   'whatsNew.v3112.note2':

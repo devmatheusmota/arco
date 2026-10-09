@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.12.0] — 2026-10-09
+
 ### Changed
 
 - A new front of work opened from the project starts on the project tree; its own worktree is now
