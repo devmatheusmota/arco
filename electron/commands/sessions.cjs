@@ -107,13 +107,7 @@ function forEachLine(file, onLine) {
   }
 }
 
-function firstTextBlock(line) {
-  let entry
-  try {
-    entry = JSON.parse(line)
-  } catch {
-    return null
-  }
+function textOf(entry) {
   const content = entry?.message?.content
   const text =
     typeof content === 'string'
@@ -121,16 +115,112 @@ function firstTextBlock(line) {
       : Array.isArray(content)
         ? (content.find((part) => part?.type === 'text')?.text ?? '')
         : ''
-  return text.trim() || null
+  return text.trim()
+}
+
+/** Leading user records inspected for a name; a real prompt rarely sits deeper. */
+const PROMPT_SCAN_LIMIT = 8
+const PROMPT_PREVIEW_CHARS = 240
+
+/** Wrappers Claude writes around a user record that hold no prose of their own. */
+const NOISE_TAGS = [
+  'local-command-caveat',
+  'system-reminder',
+  'command-message',
+  'command-name',
+  'command-args',
+  'local-command-stdout',
+  'local-command-stderr',
+  'user-prompt-submit-hook',
+  'bash-stdout',
+  'bash-stderr',
+]
+
+function tagContent(text, tag) {
+  const open = `<${tag}>`
+  const start = text.indexOf(open)
+  if (start === -1) return null
+  const end = text.indexOf(`</${tag}>`, start + open.length)
+  return end === -1 ? null : text.slice(start + open.length, end).trim()
+}
+
+function stripNoise(text) {
+  let out = text
+  for (const tag of NOISE_TAGS) {
+    out = out.replace(new RegExp(`<${tag}>[\\s\\S]*?</${tag}>`, 'g'), ' ')
+  }
+  return out.replace(/\s+/g, ' ').trim()
 }
 
 /**
- * `<command-name>`, `<local-command-stdout>` and the caveat the CLI prepends to
- * a command run are injected text, not a prompt someone typed, and naming a
- * session after one of them says nothing about the conversation.
+ * What one user record says about the session: `real` when it names what the
+ * session is about, a fallback when it only stands in until something better.
+ *
+ * A session opened by a skill or a custom command has no prose of its own up
+ * front, only the markup the command expands into, so the command itself is the
+ * name (`/emr-fluxo:pr-review 10878`). A built-in command run first (`/clear`)
+ * is what the user did before getting to the point, and the CLI marks it by
+ * writing its name ahead of the message and a caveat record before it.
  */
-function isTypedPrompt(text) {
-  return !text.startsWith('<') && !text.startsWith('Caveat:')
+function promptPreview(text, afterCaveat) {
+  const name = tagContent(text, 'command-name')
+  if (name) {
+    const args = tagContent(text, 'command-args')
+    const label = args ? `${name} ${args}` : name
+    // A skill or custom command leads with its message; anything else carrying
+    // a command name (a built-in, an older record with the name alone) is a
+    // stand-in until the user types something.
+    const messageFirst =
+      text.includes('<command-message>') &&
+      text.indexOf('<command-message>') < text.indexOf('<command-name>')
+    return { text: label, real: messageFirst && !afterCaveat }
+  }
+  const command = tagContent(text, 'bash-input')
+  if (command) return { text: `!${command}`, real: true }
+  const prose = stripNoise(text)
+  if (!prose || prose.startsWith('<') || prose.startsWith('Caveat:')) return null
+  return { text: prose, real: true }
+}
+
+function newPromptPick() {
+  return { real: null, fallback: null, afterCaveat: false, seen: 0 }
+}
+
+/** Whether the pick still wants user records. */
+function promptPickOpen(pick) {
+  return pick.real === null && pick.seen < PROMPT_SCAN_LIMIT
+}
+
+/**
+ * Feeds one user record to the pick. Records Claude injects (`isMeta`: the
+ * body of a skill, the caveat before a built-in command) never name a session;
+ * the caveat only says the next record is a built-in command.
+ */
+function feedPrompt(pick, line) {
+  pick.seen += 1
+  let entry
+  try {
+    entry = JSON.parse(line)
+  } catch {
+    return
+  }
+  const text = textOf(entry)
+  if (!text) return
+  if (text.startsWith('<local-command-caveat>') || text.startsWith('Caveat:')) {
+    pick.afterCaveat = true
+    return
+  }
+  if (entry.isMeta) return
+  const preview = promptPreview(text, pick.afterCaveat)
+  pick.afterCaveat = false
+  if (!preview) return
+  const value = preview.text.slice(0, PROMPT_PREVIEW_CHARS)
+  if (preview.real) pick.real = value
+  else if (pick.fallback === null) pick.fallback = value
+}
+
+function pickedPrompt(pick) {
+  return pick.real ?? pick.fallback
 }
 
 /**
@@ -145,7 +235,7 @@ function isTypedPrompt(text) {
  */
 function readSessionMeta(file) {
   let title = null
-  let firstUserPrompt = null
+  const prompt = newPromptPick()
   let messageCount = 0
 
   forEachLine(file, (line, truncated) => {
@@ -165,12 +255,11 @@ function readSessionMeta(file) {
     }
 
     messageCount += 1
-    if (match[1] !== 'user' || firstUserPrompt !== null || truncated) return
-    const text = firstTextBlock(line)
-    if (text && isTypedPrompt(text)) firstUserPrompt = text.slice(0, 240)
+    if (match[1] !== 'user' || truncated || !promptPickOpen(prompt)) return
+    feedPrompt(prompt, line)
   })
 
-  return { title, first_user_prompt: firstUserPrompt, message_count: messageCount }
+  return { title, first_user_prompt: pickedPrompt(prompt), message_count: messageCount }
 }
 
 /**
@@ -248,7 +337,7 @@ function scanTitle(file) {
   let scan = titleScans.get(file)
   // Shorter than what was read: rewritten, not appended. Start over.
   if (!scan || stats.size < scan.offset) {
-    scan = { offset: 0, title: null, first_user_prompt: null }
+    scan = { offset: 0, title: null, first_user_prompt: null, prompt: newPromptPick() }
   }
   if (stats.size > scan.offset) {
     scan.offset = forEachLineFrom(file, scan.offset, (buffer, truncated) => {
@@ -265,9 +354,9 @@ function scanTitle(file) {
         }
         return
       }
-      if (match[1] !== 'user' || scan.first_user_prompt !== null) return
-      const text = firstTextBlock(buffer.toString('utf8'))
-      if (text && isTypedPrompt(text)) scan.first_user_prompt = text.slice(0, 240)
+      if (match[1] !== 'user' || !promptPickOpen(scan.prompt)) return
+      feedPrompt(scan.prompt, buffer.toString('utf8'))
+      scan.first_user_prompt = pickedPrompt(scan.prompt)
     })
   }
   titleScans.set(file, scan)

@@ -75,6 +75,48 @@ describe('readSessionMeta', () => {
     expect(meta.first_user_prompt).toBe('sobe uma versão com o fix')
   })
 
+  // A session opened by a skill has no prose up front: only the command markup
+  // and the skill body Claude injects. Named after that body, every one of them
+  // read "Base directory for this skill: ..." until Claude titled it.
+  it('names a session opened by a skill after the command, not the skill body', () => {
+    const file = writeSession('skill.jsonl', [
+      JSON.stringify({
+        type: 'user',
+        isMeta: true,
+        message: { content: '<local-command-caveat>Caveat: run directly</local-command-caveat>' },
+      }),
+      user('<command-name>/clear</command-name>\n<command-message>clear</command-message>'),
+      user(
+        '<command-message>emr-fluxo:pr-review</command-message>\n<command-name>/emr-fluxo:pr-review</command-name>\n<command-args>10878</command-args>',
+      ),
+      JSON.stringify({
+        type: 'user',
+        isMeta: true,
+        message: { content: 'Base directory for this skill: /home/u/.claude/skills/pr-review' },
+      }),
+      assistant('reviewing'),
+    ])
+    expect(readSessionMeta(file).first_user_prompt).toBe('/emr-fluxo:pr-review 10878')
+  })
+
+  it('lets a built-in command name the session only until a real prompt shows up', () => {
+    const onlyClear = writeSession('clear.jsonl', [
+      user('<command-name>/clear</command-name>\n<command-message>clear</command-message>'),
+    ])
+    expect(readSessionMeta(onlyClear).first_user_prompt).toBe('/clear')
+
+    const thenProse = writeSession('clear-then.jsonl', [
+      user('<command-name>/clear</command-name>\n<command-message>clear</command-message>'),
+      user('arruma o login do manager'),
+    ])
+    expect(readSessionMeta(thenProse).first_user_prompt).toBe('arruma o login do manager')
+  })
+
+  it('names a session opened with a shell line after the command', () => {
+    const file = writeSession('bash.jsonl', [user('<bash-input>git status</bash-input>')])
+    expect(readSessionMeta(file).first_user_prompt).toBe('!git status')
+  })
+
   it('counts every message instead of stopping at the first records', () => {
     const lines: string[] = []
     for (let i = 0; i < 40; i += 1) {
