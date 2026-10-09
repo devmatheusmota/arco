@@ -852,6 +852,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3121.note1':
+    'A lista de modelos do agente de resolução de conflitos, em Editar projeto → Agentes, não mostra mais modelos de 2024. O Codex lista os modelos do próprio catálogo, o OpenCode lista o que ele informa, e o Claude oferece Fable, Opus, Sonnet e Haiku, que sempre apontam para o modelo mais novo de cada família. "Padrão do agente" agora é uma opção de verdade.',
   'whatsNew.v3120.note1':
     'Uma frente de trabalho nova aberta pelo projeto agora começa na árvore do projeto; marque a opção se ela precisar de uma worktree própria. Iniciar uma tarefa continua oferecendo a worktree por padrão. O nome também ficou opcional: em branco, a frente se chama "Principal", depois "Principal 2", "Principal 3".',
   'whatsNew.v3120.note2':

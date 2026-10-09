@@ -840,6 +840,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3121.note1':
+    'The model list for the conflict resolution agent, in Edit project → Agents, no longer shows models from 2024. Codex lists the models from its own catalog, OpenCode lists what it reports, and Claude offers Fable, Opus, Sonnet and Haiku, which always point at the newest model of each family. "Agent default" is now a real choice.',
   'whatsNew.v3120.note1':
     'A new front of work opened from a project now starts on the project tree; tick the box if it should get its own worktree. Starting a task still offers one by default. The name is optional too: left blank, the front is called "Main", then "Main 2", "Main 3".',
   'whatsNew.v3120.note2':
