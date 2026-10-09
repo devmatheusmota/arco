@@ -1008,6 +1008,7 @@ async function runTodo(rest) {
     // which is not the one the terminal is standing in.
     cwd: process.cwd(),
     ...(parsed.project ? { project: parsed.project } : {}),
+    ...(parsed.kind ? { kind: parsed.kind } : {}),
     ...(parsed.status ? { status: parsed.status } : {}),
     ...(parsed.priority ? { priority: parsed.priority } : {}),
     ...(parsed.notes !== null ? { notes: parsed.notes } : {}),

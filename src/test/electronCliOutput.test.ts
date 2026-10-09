@@ -52,6 +52,9 @@ let settingsFile: string
  */
 let filteredReply: Record<string, unknown> | null = null
 
+/** The body of the last `todo` creation the stand-in received. */
+let created: Record<string, unknown> | null = null
+
 /** Runs the CLI with both descriptors on one pipe, the way `$(... 2>&1)` does. */
 function runCli(args: string[]): Promise<{ output: string; code: number | null }> {
   return new Promise((done, fail) => {
@@ -70,6 +73,7 @@ function runCli(args: string[]): Promise<{ output: string; code: number | null }
 beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), 'arco-cli-output-'))
   filteredReply = null
+  created = null
   server = createServer((request, response) => {
     const route = (request.url ?? '').split('?')[0]
     const body: Buffer[] = []
@@ -77,6 +81,7 @@ beforeEach(async () => {
     request.on('end', () => {
       response.setHeader('Content-Type', 'application/json')
       const payload = JSON.parse(Buffer.concat(body).toString('utf8') || '{}')
+      if (route === '/cli/todo') created = payload
       if (route === '/cli/todo/list' && payload.project && filteredReply) {
         response.end(JSON.stringify(filteredReply))
         return
@@ -156,5 +161,28 @@ describe('arco todo list --project', () => {
     expect(code).toBe(1)
     expect(output).toMatch(/versao que nao filtra por projeto/)
     expect(output).not.toContain('tarefa 0')
+  }, 20000)
+})
+
+describe('arco todo add', () => {
+  // 3.13.0 parsed `--kind` and never sent it, so the app read the stage against
+  // a general task and refused every staged status on creation.
+  it('hands the app the kind together with the stage', async () => {
+    const { code } = await runCli([
+      'todo',
+      'add',
+      "'[REVIEW] PR 1 algo'",
+      '--kind',
+      'review',
+      '--status',
+      'review-pending',
+    ])
+
+    expect(code).toBe(0)
+    expect(created).toMatchObject({
+      title: '[REVIEW] PR 1 algo',
+      kind: 'review',
+      status: 'review-pending',
+    })
   }, 20000)
 })
