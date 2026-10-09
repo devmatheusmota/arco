@@ -10,6 +10,15 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.13.3] — 2026-10-09
+
+### Fixed
+
+- A Claude session opened by a skill or a custom command is named after that command
+  (`/emr-fluxo:pr-review 10878`) until Claude gives it a title. It used to read "Base directory for
+  this skill: ...". A built-in command such as `/clear` names the session only until the first real
+  prompt, and a session opened with a `!` shell line is named after the command.
+
 ## [3.13.2] — 2026-10-09
 
 ### Fixed

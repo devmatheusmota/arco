@@ -894,6 +894,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3133.note1':
+    'Uma sessão do Claude aberta por skill leva o nome do comando, como /sync ou /emr-fluxo:pr-review 10878, até o Claude dar um título. Antes aparecia "Base directory for this skill: ...".',
   'whatsNew.v3132.note1':
     'Fechar uma frente com worktree própria agora apaga também a branch da worktree (arco/agent-...), quando ela não tem commit que só exista nela. Antes, cada frente fechada deixava a branch para trás no repositório.',
   'whatsNew.v3131.note1':

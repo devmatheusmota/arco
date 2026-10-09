@@ -882,6 +882,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3133.note1':
+    'A Claude session opened by a skill is named after the command, such as /sync or /emr-fluxo:pr-review 10878, until Claude gives it a title. It used to show "Base directory for this skill: ...".',
   'whatsNew.v3132.note1':
     'Closing a front with its own worktree now deletes the worktree branch (arco/agent-...) too, when that branch has no commit found nowhere else. Before, every closed front left its branch behind in the repository.',
   'whatsNew.v3131.note1':
