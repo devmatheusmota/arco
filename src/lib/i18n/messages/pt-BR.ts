@@ -894,6 +894,8 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3134.note1':
+    'Editar projeto → Agentes não tem mais a seção "Agente de resolução de conflitos" e o seletor de modelo dela. Nada no app abria esse agente, então a escolha não tinha efeito.',
   'whatsNew.v3133.note1':
     'Uma sessão do Claude aberta por skill leva o nome do comando, como /sync ou /emr-fluxo:pr-review 10878, até o Claude dar um título. Antes aparecia "Base directory for this skill: ...".',
   'whatsNew.v3132.note1':

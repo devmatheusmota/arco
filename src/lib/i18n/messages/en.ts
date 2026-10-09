@@ -882,6 +882,8 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3134.note1':
+    'Edit project → Agents no longer has the "Conflict resolution agent" section and its model picker. Nothing in the app opened that agent anymore, so the choice had no effect.',
   'whatsNew.v3133.note1':
     'A Claude session opened by a skill is named after the command, such as /sync or /emr-fluxo:pr-review 10878, until Claude gives it a title. It used to show "Base directory for this skill: ...".',
   'whatsNew.v3132.note1':

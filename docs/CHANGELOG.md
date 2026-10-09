@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.13.4] — 2026-10-09
+
 ### Removed
 
 - The "Conflict resolution agent" section in Edit project → Agents, with its agent model picker.
