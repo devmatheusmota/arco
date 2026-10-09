@@ -10,6 +10,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+## [3.13.0] — 2026-10-09
+
 ### Changed
 
 - Tasks have a kind (Review, My PR, Task, Refinement, Release, Investigation, General), and each

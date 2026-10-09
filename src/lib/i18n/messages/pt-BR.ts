@@ -894,6 +894,12 @@ export const ptBR: Record<MessageKey, string> = {
   'whatsNew.close': 'Entendi',
   'whatsNew.update': 'Ver atualização',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3130.note1':
+    'As tarefas agora têm um tipo (Review, Meu PR, Task, Refinamento, Release, Investigação, Geral), e cada tipo tem as próprias etapas: um PR que você revisou fica "Aguardando autor", um seu fica "Aguardando review", uma release fica "Aguardando DevOps". As tarefas que você já tinha foram separadas pelo balde do começo do título, e tags como aguardando-autor viraram a etapa que representavam. O arquivo de antes da mudança fica guardado como projects.json.pre-v13.',
+  'whatsNew.v3130.note2':
+    'O quadro mostra um tipo por vez, com as etapas dele como colunas. No detalhe da tarefa você escolhe o tipo e a etapa, e vê o histórico de cada mudança de status.',
+  'whatsNew.v3130.note3':
+    'Os agentes movem as tarefas pelas etapas novas com as tools do MCP do arco e com o arco todo; todo, in-progress e review continuam funcionando. arco todo status --help lista todos os tipos e etapas.',
   'whatsNew.v3121.note1':
     'A lista de modelos do agente de resolução de conflitos, em Editar projeto → Agentes, não mostra mais modelos de 2024. O Codex lista os modelos do próprio catálogo, o OpenCode lista o que ele informa, e o Claude oferece Fable, Opus, Sonnet e Haiku, que sempre apontam para o modelo mais novo de cada família. "Padrão do agente" agora é uma opção de verdade.',
   'whatsNew.v3120.note1':

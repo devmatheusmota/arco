@@ -882,6 +882,12 @@ export const en = {
   'whatsNew.close': 'Got it',
   'whatsNew.update': 'View update',
   'whatsNew.releaseHeading': 'v{version} — {date}',
+  'whatsNew.v3130.note1':
+    'Tasks now have a kind (Review, My PR, Task, Refinement, Release, Investigation, General), and each kind has its own stages: a pull request you reviewed reads "Waiting on author", one of yours "Waiting on review", a release "Waiting on DevOps". Your existing tasks were sorted by the bucket at the start of their title, and tags like aguardando-autor became the stage they stood for. The file from before the change is kept as projects.json.pre-v13.',
+  'whatsNew.v3130.note2':
+    "The board shows one kind at a time, with that kind's stages as columns. In a task's detail you pick its kind, its stage, and see the history of every status change.",
+  'whatsNew.v3130.note3':
+    'Agents move tasks through the new stages with the arco MCP tools and arco todo; todo, in-progress and review still work. arco todo status --help lists every kind and stage.',
   'whatsNew.v3121.note1':
     'The model list for the conflict resolution agent, in Edit project → Agents, no longer shows models from 2024. Codex lists the models from its own catalog, OpenCode lists what it reports, and Claude offers Fable, Opus, Sonnet and Haiku, which always point at the newest model of each family. "Agent default" is now a real choice.',
   'whatsNew.v3120.note1':
