@@ -22,16 +22,27 @@ import { type GsdSyncSession, useGsdSyncSessions } from '../../hooks/useGsdSyncS
 import { useSessionFocus } from '../../hooks/useSessionFocus'
 import { adoPullRequests, pullRequestUrl, workItemUrl } from '../../lib/adoRef'
 import { formatRelativeTimestamp } from '../../lib/greeting'
-import { type TFunction, translate, useT } from '../../lib/i18n'
+import { intlLocale, type TFunction, translate, useT } from '../../lib/i18n'
 import { FOCUS_TASK_COMPOSER_EVENT, registerTaskComposer } from '../../lib/keybindings'
 import { formatShortcut } from '../../lib/platform'
-import { openInBrowser, type PlanningStatus, readPlanningStatus } from '../../lib/tauri'
+import {
+  openInBrowser,
+  type PlanningStatus,
+  readPlanningStatus,
+  readTodoEvents,
+  type TodoEvent,
+} from '../../lib/tauri'
+import {
+  normalizeTodoKind,
+  TODO_KINDS,
+  todoKindStatuses,
+  todoStatusTone,
+} from '../../lib/todoKinds'
 import {
   buildTodoSearchIndex,
   isCurrentSessionTodo,
   matchesTodoSearch,
   normalizeTodoPriority,
-  normalizeTodoStatus,
   parseSearchTerms,
   sortTodosByPriority,
   TODO_NOTES_MAX_LENGTH,
@@ -39,13 +50,13 @@ import {
   type TodoSearchContext,
   type TodoSearchIndex,
   todoSessionLinks,
+  todoStatusOf,
 } from '../../lib/todos'
 import {
   AGENT_TYPE_LABELS,
   type Project,
   type Terminal,
   TODO_PRIORITIES,
-  TODO_STATUSES,
   type TodoAdoRef,
   type TodoItem,
   type TodoPriority,
@@ -214,6 +225,69 @@ type DragState = {
   onDrop: (todo: TodoItem, event: React.DragEvent) => void
 }
 
+/**
+ * The task's recorded status changes, newest first.
+ *
+ * Read when the detail opens and again after each move, from the log beside
+ * `projects.json`; nothing about the history lives in the task itself.
+ */
+function TodoHistory({ todoId, status }: { todoId: string; status: TodoStatus }) {
+  const t = useT()
+  const language = useProjectsStore((state) => state.preferences.language)
+  const [events, setEvents] = useState<TodoEvent[] | null>(null)
+
+  useEffect(() => {
+    let active = true
+    readTodoEvents(todoId)
+      .then((list) => {
+        if (active) setEvents(list)
+      })
+      .catch(() => {
+        if (active) setEvents([])
+      })
+    return () => {
+      active = false
+    }
+  }, [todoId, status])
+
+  const format = useMemo(
+    () =>
+      new Intl.DateTimeFormat(intlLocale(language), {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    [language],
+  )
+
+  if (events === null) return null
+  return (
+    <div className={styles.detailBlock}>
+      <span className={styles.detailLabel}>{t('todo.history')}</span>
+      {events.length === 0 ? (
+        <p className={styles.historyEmpty}>{t('todo.historyEmpty')}</p>
+      ) : (
+        <ol className={styles.historyList}>
+          {[...events].reverse().map((event) => (
+            <li key={`${event.at}-${event.to}`} className={styles.historyItem}>
+              <span className={styles.historyWhen}>{format.format(event.at)}</span>
+              <span>
+                {event.from
+                  ? t('todo.historyMoved', {
+                      from: t(`todo.statusValue.${event.from}`),
+                      to: t(`todo.statusValue.${event.to}`),
+                    })
+                  : t('todo.historyCreated', { status: t(`todo.statusValue.${event.to}`) })}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  )
+}
+
 function TodoRow({
   todo,
   projects,
@@ -244,6 +318,7 @@ function TodoRow({
   const updateTodoNotes = useProjectsStore((state) => state.updateTodoNotes)
   const setTodoPriority = useProjectsStore((state) => state.setTodoPriority)
   const setTodoStatus = useProjectsStore((state) => state.setTodoStatus)
+  const setTodoKind = useProjectsStore((state) => state.setTodoKind)
   const setTodoProject = useProjectsStore((state) => state.setTodoProject)
   const unlinkTodoSession = useProjectsStore((state) => state.unlinkTodoSession)
   const toggleTodo = useProjectsStore((state) => state.toggleTodo)
@@ -266,7 +341,8 @@ function TodoRow({
       liveSessions.filter((session) => isTerminalWorking(session.terminal!, state.byPtyId)).length,
   )
   const priority = normalizeTodoPriority(todo.priority)
-  const status = normalizeTodoStatus(todo.status, todo.completed)
+  const kind = normalizeTodoKind(todo.kind)
+  const status = todoStatusOf(todo)
 
   // Where the row goes when clicked. `resolveSessions` already finds the pane by
   // scanning every project when the link carries no project id — a link written
@@ -416,7 +492,11 @@ function TodoRow({
                   a task with no chip reads as a task with no status at all. `done`
                   keeps none: the completed section already says it. */}
               {status !== 'done' ? (
-                <span className={styles.statusChip} data-status={status}>
+                <span
+                  className={styles.statusChip}
+                  data-status={status}
+                  data-tone={todoStatusTone(status)}
+                >
                   {t(`todo.statusValue.${status}`)}
                 </span>
               ) : null}
@@ -551,22 +631,42 @@ function TodoRow({
           </div>
 
           <div className={styles.detailBlock}>
+            <span className={styles.detailLabel}>{t('todo.kind')}</span>
+            <div className={styles.statusRow}>
+              {TODO_KINDS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`${styles.priorityPill} ${kind === value ? styles.priorityPillActive : ''}`}
+                  aria-pressed={kind === value}
+                  onClick={() => setTodoKind(todo.id, value)}
+                >
+                  {t(`todo.kindValue.${value}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.detailBlock}>
             <span className={styles.detailLabel}>{t('todo.status')}</span>
             <div className={styles.statusRow}>
-              {TODO_STATUSES.map((value) => (
+              {todoKindStatuses(kind).map((value) => (
                 <button
                   key={value}
                   type="button"
                   className={`${styles.statusPill} ${status === value ? styles.priorityPillActive : ''}`}
                   data-status={value}
+                  data-tone={todoStatusTone(value)}
                   aria-pressed={status === value}
-                  onClick={() => setTodoStatus(todo.id, value as TodoStatus)}
+                  onClick={() => setTodoStatus(todo.id, value)}
                 >
                   {t(`todo.statusValue.${value}`)}
                 </button>
               ))}
             </div>
           </div>
+
+          <TodoHistory todoId={todo.id} status={status} />
 
           <div className={styles.detailBlock}>
             <span className={styles.detailLabel}>{t('todo.notes')}</span>
@@ -750,10 +850,7 @@ export function TodoSidebar() {
         todo.id,
         cachedSearchIndex(todo, {
           projectName: todo.projectId ? projectNames.get(todo.projectId) : undefined,
-          statusLabel: translate(
-            language,
-            `todo.statusValue.${normalizeTodoStatus(todo.status, todo.completed)}`,
-          ),
+          statusLabel: translate(language, `todo.statusValue.${todoStatusOf(todo)}`),
           priorityLabel: translate(
             language,
             `todo.priority.${normalizeTodoPriority(todo.priority)}`,

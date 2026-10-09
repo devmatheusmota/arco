@@ -32,14 +32,14 @@ describe('parseTodoStatus', () => {
 
 describe('normalizeTodoStatus', () => {
   it('reads a finished task as done regardless of what was stored', () => {
-    expect(normalizeTodoStatus('review', true)).toBe('done')
-    expect(normalizeTodoStatus(undefined, true)).toBe('done')
+    expect(normalizeTodoStatus('review', true, 'general')).toBe('done')
+    expect(normalizeTodoStatus(undefined, true, 'task')).toBe('done')
   })
 
-  it('falls back to todo for an open task', () => {
-    expect(normalizeTodoStatus(undefined, false)).toBe('todo')
-    expect(normalizeTodoStatus('done', false)).toBe('todo')
-    expect(normalizeTodoStatus('review', false)).toBe('review')
+  it('falls back to the first stage for an open task', () => {
+    expect(normalizeTodoStatus(undefined, false, 'general')).toBe('todo')
+    expect(normalizeTodoStatus('done', false, 'general')).toBe('todo')
+    expect(normalizeTodoStatus('review', false, 'general')).toBe('review')
   })
 })
 

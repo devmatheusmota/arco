@@ -1,4 +1,5 @@
-import { normalizeTodoStatus, todoSessionLinks } from './todos'
+import { normalizeTodoKind, todoKindInitialStatus, todoKindStartStatus } from './todoKinds'
+import { todoSessionLinks, todoStatusOf } from './todos'
 import type { Project, TodoItem, TodoStatus } from './types'
 
 // What a drop on the board does, kept out of the component so it can be tested
@@ -30,8 +31,9 @@ export function liveSessionOf(
 /**
  * Decides a drop.
  *
- * Moving the card always changes the status. Landing in "in progress" is a
- * statement about starting, so the board also offers a session — but never
+ * Moving the card always changes the status. Landing in the kind's start stage
+ * ("in progress", "implementing", "to review"...) is a statement about starting,
+ * so the board also offers a session — but never
  * spawns one: a drag is a cheap gesture to make by accident and starting an
  * agent is expensive and visible. An offer is a filled-in modal one key away.
  *
@@ -41,11 +43,13 @@ export function liveSessionOf(
  *
  * A task that already has a live pane only moves; the work started once, and
  * proposing a second session for it would be noise. So does coming back from
- * review or done.
+ * any later stage: only a task leaving its first stage is starting.
  */
 export function resolveBoardDrop(todo: TodoItem, projects: Project[], to: TodoStatus): BoardDrop {
-  const from = normalizeTodoStatus(todo.status, todo.completed)
-  if (to !== 'in_progress' || from === 'in_progress') return { move: to, then: 'nothing' }
+  const kind = normalizeTodoKind(todo.kind)
+  const start = todoKindStartStatus(kind)
+  const from = todoStatusOf(todo)
+  if (to !== start || from === start) return { move: to, then: 'nothing' }
   if (liveSessionOf(todo, projects)) return { move: to, then: 'nothing' }
-  return { move: to, then: from === 'todo' ? 'offer' : 'nothing' }
+  return { move: to, then: from === todoKindInitialStatus(kind) ? 'offer' : 'nothing' }
 }

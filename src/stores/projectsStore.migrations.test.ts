@@ -89,7 +89,7 @@ describe('projects file migration', () => {
       preferences: { ...DEFAULT_PREFERENCES, isolatedPaneId: 'a' },
     })
 
-    expect(migrated.version).toBe(12)
+    expect(migrated.version).toBe(13)
     expect(migrated.projects[0]).not.toHaveProperty('layoutMode')
     expect(migrated.projects[0]).not.toHaveProperty('gridLayout')
     expect(migrated.projects[0]).not.toHaveProperty('gridLayoutHistory')
@@ -299,7 +299,7 @@ describe('v10 — stale completion badges', () => {
 
     expect(tabs.map((tab) => tab.completionUnread)).toEqual([undefined, undefined])
     expect(tabs.map((tab) => tab.id)).toEqual(['tab1', 'tab2'])
-    expect(migrated.version).toBe(12)
+    expect(migrated.version).toBe(13)
   })
 
   it('keeps everything else about the tab it clears', () => {
@@ -317,7 +317,7 @@ describe('v10 — stale completion badges', () => {
     const migrated = migrate(fileWithUnread(undefined))
 
     expect(migrated.projects[0].terminals[0].tabs).toHaveLength(2)
-    expect(migrated.version).toBe(12)
+    expect(migrated.version).toBe(13)
   })
 })
 
@@ -342,7 +342,7 @@ describe('v11 — short pane references', () => {
     const migrated = migrate(fileWith([paneAt('a'), paneAt('b'), paneAt('c')]))
     const refs = migrated.projects[0].terminals.map((terminal) => terminal.shortId)
 
-    expect(migrated.version).toBe(12)
+    expect(migrated.version).toBe(13)
     expect(refs.every((ref) => isPaneShortId(ref))).toBe(true)
     expect(new Set(refs).size).toBe(3)
   })
@@ -396,7 +396,7 @@ describe('v11 — short pane references', () => {
   it('reaches panes coming up from a file written well before v10', () => {
     const migrated = migrate(fileWith([paneAt('a')], 6))
 
-    expect(migrated.version).toBe(12)
+    expect(migrated.version).toBe(13)
     expect(isPaneShortId(migrated.projects[0].terminals[0].shortId)).toBe(true)
   })
 })
@@ -433,7 +433,7 @@ describe('v12 — a project is a list of fronts of work', () => {
   it('puts everything on the project tree into one group named after the project', () => {
     const migrated = migrate(fileWith([project([pane('a'), pane('b')])]))
 
-    expect(migrated.version).toBe(12)
+    expect(migrated.version).toBe(13)
     expect(groupsOf(migrated)).toHaveLength(1)
     expect(groupsOf(migrated)[0]).toMatchObject({ name: 'SOA' })
     expect(groupsOf(migrated)[0].worktreeAgentId).toBeUndefined()
@@ -611,5 +611,91 @@ describe('v12 — running again over its own output', () => {
 
     expect(rehomed.groupId).not.toBe('grupo-que-sumiu')
     expect((twice.projects[0].groups ?? []).some((g) => g.id === rehomed.groupId)).toBe(true)
+  })
+})
+
+describe('v13 — tasks gain a kind and stages of their own', () => {
+  const v12 = (todos: unknown[]) => ({ ...EMPTY_PROJECTS_FILE, version: 12, todos })
+  const open = (title: string, status: string, tags: string[] = []) => ({
+    id: title,
+    title,
+    completed: false,
+    tags,
+    status,
+  })
+
+  it('reads the kind from the title bucket and the stage from status, tags and verb', () => {
+    const migrated = migrate(
+      v12([
+        open('[REVIEW] PR 1 algo', 'review', ['review', 'aguardando-autor']),
+        open('[REVIEW] PR 2 algo', 'todo', ['review']),
+        open('[RE-REVIEW] PR 3 algo', 'todo', ['review']),
+        open('[MEU PR] ajustar 4 algo', 'in_progress', ['pr']),
+        open('[MEU PR] publicar 5 algo', 'in_progress', ['pr']),
+        open('[MEU PR] acompanhar 6 algo', 'review', ['pr']),
+        open('[TASK] bloqueada', 'in_progress', ['task', 'bloqueado']),
+        open('[TASK] andando', 'in_progress', ['task']),
+        open('[SPEC] esperando', 'in_progress', ['spec', 'aguardando-pm']),
+        open('[RESEARCH] pronto', 'todo', ['research']),
+        open('[RELEASE] v1', 'todo', ['release']),
+        open('[INVESTIGAR] bug', 'review', ['bug']),
+        open('sem balde', 'in_progress', ['arco']),
+      ]),
+    )
+    expect(migrated.version).toBe(13)
+    const byTitle = new Map(migrated.todos.map((todo) => [todo.title, todo]))
+    const staged = (title: string) => {
+      const todo = byTitle.get(title)!
+      return [todo.kind ?? 'general', todo.status, todo.tags]
+    }
+    expect(staged('[REVIEW] PR 1 algo')).toEqual(['review', 'review_waiting_author', ['review']])
+    expect(staged('[REVIEW] PR 2 algo')).toEqual(['review', 'review_pending', ['review']])
+    expect(staged('[RE-REVIEW] PR 3 algo')).toEqual(['review', 'review_rereview', ['review']])
+    expect(staged('[MEU PR] ajustar 4 algo')[1]).toBe('pr_changes_requested')
+    expect(staged('[MEU PR] publicar 5 algo')[1]).toBe('pr_draft')
+    expect(staged('[MEU PR] acompanhar 6 algo')[1]).toBe('pr_waiting_review')
+    expect(staged('[TASK] bloqueada')).toEqual(['task', 'task_blocked', ['task']])
+    expect(staged('[TASK] andando')[1]).toBe('task_in_progress')
+    expect(staged('[SPEC] esperando')).toEqual(['refinement', 'refinement_waiting_pm', ['spec']])
+    expect(staged('[RESEARCH] pronto')[1]).toBe('refinement_ready')
+    expect(staged('[RELEASE] v1')[1]).toBe('release_assembling')
+    expect(staged('[INVESTIGAR] bug')[1]).toBe('investigation_waiting_requester')
+    expect(staged('sem balde')).toEqual(['general', 'in_progress', ['arco']])
+  })
+
+  it('keeps a finished task done with the tags it finished with', () => {
+    const migrated = migrate(
+      v12([{ ...open('[REVIEW] PR 9 feito', 'done', ['aguardando-autor']), completed: true }]),
+    )
+    expect(migrated.todos[0]).toMatchObject({
+      kind: 'review',
+      status: 'done',
+      tags: ['aguardando-autor'],
+    })
+  })
+
+  // Every load runs the chain again; a v13 file must come out as it went in,
+  // even when its title still carries a bucket that would map elsewhere.
+  it('leaves the kind and stage of a v13 task alone', () => {
+    const file = {
+      ...EMPTY_PROJECTS_FILE,
+      todos: [
+        {
+          id: 'a',
+          title: '[REVIEW] PR 1 algo',
+          completed: false,
+          tags: ['aguardando-autor'],
+          kind: 'task',
+          status: 'task_validating',
+        },
+      ],
+    }
+    const migrated = migrate(file)
+    expect(migrated.todos[0]).toMatchObject({
+      kind: 'task',
+      status: 'task_validating',
+      tags: ['aguardando-autor'],
+    })
+    expect(migrate(migrated)).toEqual(migrated)
   })
 })

@@ -80,6 +80,9 @@ const state = {
     })
   }),
   setTodoStatus: vi.fn(),
+  setTodoKind: vi.fn((id: string, kind: TodoItem['kind']) => {
+    state.todos = state.todos.map((item) => (item.id === id ? { ...item, kind } : item))
+  }),
   deleteTodo: vi.fn((id: string) => {
     state.todos = state.todos.filter((item) => item.id !== id)
   }),
@@ -249,6 +252,42 @@ describe('cli://todo-edit', () => {
     const result = await request('cli://todo-edit', { ref: 'ausente', status: 'done' })
     expect(result.ok).toBe(false)
     expect(result.message).toMatch(/Nenhuma tarefa encontrada/)
+  })
+
+  it('reads a status against the kind the task has, and refuses one of another kind', async () => {
+    await request('cli://todo-add', { title: 'revisar', kind: 'review' })
+    expect(state.createTodo).toHaveBeenLastCalledWith(
+      'revisar',
+      [],
+      'p1',
+      expect.objectContaining({ kind: 'review', source: 'cli' }),
+    )
+    state.todos[0].kind = 'review'
+    const ok = await request('cli://todo-edit', { ref: 'id-0', status: 'review-waiting-author' })
+    expect(ok.ok).toBe(true)
+    expect(state.setTodoStatus).toHaveBeenLastCalledWith('id-0', 'review_waiting_author', 'cli')
+
+    const refused = await request('cli://todo-edit', { ref: 'id-0', status: 'pr-draft' })
+    expect(refused.ok).toBe(false)
+    expect(refused.message).toMatch(/não existe para tarefas do tipo review \(use: review-pending/)
+
+    // The old words still land, on the kind's own stage.
+    await request('cli://todo-edit', { ref: 'id-0', status: 'in-progress' })
+    expect(state.setTodoStatus).toHaveBeenLastCalledWith('id-0', 'review_pending', 'cli')
+  })
+
+  it('changes the kind before reading the status it is given with', async () => {
+    await request('cli://todo-add', { title: 'virou pr' })
+    const result = await request('cli://todo-edit', {
+      ref: 'id-0',
+      kind: 'pr',
+      status: 'pr-waiting-review',
+    })
+    expect(result.ok).toBe(true)
+    expect(state.setTodoKind).toHaveBeenLastCalledWith('id-0', 'pr', 'cli')
+    expect(state.setTodoStatus).toHaveBeenLastCalledWith('id-0', 'pr_waiting_review', 'cli')
+    const unknown = await request('cli://todo-add', { title: 'x', kind: 'bug' })
+    expect(unknown.message).toMatch(/Tipo desconhecido: bug/)
   })
 
   it('links a work item URL and answers with the stored task', async () => {

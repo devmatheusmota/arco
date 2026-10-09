@@ -32,6 +32,22 @@ describe('resolveBoardDrop', () => {
     })
   })
 
+  it('offers a session when a task of a kind reaches that kind’s start', () => {
+    const review = task({ kind: 'review', status: 'review_pending' })
+    expect(resolveBoardDrop(review, [], 'review_pending')).toEqual({
+      move: 'review_pending',
+      then: 'nothing',
+    })
+    const work = task({ kind: 'task', status: 'task_todo' })
+    expect(resolveBoardDrop(work, [], 'task_in_progress')).toEqual({
+      move: 'task_in_progress',
+      then: 'offer',
+    })
+    // Coming back from a later stage is not starting.
+    const blocked = task({ kind: 'task', status: 'task_blocked' })
+    expect(resolveBoardDrop(blocked, [], 'task_in_progress').then).toBe('nothing')
+  })
+
   // The task already has a pane, so there is nothing to offer — and the drop
   // does not jump to it either: the board keeps the screen.
   it('only moves a task that already has a session', () => {

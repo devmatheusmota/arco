@@ -13,6 +13,7 @@ import {
   recordAppEvent,
   recordFrontendError,
   saveProjectsFile,
+  type TodoEvent,
 } from '../lib/tauri'
 import { getProjectDefaultCwd, getProjectRepoRoot, newContainer } from '../lib/terminalFactory'
 import {
@@ -32,6 +33,7 @@ import {
   type Theme,
   type TodoAdoRef,
   type TodoItem,
+  type TodoKind,
   type TodoPriority,
   type TodoSessionLink,
   type TodoSessionOwner,
@@ -156,8 +158,10 @@ export type ProjectsState = ProjectsFile & {
     extra?: {
       notes?: string
       priority?: TodoPriority
+      kind?: TodoKind
       status?: TodoStatus
       adoRef?: TodoAdoRef | null
+      source?: TodoEvent['source']
     },
   ) => TodoItem | null
   renameTodo: (id: string, title: string) => void
@@ -166,8 +170,15 @@ export type ProjectsState = ProjectsFile & {
   /** Appends new lines to the existing notes with a blank line between the two blocks. */
   appendTodoNotes: (id: string, notes: string) => void
   setTodoPriority: (id: string, priority: TodoPriority) => void
-  /** Moves a task across the board; `done` and `completed` always travel together. */
-  setTodoStatus: (id: string, status: TodoStatus) => void
+  /**
+   * Moves a task across the board; `done` and `completed` always travel together.
+   * The status is read against the task's kind (`todo`, `in_progress` and `review`
+   * mean that kind's first stage, start and hand-back); one the kind does not have
+   * is ignored. Every change is appended to the task's history.
+   */
+  setTodoStatus: (id: string, status: TodoStatus, source?: TodoEvent['source']) => void
+  /** Changes what kind of work a task is, carrying its status to the new kind's stages. */
+  setTodoKind: (id: string, kind: TodoKind, source?: TodoEvent['source']) => void
   setTodoProject: (id: string, projectId: string | null) => void
   /**
    * Attaches an Azure DevOps reference to a task, replaces the current one, or clears it.
@@ -426,7 +437,7 @@ function nextWriteSequence(): number {
 
 function projectsPayload(state: ProjectsState): ProjectsFile {
   return {
-    version: 12,
+    version: 13,
     projectOrder: state.projectOrder,
     projects: state.projects,
     todos: state.todos,

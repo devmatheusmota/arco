@@ -10,6 +10,13 @@ import { normalizePaneRef } from './paneShortId'
 import { basename, sameCwd } from './paths'
 import { cliReply, type CliResult } from './tauri/cli'
 import { type WorktreeInfo, worktreeList } from './tauri/git'
+import {
+  normalizeTodoKind,
+  parseTodoKind,
+  resolveTodoStatusForKind,
+  TODO_KINDS,
+  todoKindStatuses,
+} from './todoKinds'
 import { findTodoByRef, normalizeSearchText, parseTodoStatus, TODO_NOTES_MAX_LENGTH } from './todos'
 import type {
   AgentType,
@@ -19,8 +26,10 @@ import type {
   Terminal,
   TodoAdoRef,
   TodoItem,
+  TodoKind,
   TodoPriority,
   TodoSessionOwner,
+  TodoStatus,
   WorktreeChoice,
 } from './types'
 import { TODO_PRIORITIES } from './types'
@@ -116,6 +125,7 @@ type TodoRequest = {
   tags?: string[]
   notes?: string
   priority?: TodoPriority
+  kind?: string
   status?: string
   /** Raw string handed by the CLI; parsed here against the ADO defaults. */
   adoRefInput?: string
@@ -137,6 +147,7 @@ type TodoEditRequest = {
   notes?: string
   appendNotes?: string
   priority?: TodoPriority
+  kind?: string
   status?: string
   project?: string
   adoRefInput?: string
@@ -248,6 +259,44 @@ function priorityProblem(priority: unknown): string | null {
   return TODO_PRIORITIES.includes(priority as TodoPriority)
     ? null
     : `Prioridade desconhecida: ${String(priority)} (use: ${TODO_PRIORITIES.join(' | ')})`
+}
+
+/** Statuses as the command line and the MCP tools spell them: hyphens, not underscores. */
+function spelled(statuses: readonly string[]): string {
+  return statuses.map((status) => status.replace(/_/g, '-')).join(' | ')
+}
+
+/** A kind the caller typed, or why it is not one. Absent stays absent. */
+function kindChoice(raw: string | undefined): { kind: TodoKind | null } | { error: CliResult } {
+  if (raw === undefined || raw === '') return { kind: null }
+  const kind = parseTodoKind(raw)
+  if (kind) return { kind }
+  return { error: failure(`Tipo desconhecido: ${raw} (use: ${TODO_KINDS.join(' | ')})`) }
+}
+
+/**
+ * The status a request asks for, read against the kind the task has (or is about
+ * to have). A status of another kind is refused with the ones this kind takes,
+ * so an agent that guessed learns the vocabulary from the refusal.
+ */
+function statusChoice(
+  raw: string | undefined,
+  kind: TodoKind,
+): { status: TodoStatus | null } | { error: CliResult } {
+  if (!raw) return { status: null }
+  const parsed = parseTodoStatus(raw)
+  if (!parsed) {
+    return {
+      error: failure(`Status desconhecido: ${raw} (use: ${spelled(todoKindStatuses(kind))})`),
+    }
+  }
+  const status = resolveTodoStatusForKind(parsed, kind)
+  if (status) return { status }
+  return {
+    error: failure(
+      `Status ${raw} não existe para tarefas do tipo ${kind} (use: ${spelled(todoKindStatuses(kind))})`,
+    ),
+  }
 }
 
 /** How deep inside a pane's tree a directory sits, or -1 when it is outside it. */
@@ -1301,8 +1350,12 @@ function todoSnapshot(id: string): TodoItem | null {
 function handleTodo(request: TodoRequest): CliResult {
   const title = request.title?.trim()
   if (!title) return failure('Tarefa sem título.')
-  const status = request.status ? parseTodoStatus(request.status) : null
-  if (request.status && !status) return failure(`Status desconhecido: ${request.status}`)
+  const kindPicked = kindChoice(request.kind)
+  if ('error' in kindPicked) return kindPicked.error
+  const kind = kindPicked.kind ?? 'general'
+  const statusPicked = statusChoice(request.status, kind)
+  if ('error' in statusPicked) return statusPicked.error
+  const { status } = statusPicked
   // An unknown priority used to be stored as `normal`, and the command said
   // "criada" as if it had taken.
   const badPriority = priorityProblem(request.priority)
@@ -1329,8 +1382,10 @@ function handleTodo(request: TodoRequest): CliResult {
   const todo = store.createTodo(title, request.tags ?? [], projectChoice.projectId ?? undefined, {
     notes: request.notes,
     priority: request.priority,
+    kind,
     ...(status ? { status } : {}),
     ...(adoRef ? { adoRef } : {}),
+    source: 'cli',
   })
   if (!todo) return failure(`Não consegui criar a tarefa "${title}".`)
   if (session) store.setTodoSession(todo.id, session)
@@ -1345,8 +1400,8 @@ function handleTodo(request: TodoRequest): CliResult {
  * Applies an edit to the task a reference points at.
  *
  * Agents drive this as much as people do — a session started from a task moves
- * it to `in_progress` and to `review` on its own — so an ambiguous reference
- * answers with the candidates instead of picking one.
+ * it through its kind's stages on its own — so an ambiguous reference answers
+ * with the candidates instead of picking one.
  *
  * Every field is checked before the first write, so a refusal leaves the task
  * exactly as it was. An edit that stored the notes and then refused the session
@@ -1369,8 +1424,12 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
     }
   }
 
-  const status = request.status ? parseTodoStatus(request.status) : null
-  if (request.status && !status) return failure(`Status desconhecido: ${request.status}`)
+  // A kind and a status in the same edit: the status is read against the new kind.
+  const kindPicked = kindChoice(request.kind)
+  if ('error' in kindPicked) return kindPicked.error
+  const statusPicked = statusChoice(request.status, kindPicked.kind ?? normalizeTodoKind(todo.kind))
+  if ('error' in statusPicked) return statusPicked.error
+  const { status } = statusPicked
   const badPriority = priorityProblem(request.priority)
   if (badPriority) return failure(badPriority)
 
@@ -1399,7 +1458,8 @@ function handleTodoEdit(request: TodoEditRequest): CliResult {
   }
 
   const store = useProjectsStore.getState()
-  if (status) store.setTodoStatus(todo.id, status)
+  if (kindPicked.kind) store.setTodoKind(todo.id, kindPicked.kind, 'cli')
+  if (status) store.setTodoStatus(todo.id, status, 'cli')
   if (request.title?.trim()) store.renameTodo(todo.id, request.title)
   if (request.notes !== undefined) store.updateTodoNotes(todo.id, request.notes)
   if (request.appendNotes !== undefined) store.appendTodoNotes(todo.id, request.appendNotes)

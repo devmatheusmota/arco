@@ -165,13 +165,27 @@ describe('parseTodoList', () => {
   it('reads every option the listing takes', () => {
     expect(parseTodoList(['--json', '--status', 'in-progress', '--project', 'Arco'])).toEqual({
       json: true,
-      status: 'in_progress',
+      kind: null,
+      status: 'in-progress',
       project: 'Arco',
+    })
+    expect(parseTodoList(['--kind', 'review', '--status', 'review_waiting_author'])).toEqual({
+      json: false,
+      kind: 'review',
+      status: 'review-waiting-author',
+      project: null,
     })
   })
 
   it('lists everything when nothing narrows it', () => {
-    expect(parseTodoList([])).toEqual({ json: false, status: null, project: null })
+    expect(parseTodoList([])).toEqual({ json: false, kind: null, status: null, project: null })
+  })
+
+  it('refuses a kind that does not exist and a status the kind does not have', () => {
+    expect(() => parseTodoList(['--kind', 'bug'])).toThrow(/tipo desconhecido: bug/)
+    expect(() => parseTodoList(['--kind', 'review', '--status', 'pr-draft'])).toThrow(
+      /status desconhecido: pr-draft \(use: review-pending/,
+    )
   })
 
   // `--project` used to be skipped along with any other option the listing did

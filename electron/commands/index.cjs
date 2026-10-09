@@ -40,6 +40,54 @@ function projectsPath() {
 }
 
 /**
+ * Task status changes, one JSON line each, beside `projects.json`.
+ *
+ * Kept out of `projects.json` on purpose: that file is rewritten whole on every
+ * save and pushed to the sync gist in one piece, and a history only grows.
+ * Appending a line costs the same on day one and day five hundred.
+ */
+function todoEventsPath() {
+  return path.join(path.dirname(projectsPath()), 'todo-events.jsonl')
+}
+
+/** Every recorded change of one task, oldest first. A line that does not parse is skipped. */
+function readTodoEvents(id) {
+  if (typeof id !== 'string' || !id) return []
+  let content
+  try {
+    content = fs.readFileSync(todoEventsPath(), 'utf8')
+  } catch {
+    return []
+  }
+  const events = []
+  for (const line of content.split('\n')) {
+    if (!line.includes(id)) continue
+    try {
+      const event = JSON.parse(line)
+      if (event?.id === id) events.push(event)
+    } catch {}
+  }
+  return events
+}
+
+/**
+ * The file as it was before a migration changed its shape, written once.
+ *
+ * The v13 migration rewrites every task's status from its title and tags, and
+ * the save that follows makes it permanent. A copy taken before the first save
+ * under the new version is the way back if the mapping got something wrong.
+ */
+const CURRENT_PROJECTS_VERSION = 13
+function keepPreMigrationCopy(target, content) {
+  const version = Number(content.slice(0, 200).match(/"version"\s*:\s*(\d+)/)?.[1] ?? NaN)
+  if (!Number.isFinite(version) || version >= CURRENT_PROJECTS_VERSION) return
+  const copy = `${target}.pre-v${CURRENT_PROJECTS_VERSION}`
+  try {
+    if (!fs.existsSync(copy)) fs.writeFileSync(copy, content)
+  } catch {}
+}
+
+/**
  * The file the last save left on disk and how many projects it held.
  *
  * The guard against an empty save needs the count already on disk. Reading and
@@ -189,12 +237,25 @@ function buildCommands({ ptyHost, mainWindow, send }) {
     // takes the same back; returning parsed JSON here made the store hydrate
     // empty and then persist that emptiness over a real workspace.
     load_projects: () => {
+      let content
       try {
-        return fs.readFileSync(projectsPath(), 'utf8')
+        content = fs.readFileSync(projectsPath(), 'utf8')
       } catch {
         return null
       }
+      keepPreMigrationCopy(projectsPath(), content)
+      return content
     },
+    todo_events_append: async ({ events }) => {
+      const lines = (Array.isArray(events) ? events : [])
+        .filter((event) => event && typeof event.id === 'string' && typeof event.to === 'string')
+        .map((event) => `${JSON.stringify(event)}\n`)
+        .join('')
+      if (!lines) return null
+      await fs.promises.appendFile(todoEventsPath(), lines)
+      return null
+    },
+    todo_events_read: ({ id }) => readTodoEvents(id),
     save_projects: (args) => {
       const content = typeof args.content === 'string' ? args.content : JSON.stringify(args.content)
       const target = projectsPath()

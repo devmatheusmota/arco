@@ -866,15 +866,16 @@
   background: var(--border-strong);
 }
 
-.statusPill[data-status='in_progress']::before {
+/* Coloured by tone, not by name: thirty statuses share four readings. */
+.statusPill[data-tone='working']::before {
   background: var(--status-working);
 }
 
-.statusPill[data-status='review']::before {
+.statusPill[data-tone='waiting']::before {
   background: var(--status-waiting);
 }
 
-.statusPill[data-status='done']::before {
+.statusPill[data-tone='done']::before {
   background: var(--status-stopped);
 }
 
@@ -907,25 +908,52 @@
   background: currentcolor;
 }
 
-/* Only work in flight earns a colour; the resting states stay neutral. */
-.statusChip[data-status='todo'] {
+/* Only work in flight or waiting on someone earns a colour; resting states stay neutral. */
+.statusChip[data-tone='idle'] {
   color: var(--fg-faint);
 }
 
-.statusChip[data-status='in_progress'] {
+.statusChip[data-tone='working'],
+.statusChip[data-tone='waiting'] {
   color: var(--fg-muted);
 }
 
-.statusChip[data-status='in_progress']::before {
+.statusChip[data-tone='working']::before {
   background: var(--status-working);
 }
 
-.statusChip[data-status='review'] {
+.statusChip[data-tone='waiting']::before {
+  background: var(--status-waiting);
+}
+
+.historyEmpty {
+  margin: 0;
+  font-size: var(--font-size-1);
+  color: var(--fg-faint);
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.historyItem {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--font-size-1);
   color: var(--fg-muted);
 }
 
-.statusChip[data-status='review']::before {
-  background: var(--status-waiting);
+.historyWhen {
+  flex: none;
+  color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 /*

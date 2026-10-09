@@ -16,7 +16,9 @@
 
 const SUPPORTED_PROTOCOLS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']
 
-const STATUSES = ['todo', 'in-progress', 'review', 'done']
+const { KINDS, STATUSES, kindOf, statusOf, statusesOf } = require('./todo-kinds.cjs')
+const STATUS_HELP =
+  'Statuses depend on the task kind (todo_show lists them). todo, in-progress and review also work on any kind: its first stage, start and hand-back'
 const PRIORITIES = ['high', 'normal', 'low']
 const AGENTS = ['claude', 'codex', 'opencode', 'shell']
 const SEND_TEXT_MAX = 100_000
@@ -25,8 +27,9 @@ const INSTRUCTIONS = [
   "Arco's task board and panes, as typed tools. They cover what the `arco` shell command does;",
   'prefer them: arguments are validated, a refusal comes back as an error instead of a silent',
   'fallback, and output is never truncated. The server already knows which pane is calling, so',
-  '`session: "current"` needs no id. Move a task to in-progress when you pick it up and to review',
-  'when you hand the work back.',
+  '`session: "current"` needs no id. Every task has a kind (review, pr, task, refinement, release,',
+  'investigation, general) with stages of its own: move it to the stage the work is in as it moves.',
+  "in-progress and review still mean that kind's start and hand-back.",
 ].join(' ')
 
 const string = (description, extra = {}) => ({ type: 'string', description, ...extra })
@@ -134,6 +137,7 @@ const TOOLS = [
     readOnly: true,
     properties: {
       project: string('Only the tasks filed under this project (name or id)'),
+      kind: string('Only the tasks of this kind', { enum: KINDS }),
       status: string('Only the tasks in this status', { enum: STATUSES }),
     },
     route: 'todo/list',
@@ -141,6 +145,7 @@ const TOOLS = [
     result: (data, args) => ({
       todos: (data?.todos ?? [])
         .map(todoRow)
+        .filter((todo) => !args.kind || todo.kind === args.kind)
         .filter((todo) => !args.status || todo.status === args.status),
     }),
   },
@@ -153,7 +158,14 @@ const TOOLS = [
     route: 'todo/show',
     payload: (args) => ({ ref: args.ref }),
     result: (data) => ({
-      todo: data?.todo ? { ...data.todo, status: statusOf(data.todo) } : null,
+      todo: data?.todo
+        ? {
+            ...data.todo,
+            kind: kindOf(data.todo),
+            status: statusOf(data.todo),
+            statuses: statusesOf(kindOf(data.todo)),
+          }
+        : null,
       projectName: data?.projectName ?? null,
     }),
   },
@@ -165,7 +177,12 @@ const TOOLS = [
       title: string('Task title', { minLength: 1 }),
       tags: strings('Tags, without #'),
       project: string('Project name or id'),
-      status: string('Initial status (default todo)', { enum: STATUSES }),
+      kind: string('What kind of work it is (default general); decides its statuses', {
+        enum: KINDS,
+      }),
+      status: string(`Initial status (default: the kind's first stage). ${STATUS_HELP}`, {
+        enum: STATUSES,
+      }),
       priority: string('Priority (default normal)', { enum: PRIORITIES }),
       notes: string('Notes'),
       session: string(
@@ -178,7 +195,7 @@ const TOOLS = [
     payload: (args) => ({
       title: args.title,
       tags: args.tags ?? [],
-      ...pick(args, ['project', 'status', 'priority', 'notes', 'session', 'force']),
+      ...pick(args, ['project', 'kind', 'status', 'priority', 'notes', 'session', 'force']),
     }),
     result: todoResult,
   },
@@ -191,7 +208,10 @@ const TOOLS = [
       tags: strings('Replaces every tag'),
       addTags: strings('Tags to add'),
       removeTags: strings('Tags to remove'),
-      status: string('New status', { enum: STATUSES }),
+      kind: string('New kind; a status the new kind lacks moves to its first stage', {
+        enum: KINDS,
+      }),
+      status: string(`New status. ${STATUS_HELP}`, { enum: STATUSES }),
       priority: string('New priority', { enum: PRIORITIES }),
       notes: string('Replaces the notes'),
       appendNotes: string('Appended to the notes on a new line'),
@@ -208,6 +228,7 @@ const TOOLS = [
       'tags',
       'addTags',
       'removeTags',
+      'kind',
       'status',
       'priority',
       'notes',
@@ -222,7 +243,7 @@ const TOOLS = [
   },
   {
     name: 'todo_status',
-    description: 'Moves a task: todo, in-progress, review or done.',
+    description: `Moves a task to another stage of its kind. ${STATUS_HELP}; paused and done exist on every kind.`,
     properties: { ref, status: string('New status', { enum: STATUSES }) },
     required: ['ref', 'status'],
     route: 'todo/edit',
@@ -269,19 +290,13 @@ function pick(source, keys) {
   )
 }
 
-/** Status as the board shows it, with `in-progress` spelled the way the tools take it. */
-function statusOf(todo) {
-  if (todo?.completed) return 'done'
-  const status = String(todo?.status ?? 'todo').replace(/_/g, '-')
-  return STATUSES.includes(status) ? status : 'todo'
-}
-
 /** A listing row: what picks a task out, not everything the task holds. */
 function todoRow(todo) {
   return {
     ref: String(todo.id ?? '').slice(0, 8),
     id: todo.id,
     title: todo.title,
+    kind: kindOf(todo),
     status: statusOf(todo),
     priority: todo.priority ?? 'normal',
     tags: todo.tags ?? [],

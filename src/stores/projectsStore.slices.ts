@@ -5,8 +5,15 @@ import type { StoreApi } from 'zustand'
 
 import { mergeAdoRef, normalizeAdoRef } from '../lib/adoRef'
 import { rememberPreviousSession } from '../lib/sessionDiscovery'
+import { appendTodoEvents, type TodoEvent } from '../lib/tauri'
 import { resolveTerminalCwd, touchTerminalUsage } from '../lib/terminalFactory'
 import { cleanupPtys } from '../lib/terminalLifecycle'
+import {
+  normalizeTodoKind,
+  resolveTodoStatusForKind,
+  statusBelongsToKind,
+  todoKindInitialStatus,
+} from '../lib/todoKinds'
 import {
   applyTodoStatus,
   DEFAULT_TODOS,
@@ -18,6 +25,7 @@ import {
   placeTodoInList,
   reorderTodoItems,
   TODO_SESSIONS_MAX,
+  todoStatusOf,
 } from '../lib/todos'
 import type {
   Project,
@@ -25,6 +33,8 @@ import type {
   Terminal,
   TodoAdoRef,
   TodoItem,
+  TodoKind,
+  TodoStatus,
   WorkspaceContainer,
 } from '../lib/types'
 import type { ProjectsState } from './projectsStore'
@@ -65,6 +75,7 @@ type TodosSlice = Pick<
   | 'appendTodoNotes'
   | 'setTodoPriority'
   | 'setTodoStatus'
+  | 'setTodoKind'
   | 'setTodoProject'
   | 'setTodoAdoRef'
   | 'setTodoSession'
@@ -76,6 +87,27 @@ type TodosSlice = Pick<
   | 'reorderTodo'
 >
 
+/**
+ * Appends a status change to the task's history.
+ *
+ * Fire and forget: the board has already moved, and a history line that failed
+ * to write is not a reason to undo that or to keep the caller waiting.
+ */
+function recordTransition(
+  todo: TodoItem,
+  from: TodoStatus | null,
+  source: TodoEvent['source'],
+): void {
+  const to = todoStatusOf(todo)
+  if (from === to) return
+  void appendTodoEvents([
+    { id: todo.id, from, to, kind: normalizeTodoKind(todo.kind), at: Date.now(), source },
+  ]).catch(() => {})
+}
+
+/** A status change made inside `update`, recorded once the store has it. */
+type Transition = { todo: TodoItem; from: TodoStatus }
+
 export function createTodosSlice({ update }: SliceCtx): TodosSlice {
   return {
     createTodo: (rawTitle, rawTags = [], projectId, extra) => {
@@ -83,13 +115,15 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
       if (!title) return null
       const notes = normalizeTodoNotes(extra?.notes)
       const adoRef = normalizeAdoRef(extra?.adoRef)
+      const kind = normalizeTodoKind(extra?.kind)
       const todo: TodoItem = {
         id: nanoid(),
         title,
         completed: false,
         tags: normalizeTodoTags(rawTags),
         priority: normalizeTodoPriority(extra?.priority),
-        status: normalizeTodoStatus(extra?.status, false),
+        ...(kind !== 'general' ? { kind } : {}),
+        status: normalizeTodoStatus(extra?.status, false, kind),
         createdAt: Date.now(),
         ...(projectId ? { projectId } : {}),
         ...(notes ? { notes } : {}),
@@ -102,6 +136,7 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
           todos: [...state.todos.slice(0, insertAt), todo, ...state.todos.slice(insertAt)],
         }
       })
+      recordTransition(todo, null, extra?.source ?? 'ui')
       return todo
     },
 
@@ -234,26 +269,56 @@ export function createTodosSlice({ update }: SliceCtx): TodosSlice {
         })),
       })),
 
-    setTodoStatus: (id, status) =>
+    setTodoStatus: (id, status, source = 'ui') => {
+      let moved = null as Transition | null
       update((state) => {
         const current = state.todos.find((item) => item.id === id)
         if (!current) return
-        const normalized = normalizeTodoStatus(status, status === 'done')
-        if (normalized === normalizeTodoStatus(current.status, current.completed)) return
-        return { todos: placeTodoInList(state.todos, applyTodoStatus(current, normalized)) }
-      }),
+        const kind = normalizeTodoKind(current.kind)
+        const target = resolveTodoStatusForKind(status, kind)
+        const from = todoStatusOf(current)
+        if (!target || target === from) return
+        const next = applyTodoStatus(current, target)
+        moved = { todo: next, from }
+        return { todos: placeTodoInList(state.todos, next) }
+      })
+      if (moved) recordTransition(moved.todo, moved.from, source)
+    },
 
-    toggleTodo: (id) =>
+    setTodoKind: (id, rawKind, source = 'ui') => {
+      let moved = null as Transition | null
       update((state) => {
         const current = state.todos.find((item) => item.id === id)
         if (!current) return
-        return {
-          todos: placeTodoInList(
-            state.todos,
-            applyTodoStatus(current, current.completed ? 'todo' : 'done'),
-          ),
-        }
-      }),
+        const kind = normalizeTodoKind(rawKind)
+        if (kind === normalizeTodoKind(current.kind)) return
+        const from = todoStatusOf(current)
+        // A stage of the old kind means nothing in the new one; `paused` and
+        // `done` mean the same everywhere and survive the change.
+        const status = statusBelongsToKind(from, kind) ? from : todoKindInitialStatus(kind)
+        const next: TodoItem = { ...applyTodoStatus(current, status), kind }
+        if (kind === 'general') delete next.kind
+        moved = { todo: next, from }
+        return { todos: state.todos.map((item) => (item.id === id ? next : item)) }
+      })
+      if (moved) recordTransition(moved.todo, moved.from, source)
+    },
+
+    toggleTodo: (id) => {
+      let moved = null as Transition | null
+      update((state) => {
+        const current = state.todos.find((item) => item.id === id)
+        if (!current) return
+        const kind: TodoKind = normalizeTodoKind(current.kind)
+        const next = applyTodoStatus(
+          current,
+          current.completed ? todoKindInitialStatus(kind) : 'done',
+        )
+        moved = { todo: next, from: todoStatusOf(current) }
+        return { todos: placeTodoInList(state.todos, next) }
+      })
+      if (moved) recordTransition(moved.todo, moved.from, 'ui')
+    },
 
     deleteTodo: (id) =>
       update((state) => ({ todos: state.todos.filter((item) => item.id !== id) })),

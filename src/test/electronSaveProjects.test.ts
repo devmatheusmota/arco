@@ -98,3 +98,43 @@ describe('save_projects', () => {
     expect(JSON.parse(readFileSync(projectsFile(), 'utf8')).marker).toBe('kept')
   })
 })
+
+describe('load_projects', () => {
+  // The v13 migration rewrites every task's status, and the first save makes it
+  // permanent; the copy is the way back if the mapping got something wrong.
+  it('keeps a copy of a file from before v13, once', async () => {
+    writeFileSync(projectsFile(), '{"version":12,"projects":[],"marker":"old"}')
+    expect(await handlers.load_projects({})).toContain('"marker":"old"')
+    writeFileSync(projectsFile(), '{"version":12,"projects":[],"marker":"newer"}')
+    await handlers.load_projects({})
+    expect(readFileSync(`${projectsFile()}.pre-v13`, 'utf8')).toContain('"marker":"old"')
+  })
+
+  it('takes no copy of a current file', async () => {
+    writeFileSync(projectsFile(), '{"version":13,"projects":[]}')
+    await handlers.load_projects({})
+    expect(() => readFileSync(`${projectsFile()}.pre-v13`, 'utf8')).toThrow()
+  })
+})
+
+describe('todo events', () => {
+  it('appends a line per change and reads back only the task asked for', async () => {
+    await handlers.todo_events_append({
+      events: [
+        { id: 'a', from: null, to: 'task_todo', kind: 'task', at: 1, source: 'ui' },
+        { id: 'b', from: null, to: 'todo', kind: 'general', at: 2, source: 'cli' },
+      ],
+    })
+    await handlers.todo_events_append({
+      events: [{ id: 'a', from: 'task_todo', to: 'done', kind: 'task', at: 3, source: 'ui' }],
+    })
+    const events = (await handlers.todo_events_read({ id: 'a' })) as Array<{ to: string }>
+    expect(events.map((event) => event.to)).toEqual(['task_todo', 'done'])
+    expect(await handlers.todo_events_read({ id: 'nenhuma' })).toEqual([])
+  })
+
+  it('drops an entry without a task or a status instead of writing it', async () => {
+    await handlers.todo_events_append({ events: [{ id: 'a' }, null, { to: 'done' }] })
+    expect(await handlers.todo_events_read({ id: 'a' })).toEqual([])
+  })
+})

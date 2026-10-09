@@ -1,4 +1,17 @@
-import type { TodoItem, TodoPriority, TodoSessionLink, TodoSessionOwner, TodoStatus } from './types'
+import {
+  isTodoStatus,
+  normalizeTodoKind,
+  resolveTodoStatusForKind,
+  todoKindInitialStatus,
+} from './todoKinds'
+import type {
+  TodoItem,
+  TodoKind,
+  TodoPriority,
+  TodoSessionLink,
+  TodoSessionOwner,
+  TodoStatus,
+} from './types'
 
 export const TODO_TITLE_MAX_LENGTH = 200
 export const TODO_TAG_MAX_LENGTH = 24
@@ -41,24 +54,20 @@ export function normalizeTodoPriority(value: unknown): TodoPriority {
  * The command line and the agents that drive it type what they mean rather than
  * the stored token — "doing", "wip", "code-review" — so the words map here
  * instead of turning into an error the caller has to guess its way out of.
+ * Every staged status is also accepted as written, with hyphens or underscores.
  */
 const STATUS_ALIASES: Record<string, TodoStatus> = {
-  todo: 'todo',
   open: 'todo',
   backlog: 'todo',
   pending: 'todo',
-  in_progress: 'in_progress',
-  'in-progress': 'in_progress',
   inprogress: 'in_progress',
   doing: 'in_progress',
   wip: 'in_progress',
   started: 'in_progress',
-  review: 'review',
-  'code-review': 'review',
   code_review: 'review',
   cr: 'review',
   reviewing: 'review',
-  done: 'done',
+  parked: 'paused',
   complete: 'done',
   completed: 'done',
   finished: 'done',
@@ -67,14 +76,30 @@ const STATUS_ALIASES: Record<string, TodoStatus> = {
 /** Returns null for anything unrecognised, so a caller can tell a typo from a default. */
 export function parseTodoStatus(value: unknown): TodoStatus | null {
   if (typeof value !== 'string') return null
-  return STATUS_ALIASES[value.trim().toLowerCase()] ?? null
+  const token = value.trim().toLowerCase().replace(/-/g, '_')
+  if (isTodoStatus(token)) return token
+  return STATUS_ALIASES[token] ?? null
 }
 
-/** Reads a stored status, falling back to what `completed` already says. */
-export function normalizeTodoStatus(value: unknown, completed: boolean): TodoStatus {
-  const status = parseTodoStatus(value)
+/**
+ * Reads a stored status against the task's kind, falling back to what
+ * `completed` already says and, for a status that kind does not have, to the
+ * kind's first stage.
+ */
+export function normalizeTodoStatus(
+  value: unknown,
+  completed: boolean,
+  kind: TodoKind,
+): TodoStatus {
   if (completed) return 'done'
-  return status && status !== 'done' ? status : 'todo'
+  const status = parseTodoStatus(value)
+  const resolved = status ? resolveTodoStatusForKind(status, kind) : null
+  return resolved && resolved !== 'done' ? resolved : todoKindInitialStatus(kind)
+}
+
+/** The status a task holds, read against its own kind. */
+export function todoStatusOf(todo: Pick<TodoItem, 'status' | 'completed' | 'kind'>): TodoStatus {
+  return normalizeTodoStatus(todo.status, todo.completed, normalizeTodoKind(todo.kind))
 }
 
 /** The task list is split by `completed`, so a status change has to move that flag with it. */
@@ -344,7 +369,7 @@ export function buildTodoSearchIndex(
   const parts: Array<string | number | undefined> = [
     todo.title,
     ...todo.tags,
-    normalizeTodoStatus(todo.status, todo.completed),
+    todoStatusOf(todo),
     context.statusLabel,
     normalizeTodoPriority(todo.priority),
     context.priorityLabel,

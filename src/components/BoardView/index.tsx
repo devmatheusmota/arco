@@ -13,8 +13,9 @@ import { useMemo, useState } from 'react'
 import { useSessionFocus } from '../../hooks/useSessionFocus'
 import { liveSessionOf, resolveBoardDrop } from '../../lib/boardDrop'
 import { useT } from '../../lib/i18n'
-import { normalizeTodoPriority, normalizeTodoStatus } from '../../lib/todos'
-import { TODO_STATUSES, type TodoItem, type TodoStatus } from '../../lib/types'
+import { normalizeTodoKind, TODO_KINDS, todoKindStatuses } from '../../lib/todoKinds'
+import { normalizeTodoPriority, todoStatusOf } from '../../lib/todos'
+import type { TodoItem, TodoKind, TodoStatus } from '../../lib/types'
 import { useProjectsStore } from '../../stores/projectsStore'
 import { useTerminalsStore } from '../../stores/terminalsStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -23,9 +24,11 @@ import styles from './BoardView.module.css'
 
 // The task board.
 //
-// It owns no state of its own. Columns are `TODO_STATUSES`, moving a card calls
-// `setTodoStatus` — the same action the list's status pills call — so the board
-// and the sidebar cannot drift: they are two views of one field.
+// It owns no state of its own beyond which kind is on screen. Each kind of work
+// has its own stages, so the board shows one kind at a time and its columns are
+// that kind's statuses. Moving a card calls `setTodoStatus` — the same action
+// the list's status pills call — so the board and the sidebar cannot drift: they
+// are two views of one field.
 
 const CARD = 'card:'
 const COLUMN = 'col:'
@@ -184,13 +187,31 @@ export function BoardView() {
   // read as the start of a drag.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
-  const byStatus = useMemo(() => {
-    const grouped = new Map<TodoStatus, TodoItem[]>(TODO_STATUSES.map((status) => [status, []]))
+  // Open tasks per kind, for the tab labels and for the kind the board opens on.
+  const openByKind = useMemo(() => {
+    const counts = new Map<TodoKind, number>(TODO_KINDS.map((kind) => [kind, 0]))
     for (const todo of todos) {
-      grouped.get(normalizeTodoStatus(todo.status, todo.completed))?.push(todo)
+      if (todo.completed) continue
+      const kind = normalizeTodoKind(todo.kind)
+      counts.set(kind, (counts.get(kind) ?? 0) + 1)
+    }
+    return counts
+  }, [todos])
+  const [chosenKind, setChosenKind] = useState<TodoKind | null>(null)
+  const kind =
+    chosenKind ?? TODO_KINDS.find((candidate) => (openByKind.get(candidate) ?? 0) > 0) ?? 'general'
+  const statuses = todoKindStatuses(kind)
+
+  const byStatus = useMemo(() => {
+    const grouped = new Map<TodoStatus, TodoItem[]>(
+      todoKindStatuses(kind).map((status) => [status, []]),
+    )
+    for (const todo of todos) {
+      if (normalizeTodoKind(todo.kind) !== kind) continue
+      grouped.get(todoStatusOf(todo))?.push(todo)
     }
     return grouped
-  }, [todos])
+  }, [todos, kind])
 
   // One pass over the runtime map for the whole board rather than a store
   // subscription per card: a hundred cards each watching `byPtyId` would
@@ -239,6 +260,24 @@ export function BoardView() {
         <h1 className={styles.title}>{t('board.title')}</h1>
         <p className={styles.subtitle}>{t('board.subtitle')}</p>
       </header>
+      <div className={styles.kindTabs} role="tablist" aria-label={t('board.kindTabs')}>
+        {TODO_KINDS.map((candidate) => {
+          const open = openByKind.get(candidate) ?? 0
+          return (
+            <button
+              key={candidate}
+              type="button"
+              role="tab"
+              aria-selected={candidate === kind}
+              className={`${styles.kindTab} ${candidate === kind ? styles.kindTabActive : ''}`}
+              onClick={() => setChosenKind(candidate)}
+            >
+              <span>{t(`todo.kindValue.${candidate}`)}</span>
+              {open > 0 ? <span className={styles.kindTabCount}>{open}</span> : null}
+            </button>
+          )
+        })}
+      </div>
       <DndContext
         sensors={sensors}
         onDragStart={(event) =>
@@ -250,7 +289,7 @@ export function BoardView() {
         onDragEnd={onDragEnd}
       >
         <div className={styles.columns}>
-          {TODO_STATUSES.map((status) => (
+          {statuses.map((status) => (
             <Column
               key={status}
               status={status}

@@ -10,6 +10,22 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ## [Unreleased]
 
+### Changed
+
+- Tasks have a kind (Review, My PR, Task, Refinement, Release, Investigation, General), and each
+  kind has stages of its own instead of the same four statuses for everything. A pull request you
+  reviewed now reads "Waiting on author", one of yours "Waiting on review", a release "Waiting on
+  DevOps". Existing tasks get their kind from the bucket at the start of their title, and the
+  stage from their old status and tags such as `aguardando-autor`, which are then removed. A copy
+  of the file from before the change is kept as `projects.json.pre-v13`.
+- The board shows one kind at a time, with that kind's stages as columns.
+- The `arco` MCP tools and `arco todo` take `kind` and the new stages; `todo`, `in-progress` and
+  `review` still work on any kind. `arco todo status --help` lists every kind and stage.
+
+### Added
+
+- Each task keeps a history of its status changes, shown in its detail panel.
+
 ## [3.12.1] — 2026-10-09
 
 ### Fixed

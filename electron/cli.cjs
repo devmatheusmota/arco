@@ -13,6 +13,8 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
+const { KINDS, KIND_STATUSES, STATUSES, kindOf, statusOf } = require('./todo-kinds.cjs')
+
 const SETTINGS_FILE =
   process.env.ARCO_HOOKS_SETTINGS_FILE || path.join(os.tmpdir(), 'arco-agent-hooks.json')
 
@@ -60,6 +62,26 @@ function writeOut(text) {
 
 function writeErr(text) {
   writeTo(2, text)
+}
+
+/** The kinds and their stages, wrapped to the width of the rest of the help. */
+function kindTable() {
+  const indent = ' '.repeat(22)
+  return KINDS.map((kind) => {
+    const lines = []
+    let line = ''
+    for (const status of KIND_STATUSES[kind]) {
+      const next = line ? `${line} | ${status}` : status
+      if (next.length > 58 && line) {
+        lines.push(line)
+        line = status
+      } else line = next
+    }
+    lines.push(line)
+    return lines
+      .map((text, index) => (index === 0 ? `      ${kind.padEnd(16)}${text}` : `${indent}${text}`))
+      .join('\n')
+  }).join('\n')
 }
 
 const USAGE = `arco — abre diretorios e comanda o Arco a partir do terminal.
@@ -130,17 +152,18 @@ Detalhe de cada um abaixo.
   arco session rename <nome> [--session <id|current>]
       renomeia a sessao; sem --session, a que roda neste terminal
 
-  arco todo list [--json] [--status <status>] [--project <nome|id>]
+  arco todo list [--json] [--kind <tipo>] [--status <status>] [--project <nome|id>]
       lista as tarefas; sem --json sai em tabela com id curto
-      --status <status>       so as tarefas nesse status: todo | in-progress | review | done
+      --kind <tipo>           so as tarefas desse tipo (arco todo status --help)
+      --status <status>       so as tarefas nesse status
       --project <nome|id>     so as tarefas desse projeto; um projeto que nao
                               existe falha (arco project list)
 
   arco todo show <ref> [--json]   mostra uma tarefa inteira: notas, tags, card do ADO
 
-  arco todo add <titulo> [--project <nome>] [--tag <tag>]... [--status <status>]
-                    [--priority <nivel>] [--notes <texto>] [--ado <url|id>]
-                    [--session <id|current>]
+  arco todo add <titulo> [--project <nome>] [--tag <tag>]... [--kind <tipo>]
+                    [--status <status>] [--priority <nivel>] [--notes <texto>]
+                    [--ado <url|id>] [--session <id|current>]
   arco todo <titulo> [opcoes]     atalho de "add", so para titulo com mais de uma palavra
       --project <nome|id>     projeto da tarefa; sem isso, o do diretorio atual.
                               Um projeto que nao existe falha em vez de cair no
@@ -151,7 +174,9 @@ Detalhe de cada um abaixo.
       --tag <tag>...          substitui as tags
       --add-tag <tag>...      acrescenta tags
       --remove-tag <tag>...   remove tags
-      --status <status>       todo | in-progress | review | done
+      --kind <tipo>           muda o tipo; status que o tipo novo nao tem vai
+                              para a primeira etapa dele
+      --status <status>       uma etapa do tipo da tarefa
       --priority <nivel>      high | normal | low
       --notes <texto>         substitui as notas
       --append-notes <texto>  adiciona ao final das notas, separadas por linha em branco
@@ -164,6 +189,12 @@ Detalhe de cada um abaixo.
 
   arco todo status <ref> <status>   atalho para --status
   arco todo delete <ref> [--yes]    apaga a tarefa; --yes dispensa a confirmacao
+
+  arco todo status - tipos e etapas
+      cada tipo (--kind) tem as etapas dele; paused e done valem em todos.
+      todo, in-progress e review funcionam em qualquer tipo: primeira etapa,
+      inicio e entrega daquele tipo
+${kindTable()}
 
   arco project list [--json]
       lista os projetos: id curto, nome e diretorio padrao. * marca o projeto
@@ -287,6 +318,7 @@ function parseTodo(args) {
   const tags = []
   const words = []
   let project = null
+  let kind = null
   let status = null
   let priority = null
   let notes = null
@@ -297,6 +329,7 @@ function parseTodo(args) {
     const arg = args[index]
     if (arg === '--project') project = args[++index]
     else if (arg === '--tag') tags.push(args[++index])
+    else if (arg === '--kind') kind = args[++index]
     else if (arg === '--status') status = args[++index]
     else if (arg === '--priority') priority = args[++index]
     else if (arg === '--notes') notes = args[++index]
@@ -312,6 +345,7 @@ function parseTodo(args) {
     title: words.join(' '),
     tags: tags.filter(Boolean),
     project,
+    kind,
     status,
     priority,
     notes,
@@ -382,6 +416,7 @@ function parseTodoEdit(args) {
     else if (flag === '--tag') push('tags', rest[++index])
     else if (flag === '--add-tag') push('addTags', rest[++index])
     else if (flag === '--remove-tag') push('removeTags', rest[++index])
+    else if (flag === '--kind') payload.kind = rest[++index]
     else if (flag === '--status') payload.status = rest[++index]
     else if (flag === '--priority') payload.priority = rest[++index]
     else if (flag === '--notes') payload.notes = rest[++index]
@@ -399,15 +434,8 @@ function parseTodoEdit(args) {
   return payload
 }
 
-const STATUS_LABEL = {
-  todo: 'todo',
-  in_progress: 'in-progress',
-  review: 'review',
-  done: 'done',
-}
-
 /**
- * `arco todo list [--json] [--status <status>] [--project <nome|id>]`.
+ * `arco todo list [--json] [--kind <tipo>] [--status <status>] [--project <nome|id>]`.
  *
  * The listing used to read the two options it knew and skip everything else:
  * `--project Medtest` printed every task on the board and exited 0, which looks
@@ -416,22 +444,28 @@ const STATUS_LABEL = {
  * `--status doing` answered "nenhuma tarefa" rather than naming the typo.
  */
 function parseTodoList(args) {
-  const request = { json: false, status: null, project: null }
+  const request = { json: false, kind: null, status: null, project: null }
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
     if (arg === '--json') request.json = true
-    else if (arg === '--status' || arg === '--project') {
+    else if (arg === '--kind' || arg === '--status' || arg === '--project') {
       const value = (args[++index] ?? '').trim()
       if (!value || value.startsWith('--')) throw new Error(`arco todo list: ${arg} sem valor`)
       request[arg.slice(2)] = value
     } else if (arg.startsWith('-')) throw new Error(`arco todo list: opcao desconhecida: ${arg}`)
     else throw new Error(`arco todo list: argumento a mais: ${arg}`)
   }
+  if (request.kind && !KINDS.includes(request.kind)) {
+    throw new Error(
+      `arco todo list: tipo desconhecido: ${request.kind} (use: ${KINDS.join(' | ')})`,
+    )
+  }
   if (request.status) {
-    const status = request.status.replace(/-/g, '_')
-    if (!STATUS_LABEL[status]) {
+    const status = request.status.replace(/_/g, '-')
+    const known = request.kind ? [...KIND_STATUSES[request.kind], 'paused', 'done'] : STATUSES
+    if (!known.includes(status)) {
       throw new Error(
-        `arco todo list: status desconhecido: ${request.status} (use: ${Object.values(STATUS_LABEL).join(' | ')})`,
+        `arco todo list: status desconhecido: ${request.status} (use: ${known.join(' | ')})`,
       )
     }
     request.status = status
@@ -464,18 +498,12 @@ function parseTodoTarget(verb, args, { flags = [], words: wanted = 1 } = {}) {
   return { words, has: (flag) => seen.has(flag) }
 }
 
-/** Status as stored, so `--status` on the app side sees the same word it prints. */
-function statusOf(todo) {
-  if (todo.completed) return 'done'
-  return STATUS_LABEL[todo.status] ? todo.status : 'todo'
-}
-
 /** Table with the short id `arco todo edit` takes, so a listing is directly actionable. */
 function formatTodoTable(todos) {
   if (todos.length === 0) return 'nenhuma tarefa\n'
   const rows = todos.map((todo) => ({
     id: String(todo.id ?? '').slice(0, 8),
-    status: STATUS_LABEL[statusOf(todo)],
+    status: statusOf(todo),
     title: String(todo.title ?? ''),
     tags: (todo.tags ?? []).map((tag) => `#${tag}`).join(' '),
     // A task nobody can trace back to a session reads the same as one that was
@@ -505,7 +533,7 @@ function formatTodoReceipt(verb, todo) {
   if (!todo) return `${verb}\n`
   const id = String(todo.id ?? '').slice(0, 8)
   const tags = (todo.tags ?? []).map((tag) => `#${tag}`).join(' ')
-  return `${verb}  ${id}  ${STATUS_LABEL[statusOf(todo)]}  ${String(todo.title ?? '')}${
+  return `${verb}  ${id}  ${statusOf(todo)}  ${String(todo.title ?? '')}${
     tags ? `  ${tags}` : ''
   }\n`
 }
@@ -541,7 +569,8 @@ function formatTodoDetail(todo, projectName) {
   const lines = [
     ['id', String(todo.id ?? '')],
     ['titulo', String(todo.title ?? '')],
-    ['status', STATUS_LABEL[statusOf(todo)]],
+    ['tipo', kindOf(todo)],
+    ['status', statusOf(todo)],
     ['prioridade', String(todo.priority ?? 'normal')],
     ['tags', (todo.tags ?? []).map((tag) => `#${tag}`).join(' ') || '-'],
     ['projeto', projectName || todo.projectId || '-'],
@@ -885,7 +914,7 @@ async function runTodo(rest) {
   const [subcommand, ...args] = rest
 
   if (subcommand === 'list' || subcommand === 'ls') {
-    const { json, status, project } = parseTodoList(args)
+    const { json, kind, status, project } = parseTodoList(args)
     const result = await post('todo/list', project ? { project } : {})
     if (project) {
       // The file on disk has the tasks but not the projects, so there is no
@@ -902,7 +931,9 @@ async function runTodo(rest) {
     }
     const todos = result.data?.todos ?? []
     if (result.stale) writeErr('aviso: o app nao respondeu; lista lida do arquivo em disco\n')
-    const filtered = status ? todos.filter((todo) => statusOf(todo) === status) : todos
+    const filtered = todos
+      .filter((todo) => !kind || kindOf(todo) === kind)
+      .filter((todo) => !status || statusOf(todo) === status)
     writeOut(json ? `${JSON.stringify(filtered)}\n` : formatTodoTable(filtered))
     return
   }

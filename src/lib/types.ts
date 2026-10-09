@@ -63,13 +63,57 @@ export type TodoPriority = 'low' | 'normal' | 'high'
 export const TODO_PRIORITIES: TodoPriority[] = ['high', 'normal', 'low']
 
 /**
+ * What kind of work a task is. Each kind has its own stages; `src/lib/todoKinds.ts`
+ * holds them. A task with no kind is `general`.
+ */
+export type TodoKind =
+  'review' | 'pr' | 'task' | 'refinement' | 'release' | 'investigation' | 'general'
+
+/** Whose turn a status is: yours, another person's, or a machine's (a pipeline). */
+export type TodoHolder = 'me' | 'other' | 'machine'
+
+/**
  * Where a task stands. `completed` remains the flag the list is split by, and
  * `done` is its mirror: the two are always set together, so nothing that reads
  * the old field has to learn about this one.
+ *
+ * `todo`, `in_progress` and `review` are the stages of a `general` task; every
+ * other kind has its own, and `paused` and `done` belong to all of them.
  */
-export type TodoStatus = 'todo' | 'in_progress' | 'review' | 'done'
-
-export const TODO_STATUSES: TodoStatus[] = ['todo', 'in_progress', 'review', 'done']
+export type TodoStatus =
+  | 'todo'
+  | 'in_progress'
+  | 'review'
+  | 'paused'
+  | 'done'
+  | 'review_pending'
+  | 'review_waiting_author'
+  | 'review_rereview'
+  | 'review_approved'
+  | 'pr_draft'
+  | 'pr_waiting_review'
+  | 'pr_changes_requested'
+  | 'pr_waiting_revote'
+  | 'pr_approved'
+  | 'pr_waiting_hml'
+  | 'task_todo'
+  | 'task_blocked'
+  | 'task_in_progress'
+  | 'task_validating'
+  | 'refinement_waiting_pm'
+  | 'refinement_ready'
+  | 'refinement_in_progress'
+  | 'refinement_waiting_decision'
+  | 'release_scope_open'
+  | 'release_assembling'
+  | 'release_waiting_devops'
+  | 'release_pipeline'
+  | 'release_testing'
+  | 'release_followup'
+  | 'investigation_open'
+  | 'investigation_reply'
+  | 'investigation_waiting_requester'
+  | 'investigation_escalated'
 
 /** An agent session that was launched from a task, kept so the task can jump back to it. */
 export type TodoSessionLink = {
@@ -130,6 +174,8 @@ export type TodoItem = {
   /** Extra context handed to the agent when a session is started from this task. */
   notes?: string
   priority?: TodoPriority
+  /** Absent means `general`. Decides which statuses the task can hold. */
+  kind?: TodoKind
   /** Kept in step with `completed`: `done` there, anything else here means open. */
   status?: TodoStatus
   createdAt?: number
@@ -587,7 +633,7 @@ export type ResourcePolicyPreferences = {
 }
 
 export type ProjectsFile = {
-  version: 12
+  version: 13
   /** Project order in the sidebar. */
   projectOrder: string[]
   projects: Project[]
@@ -697,7 +743,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 export const EMPTY_PROJECTS_FILE: ProjectsFile = {
-  version: 12,
+  version: 13,
   projectOrder: [],
   projects: [],
   todos: [],

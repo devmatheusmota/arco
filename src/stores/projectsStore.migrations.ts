@@ -4,6 +4,7 @@ import { normalizeAdoRef } from '../lib/adoRef'
 import { normalizeEnabledFeatures } from '../lib/features'
 import { generatePaneShortId, isPaneShortId } from '../lib/paneShortId'
 import { isGenericSessionName } from '../lib/sessionLabel'
+import { normalizeTodoKind } from '../lib/todoKinds'
 import {
   normalizeTodoNotes,
   normalizeTodoPriority,
@@ -22,6 +23,8 @@ import {
   type ProjectsFile,
   type Terminal,
   type TodoItem,
+  type TodoKind,
+  type TodoStatus,
   type WorkspaceContainer,
   type WorkspaceRecentTab,
   type WorkspaceTab,
@@ -173,13 +176,15 @@ export function normalizeTodos(raw: unknown): TodoItem[] {
       (sessions[0] ? todoSessionOwnerFromLink(sessions[0]) : null)
     const adoRef = normalizeAdoRef(item?.adoRef)
     const completed = Boolean(item?.completed)
+    const kind = normalizeTodoKind(item?.kind)
     result.push({
       id,
       title,
       completed,
       tags: normalizeTodoTags(item?.tags),
       priority: normalizeTodoPriority(item?.priority),
-      status: normalizeTodoStatus(item?.status, completed),
+      ...(kind !== 'general' ? { kind } : {}),
+      status: normalizeTodoStatus(item?.status, completed, kind),
       createdAt: typeof item?.createdAt === 'number' ? item.createdAt : Date.now(),
       ...(completed && typeof item?.completedAt === 'number'
         ? { completedAt: item.completedAt }
@@ -603,7 +608,7 @@ function nameForGroup(panes: Terminal[], worktreeAgentId: string | undefined): s
  * from the group yet, and the code that provisions and removes worktrees still
  * reads `Terminal.worktreeAgentId`; moving that is its own change.
  */
-function migrateToV12(parsed: any): ProjectsFile {
+function migrateToV12(parsed: any): PartiallyMigratedFile {
   const v11 = migrateToV11(parsed)
   return {
     ...v11,
@@ -673,15 +678,100 @@ function migrateToV12(parsed: any): ProjectsFile {
   }
 }
 
+/**
+ * The kind a task's title bucket stood for, before tasks had a kind.
+ *
+ * The bucket (`[REVIEW]`, `[MEU PR]`...) is a naming convention the agents that
+ * file tasks follow, not something the app defines, so it is read once here and
+ * never again: from v13 on the kind is a field of its own.
+ */
+const KIND_BY_BUCKET: Record<string, TodoKind> = {
+  REVIEW: 'review',
+  'RE-REVIEW': 'review',
+  'MEU PR': 'pr',
+  TASK: 'task',
+  SPEC: 'refinement',
+  RESEARCH: 'refinement',
+  RELEASE: 'release',
+  INVESTIGAR: 'investigation',
+}
+
+/** Tags that stood in for a status the four old ones could not express. */
+const STATE_TAGS = new Set([
+  'aguardando-autor',
+  'aguardando-review',
+  'aguardando-pm',
+  'aguardando-devops',
+  'bloqueado',
+])
+
+/** The stage a v12 task was in, read from its old status, its bucket and its state tags. */
+function stagedStatus(todo: TodoItem, bucket: string, kind: TodoKind): TodoStatus {
+  const old = todo.status ?? 'todo'
+  const tags = new Set(todo.tags)
+  const title = todo.title.toLowerCase()
+  if (todo.completed || old === 'done') return 'done'
+  switch (kind) {
+    case 'review':
+      if (bucket === 'RE-REVIEW') return 'review_rereview'
+      return tags.has('aguardando-autor') ? 'review_waiting_author' : 'review_pending'
+    case 'pr':
+      if (/\]\s*ajustar\b/.test(title)) return 'pr_changes_requested'
+      if (/\]\s*publicar\b/.test(title)) return 'pr_draft'
+      if (/\]\s*acompanhar\b/.test(title)) return 'pr_waiting_review'
+      return old === 'in_progress' ? 'pr_changes_requested' : 'pr_waiting_review'
+    case 'task':
+      if (tags.has('bloqueado')) return 'task_blocked'
+      if (old === 'in_progress') return 'task_in_progress'
+      return old === 'review' ? 'task_validating' : 'task_todo'
+    case 'refinement':
+      if (tags.has('aguardando-pm')) return 'refinement_waiting_pm'
+      if (old === 'in_progress') return 'refinement_in_progress'
+      return old === 'review' ? 'refinement_waiting_decision' : 'refinement_ready'
+    case 'release':
+      if (tags.has('aguardando-devops')) return 'release_waiting_devops'
+      return old === 'review' ? 'release_testing' : 'release_assembling'
+    case 'investigation':
+      return old === 'review' ? 'investigation_waiting_requester' : 'investigation_open'
+    default:
+      return normalizeTodoStatus(old, false, 'general')
+  }
+}
+
+/** One task from v12: a kind from its bucket, a stage instead of the state tags. */
+export function stageLegacyTodo(todo: TodoItem): TodoItem {
+  const bucket =
+    todo.title
+      .match(/^\s*\[([^\]]+)\]/)?.[1]
+      ?.trim()
+      .toUpperCase() ?? ''
+  const kind = KIND_BY_BUCKET[bucket]
+  if (!kind) return todo
+  const status = stagedStatus(todo, bucket, kind)
+  return {
+    ...todo,
+    kind,
+    status,
+    tags: status === 'done' ? todo.tags : todo.tags.filter((tag) => !STATE_TAGS.has(tag)),
+  }
+}
+
+/**
+ * v13: tasks gain a kind and stages of their own.
+ *
+ * Runs on the tasks of a v12 file only; a v13 file already carries both and
+ * goes through `normalizeTodos` as stored. A finished task keeps its tags, since
+ * they are its history and nothing will move it again.
+ */
+function migrateToV13(parsed: any): ProjectsFile {
+  const v12 = migrateToV12(parsed)
+  const todos = (parsed.version ?? 0) < 13 ? v12.todos.map(stageLegacyTodo) : v12.todos
+  return { ...v12, version: 13, todos }
+}
+
 /** Migrates older files and normalizes restorable snapshots. */
 export function migrate(parsed: any): ProjectsFile {
-  if (parsed.version === 12) return migrateToV12(parsed)
-  if (parsed.version === 11) return migrateToV12(parsed)
-  if (parsed.version === 10) return migrateToV12(parsed)
-  if (parsed.version === 9) return migrateToV12(parsed)
-  if (parsed.version === 8) return migrateToV12(parsed)
-  if (parsed.version === 7) return migrateToV12(parsed)
-  if (parsed.version === 6) return migrateToV12(parsed)
+  if (parsed.version >= 6 && parsed.version <= 13) return migrateToV13(parsed)
 
   const v5Result = parsed.version === 5 ? parsed : migrateToV5(parsed)
 
@@ -691,7 +781,7 @@ export function migrate(parsed: any): ProjectsFile {
     orphanWorktrees: p.orphanWorktrees ?? [],
   }))
 
-  return migrateToV12({
+  return migrateToV13({
     ...v5Result,
     version: 6,
     projects: v6Projects,

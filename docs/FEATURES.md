@@ -90,6 +90,28 @@ you are reading. Only a terminal is accepted there, and only one at a time.
 
 ![Home view with recent projects and quick actions](screenshots/home-view.png)
 
+## Task Board
+
+- Tasks in a side panel and on a board, filed under projects and linked to Azure DevOps work
+  items and pull requests.
+- Every task has a kind with stages of its own, so its status names the next step and whose turn
+  it is:
+  - **Review** (someone else's pull request): to review, waiting on author, re-review, approved.
+  - **My PR**: draft, waiting on review, changes requested, waiting on re-vote, approved, merged
+    and waiting to ship to staging.
+  - **Task**: to do, blocked, in progress, validate.
+  - **Refinement**: waiting on PM, ready to refine, refining, waiting on a decision.
+  - **Release**: scope open, assembling, waiting on DevOps, pipeline running, testing,
+    post-deploy.
+  - **Investigation**: investigating, reply to requester, waiting on requester, escalated.
+  - **General**: to do, in progress, in review.
+  - Every kind can also be paused or done.
+- The board shows one kind at a time, with that kind's stages as columns.
+- Each task keeps a history of its status changes, shown in its detail. The history is stored
+  beside the workspace file, not inside it.
+- Agents move tasks through the `arco` MCP tools and the `arco todo` command, which take the kind
+  and stage (`todo`, `in-progress` and `review` still work on any kind).
+
 ## Search and Navigation
 
 - Jump modal for terminals.
