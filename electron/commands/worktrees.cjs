@@ -209,6 +209,41 @@ function finishRemoval(target) {
 }
 
 /**
+ * Deletes the branch a removed worktree was on, when nothing would go with it.
+ *
+ * The branch exists only for the worktree, and `git worktree remove` leaves it
+ * behind: a repository that had run agents for a few weeks carried sixty of
+ * them. A branch holding a commit that no remote and no other local branch has
+ * is kept, since deleting it would lose that commit.
+ */
+async function dropAgentBranch(repo, agentId) {
+  const ref = `refs/heads/${branchName(agentId)}`
+  const exists = await git(['rev-parse', '--verify', '--quiet', ref], repo).then(
+    () => true,
+    () => false,
+  )
+  if (!exists) return
+  const only = await git(
+    // `--exclude` before `--branches` takes the name without `refs/heads/`.
+    [
+      'rev-list',
+      '--count',
+      ref,
+      '--not',
+      '--remotes',
+      `--exclude=${branchName(agentId)}`,
+      '--branches',
+    ],
+    repo,
+  ).then(
+    (out) => Number(out.trim()),
+    () => null,
+  )
+  if (only !== 0) return
+  await git(['branch', '-D', branchName(agentId)], repo).catch(() => null)
+}
+
+/**
  * Removes an agent worktree, and says so when it could not.
  *
  * Callers tell `worktree_not_found` apart from a real failure: the first means
@@ -229,6 +264,7 @@ async function remove({ repo, agentId, force }) {
       if (fs.existsSync(target)) finishRemoval(target)
       await git(['worktree', 'prune'], repo).catch(() => null)
     }
+    await dropAgentBranch(repo, agentId)
   } else if (mode === 'localCopy') {
     try {
       fs.rmSync(target, { recursive: true, force: true })

@@ -159,6 +159,36 @@ describe('remove', () => {
     expect(await list({ repo })).toEqual([])
   })
 
+  const branches = () =>
+    execFileSync('git', ['branch', '--list', 'arco/agent-*'], { cwd: repo, encoding: 'utf8' })
+
+  // The branch exists only for the worktree; `git worktree remove` left it, and
+  // a repository collected one per agent ever run.
+  it('deletes the branch the worktree was on when nothing would be lost', async () => {
+    commitSomething()
+    await provision({ repo, agentId: 'cl-3' })
+    expect(branches()).toContain('arco/agent-cl-3')
+
+    await remove({ repo, agentId: 'cl-3', force: true })
+
+    expect(branches()).not.toContain('arco/agent-cl-3')
+  })
+
+  it('keeps the branch when it holds a commit no other branch has', async () => {
+    commitSomething()
+    await provision({ repo, agentId: 'cl-4' })
+    const tree = join(repo, '.arco', 'worktrees', 'cl-4')
+    writeFileSync(join(tree, 'work.txt'), 'only here\n')
+    execFileSync('git', ['add', '-A'], { cwd: tree })
+    execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'agent'], {
+      cwd: tree,
+    })
+
+    await remove({ repo, agentId: 'cl-4', force: true })
+
+    expect(branches()).toContain('arco/agent-cl-4')
+  })
+
   it('says worktree_not_found when there is nothing to remove', async () => {
     await expect(remove({ repo, agentId: 'cl-9', force: true })).rejects.toThrow(
       'worktree_not_found',
